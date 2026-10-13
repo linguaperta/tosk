@@ -66,8 +66,15 @@ class TransformTemplate extends ExerciseTemplate {
     final meta = ctx.course.meta;
     final forms = ctx.course.verbForms(facet.itemId);
     final out = <_Plan>[];
+    final infinitive = forms['infinitive.$kNoPerson'];
     for (final o in ix.formOccurrences(facet.itemId)) {
-      if (o.tense != tense) {
+      // A finite form spelled like the infinitive (Dutch `vertellen`) may
+      // really be an infinitive after a modal (`kan ik dat Tom niet
+      // vertellen`): rewriting it is unreliable.
+      if (infinitive != null && o.wordCount == 1 && ix.acceptedKeys(infinitive).contains(foldAnswer(o.matched))) {
+        continue;
+      }
+      if (o.tense != tense && _tenseSwapOk(o, tense, ctx)) {
         final target = forms['$tense.${o.person}'];
         if (target != null) {
           final r = _construct(o, target.form, tense, ctx);
@@ -92,15 +99,51 @@ class TransformTemplate extends ExerciseTemplate {
     return out;
   }
 
+  /// A tense change keeps the sentence coherent only when every other finite
+  /// verb is in the source or the target tense (`Wie was de filosoof die ooit
+  /// geleefd heeft?` -> present would mix past and present), and a simple form
+  /// does not become compound next to a participle (`gezegd werd` is a
+  /// passive: `gezegd is geworden` is wrong).
+  bool _tenseSwapOk(FormOccurrence o, String target, GenContext ctx) {
+    final s = o.sentence;
+    final aux = ctx.index.auxiliaryPositions(s);
+    final tf = ctx.course.verbForms(o.verbId)['$target.${o.person}'];
+    final toCompound = o.wordCount == 1 && tf != null && ctx.index.wordsOf(tf.form).length > 1;
+    // An auxiliary next to a participle (`als ik nee had gezegd`) is a tense
+    // of the other verb: `heb gezegd` is not the present of `had`.
+    final lemma = ctx.course.item(o.verbId)?.lemma;
+    final isAuxiliary = o.wordCount == 1 && lemma != null && ctx.index.auxiliaryLemmas.contains(lemma);
+    for (var i = 0; i < s.tokens.length; i++) {
+      final t = s.tokens[i];
+      if (o.positions.contains(i) || aux.contains(i) || !t.isWord || t.lex == null) continue;
+      // A verb whose form the alignment left open (`Wat wil je dat ik doe?`)
+      // has an unknown tense.
+      if (t.form == null) {
+        if (ctx.course.verbForms(t.lex!).isNotEmpty) return false;
+        continue;
+      }
+      final tense = t.tense;
+      if (t.person == kNoPerson) {
+        if (tense == 'participle' && (toCompound || isAuxiliary)) return false;
+        continue;
+      }
+      if (tense != o.tense && tense != target) return false;
+    }
+    return true;
+  }
+
   bool _personSwapOk(FormOccurrence o, GenContext ctx) {
     final ix = ctx.index;
     if (!ix.dropsPronoun(o.person)) return false;
     final s = o.sentence;
     final first = o.firstPos;
+    final firstWord = s.tokens.indexWhere((t) => t.isWord);
     for (var i = 0; i < s.tokens.length; i++) {
       final t = s.tokens[i];
       if (!t.isWord || o.positions.contains(i)) continue;
       if (ix.isPronounToken(t)) return false;
+      // A name anywhere may be the subject (`Heeft Tom … gezien?`).
+      if (i != firstWord && t.t != lowerFirst(t.t)) return false;
       if (i < first) {
         final lex = t.lex;
         final item = lex == null ? null : ctx.course.item(lex);

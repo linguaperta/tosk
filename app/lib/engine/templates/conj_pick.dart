@@ -78,12 +78,12 @@ class ConjPickTemplate extends ExerciseTemplate {
     addGroup([
       for (final v in sameClass)
         for (final f in ix.finiteForms(v.id, cell.tense))
-          if (f.hasSplit) f,
+          if (f.hasSplit && stemsEndAlike(f.stem!, cell.stem!)) f,
     ]);
     addGroup([
       for (final v in others)
         for (final f in ix.finiteForms(v.id, cell.tense))
-          if (f.hasSplit) f,
+          if (f.hasSplit && stemsEndAlike(f.stem!, cell.stem!)) f,
     ]);
     return out;
   }

@@ -107,7 +107,7 @@ class ConjGridTemplate extends ExerciseTemplate {
       for (final v in others) {
         if (verb?.verbClass != null && course.verb(v.id)?.verbClass == verb!.verbClass) continue;
         final f = course.verbForms(v.id)[cell.key];
-        if (f != null && f.hasSplit && f.ending != cell.ending) b.add(cell.stem! + f.ending!);
+        if (f != null && f.hasSplit && f.ending != cell.ending && stemsEndAlike(f.stem!, cell.stem!)) b.add(cell.stem! + f.ending!);
       }
       for (final other in cells) {
         if (other.person != cell.person && other.hasSplit) c.add(cell.stem! + other.ending!);

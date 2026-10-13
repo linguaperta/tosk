@@ -97,9 +97,16 @@ class CourseIndex {
 
   // ------------------------------------------------------------ persons
 
+  /// Subject pronouns of each person: the parts of the person key (`hij/zij`)
+  /// and of its labels outside parentheses (`jij/je (you)` adds `je`), so
+  /// `Je werkt` counts as having its pronoun.
   late final Map<String, Set<String>> _personComponents = {
     for (final p in meta.persons)
-      p: {for (final c in p.split('/')) if (foldAnswer(c).isNotEmpty) foldAnswer(c)},
+      p: {
+        for (final c in p.split('/')) foldAnswer(c),
+        for (final label in (meta.personLabels[p] ?? const <String, String>{}).values)
+          for (final c in label.replaceAll(_parens, ' ').split('/')) foldAnswer(c),
+      }..remove(''),
   };
 
   /// Persons other than [person] that share a pronoun with it, e.g. Dutch
@@ -297,6 +304,14 @@ class CourseIndex {
     for (final i in course.allItems)
       if (course.verbForms(i.id).isNotEmpty) i,
   ];
+
+  /// Lemmas of the perfect auxiliaries named by the verbs (`avere`, `essere`;
+  /// `hebben`, `zijn`).
+  late final Set<String> auxiliaryLemmas = {
+    for (final v in verbs)
+      for (final a in (course.verb(v.id)?.auxiliary ?? '').split('|'))
+        if (a.trim().isNotEmpty) a.trim(),
+  };
 
   final Map<VerbForm, Set<String>> _acceptedKeys = Map.identity();
 
@@ -679,18 +694,32 @@ class CourseIndex {
   /// Display text of a sentence's word tokens for tiles: the first word is
   /// lower-cased unless it looks like a proper noun (unaligned, or aligned to
   /// an item whose lemma is capitalized).
+  ///
+  /// The same goes for a word that starts a later sentence of the text
+  /// (`"Was Bill in Japan?" "Ja, inderdaad."`): capitals would give the
+  /// sentence boundaries away.
   List<String> tileWords(Sentence s) {
-    final ws = words(s);
-    final out = [for (final t in ws) t.t];
-    if (out.isEmpty) return out;
-    final first = ws.first;
-    final lex = first.lex;
-    final item = lex == null ? null : course.item(lex);
-    final lowerOk = (item != null && item.lemma.isNotEmpty && item.lemma == lowerFirst(item.lemma)) ||
-        articleKeys.contains(normalizeAnswer(first.t)) ||
-        pronounKeys.contains(foldAnswer(first.t));
-    if (lowerOk) out[0] = lowerFirst(out[0]);
+    final out = <String>[];
+    var start = true;
+    for (final t in s.tokens) {
+      if (!t.isWord) {
+        if (_sentenceEnd.hasMatch(t.t)) start = true;
+        continue;
+      }
+      out.add(start && _lowerOk(t) ? lowerFirst(t.t) : t.t);
+      start = false;
+    }
     return out;
+  }
+
+  static final RegExp _sentenceEnd = RegExp(r'[.!?…]');
+
+  bool _lowerOk(Token t) {
+    final lex = t.lex;
+    final item = lex == null ? null : course.item(lex);
+    return (item != null && item.lemma.isNotEmpty && item.lemma == lowerFirst(item.lemma)) ||
+        articleKeys.contains(normalizeAnswer(t.t)) ||
+        pronounKeys.contains(foldAnswer(t.t));
   }
 }
 

@@ -21,7 +21,7 @@ class _Plan {
 /// Tap the wrong word.
 ///
 /// * `#form:{tense}`: one word of the verb form is replaced by the matching
-///   word of another person's form (then another tense's), only when that
+///   word of another person's form in the same tense, only when that
 ///   form is not an accepted form of the cell nor of a person sharing its
 ///   pronoun (Italian `sono` io/loro, Dutch `eet` ik/jij/hij are never used).
 /// * `#article`: the article before the noun is replaced by a wrong one.
@@ -48,11 +48,11 @@ class SpotErrorTemplate extends ExerciseTemplate {
       final occ = ix.formOccurrencesIn(facet.itemId, facet.tense!);
       for (final o in shuffle ? ctx.shuffled(occ) : occ) {
         if (out.length >= limit) break;
-        final swaps = formSwaps(ix, o);
-        if (swaps.isEmpty) continue;
-        // Prefer other persons of the same tense (listed first).
-        final sameTense = [for (final s in swaps) if (s.replacement.tense == o.tense) s];
-        final pool = sameTense.isNotEmpty ? sameTense : swaps;
+        // Only other persons of the same tense: a swap to another tense
+        // (`De leerlingen mogen` -> `mochten`) usually leaves a grammatical
+        // sentence that is wrong only against the translation.
+        final pool = [for (final s in formSwaps(ix, o)) if (s.replacement.tense == o.tense) s];
+        if (pool.isEmpty) continue;
         final sw = shuffle ? ctx.pick(pool) : pool.first;
         out.add(_Plan(
           o.sentence.id,
