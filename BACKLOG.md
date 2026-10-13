@@ -128,9 +128,21 @@ Each item says what "done" means. Add newly discovered work at the bottom of its
 - [ ] Graded mini-stories per unit (pipeline-generated with only known vocab and grammar), with tap-for-translation and comprehension questions
 - [ ] Pronunciation button (on-device TTS); review forecast and stats (accuracy per type and tense)
 - [ ] AI conversation practice limited to unlocked grammar and vocab (needs an API key)
-- [ ] New-language trial: Spanish or French via the existing pipeline (measures the per-language cost)
 - [ ] Schema: generalize `verb_forms` into inflection tables for any POS, with a declension facet kind (unlocks German and Slavic noun/adjective cases)
 - [-] Optional on-the-fly AI sentences in the lab ("more like this"), clearly labelled as unvalidated
+
+## v0.6: new full-size courses (the "easy" languages)
+
+Each one at the expanded it/nl scale: 8–10 units, ~30 skills, ~1000 taught words, grammar-first gating, tr.en + tr.nl, grammar notes in en and nl, sentence floor via generation, a native-level sample review, and the real-pack validity and perf tests passing.
+
+- [ ] Spanish (`es`), built first as the pilot, to measure the per-language cost and fix generic pipeline gaps
+- [ ] Portuguese (`pt`): pick and document a variety (European or Brazilian)
+- [ ] French (`fr`): elision, partitive articles, passé composé with être/avoir
+- [ ] Esperanto (`eo`)
+- [ ] Swedish (`sv`)
+- [ ] Norwegian Bokmål (`nb`)
+- [ ] Danish (`da`)
+- [ ] Course picker that scales to ~10 courses (grouped by source language, with flags/icons), and an `index.json` listing all of them
 
 ## Later (not v1)
 

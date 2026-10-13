@@ -9,6 +9,7 @@ The detailed task list lives in [BACKLOG.md](../BACKLOG.md). This page is the re
 | **v0.3** | Bigger courses with grammar-first order, AI explanations, flagging, sounds, mistake review, one-handed layout, Sarnami (local) | in progress |
 | v0.4 | Content downloads and sync | planned |
 | v0.5 | Handwriting and e-ink (Boox), listening | planned |
+| v0.6 | New full-size courses: Spanish, Portuguese, French, Esperanto, Swedish, Norwegian, Danish | planned |
 | Later | RPG/forest layer, personalized vocabulary, reading readiness, ghost race | parked |
 
 ## v0.3
@@ -34,6 +35,12 @@ The detailed task list lives in [BACKLOG.md](../BACKLOG.md). This page is the re
 - ML Kit Digital Ink as an `AnswerInput` for production exercises, plus the Onyx pen SDK on the Boox.
 - E-ink mode: no animations, high contrast, a full refresh after each lesson.
 - `listen_pick` with on-device text-to-speech.
+
+## v0.6: new full-size courses
+
+These are the "easy" languages for this pipeline: good Wiktionary conjugation coverage, plenty of Tatoeba sentences, frequency lists, and space-separated Latin script. Spanish comes first as the pilot, then Portuguese, French, Esperanto, Swedish, Norwegian (Bokmål) and Danish. Each is built at the expanded it/nl scale (~30 skills and ~1000 words) with grammar-first gating and Dutch and English translations.
+
+German and the Slavic languages follow once inflection tables are generalized beyond verbs (the declension extension, a v0.4 candidate).
 
 ## Parked
 
