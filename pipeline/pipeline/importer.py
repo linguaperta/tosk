@@ -60,6 +60,15 @@ def log(msg: str) -> None:
     print(msg, file=sys.stderr, flush=True)
 
 
+_INVISIBLE = dict.fromkeys(map(ord, "​‌‍⁠﻿­"))
+
+
+def clean_text(text: str) -> str:
+    """Tatoeba text without invisible characters (zero-width spaces, soft hyphens) and with single
+    plain spaces: 'draagt ​​een' would not re-render from tokens."""
+    return " ".join(text.translate(_INVISIBLE).replace(" ", " ").split())
+
+
 def dedupe_key(text: str) -> str:
     """Sentences that differ only in case, punctuation or spacing are duplicates ('Grazie mille!'
     and 'Grazie mille.'): the app compares sentences by their normalized text."""
@@ -265,7 +274,7 @@ def load_tatoeba(code: str, cache: Path) -> tuple[dict[int, str], dict[int, dict
     for parts in _read_tsv_bz2(tdir / f"{t3}_sentences.tsv.bz2"):
         if len(parts) < 3:
             continue
-        text = parts[2].strip()
+        text = clean_text(parts[2])
         n = len(text.split())
         if MIN_WORDS <= n <= MAX_WORDS:
             target[int(parts[0])] = text
@@ -288,7 +297,7 @@ def load_tatoeba(code: str, cache: Path) -> tuple[dict[int, str], dict[int, dict
         tx = {}
         for parts in _read_tsv_bz2(tdir / fname):
             if len(parts) >= 3 and int(parts[0]) in need[lang]:
-                tx[int(parts[0])] = parts[2].strip()
+                tx[int(parts[0])] = clean_text(parts[2])
         texts[lang] = tx
     trs: dict[int, dict[str, tuple[int, str]]] = {}
     for sid in target:

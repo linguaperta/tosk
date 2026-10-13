@@ -245,6 +245,12 @@ def test_sentence_dedupe_ignores_punctuation_and_case():
     assert dedupe_key("Grazie mille, Tom.") != dedupe_key("Grazie mille.")
 
 
+def test_clean_text_drops_invisible_characters():
+    from pipeline.importer import clean_text
+    assert clean_text("Ze draagt ​​een oranje jurk.") == "Ze draagt een oranje jurk."
+    assert clean_text(" Ciao, Tom!﻿ ") == "Ciao, Tom!"
+
+
 def test_italian_irregular_imperfetto_and_futuro():
     from pipeline.lang import get_lang
     it = get_lang("it")
