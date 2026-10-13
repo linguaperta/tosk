@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../core/core.dart';
+import '../theme/bw_skin.dart';
 import '../theme/skin.dart';
 import 'map_layout.dart';
 import 'skill_node.dart';
@@ -97,7 +98,11 @@ class SkillMapView extends StatelessWidget {
                   top: g.bandTop[b.index],
                   height: MapGeometry.bandHeader + b.rowCount * g.rowHeight,
                   child: DecoratedBox(
-                    decoration: BoxDecoration(color: style.bandColor(b.index), borderRadius: BorderRadius.circular(16)),
+                    decoration: BoxDecoration(
+                      color: style.bandColor(b.index),
+                      borderRadius: BorderRadius.circular(16),
+                      border: style.monochrome ? Border.all(color: kBwBlack, width: kBwBorder) : null,
+                    ),
                   ),
                 ),
               Positioned.fill(
@@ -161,6 +166,7 @@ class SkillMapView extends StatelessWidget {
                         reduceMotion: reduceMotion,
                         onTap: onTap == null ? null : () => onTap!(skill),
                         onLongPress: onLongPress == null ? null : () => onLongPress!(skill),
+                        labelBackground: style.bandColor(n.band),
                       ),
                     ),
                   ),
@@ -196,7 +202,9 @@ class MapEdgesPainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = 3
         ..strokeCap = StrokeCap.round
-        ..color = lockedSkills.contains(e.to) ? style.edgeColor.withValues(alpha: 0.5) : style.edgeColor;
+        ..color = lockedSkills.contains(e.to)
+            ? (style.monochrome ? kBwGray : style.edgeColor.withValues(alpha: 0.5))
+            : style.edgeColor;
       final from = geometry.ringCenter(a);
       final to = geometry.ringCenter(b);
       if (to.dy > from.dy) {

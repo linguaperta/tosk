@@ -84,22 +84,38 @@ class SettingsScreen extends ConsumerWidget {
                     onChanged: (v) => ctl.change((s) => s.copyWith(accents: v)),
                   ),
                   const _Section('Display'),
-                  _Choice<ThemeMode>(
-                    keyName: 'theme',
-                    title: 'Theme',
-                    values: const [ThemeMode.light, ThemeMode.dark, ThemeMode.system],
-                    selected: s.themeMode,
-                    label: (m) => switch (m) {
-                      ThemeMode.light => 'Light',
-                      ThemeMode.dark => 'Dark',
-                      ThemeMode.system => 'System',
-                    },
-                    onChanged: (v) => ctl.change((s) => s.copyWith(themeMode: v)),
+                  _Choice<DisplayMode>(
+                    keyName: 'display',
+                    title: 'Display',
+                    subtitle: s.bw
+                        ? 'Pure black and white for e-ink readers, without animations'
+                        : 'Black & white suits e-ink readers such as Boox',
+                    values: DisplayMode.values,
+                    selected: s.display,
+                    label: (d) => d == DisplayMode.bw ? 'Black & white' : 'Color',
+                    onChanged: (v) => ctl.change((s) => s.copyWith(display: v)),
                   ),
+                  if (!s.bw)
+                    _Choice<ThemeMode>(
+                      keyName: 'theme',
+                      title: 'Theme',
+                      values: const [ThemeMode.light, ThemeMode.dark, ThemeMode.system],
+                      selected: s.themeMode,
+                      label: (m) => switch (m) {
+                        ThemeMode.light => 'Light',
+                        ThemeMode.dark => 'Dark',
+                        ThemeMode.system => 'System',
+                      },
+                      onChanged: (v) => ctl.change((s) => s.copyWith(themeMode: v)),
+                    ),
                   SwitchListTile(
                     key: const ValueKey('reduce-motion'),
                     title: const Text('Reduce motion'),
-                    subtitle: const Text('No animations, haptics or sounds'),
+                    subtitle: Text(
+                      s.bw
+                          ? 'No haptics or sounds (animations are always off in black & white)'
+                          : 'No animations, haptics or sounds',
+                    ),
                     value: s.reduceMotion,
                     onChanged: (v) => ctl.change((s) => s.copyWith(reduceMotion: v)),
                   ),

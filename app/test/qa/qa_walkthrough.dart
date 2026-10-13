@@ -240,13 +240,15 @@ void main() {
   // Note: flutter_test draws elevation shadows as solid black outlines
   // (debugDisableShadows); a thick black border around a FAB is that.
 
-  for (final course in ['it', 'nl']) {
-    testWidgets('$course: map, sheet, lesson, lab per type, progress, mistakes, settings', (tester) async {
-      await pumpReal(tester, settings: {SettingKeys.course: course});
-      await shot(tester, '$course-01-map');
+  for (final variant in ['it', 'nl', 'bw']) {
+    final course = variant == 'bw' ? 'it' : variant;
+    final settings = {SettingKeys.course: course, if (variant == 'bw') SettingKeys.display: 'bw'};
+    testWidgets('$variant: map, sheet, lesson, lab per type, progress, mistakes, settings', (tester) async {
+      await pumpReal(tester, settings: settings);
+      await shot(tester, '$variant-01-map');
       final mapScroll = find.byKey(const ValueKey('map-scroll'));
       await tester.drag(mapScroll, const Offset(0, -600));
-      await shot(tester, '$course-02-map-scrolled');
+      await shot(tester, '$variant-02-map-scrolled');
       await tester.drag(mapScroll, const Offset(0, 3000));
       await tester.pumpAndSettle();
 
@@ -256,26 +258,26 @@ void main() {
       final first = course0.skills.first;
       final grammar = course0.skills.firstWhere((s) => s.kind != SkillKind.vocab, orElse: () => first);
       await tester.longPress(find.byKey(ValueKey('skill-node-${grammar.id}')));
-      await shot(tester, '$course-03-sheet');
+      await shot(tester, '$variant-03-sheet');
       final sheet = find.descendant(of: find.byType(SkillSheet), matching: find.byType(Scrollable)).first;
       await tester.drag(sheet, const Offset(0, -500));
-      await shot(tester, '$course-04-sheet-scrolled');
+      await shot(tester, '$variant-04-sheet-scrolled');
       await tester.drag(sheet, const Offset(0, -1500));
-      await shot(tester, '$course-05-sheet-items');
+      await shot(tester, '$variant-05-sheet-items');
       await tester.tapAt(const Offset(200, 10));
       await tester.pumpAndSettle();
 
       // A lesson on the first skill.
       await tapKey(tester, 'skill-node-${first.id}');
-      await playAndShoot(tester, '$course-10-lesson');
+      await playAndShoot(tester, '$variant-10-lesson');
       await tapKey(tester, 'summary-done');
-      await shot(tester, '$course-11-map-after');
+      await shot(tester, '$variant-11-map-after');
       expect(tester.takeException(), isNull);
     });
 
     for (final type in ExerciseType.values) {
-      testWidgets('$course: lab ${type.id}', (tester) async {
-        final container = await pumpReal(tester, settings: {SettingKeys.course: course});
+      testWidgets('$variant: lab ${type.id}', (tester) async {
+        final container = await pumpReal(tester, settings: settings);
         final c = (await tester.runAsync(
           () => ProviderScope.containerOf(tester.element(find.byType(ToskApp))).read(courseDataProvider.future),
         ))!;
@@ -287,60 +289,78 @@ void main() {
           until: find.byWidgetPredicate((w) => w is ExerciseView || w.key == const ValueKey('player-empty')),
         );
         if (find.byType(ExerciseView).evaluate().isEmpty) {
-          await shot(tester, '$course-20-lab-${type.id}-empty');
+          await shot(tester, '$variant-20-lab-${type.id}-empty');
           return;
         }
-        await playAndShoot(tester, '$course-20-lab-${type.id}', wrongEvery: 2);
+        await playAndShoot(tester, '$variant-20-lab-${type.id}', wrongEvery: 2);
         expect(tester.takeException(), isNull);
       });
     }
   }
 
-  testWidgets('it: progress, verbs, mistakes, settings, non-stop', (tester) async {
-    await pumpReal(tester, settings: {SettingKeys.course: 'it'});
-    final first = find.byKey(const ValueKey('map-scroll'));
-    expect(first, findsOneWidget);
-    final c = (await tester.runAsync(
-      () => ProviderScope.containerOf(tester.element(first)).read(courseDataProvider.future),
-    ))!;
-    await tapKey(tester, 'skill-node-${c.skills.first.id}');
-    for (var i = 0; i < 40 && !_done; i++) {
-      await answerCurrent(tester, wrong: i % 3 == 1);
-    }
-    await shot(tester, 'it-30-summary');
-    await tapKey(tester, 'summary-done');
-    await shot(tester, 'it-31-map-with-mistakes');
-    await tester.tap(find.text('Progress').first);
-    await tester.pumpAndSettle();
-    await shot(tester, 'it-32-progress');
-    await tester.drag(find.byKey(const ValueKey('progress-list')), const Offset(0, -700));
-    await shot(tester, 'it-33-progress-scrolled');
-    await tester.drag(find.byKey(const ValueKey('progress-list')), const Offset(0, 2000));
-    await tester.pumpAndSettle();
-    final progressScroll = find
-        .descendant(of: find.byKey(const ValueKey('progress-list')), matching: find.byType(Scrollable))
-        .first;
-    await tester.scrollUntilVisible(find.byKey(const ValueKey('open-mistakes')), 200, scrollable: progressScroll);
-    await tapKey(tester, 'open-mistakes');
-    await shot(tester, 'it-34-mistakes');
-    await tester.pageBack();
-    await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.byKey(const ValueKey('open-verbs')), -200, scrollable: progressScroll);
-    await tapKey(tester, 'open-verbs');
-    await shot(tester, 'it-35-verbs');
-    await tester.pageBack();
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Settings').first);
-    await tester.pumpAndSettle();
-    await shot(tester, 'it-36-settings');
-    await tester.tap(find.text('Lab').first);
-    await tester.pumpAndSettle();
-    await shot(tester, 'it-37-lab');
-    await tester.tap(find.text('Non-stop').first);
-    await tester.pumpAndSettle();
-    await shot(tester, 'it-38-nonstop-start');
-    expect(tester.takeException(), isNull);
-  });
+  for (final (p, size, settings) in const [
+    ('it', Size(400, 800), {SettingKeys.course: 'it'}),
+    ('bw', Size(400, 800), {SettingKeys.course: 'it', SettingKeys.display: 'bw'}),
+    ('boox', Size(1003, 1337), {SettingKeys.course: 'nl', SettingKeys.display: 'bw'}),
+    ('poke', Size(572, 772), {SettingKeys.course: 'it', SettingKeys.display: 'bw', SettingKeys.sourceLang: 'nl'}),
+  ]) {
+    testWidgets('$p: lesson, summary, map, sheet, progress, verbs, mistakes, settings, lab, non-stop', (tester) async {
+      await pumpReal(tester, size: size, settings: settings);
+      final first = find.byKey(const ValueKey('map-scroll'));
+      expect(first, findsOneWidget);
+      await shot(tester, '$p-29-map-fresh');
+      final c = (await tester.runAsync(
+        () => ProviderScope.containerOf(tester.element(first)).read(courseDataProvider.future),
+      ))!;
+      await tapKey(tester, 'skill-node-${c.skills.first.id}');
+      if (p == 'it') {
+        for (var i = 0; i < 40 && !_done; i++) {
+          await answerCurrent(tester, wrong: i % 3 == 1);
+        }
+      } else {
+        await playAndShoot(tester, '$p-10-lesson');
+      }
+      await shot(tester, '$p-30-summary');
+      await tapKey(tester, 'summary-done');
+      await shot(tester, '$p-31-map-with-mistakes');
+      await tester.tap(find.text('Progress').first);
+      await tester.pumpAndSettle();
+      await shot(tester, '$p-32-progress');
+      await tester.drag(find.byKey(const ValueKey('progress-list')), const Offset(0, -700));
+      await shot(tester, '$p-33-progress-scrolled');
+      await tester.drag(find.byKey(const ValueKey('progress-list')), const Offset(0, 2000));
+      await tester.pumpAndSettle();
+      final progressScroll = find
+          .descendant(of: find.byKey(const ValueKey('progress-list')), matching: find.byType(Scrollable))
+          .first;
+      await tester.scrollUntilVisible(find.byKey(const ValueKey('open-mistakes')), 200, scrollable: progressScroll);
+      await tapKey(tester, 'open-mistakes');
+      await shot(tester, '$p-34-mistakes');
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(find.byKey(const ValueKey('open-verbs')), -200, scrollable: progressScroll);
+      await tapKey(tester, 'open-verbs');
+      await shot(tester, '$p-35-verbs');
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Settings').first);
+      await tester.pumpAndSettle();
+      await shot(tester, '$p-36-settings');
+      await tester.tap(find.text('Lab').first);
+      await tester.pumpAndSettle();
+      await shot(tester, '$p-37-lab');
+      await tester.tap(find.text('Non-stop').first);
+      await tester.pumpAndSettle();
+      await shot(tester, '$p-38-nonstop-start');
+      await tester.tap(find.text('Map').first);
+      await tester.pumpAndSettle();
+      final grammar = c.skills.where((s) => s.kind == SkillKind.grammar).first;
+      await tester.longPress(find.byKey(ValueKey('skill-node-${grammar.id}')));
+      await tester.pumpAndSettle();
+      await shot(tester, '$p-39-sheet');
+      expect(tester.takeException(), isNull);
+    });
+  }
 
   testWidgets('dark, 320 px, text 1.3: map and a lesson (nl, source nl)', (tester) async {
     await pumpReal(
@@ -376,6 +396,10 @@ void main() {
     ))!;
     final grammar = c.skills.where((s) => s.kind != SkillKind.vocab).toList();
     await tapKey(tester, 'skill-node-${grammar.length > 1 ? grammar[1].id : c.skills.first.id}');
+    if (find.byKey(const ValueKey('start-lesson')).evaluate().isNotEmpty) {
+      await shot(tester, 'desk-02-locked-sheet');
+      await tapKey(tester, 'start-lesson');
+    }
     await playAndShoot(tester, 'desk-10-lesson');
     expect(tester.takeException(), isNull);
   });

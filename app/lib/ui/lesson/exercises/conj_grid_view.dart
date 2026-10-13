@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/core.dart';
+import '../../theme/bw_skin.dart';
 import 'common.dart';
 
 /// Fill a whole tense table: tap a cell, then a form from the bank. Prefilled
@@ -172,7 +173,12 @@ class _ConjGridViewState extends State<ConjGridView> with ExerciseKeysMixin<Conj
       style = theme.textTheme.bodyLarge?.copyWith(color: scheme.outline, fontStyle: FontStyle.italic);
     } else {
       text = tile == null ? '' : widget.exercise.tiles[tile];
-      style = theme.textTheme.bodyLarge;
+      // Black & white: a wrong form is struck through, a right one bold.
+      style = theme.textTheme.bodyLarge?.copyWith(
+        decoration: fb.mono && mark == false ? TextDecoration.lineThrough : null,
+        decorationThickness: 2,
+        fontWeight: fb.mono && mark == true ? FontWeight.w800 : null,
+      );
     }
     final Color border = mark == null
         ? (selected ? scheme.secondary : scheme.outlineVariant)
@@ -180,7 +186,7 @@ class _ConjGridViewState extends State<ConjGridView> with ExerciseKeysMixin<Conj
     final Color bg = c.prefilled
         ? scheme.surfaceContainerHighest.withValues(alpha: 0.6)
         : mark == null
-        ? (selected ? scheme.secondaryContainer.withValues(alpha: 0.5) : scheme.surface)
+        ? (selected && !fb.mono ? scheme.secondaryContainer.withValues(alpha: 0.5) : scheme.surface)
         : (mark ? fb.correctContainer : fb.wrongContainer);
 
     return Semantics(
@@ -192,7 +198,13 @@ class _ConjGridViewState extends State<ConjGridView> with ExerciseKeysMixin<Conj
         color: bg,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
-          side: BorderSide(color: border, width: selected || mark != null ? 2 : 1.2),
+          side: BorderSide(
+            color: border,
+            // Black & white: the selected cell and right answers get a thick border.
+            width: fb.mono
+                ? ((selected || mark == true) && !c.prefilled ? 3.5 : kBwBorder)
+                : (selected || mark != null ? 2 : 1.2),
+          ),
         ),
         child: InkWell(
           key: ValueKey('grid-cell-$i'),

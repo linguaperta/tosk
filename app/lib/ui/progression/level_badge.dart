@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../progression/progression.dart';
+import '../theme/bw_skin.dart';
 
 /// Level number inside a ring showing progress to the next level, with XP below.
 class LevelBadge extends StatelessWidget {
@@ -31,7 +32,7 @@ class LevelBadge extends StatelessWidget {
                 child: CircularProgressIndicator(
                   value: value,
                   strokeWidth: size / 12,
-                  backgroundColor: cs.surfaceContainerHighest,
+                  backgroundColor: isMonochrome(cs) ? kBwGray : cs.surfaceContainerHighest,
                   color: cs.primary,
                 ),
               ),

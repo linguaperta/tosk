@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/core.dart';
+import '../../theme/bw_skin.dart';
 import 'common.dart';
 
 /// Answer line plus word bank: tap a tile to append it, tap a placed tile to remove it.
@@ -226,7 +227,11 @@ class _SpeechBubble extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: scheme.surfaceContainerHigh, borderRadius: BorderRadius.circular(14)),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(14),
+        border: isMonochrome(scheme) ? Border.all(color: kBwBlack, width: kBwBorder) : null,
+      ),
       child: Text(text, style: Theme.of(context).textTheme.titleLarge),
     );
   }

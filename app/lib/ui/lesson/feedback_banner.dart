@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/core.dart';
+import '../theme/bw_skin.dart';
 import 'exercises/common.dart';
 
 /// A secondary action in the [FeedbackBanner]'s actions row ("Why?", and
@@ -56,9 +57,12 @@ class FeedbackBanner extends StatelessWidget {
     final fg = ok ? fb.onCorrectContainer : fb.onWrongContainer;
     final accent = ok ? fb.correct : fb.wrong;
 
+    // Black & white: a white panel set off by a thick top rule.
+    final mono = fb.mono;
     final banner = Material(
       key: const ValueKey('feedback-banner'),
       color: bg,
+      shape: mono ? const Border(top: BorderSide(color: kBwBlack, width: 3)) : null,
       child: SafeArea(
         top: false,
         child: Center(
@@ -121,7 +125,10 @@ class FeedbackBanner extends StatelessWidget {
                                     onPressed: a.onPressed,
                                     style: OutlinedButton.styleFrom(
                                       foregroundColor: fg,
-                                      side: BorderSide(color: fg.withValues(alpha: 0.5)),
+                                      side: BorderSide(
+                                        color: mono ? fg : fg.withValues(alpha: 0.5),
+                                        width: mono ? kBwBorder : 1,
+                                      ),
                                       minimumSize: const Size(48, 48),
                                     ),
                                     icon: Icon(a.icon, size: 18),

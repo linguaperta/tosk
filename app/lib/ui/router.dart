@@ -25,6 +25,8 @@ class BottomSheetPage<T> extends Page<T> {
   @override
   Route<T> createRoute(BuildContext context) => ModalBottomSheetRoute<T>(
     settings: this,
+    // From the theme (transparent in black & white: no dimming overlay).
+    modalBarrierColor: Theme.of(context).bottomSheetTheme.modalBarrierColor,
     builder: (_) => child,
     isScrollControlled: true,
     useSafeArea: true,

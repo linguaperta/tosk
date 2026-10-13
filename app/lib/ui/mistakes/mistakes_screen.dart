@@ -11,6 +11,7 @@ import '../lesson/exercises/common.dart' show FeedbackColors;
 import '../lesson/session_summary_view.dart' show facetLabel;
 import '../lesson/why_sheet.dart';
 import '../routes.dart';
+import '../theme/bw_skin.dart';
 import '../settings/app_settings.dart' show exerciseTypeLabel;
 
 /// Open mistakes of the active course (route `/mistakes`): what was asked,
@@ -197,6 +198,7 @@ class MistakeCard extends ConsumerWidget {
                 decoration: BoxDecoration(
                   color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
                   borderRadius: BorderRadius.circular(10),
+                  border: isBw(context) ? Border.all(color: kBwBlack, width: 1.5) : null,
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,

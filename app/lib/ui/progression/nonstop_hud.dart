@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../progression/progression.dart';
+import '../theme/bw_skin.dart';
 import 'progression_colors.dart';
 
 /// Heads-up display for non-stop mode: score, combo multiplier, progress to the
@@ -170,9 +171,9 @@ class _BonusBanner extends StatelessWidget {
       key: const ValueKey('bonus-banner'),
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: gold.withValues(alpha: 0.15),
+        color: ProgressionColors.tint(gold, 0.15, cs),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: gold),
+        border: Border.all(color: gold, width: isMonochrome(cs) ? 3 : 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -191,7 +192,7 @@ class _BonusBanner extends StatelessWidget {
           LinearProgressIndicator(
             value: total <= 0 ? 0 : left.inMilliseconds / total,
             color: gold,
-            backgroundColor: cs.surfaceContainerHighest,
+            backgroundColor: isMonochrome(cs) ? kBwGray : cs.surfaceContainerHighest,
             minHeight: 4,
             borderRadius: BorderRadius.circular(2),
           ),

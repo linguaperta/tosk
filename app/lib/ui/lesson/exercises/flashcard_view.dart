@@ -44,6 +44,19 @@ class _FlashcardViewState extends State<FlashcardView> with ExerciseKeysMixin<Fl
     final e = widget.exercise;
     final theme = Theme.of(context);
     final revealed = _revealed || widget.locked;
+    final Widget back = revealed
+        ? Column(
+            children: [
+              const Divider(height: 32),
+              Text(
+                e.back,
+                key: const ValueKey('flashcard-back'),
+                textAlign: TextAlign.center,
+                style: theme.textTheme.headlineSmall?.copyWith(color: theme.colorScheme.primary),
+              ),
+            ],
+          )
+        : const SizedBox(width: double.infinity);
     return ExerciseLayout(
       prompt: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -63,22 +76,12 @@ class _FlashcardViewState extends State<FlashcardView> with ExerciseKeysMixin<Fl
                       style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                     ),
                   ],
-                  AnimatedSize(
-                    duration: widget.reduceMotion ? Duration.zero : const Duration(milliseconds: 200),
-                    child: revealed
-                        ? Column(
-                            children: [
-                              const Divider(height: 32),
-                              Text(
-                                e.back,
-                                key: const ValueKey('flashcard-back'),
-                                textAlign: TextAlign.center,
-                                style: theme.textTheme.headlineSmall?.copyWith(color: theme.colorScheme.primary),
-                              ),
-                            ],
-                          )
-                        : const SizedBox(width: double.infinity),
-                  ),
+                  // No AnimatedSize with reduced motion: a zero-duration
+                  // AnimatedSize re-dirties itself during layout (assertion).
+                  if (widget.reduceMotion)
+                    back
+                  else
+                    AnimatedSize(duration: const Duration(milliseconds: 200), child: back),
                 ],
               ),
             ),
