@@ -55,6 +55,23 @@ class Lang:
     # auxiliary that also forms the passive: when a verb lists it only as its second auxiliary,
     # aux + participle is not linked to the compound tense
     passive_aux: str = ""
+    # words that start a new (sub)clause, after which a new finite verb may follow
+    clause_starters: set[str] = field(default_factory=set)
+    # coordinating conjunctions: a new clause when a subject pronoun follows ('en jullie werken')
+    coordinators: set[str] = field(default_factory=set)
+    # degree words before an adjective that is also a verb form ('hoe laat', not 'laten')
+    degree_words: set[str] = field(default_factory=set)
+    # relative/interrogative pronouns that start a clause ('wat er gebeurt')
+    relatives: set[str] = field(default_factory=set)
+    # subject pronouns that are also object pronouns ('je', 'ze', 'het')
+    object_pronouns: set[str] = field(default_factory=set)
+    # demonstratives that are also pronoun subjects at the start of a clause ('Dat moest je ...')
+    demonstratives: set[str] = field(default_factory=set)
+    # dummy subjects ('dat er iets gebeurt')
+    dummy_subjects: set[str] = field(default_factory=set)
+    # (lemma, tense) forms that are not linked because their use differs from the tense label
+    # (Dutch 'zou' is nearly always a conditional, not the past of 'zullen')
+    unlinked_forms: set[tuple[str, str]] = field(default_factory=set)
 
     @property
     def tenses(self) -> list[str]:
@@ -326,6 +343,16 @@ class Dutch(Lang):
             vague_pronouns={"u"},
             modals={"zullen", "kunnen", "moeten", "willen", "mogen", "hoeven"},
             passive_aux="zijn",
+            clause_starters={"dat", "omdat", "wanneer", "toen", "terwijl", "zodat", "voordat", "nadat", "totdat",
+                             "hoewel", "tenzij", "waar", "waarom", "hoe", "waarmee", "waarover", "zodra", "alsof",
+                             "indien"},
+            coordinators={"en", "maar", "want", "of", "dus"},
+            relatives={"wat", "wie", "die", "welke"},
+            object_pronouns={"je", "ze", "het", "jullie"},
+            demonstratives={"dat", "die", "dit", "deze"},
+            dummy_subjects={"er"},
+            degree_words={"hoe", "zo", "te", "heel", "erg", "nogal", "vrij", "best", "even"},
+            unlinked_forms={("zullen", "verleden_tijd")},
         )
 
     def slot(self, tags):

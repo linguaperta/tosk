@@ -41,6 +41,12 @@ VTP_QUOTA = 5            # sentences per (grammar verb, tense, person)
 VTP_MIN = 2              # ... always accepted up to this many, even when the verb+tense quota is full
 # Perfect auxiliaries for Dutch verbs whose nl.wiktionary page has no perfect table (Claude-curated).
 NL_AUX_OVERRIDES = {"zijn": ["zijn"], "hebben": ["hebben"], "worden": ["zijn"], "blijven": ["zijn"]}
+# nl.wiktionary lists 'zijn' as a second auxiliary for most transitive verbs because of the passive
+# ('het is gedaan'); for these course verbs only 'hebben' forms an active perfect ('ik heb gedaan',
+# never 'ik ben gedaan'), so 'ben gedaan' must not be an accepted alternative.
+NL_AUX_OVERRIDES.update({v: ["hebben"] for v in (
+    "bedoelen", "brengen", "denken", "doen", "helpen", "houden", "laten", "maken", "proberen", "vinden",
+    "zeggen", "zien", "geven", "horen", "kennen", "krijgen", "leven", "nemen", "praten", "vertellen")})
 
 
 def log(msg: str) -> None:

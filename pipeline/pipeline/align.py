@@ -66,6 +66,7 @@ CLITIC_NL = {"'t": ["het"], "'k": ["ik"], "'n": ["een"], "m'n": ["mijn"], "z'n":
              "'m": ["hem"], "'r": ["haar"]}
 OBJECT_CLITICS_IT = {"lo", "la", "li", "le", "l'", "ne"}
 VAGUE = "?"   # pseudo-person of a vague subject pronoun (Dutch 'u'): fits no person
+QUOTES = {'"', "«", "»", "“", "”"}
 CLAUSE_PUNCT = {",", ".", "?", "!", ";", ":", "...", "…", "—", "–", "(", ")", '"', "«", "»", "“", "”"}
 
 
@@ -89,6 +90,7 @@ class Aligner:
         self.infl_index: dict[str, list[str]] = defaultdict(list)
         self.aux_present: dict[str, dict[str, list[str]]] = {}  # aux lemma -> surface -> persons
         self.aux_ids: dict[str, str] = {}
+        self.verb_ids: set[str] = set(verbs)
         by_lemma_verb: dict[str, str] = {}
         for it in sorted(items, key=lambda i: self.rank[i["id"]]):
             if it["pos"] == "verb":
@@ -243,11 +245,27 @@ class Aligner:
         finite = [c for c in cands if c[1] != "_"]
         nonfinite = [c for c in cands if c[1] == "_"]
         before, after = self._pronoun_persons(words, toks, wi)
+        if lang.clause_starters and inf and (prev == "te" or finite_before):
+            # one finite verb per (sub)clause: after it, an infinitive ('Ik zal jullie vertellen',
+            # 'Wat kan ik voor jullie doen?'), even with an (object) pronoun next to it
+            return inf[0]
         vague = False
         if finite:
             hit = [c for c in finite if c[1] in before]
             if not hit and VAGUE not in before:
                 hit = [c for c in finite if c[1] in after]
+            if hit and lang.clause_starters:
+                # 'zoals hij je vertelt': the pronoun next to the verb may be an object; when another
+                # pronoun in the clause fits another candidate person, the person stays open
+                strong, weak = self._clause_pronouns(words, toks, wi)
+                if len({c[1] for c in finite if c[1] in strong | weak}) > 1:
+                    return None
+                # an object-or-subject pronoun right after a relative ('wat je gebeurt' / 'wat je
+                # doet') decides nothing when another person has the same form
+                p_prev = norm(toks[words[wi - 1]]["t"]) if wi > 0 else ""
+                p_prev2 = norm(toks[words[wi - 2]]["t"]) if wi > 1 else ""
+                if p_prev in lang.object_pronouns and p_prev2 in lang.relatives and len(finite) > len(hit):
+                    return None
             if hit:
                 return self._order(hit)[0]
             vague = VAGUE in before or VAGUE in after
@@ -263,6 +281,26 @@ class Aligner:
         ps = {c[1] for c in cands}
         if lang.code == "nl" and ps == {"ik"} and "ik" not in after:
             return None                      # inverted jij form or imperative
+        if lang.clause_starters and not after and self._clause_initial(words, toks, wi):
+            # a clause-initial verb without a subject pronoun after it: an imperative ('Laat me ...',
+            # the ik-form is the imperative), or a question with another subject ('Komt Tom?')
+            return None
+        if lang.clause_starters and len(ps) > 1:
+            # 'hoe je kaas maakt', 'dat ik weg moet': several persons share the form and the subject
+            # of a verb-final clause is further back. The subject pronouns earlier in the clause
+            # decide when exactly one candidate person fits them; when they fit several (one may
+            # be an object: 'dat hij je ziet') or a pronoun fits none, the person stays open.
+            # 'je', 'ze', 'het' may be objects ('dat dat je niet gebeurt'): they never decide, but a
+            # candidate person they fit keeps the person open.
+            strong, weak = self._clause_pronouns(words, toks, wi)
+            if VAGUE in strong:
+                return None                  # 'dat u een fijne avond heeft': heeft / hebt
+            fit = {c[1] for c in cands if c[1] in strong}
+            fit_weak = {c[1] for c in cands if c[1] in weak}
+            if len(fit) == 1 and fit_weak <= fit:
+                return next(c for c in cands if c[1] in fit)
+            if fit or fit_weak:
+                return None
         third = [c for c in cands if c[1] in (lang.third_sg, lang.third_pl)]
         if self._subject_before(words, toks, wi) and not before:
             if not third:
@@ -298,6 +336,77 @@ class Aligner:
                     return True
         return False
 
+    def _demonstrative(self, toks: list[dict], words: list[int], wi: int) -> bool:
+        """Dutch 'dat' is the conjunction only after a verb or adjective ('Ik weet dat', 'fijn dat')
+        or at the start of a clause, and not before an adjective or noun: 'Laat Tom dat doen',
+        'Moet je dat hoge gebouw zien' use the demonstrative."""
+        if norm(toks[words[wi]]["t"]) != "dat":
+            return False
+        if wi + 1 < len(words):
+            nlex = self.lex_lookup(norm(toks[words[wi + 1]]["t"]))
+            if nlex and self.items[nlex]["pos"] in ("adj", "noun"):
+                return True
+        if self._clause_initial(words, toks, wi):
+            return False
+        prev = norm(toks[words[wi - 1]]["t"])
+        plex = self.lex_lookup(prev)
+        if plex and self.items[plex]["pos"] == "adj":
+            return False
+        if not (self.verb_index.get(prev) or self.part_index.get(prev)):
+            # 'Weet je dat ...': verb + subject pronoun + conjunction
+            prev2 = norm(toks[words[wi - 2]]["t"]) if wi > 1 else ""
+            return not (prev in self.lang.pronouns and self.verb_index.get(prev2))
+        # after a verb: the conjunction only when the clause already has its subject ('Ik weet
+        # dat', 'Weet je dat'); otherwise 'dat' is the subject ('Waaraan doet dat je denken?')
+        k = wi - 1
+        while k > 0 and not self._punct_between(toks, words[k - 1], words[k]):
+            k -= 1
+        for x in range(k, wi):
+            t = toks[words[x]]["t"]
+            w = norm(t)
+            xlex = self.lex_lookup(w)
+            if w in self.lang.pronouns or (xlex and self.items[xlex]["pos"] == "noun" and not self.verb_index.get(w)) \
+                    or (x > k and t[:1] != w[:1]):
+                return False
+        return True
+
+    def _subject_like(self, toks: list[dict], words: list[int], wi: int) -> bool:
+        """Whether word #wi can start the subject of a subordinate clause: a pronoun, a determiner, a
+        name, a noun or a dummy subject ('dat er ...'). 'Je mag dat niet ... vertellen' has 'niet'."""
+        if wi >= len(words):
+            return False
+        t = toks[words[wi]]["t"]
+        w = norm(t)
+        if w in self.lang.pronouns or w in self.lang.determiners or w in self.lang.dummy_subjects \
+                or w in self.lang.vague_pronouns or t[:1] != w[:1]:
+            return True
+        lex = self.lex_lookup(w)
+        return bool(lex and self.items[lex]["pos"] == "noun")
+
+    def _clause_initial(self, words: list[int], toks: list[dict], wi: int) -> bool:
+        return wi == 0 or self._punct_between(toks, words[wi - 1], words[wi])
+
+    def _clause_pronouns(self, words: list[int], toks: list[dict], wi: int) -> tuple[set[str], set[str]]:
+        """Persons of the pronouns earlier in the (sub)clause of word #wi: (subject-only pronouns,
+        pronouns that may also be objects)."""
+        out: set[str] = set()
+        weak: set[str] = set()
+        k = wi - 1
+        while k >= 0 and not self._punct_between(toks, words[k], words[k + 1]):
+            w = norm(toks[words[k]]["t"])
+            # stop at the start of the clause, or at the finite verb of the clause before it
+            # ('Weet jij wat er gebeurt?': 'jij' belongs to 'Weet')
+            if w in self.lang.clause_starters or w in self.lang.relatives:
+                break
+            f = toks[words[k]].get("form")
+            if toks[words[k]].get("lex") in self.verb_ids and (f is None or not f.endswith("._")):
+                break
+            if w in self.lang.vague_pronouns:
+                out.add(VAGUE)
+            (weak if w in self.lang.object_pronouns else out).update(self.lang.pronouns.get(w, []))
+            k -= 1
+        return out, weak
+
     def _possessive(self, toks: list[dict], words: list[int], wi: int) -> bool:
         """A determiner/pronoun reading directly before a noun ('zijn belofte'), not a verb."""
         s = norm(toks[words[wi]]["t"])
@@ -309,7 +418,9 @@ class Aligner:
             return False
         nxt = norm(toks[words[wi + 1]]["t"])
         nlex = self.lex_lookup(nxt)
-        return bool(nlex and self.items[nlex]["pos"] == "noun" and not self.verb_index.get(nxt))
+        # a noun that is also only an ik-form ('plan', 'werk') counts as a noun here
+        verbal = [c for c in self.verb_index.get(nxt, []) if not (self.lang.code == "nl" and c[2] == "ik")]
+        return bool(nlex and self.items[nlex]["pos"] == "noun" and not verbal)
 
     # ------------------------------------------------------------------ main
     def align(self, toks: list[dict]) -> list[dict]:
@@ -332,7 +443,9 @@ class Aligner:
             else:
                 before = [x for x in reversed(words[:wi]) if x >= lo]
                 after = [x for x in words[wi + 1:] if x <= hi]
-                cand_idx = before + after
+                # a subordinate clause's auxiliary right after the participle ('wat er gebeurd is')
+                # wins over one further back in the main clause ('Ik ben ... over wat er gebeurd is')
+                cand_idx = after[:1] + before + after[1:]
             hit = None
             for aj in cand_idx:
                 if aj in done:
@@ -381,12 +494,34 @@ class Aligner:
 
         # pass 2: everything else, left to right
         finite_seen = False
+        finite_events = 0                    # finite verbs seen so far
+        starter = False                      # a clause starter was seen, its subject not yet
+        starter_events = 0
         for wi, ti in enumerate(words):
-            if wi > 0 and self._punct_between(out, words[wi - 1], ti):
+            if starter and finite_events != starter_events:
+                starter = False              # 'Waarom wil hij ...': the finite verb came first
+            if wi > 0 and any(self._is_clause_break(out[x]) and out[x]["t"] not in QUOTES
+                              for x in range(words[wi - 1] + 1, ti)):   # 'Je kan niet "nee" zeggen'
                 finite_seen = False
+                starter = False
+            w0 = norm(out[ti]["t"])
+            nxt0 = norm(out[words[wi + 1]]["t"]) if wi + 1 < len(words) else ""
+            if w0 in lang.coordinators and nxt0 in lang.pronouns and nxt0 not in lang.determiners:
+                finite_seen = False          # 'en jullie werken' (not 'maar het woord'): a new clause
+            # 'Ik weet dat jullie werken': a subordinate clause starts over (a new finite verb may
+            # follow) when its subject comes right after the clause starter and is a pronoun, a name
+            # or 'er'. Not after a demonstrative 'dat' ('Kun je me dat laten weten?', 'Je mag dat niet
+            # ... vertellen'), and not on a noun, which may be an object ('Ik moet dat deze avond doen').
+            if w0 in lang.clause_starters and not self._demonstrative(out, words, wi) \
+                    and self._subject_like(out, words, wi + 1):
+                starter, starter_events = True, finite_events
+            elif starter and not self.verb_index.get(w0) and (w0 in lang.pronouns or w0 in lang.dummy_subjects
+                                                              or w0[:1] != out[ti]["t"][:1]):
+                finite_seen = False
+                starter = False
             if ti in done:
                 if out[ti]["form"] and not out[ti]["form"].endswith("._"):
-                    finite_seen = True
+                    finite_seen, finite_events = True, finite_events + 1
                 continue
             s = norm(out[ti]["t"])
             vc = self.verb_index.get(s)
@@ -394,6 +529,23 @@ class Aligner:
             lex = self.lex_lookup(s)
             prev = norm(out[words[wi - 1]]["t"]) if wi > 0 else ""
             use_verb = bool(vc) and not (lex and prev in lang.determiners)
+            if vc and not use_verb and prev in lang.demonstratives and self.items[lex]["pos"] != "noun" \
+                    and self._clause_initial(words, out, wi - 1):
+                use_verb = True              # 'Dat moest je ...': a demonstrative subject, not 'dat moest(e)'
+            if use_verb and lang.clause_starters and prev == "te" and not any(c[1] == "infinitive" for c in vc):
+                use_verb = False             # 'te laat' (too late): after 'te' a verb is an infinitive
+            noun = bool(lex) and self.items[lex]["pos"] == "noun"
+            if use_verb and noun and lang.clause_starters and prev.endswith("e") \
+                    and self.items.get(self.lex_lookup(prev) or "", {}).get("pos") == "adj":
+                use_verb = False             # 'het eeuwige leven', 'je andere plannen': inflected adjective + noun
+            if use_verb and noun and lang.clause_starters and self._clause_initial(words, out, wi) \
+                    and not (wi + 1 < len(words) and norm(out[words[wi + 1]]["t"]) in lang.pronouns):
+                use_verb = False             # 'Leven is ...': a clause-initial noun, not a verb without subject
+            if use_verb and lex and prev in lang.degree_words and self.items[lex]["pos"] == "adj":
+                use_verb = False             # 'hoe laat', 'zo laat': the adjective
+            if use_verb and lang.clause_starters and finite_seen and lex and not pc \
+                    and not any(c[1] in ("infinitive", "participle") for c in vc):
+                use_verb = False             # 'Ik zal een beetje laat aankomen': one finite verb per clause
             if use_verb and lex and lang.code == "nl":
                 persons = {c[2] for c in vc}
                 before, after = self._pronoun_persons(words, out, wi)
@@ -413,17 +565,25 @@ class Aligner:
                 vid = min(by_verb, key=lambda v: self.rank.get(v, (True, 0, v)))
                 choice = self._choose(by_verb[vid], words, out, wi, finite_seen)
                 out[ti]["lex"] = vid
+                if choice and (self.items.get(vid, {}).get("lemma"), choice[0]) in lang.unlinked_forms:
+                    choice = None            # Dutch 'zou' is a conditional, not the past of 'zal'
+                if choice and len(by_verb) > 1 and choice[1] != "_":
+                    # a finite form of two verbs ('was': zijn or wassen): the verb is a guess
+                    choice = None
                 if choice:
                     tense, person = choice
                     out[ti]["form"] = f"{tense}.{person}"
                     if person != "_":
-                        finite_seen = True
-                    if lang.code == "nl" and person == "ik" and wi + 1 < len(words):
+                        finite_seen, finite_events = True, finite_events + 1
+                    if lang.code == "nl" and wi + 1 < len(words):
                         nxt = norm(out[words[wi + 1]]["t"])
-                        if nxt in ("jij", "je") and (tense, "jij") not in by_verb[vid]:
+                        if nxt in ("jij", "je"):
+                            # inversion 'Wil je', 'Kwam je': the jij-form drops its -t here, so
+                            # the word is no reliable instance of a cell (and 'Komt je' is wrong)
                             out[ti]["form"] = None
                 elif all(p != "_" for _, p in by_verb[vid]):
-                    finite_seen = True       # finite, person open ('Wilt u ...', 'Werk jij ...')
+                    # finite, person open ('Wilt u ...', 'Werk jij ...', imperative 'Laat ...')
+                    finite_seen, finite_events = True, finite_events + 1
                 continue
             if lex:
                 out[ti]["lex"] = lex
