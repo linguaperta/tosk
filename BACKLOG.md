@@ -120,6 +120,7 @@ Each item says what "done" means. Add newly discovered work at the bottom of its
 - [ ] Sentence variety: log the sentence id with each answer; the engine prefers unseen or least-recently-seen sentences
 - [ ] Sentence floor: generation tops up every verb×person×tense slot and every vocab topic to ≥8–10 distinct sentences
 - [ ] Course picker as a pop-up menu: +/- to add or remove each course, a preview per course (description, units/skills, sample words and sentences, unverified badge); the app only shows courses you've added
+- [~] Black & white (e-ink) mode for the Boox: pure B/W skin, nothing conveyed by color (icons, labels, patterns, inverted fills), reduce motion forced on. Tested: grayscale-only assertions on every screen and exercise type, goldens, overflow at Boox and phone sizes
 - [ ] Preview 3 APK
 
 
@@ -149,5 +150,5 @@ Each one at the expanded it/nl scale: 8–10 units, ~30 skills, ~1000 taught wor
 
 - [~] Phase 6: Sarnami (`hns`), a Dutch–Sarnami course from the [source] dictionary. Local-only data ([source] copyright): never committed, and loaded from a file.
 - [-] Phase 7: `GitHubPackSource`, `DriveSyncBackend`. Interfaces only in v1.
-- [-] Phase 8: ink `AnswerInput` and e-ink mode (v0.5). The AI explainer moved up to v0.3.
+- [-] Phase 8: ink `AnswerInput` and Onyx pen SDK (v0.5). The AI explainer and the B/W e-ink mode moved up to v0.3.
 - [-] `listen_pick` exercise (needs audio/TTS)

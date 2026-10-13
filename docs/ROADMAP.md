@@ -21,6 +21,7 @@ The detailed task list lives in [BACKLOG.md](../BACKLOG.md). This page is the re
 - **Flag an exercise:** a reason plus a comment. *Submit* saves it on the device, to be exported as a `.jsonl` for the developer. *Confer with AI* checks your complaint, including telling you if your correction is wrong.
 - **Sounds:** a satisfying correct sound, a lesson-complete fanfare, and a muted select tick, with a toggle in Settings.
 - **Mistake review:** practice the exercises you got wrong, plus a list of mistakes.
+- **Black & white e-ink mode** for the Boox: nothing is conveyed by color, there are no animations, and it's tested on every screen.
 - **QA pass:** every flow on both courses, phone and desktop sizes, dark mode, large text.
 - **Sarnami (`hns`):** a Dutch–Sarnami course from the [source] dictionary, marked unverified and kept local-only ([source] copyright), loaded from a file.
 
@@ -33,7 +34,7 @@ The detailed task list lives in [BACKLOG.md](../BACKLOG.md). This page is the re
 ## v0.5: handwriting, e-ink, listening
 
 - ML Kit Digital Ink as an `AnswerInput` for production exercises, plus the Onyx pen SDK on the Boox.
-- E-ink mode: no animations, high contrast, a full refresh after each lesson.
+- E-ink extras: a full refresh after each lesson and Onyx pen low-latency drawing. The B/W mode itself ships in v0.3.
 - `listen_pick` with on-device text-to-speech.
 
 ## v0.6: new full-size courses
