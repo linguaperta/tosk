@@ -111,8 +111,22 @@ Each item says what "done" means. Add newly discovered work at the bottom of its
 - [ ] Conjugation and word lookup: searchable reference of all pack verbs (full tables) and words; extends the verb collection
 - [ ] Daily goal (lessons or XP) + local reminder notification at a chosen time; goal line on the heatmap
 - [ ] Typing mode toggle ("challenge mode": production exercises take typed answers)
+- [ ] "I was right" override after a wrong verdict: re-rates as correct and auto-creates a flag
+- [ ] Accent keyboard bar for typing mode (letters from course data)
+- [ ] Grammar library tab: all notes browsable, each with "practice this"
+- [ ] Leech handling: facets with ≥4 lapses → "tough words" drill and mistake review (+ AI mnemonic when configured)
+- [ ] Session length options: quick (5) / normal (12) / long (20)
+- [ ] Pipeline: AI-generated example sentences for thin slots (verb × person × tense < 5 sentences), under gating constraints, validated by the aligner, `src: claude-gen`, reviewed in samples
 - [ ] Preview 3 APK
 
+
+## v0.4 candidates
+
+- [ ] Bookmarks: star words, sentences or exercises; "Starred" practice session
+- [ ] Graded mini-stories per unit (pipeline-generated with only known vocab and grammar), with tap-for-translation and comprehension questions
+- [ ] Pronunciation button (on-device TTS); review forecast and stats (accuracy per type and tense)
+- [ ] AI conversation practice limited to unlocked grammar and vocab (needs an API key)
+- [-] Optional on-the-fly AI sentences in the lab ("more like this"), clearly labelled as unvalidated
 
 ## Later (not v1)
 
