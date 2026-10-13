@@ -1,0 +1,3 @@
+{"id": "it:libro", "lemma": "libro", "pos": "noun", "article": "il", "gender": "m", "plural": "libri", "freq": 60, "unit": "u2", "tr": {"en": ["book"], "nl": ["boek"]}, "inflections": ["libri"]}
+{"id": "it:pizza", "lemma": "pizza", "pos": "noun", "article": "la", "gender": "f", "plural": "pizze", "freq": 70, "unit": "u2", "tr": {"en": ["pizza"], "nl": ["pizza"]}, "inflections": ["pizze"]}
+{"id": "it:zio", "lemma": "zio", "pos": "noun", "article": "lo", "gender": "m", "plural": "zii", "freq": 90, "unit": "u2", "tr": {"en": ["uncle"], "nl": ["oom"]}}

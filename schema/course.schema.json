@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tosk.local/schema/course.schema.json",
+  "title": "tosk course.yaml",
+  "description": "Units, skills (with selection queries) and the course's grammar dimensions. Compiled into meta/units/skills/skill_items/skill_facets.",
+  "type": "object",
+  "required": ["id", "version", "title", "target", "translations", "persons", "tenses", "units"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {"type": "string", "pattern": "^[a-z]{2,3}$"},
+    "version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
+    "title": {"$ref": "#/$defs/i18n"},
+    "description": {"$ref": "#/$defs/i18n"},
+    "target": {"type": "string", "pattern": "^[a-z]{2,3}$"},
+    "translations": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-z]{2,3}$"}},
+    "unverified": {"type": "boolean"},
+    "persons": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1, "pattern": "^[^.\\s]+$"}},
+    "person_labels": {"type": "object", "additionalProperties": {"$ref": "#/$defs/i18n"}},
+    "tenses": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/key"}},
+    "tense_labels": {"type": "object", "additionalProperties": {"$ref": "#/$defs/i18n"}},
+    "articles": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "units": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/unit"}}
+  },
+  "$defs": {
+    "i18n": {
+      "type": "object", "minProperties": 1,
+      "propertyNames": {"pattern": "^[a-z]{2,3}$"},
+      "additionalProperties": {"type": "string", "minLength": 1}
+    },
+    "key": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+    "names": {"type": "array", "items": {"type": ["string", "number", "boolean"]}},
+    "strOrList": {"oneOf": [{"type": "string"}, {"type": "array", "items": {"type": "string"}, "minItems": 1}]},
+    "unit": {
+      "type": "object", "required": ["id", "title", "skills"], "additionalProperties": false,
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_-]*$"},
+        "title": {"$ref": "#/$defs/i18n"},
+        "skills": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/skill"}}
+      }
+    },
+    "skill": {
+      "type": "object", "required": ["id", "kind", "title"], "additionalProperties": false,
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_-]*$"},
+        "kind": {"enum": ["vocab", "grammar"]},
+        "title": {"$ref": "#/$defs/i18n"},
+        "icon": {"type": "string"},
+        "requires": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+        "note": {"type": "string", "description": "path of the English grammar note relative to the course folder; the Dutch one is the same path with .nl.md"},
+        "items": {"$ref": "#/$defs/itemsQuery"},
+        "verbs": {"$ref": "#/$defs/verbsQuery"},
+        "facet": {"enum": ["article"], "description": "train this facet of the selected items instead of #rec/#prod"},
+        "exercises": {"type": "array", "uniqueItems": true, "items": {"enum": [
+          "flashcard", "multiple_choice", "match_pairs", "conj_pick", "conj_grid",
+          "sentence_builder", "cloze", "spot_error", "transform"]}},
+        "pos": {"type": "object", "additionalProperties": false,
+                "properties": {"x": {"type": "integer"}, "y": {"type": "integer"}}}
+      },
+      "oneOf": [
+        {"required": ["items"], "not": {"required": ["verbs"]}},
+        {"required": ["verbs"], "not": {"required": ["items"]}, "properties": {"kind": {"const": "grammar"}}}
+      ]
+    },
+    "itemsQuery": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "tags": {"$ref": "#/$defs/strOrList"},
+        "pos": {"$ref": "#/$defs/strOrList"},
+        "lemmas": {"$ref": "#/$defs/names"},
+        "exclude": {"$ref": "#/$defs/names"},
+        "top": {"type": "integer", "minimum": 1},
+        "min": {"type": "integer", "minimum": 0}
+      }
+    },
+    "verbsQuery": {
+      "type": "object", "required": ["tense"], "additionalProperties": false,
+      "properties": {
+        "tense": {"$ref": "#/$defs/key"},
+        "class": {"$ref": "#/$defs/strOrList"},
+        "regular": {"type": "boolean"},
+        "aux": {"type": "string"},
+        "lemmas": {"$ref": "#/$defs/names"},
+        "exclude": {"$ref": "#/$defs/names"},
+        "top": {"type": "integer", "minimum": 1},
+        "min": {"type": "integer", "minimum": 0}
+      }
+    }
+  }
+}

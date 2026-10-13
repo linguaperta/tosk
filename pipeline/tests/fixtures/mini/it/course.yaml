@@ -1,0 +1,42 @@
+# Tiny hand-written Italian course used by the compiler/validator tests.
+id: it
+version: 0.0.1
+title: {en: Italian (test), nl: Italiaans (test)}
+target: it
+translations: [en, nl]
+persons: [io, tu, lui/lei, noi, voi, loro]
+tenses: [presente, passato_prossimo]
+tense_labels:
+  presente: {en: present, nl: tegenwoordige tijd}
+  passato_prossimo: {en: present perfect, nl: voltooid tegenwoordige tijd}
+articles: [il, lo, la, "l'"]
+units:
+  - id: u1
+    title: {en: Basics, nl: Basis}
+    skills:
+      - id: greetings
+        kind: vocab
+        title: {en: Greetings, nl: Begroetingen}
+        icon: wave
+        items: {tags: [greetings], min: 2}
+      - id: present-are
+        kind: grammar
+        title: {en: Present -are, nl: Tegenwoordige tijd -are}
+        requires: [greetings]
+        verbs: {class: are, regular: true, tense: presente, min: 3}
+        exercises: [conj_pick, conj_grid, cloze]
+  - id: u2
+    title: {en: More, nl: Meer}
+    skills:
+      - id: articles
+        kind: grammar
+        title: {en: Articles, nl: Lidwoorden}
+        requires: [greetings]
+        facet: article
+        items: {pos: noun, min: 2}
+      - id: passato
+        kind: grammar
+        title: {en: Passato prossimo, nl: Passato prossimo}
+        requires: [present-are, articles]
+        verbs: {tense: passato_prossimo, lemmas: [mangiare, parlare]}
+        pos: {x: 1, y: 3}
