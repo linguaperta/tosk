@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tosk.local/schema/sentences.schema.json",
+  "title": "tosk sentence record (one line of content/{course}/sentences/*.jsonl)",
+  "description": "An example sentence with translations and aligned tokens. Compiled into sentences/tokens. Concatenating pre + t over the tokens rebuilds text exactly.",
+  "type": "object",
+  "required": ["id", "text", "tr", "tokens"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {"type": "string", "pattern": "^[a-z]+:\\S+$", "description": "'s:{tatoebaId}' for Tatoeba"},
+    "text": {"type": "string", "minLength": 1},
+    "tr": {
+      "type": "object", "minProperties": 1,
+      "propertyNames": {"pattern": "^[a-z]{2,3}$"},
+      "additionalProperties": {"type": "string", "minLength": 1}
+    },
+    "tr_src": {"type": "object", "propertyNames": {"pattern": "^[a-z]{2,3}$"}, "additionalProperties": {"type": "string"}},
+    "src": {"type": "string"},
+    "unit": {"type": ["string", "null"]},
+    "tokens": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object", "required": ["t"], "additionalProperties": false,
+        "properties": {
+          "t": {"type": "string", "minLength": 1},
+          "pre": {"type": "string", "pattern": "^\\s*$"},
+          "is_word": {"type": "boolean", "description": "default true; false for punctuation"},
+          "lex": {"type": "string", "pattern": "^[a-z]{2,3}:[^\\s#]+$"},
+          "form": {"type": "string", "pattern": "^[a-z][a-z0-9_]*\\.[^.\\s]+$", "description": "'{tense}.{person}', e.g. 'presente.noi' or 'participle._'"}
+        },
+        "dependentRequired": {"form": ["lex"]}
+      }
+    }
+  }
+}

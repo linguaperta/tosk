@@ -1,0 +1,5 @@
+{"id": "it:avere", "lemma": "avere", "pos": "verb", "freq": 2, "tr": {"en": ["to have"]}}
+{"id": "it:essere", "lemma": "essere", "pos": "verb", "freq": 1, "tr": {"en": ["to be"]}}
+{"id": "it:il", "lemma": "il", "pos": "det", "freq": 3, "tr": {"en": ["the"]}, "inflections": ["la", "lo", "l'", "i", "gli", "le"]}
+{"id": "it:io", "lemma": "io", "pos": "pron", "freq": 5, "tr": {"en": ["I"]}}
+{"id": "it:noi", "lemma": "noi", "pos": "pron", "freq": 8, "tr": {"en": ["we"]}}

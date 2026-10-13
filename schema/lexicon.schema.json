@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tosk.local/schema/lexicon.schema.json",
+  "title": "tosk lexicon record (one line of content/{course}/lexicon/*.jsonl)",
+  "description": "A lexical item: skill members (unit set) and the wider distractor pool (unit absent). Compiled into items/item_tags.",
+  "type": "object",
+  "required": ["id", "lemma", "pos", "tr"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {"type": "string", "pattern": "^[a-z]{2,3}:[^\\s#]+$", "description": "{course}:{lemma} or {course}:{lemma}.{n}; permanent (see ids.tsv)"},
+    "lemma": {"type": "string", "minLength": 1},
+    "pos": {"enum": ["noun", "verb", "adj", "adv", "pron", "det", "prep", "conj", "num", "intj", "phrase", "particle"]},
+    "article": {"type": "string", "minLength": 1, "description": "definite article for nouns ('il', 'lo', 'la', \"l'\", 'de', 'het')"},
+    "gender": {"type": "string", "pattern": "^(m|f|n|c)(\\|(m|f|n|c))?$"},
+    "plural": {"type": "string", "minLength": 1},
+    "freq": {"type": ["integer", "null"], "minimum": 1, "description": "frequency rank, 1 = most frequent"},
+    "unit": {"type": ["string", "null"], "description": "unit that introduces the item; absent for distractor-pool items"},
+    "tr": {
+      "type": "object", "minProperties": 1,
+      "propertyNames": {"pattern": "^[a-z]{2,3}$"},
+      "additionalProperties": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+      "description": "glosses per source language, primary first"
+    },
+    "tr_src": {
+      "type": "object",
+      "propertyNames": {"pattern": "^[a-z]{2,3}$"},
+      "additionalProperties": {"enum": ["wiktionary", "nlwiktionary", "wiktionary-pivot", "claude", "tatoeba", "manual"]},
+      "description": "provenance of the glosses per language"
+    },
+    "tags": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-z0-9_-]+$"}},
+    "variants": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "inflections": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1},
+                    "description": "inflected forms (plural, feminine, ...) used for sentence alignment; not compiled"},
+    "class": {"type": "string", "description": "verb class (also in the verbs record)"}
+  }
+}

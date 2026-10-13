@@ -1,0 +1,5 @@
+{"id": "it:ciao", "lemma": "ciao", "pos": "intj", "freq": 50, "unit": "u1", "tr": {"en": ["hi", "bye"], "nl": ["hoi", "doei"]}, "tr_src": {"en": "claude", "nl": "claude"}, "tags": ["greetings"]}
+{"id": "it:grazie", "lemma": "grazie", "pos": "intj", "freq": 40, "unit": "u1", "tr": {"en": ["thanks"], "nl": ["bedankt"]}, "tags": ["greetings"]}
+{"id": "it:guardare", "lemma": "guardare", "pos": "verb", "freq": 30, "unit": "u1", "tr": {"en": ["to look at"], "nl": ["kijken"]}}
+{"id": "it:mangiare", "lemma": "mangiare", "pos": "verb", "freq": 20, "unit": "u1", "tr": {"en": ["to eat"], "nl": ["eten"]}}
+{"id": "it:parlare", "lemma": "parlare", "pos": "verb", "freq": 10, "unit": "u1", "tr": {"en": ["to speak"], "nl": ["spreken"]}}
