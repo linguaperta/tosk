@@ -34,14 +34,14 @@ Each item says what "done" means. Add newly discovered work at the bottom of its
 
 ## Phase 2: Local database layer (`app/lib/data`)
 
-- [ ] drift setup: read-only course DB (native file and web bytes) and progress DB
-- [ ] `CourseRepo`: units, skills, skill items and facets, verb forms, sentences by word or form, notes, meta
-- [ ] `ProgressRepo`: `review_log` (append-only), `facet_state`, `settings`; `record()`
-- [ ] FSRS scheduler, tested against reference values
-- [ ] `rebuildStates()` from the log, which must reproduce the stored states exactly
-- [ ] Skill strength (mean predicted recall) and last-practiced date
-- [ ] `PackSource` and `LocalPackSource` (bundled assets, documents folder, file picker)
-- [ ] Debug screen: courses, skills, item counts, strength
+- [x] drift setup: read-only course DB (native file and web bytes) and progress DB
+- [x] `CourseRepo`: units, skills, skill items and facets, verb forms, sentences by word or form, notes, meta
+- [x] `ProgressRepo`: `review_log` (append-only), `facet_state`, `settings`; `record()`
+- [x] FSRS scheduler, tested against reference values
+- [x] `rebuildStates()` from the log, which must reproduce the stored states exactly
+- [x] Skill strength (mean predicted recall) and last-practiced date
+- [x] `PackSource` and `LocalPackSource` (bundled assets, documents folder, file picker)
+- [x] Debug screen: courses, skills, item counts, strength
 
 ## Phase 3: Exercise engine (`app/lib/engine`)
 
@@ -60,28 +60,31 @@ Each item says what "done" means. Add newly discovered work at the bottom of its
 
 ## Phase 4: App screens (`app/lib/ui`)
 
-- [ ] App shell: Riverpod, go_router, theme (light and dark), swappable skin
-- [ ] Skill map: layered layout by longest prerequisite path, unit bands, `pos` override, strength ring, days since practice, tier, fading color
-- [ ] Map node interactions: tap starts a lesson, long-press shows the grammar note (markdown) and the item list
-- [ ] Lesson player with one widget per exercise type (tap-first), instant feedback, a "Why?" button hidden for `NullExplainer`, and an end summary
-- [ ] Exercise lab: multi-select skills and types, and a session length
-- [ ] Non-stop mode: an endless player with a running count
-- [ ] Mixed practice ("what's fading") entry on the map
-- [ ] Settings: course, source language, default focus, accent strictness, theme, reduce motion
-- [ ] Polish: haptics, sounds and animations behind `reduceMotion`
-- [ ] Widget tests for every exercise widget, plus a full-lesson integration test on the real packs
-- [ ] Builds: signed release APK, Windows desktop, web (iOS needs a Mac and is documented only)
+- [x] App shell: Riverpod, go_router, theme (light and dark), swappable skin
+- [x] Skill map: layered layout by longest prerequisite path, unit bands, `pos` override, strength ring, days since practice, tier, fading color
+- [x] Map node interactions: tap starts a lesson, long-press shows the grammar note (markdown) and the item list
+- [x] Lesson player with one widget per exercise type (tap-first), instant feedback, a "Why?" button hidden for `NullExplainer`, and an end summary
+- [x] Exercise lab: multi-select skills and types, and a session length
+- [x] Non-stop mode: an endless player with a running count
+- [x] Mixed practice ("what's fading") entry on the map
+- [x] Settings: course, source language, default focus, accent strictness, theme, reduce motion
+- [x] Polish: haptics, sounds and animations behind `reduceMotion`
+- [x] Widget tests for every exercise widget and overflow tests at 4 screen sizes
+- [ ] Full-lesson integration test on the real packs
+- [~] Replace demo fakes with real data, engine and progression (integration)
+- [~] Builds: Windows and web pass; the signed APK toolchain is verified; final APK with real packs pending (iOS needs a Mac and is documented only)
 
 ## Phase 5: Progression (`app/lib/progression`)
 
-- [ ] XP per answer, weighted by facet state, with bonuses for due and lapsed facets; levels on an increasing curve
-- [ ] Skill tiers (locked, started, bronze, silver, gold) with decay, shown on the map
-- [ ] Streaks and heatmap, with freezes earned from reviews; tests cover time zones, midnight and freezes
-- [ ] Weekly and monthly challenges with badges
-- [ ] Verb collection page
-- [ ] Non-stop extras: combo multiplier, bonus rounds (conjugation blitz every 25 correct), best-run record
-- [ ] Session summary: XP, improved words, tier changes
-- [ ] Recomputing from the log gives the same XP and tiers (test)
+- [x] XP per answer, weighted by facet state, with bonuses for due and lapsed facets; levels on an increasing curve
+- [x] Skill tiers (locked, started, bronze, silver, gold) with decay, shown on the map
+- [x] Streaks and heatmap, with freezes earned from reviews; tests cover time zones, midnight and freezes
+- [x] Weekly and monthly challenges with badges
+- [x] Verb collection page
+- [x] Non-stop extras: combo multiplier, bonus rounds (conjugation blitz every 25 correct), best-run record
+- [x] Session summary: XP, improved words, tier changes
+- [x] Recomputing from the log gives the same XP and tiers (test)
+- [~] Wire progression into the map, summary, non-stop HUD, profile and verb-collection screens (integration)
 
 ## Later (not v1)
 
