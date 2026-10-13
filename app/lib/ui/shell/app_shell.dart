@@ -27,14 +27,19 @@ class AppShell extends StatelessWidget {
     if (width < railBreakpoint) {
       return Scaffold(
         body: shell,
-        bottomNavigationBar: NavigationBar(
-          key: const ValueKey('bottom-nav'),
-          selectedIndex: shell.currentIndex,
-          onDestinationSelected: _go,
-          destinations: [
-            for (final d in _destinations)
-              NavigationDestination(icon: Icon(d.icon), selectedIcon: Icon(d.selected), label: d.label),
-          ],
+        // Five labels of up to ~8 letters: on narrow phones larger text would
+        // wrap them ("Non-/stop"), so the bar caps its own text scale.
+        bottomNavigationBar: MediaQuery.withClampedTextScaling(
+          maxScaleFactor: width < 400 ? 1.0 : 1.2,
+          child: NavigationBar(
+            key: const ValueKey('bottom-nav'),
+            selectedIndex: shell.currentIndex,
+            onDestinationSelected: _go,
+            destinations: [
+              for (final d in _destinations)
+                NavigationDestination(icon: Icon(d.icon), selectedIcon: Icon(d.selected), label: d.label),
+            ],
+          ),
         ),
       );
     }

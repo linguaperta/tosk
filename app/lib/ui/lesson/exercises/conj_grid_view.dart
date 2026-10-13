@@ -109,23 +109,35 @@ class _ConjGridViewState extends State<ConjGridView> with ExerciseKeysMixin<Conj
       controls: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          for (var i = 0; i < _cells.length; i++)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 84,
-                    child: Text(
-                      _cells[i].personLabel,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+          // Person labels take the width they need (up to 40 %), so
+          // "lui/lei (he/she)" isn't cut off; long ones wrap to two lines.
+          Table(
+            columnWidths: const {0: IntrinsicColumnWidth(), 1: FlexColumnWidth()},
+            defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+            children: [
+              for (var i = 0; i < _cells.length; i++)
+                TableRow(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(right: 10, bottom: 8),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 132),
+                        child: Text(
+                          _cells[i].personLabel,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                        ),
+                      ),
                     ),
-                  ),
-                  Expanded(child: _cell(context, i, marks == null || i >= marks.length ? null : marks[i])),
-                ],
-              ),
-            ),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: _cell(context, i, marks == null || i >= marks.length ? null : marks[i]),
+                    ),
+                  ],
+                ),
+            ],
+          ),
           const SizedBox(height: 12),
           Wrap(
             spacing: 8,

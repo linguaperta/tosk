@@ -13,7 +13,7 @@ class MapGeometry {
   MapGeometry({required this.layout, required double availableWidth, required this.zoom}) {
     final cols = math.max(1.0, layout.columns);
     final fit = (availableWidth - 2 * hPad) / cols;
-    cellWidth = math.max(64.0, math.min(112.0, fit) * zoom);
+    cellWidth = math.max(64.0, math.min(144.0, fit) * zoom);
     diameter = (cellWidth * 0.6).clamp(40.0, 76.0);
     rowHeight = diameter + 64;
     gridWidth = cols * cellWidth;
@@ -98,18 +98,6 @@ class SkillMapView extends StatelessWidget {
                   height: MapGeometry.bandHeader + b.rowCount * g.rowHeight,
                   child: DecoratedBox(
                     decoration: BoxDecoration(color: style.bandColor(b.index), borderRadius: BorderRadius.circular(16)),
-                    child: Align(
-                      alignment: Alignment.topLeft,
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
-                        child: Text(
-                          unitTitles[b.unitId] ?? b.unitId,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.titleSmall?.copyWith(color: style.bandTitleColor),
-                        ),
-                      ),
-                    ),
                   ),
                 ),
               Positioned.fill(
@@ -125,6 +113,35 @@ class SkillMapView extends StatelessWidget {
                   ),
                 ),
               ),
+              // Unit titles above the edges, on the band color, so an edge
+              // passing through a band header never runs through its text.
+              for (final b in layout.bands)
+                Positioned(
+                  left: 4,
+                  right: 4,
+                  top: g.bandTop[b.index],
+                  child: Align(
+                    alignment: Alignment.topLeft,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(8, 6, 8, 0),
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: style.bandColor(b.index),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                          child: Text(
+                            unitTitles[b.unitId] ?? b.unitId,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.titleSmall?.copyWith(color: style.bandTitleColor),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               for (final n in layout.nodes)
                 if (course.skill(n.skillId) case final skill?)
                   Positioned(
@@ -183,7 +200,12 @@ class MapEdgesPainter extends CustomPainter {
       final from = geometry.ringCenter(a);
       final to = geometry.ringCenter(b);
       if (to.dy > from.dy) {
-        style.edgePainter.paint(canvas, from + Offset(0, r), to - Offset(0, r), paint);
+        final lane = detourLane(a, b, from, to, r);
+        if (lane != null) {
+          _paintDetour(canvas, from + Offset(0, r), to - Offset(0, r), lane, paint);
+        } else {
+          style.edgePainter.paint(canvas, from + Offset(0, r), to - Offset(0, r), paint);
+        }
       } else {
         // Same row or upward (pinned nodes): straight line between ring edges.
         final d = to - from;
@@ -193,6 +215,51 @@ class MapEdgesPainter extends CustomPainter {
         canvas.drawLine(from + u * r, to - u * r, paint);
       }
     }
+  }
+
+  /// When the straight edge from [a] to [b] would pass behind another node
+  /// (an edge skipping rows, often across unit bands), the x of a free lane
+  /// between columns to route it through instead; null when the way is clear.
+  @visibleForTesting
+  double? detourLane(MapNode a, MapNode b, Offset from, Offset to, double r) {
+    final g = geometry;
+    final blockers = <Offset>[];
+    final between = <Offset>[];
+    for (final n in layout.nodes) {
+      if (n.skillId == a.skillId || n.skillId == b.skillId) continue;
+      final c = g.ringCenter(n);
+      if (c.dy <= from.dy + r || c.dy >= to.dy - r) continue;
+      between.add(c);
+      final t = (c.dy - from.dy) / (to.dy - from.dy);
+      final x = from.dx + (to.dx - from.dx) * t;
+      // The node plus its title below it.
+      if ((c.dx - x).abs() < g.cellWidth * 0.45) blockers.add(c);
+    }
+    if (blockers.isEmpty) return null;
+    // Lanes are the column boundaries; take the one closest to the straight
+    // line that no blocker sits on.
+    final mid = (from.dx + to.dx) / 2;
+    final candidates = <double>[];
+    for (var k = 0; k <= 2 * layout.columns.ceil() + 2; k++) {
+      candidates.add(g.originX + (k / 2 - 0.5) * g.cellWidth + g.cellWidth / 2);
+    }
+    candidates.sort((x, y) => (x - mid).abs().compareTo((y - mid).abs()));
+    for (final lane in candidates) {
+      if (between.every((c) => (c.dx - lane).abs() >= g.cellWidth * 0.45)) return lane;
+    }
+    return null;
+  }
+
+  void _paintDetour(Canvas canvas, Offset from, Offset to, double lane, Paint paint) {
+    final h = geometry.rowHeight;
+    final top = Offset(lane, from.dy + h * 0.45);
+    final bottom = Offset(lane, to.dy - h * 0.45);
+    final path = Path()
+      ..moveTo(from.dx, from.dy)
+      ..cubicTo(from.dx, from.dy + h * 0.25, lane, top.dy - h * 0.2, top.dx, top.dy)
+      ..lineTo(bottom.dx, bottom.dy)
+      ..cubicTo(lane, bottom.dy + h * 0.2, to.dx, to.dy - h * 0.25, to.dx, to.dy);
+    canvas.drawPath(path, paint);
   }
 
   @override
