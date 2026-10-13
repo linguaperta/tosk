@@ -1,7 +1,8 @@
 import 'package:tosk/app.dart';
 import 'package:tosk/core/core.dart';
 import 'package:tosk/providers.dart';
-import 'package:tosk/ui/demo/demo_progress_store.dart';
+import 'package:tosk/data/progress/in_memory_progress_store.dart';
+import 'package:tosk/progression/calendar.dart';
 import 'package:tosk/ui/lesson/exercises/exercise_view.dart';
 import 'package:tosk/ui/router.dart';
 import 'package:flutter/material.dart';
@@ -11,6 +12,29 @@ import 'package:flutter_test/flutter_test.dart';
 
 final testNow = DateTime.utc(2026, 10, 13, 12);
 
+/// The data layer's in-memory FSRS store with preset settings and a readable
+/// settings map (what `progressStoreProvider` defaults to, minus the presets).
+class TestProgressStore extends InMemoryProgressStore {
+  TestProgressStore({Map<String, String>? settings}) : _settings = {...?settings};
+
+  final Map<String, String> _settings;
+
+  /// Settings as stored.
+  Map<String, String> get settings => Map.unmodifiable(_settings);
+
+  @override
+  Future<String?> getSetting(String key) async => _settings[key];
+
+  @override
+  Future<void> setSetting(String key, String? value) async {
+    if (value == null) {
+      _settings.remove(key);
+    } else {
+      _settings[key] = value;
+    }
+  }
+}
+
 void setSurface(WidgetTester tester, Size size) {
   tester.view.devicePixelRatio = 1.0;
   tester.view.physicalSize = size;
@@ -18,21 +42,22 @@ void setSurface(WidgetTester tester, Size size) {
 }
 
 /// Pumps the whole app with demo data, a fixed clock and an in-memory store.
-Future<InMemoryProgressStore> pumpApp(
+Future<TestProgressStore> pumpApp(
   WidgetTester tester, {
   Size size = const Size(400, 800),
-  InMemoryProgressStore? store,
+  TestProgressStore? store,
   String? initialLocation,
   List<Override> overrides = const [],
 }) async {
   setSurface(tester, size);
-  final s = store ?? InMemoryProgressStore();
+  final s = store ?? TestProgressStore();
   await tester.pumpWidget(
     ProviderScope(
       retry: (_, _) => null,
       overrides: [
         progressStoreProvider.overrideWithValue(s),
         clockProvider.overrideWithValue(() => testNow),
+        calendarProvider.overrideWithValue(LocalCalendar.utc),
         if (initialLocation != null)
           routerProvider.overrideWith((ref) => buildRouter(initialLocation: initialLocation)),
         ...overrides,

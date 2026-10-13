@@ -6,6 +6,8 @@ abstract final class Routes {
   static const lab = '/lab';
   static const nonstop = '/nonstop';
   static const settings = '/settings';
+  static const progress = '/progress';
+  static const verbs = '/progress/verbs';
   static const debug = '/debug';
 
   /// Skill detail bottom sheet (grammar note, items, start with a focus).

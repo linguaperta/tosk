@@ -87,8 +87,10 @@ class SessionSummaryCard extends StatelessWidget {
                 child: Row(children: [
                   Icon(Icons.trending_up, color: ProgressionColors.gold(cs)),
                   const SizedBox(width: 8),
-                  Text('Level up! ${s.levelBefore.level} → ${s.levelAfter.level}',
-                      style: theme.textTheme.titleSmall),
+                  Flexible(
+                    child: Text('Level up! ${s.levelBefore.level} → ${s.levelAfter.level}',
+                        style: theme.textTheme.titleSmall),
+                  ),
                 ]),
               ),
             ],

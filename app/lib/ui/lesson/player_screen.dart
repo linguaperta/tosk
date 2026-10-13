@@ -6,12 +6,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/core.dart';
+import '../../progression/nonstop.dart';
 import '../../providers.dart';
 import '../common/async_view.dart';
 import '../routes.dart';
 import '../slots/progression_slots.dart';
 import 'exercises/exercise_view.dart';
 import 'feedback_banner.dart';
+import 'recording_store.dart';
 import 'session_request.dart';
 import 'session_summary_view.dart';
 import 'why_explainer.dart';
@@ -39,8 +41,12 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   Answer? _draft;
   Result? _result;
   bool _busy = false;
-  bool? _lastCorrect;
   SessionSummary? _summary;
+
+  /// Non-stop scoring (combo, multiplier, bonus rounds), fed one graded
+  /// exercise at a time with the `at` the session recorded.
+  NonStopRun _run = const NonStopRun();
+  RecordingProgressStore? _recording;
   final _watch = Stopwatch();
   final _keys = ExerciseKeys();
   final _focus = FocusNode(debugLabel: 'player');
@@ -55,6 +61,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
   @override
   void dispose() {
+    final s = _session;
+    if (s != null) _recording?.forget(s.id);
     _keys.dispose();
     _focus.dispose();
     super.dispose();
@@ -62,6 +70,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
   Future<void> _start() async {
     try {
+      _recording = ref.read(recordingStoreProvider);
       final factory = await ref.read(sessionFactoryProvider.future);
       final settings = await ref.read(settingsProvider.future);
       final session = await widget.request.start(factory, defaultFocus: settings.defaultFocus);
@@ -117,7 +126,12 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       if (!mounted) return;
       final fx = ref.read(fxProvider);
       r.correct ? fx.correct() : fx.wrong();
-      _lastCorrect = r.correct;
+      if (_endless) {
+        // Same timestamp as the review log, so the live score equals the
+        // record replayed from the log later.
+        final at = _recording?.lastRecordedAt(s.id) ?? ref.read(clockProvider)().toUtc();
+        _run = _run.applyResult(ex, r, at: at);
+      }
       if (ex is FlashcardExercise) {
         // Self-graded: the back was already shown, go straight on.
         _busy = false;
@@ -144,7 +158,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     final s = _session;
     if (s == null) return;
     final summary = s.summary();
-    ref.invalidate(skillStatsProvider);
+    ref.read(progressRevisionProvider.notifier).bump();
     ref.read(fxProvider).finished();
     setState(() {
       _summary = summary;
@@ -192,7 +206,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     );
     if (leave == true && mounted) {
       _session?.stop();
-      ref.invalidate(skillStatsProvider);
+      ref.read(progressRevisionProvider.notifier).bump();
       setState(() => _phase = PlayerPhase.summary); // lets PopScope pop
       _close();
     }
@@ -366,10 +380,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     final result = _result;
     final reduce = ref.watch(reduceMotionProvider);
     final whyAvailable = ref.watch(explainerAvailableProvider);
-    final s = _session!;
     return Column(
       children: [
-        if (_endless) NonStopHudSlot(answered: s.answered, correct: s.correctCount, lastCorrect: _lastCorrect),
+        if (_endless) NonStopHudSlot(run: _run),
         Expanded(
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),

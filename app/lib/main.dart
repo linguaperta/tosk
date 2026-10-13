@@ -1,31 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 
 import 'app.dart';
-import 'providers.dart';
-import 'ui/demo/demo_courses.dart';
-import 'ui/demo/demo_progress_store.dart';
-import 'ui/demo/demo_skill_stats.dart';
+import 'app_bootstrap.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Demo wiring until integration: in-memory courses and progress, seeded with
-  // some history so the map shows strength, decay and tiers.
-  // TODO(integration): open the real course catalog and progress database here
-  // and pass them as overrides instead.
-  final catalog = DemoCourseCatalog();
-  final store = InMemoryProgressStore();
-  final now = DateTime.now();
-  for (final meta in await catalog.listCourses()) {
-    await seedDemoProgress(store, await catalog.open(meta.id), now);
+  // Real data: the progress database, course packs (falling back to the demo
+  // courses while none is installed) and the FSRS scheduler.
+  var overrides = <Override>[];
+  try {
+    overrides = (await bootApp()).overrides;
+  } catch (e, st) {
+    // Without storage the app still runs, on the demo courses with in-memory progress.
+    debugPrint('Could not open the data layer, running without persistence: $e\n$st');
   }
 
-  runApp(
-    ProviderScope(
-      retry: (_, _) => null,
-      overrides: [courseCatalogProvider.overrideWithValue(catalog), progressStoreProvider.overrideWithValue(store)],
-      child: const ToskApp(),
-    ),
-  );
+  runApp(ProviderScope(retry: (_, _) => null, overrides: overrides, child: const ToskApp()));
 }

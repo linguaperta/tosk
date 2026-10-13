@@ -1,11 +1,14 @@
 import 'package:tosk/core/core.dart';
+import 'package:tosk/data/progress/in_memory_progress_store.dart';
+import 'package:tosk/progression/calendar.dart';
+import 'package:tosk/providers.dart';
 import 'package:tosk/ui/demo/demo_courses.dart';
 import 'package:tosk/ui/demo/demo_exercises.dart';
 import 'package:tosk/ui/demo/demo_grader.dart';
-import 'package:tosk/ui/demo/demo_progress_store.dart';
+import 'package:tosk/ui/demo/demo_seed.dart';
 import 'package:tosk/ui/demo/demo_session.dart';
-import 'package:tosk/ui/demo/demo_skill_stats.dart';
 import 'package:tosk/ui/map/skill_stats.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// A correct answer for any demo exercise.
@@ -188,20 +191,38 @@ void main() {
     });
   });
 
-  test('demo skill stats: tiers, locking, decay', () async {
+  test('skillStatsProvider on the seeded demo course: FSRS strength, progression tiers, locking, fading', () async {
     final course = buildDemoItalian();
     final store = InMemoryProgressStore();
     final now = DateTime.utc(2026, 10, 13);
-    var stats = await computeDemoSkillStats(course, store, now);
+    final container = ProviderContainer.test(
+      overrides: [
+        progressStoreProvider.overrideWithValue(store),
+        clockProvider.overrideWithValue(() => now),
+        calendarProvider.overrideWithValue(LocalCalendar.utc),
+      ],
+    );
+    var stats = await container.read(skillStatsProvider.future);
     expect(stats['greetings']!.tier, MapTier.available);
     expect(stats['food']!.tier, MapTier.locked);
     await seedDemoProgress(store, course, now);
-    stats = await computeDemoSkillStats(course, store, now);
+    container.read(progressRevisionProvider.notifier).bump();
+    stats = await container.read(skillStatsProvider.future);
     expect(stats['greetings']!.tier.index, greaterThanOrEqualTo(MapTier.bronze.index));
     expect(stats['greetings']!.strength, greaterThan(stats['articles']!.strength));
-    expect(stats['articles']!.decay, greaterThan(0));
+    expect(stats['articles']!.tier, MapTier.started); // one review: still in FSRS learning
+    expect(stats['articles']!.fading, greaterThan(0));
+    expect(stats['articles']!.decay, stats['articles']!.fading);
     expect(stats['family']!.tier, MapTier.available); // prerequisite practiced
     expect(stats['passato']!.tier, MapTier.locked);
     expect(stats['greetings']!.daysSince(now), 4);
+    expect(stats['greetings']!.totalFacets, course.skillFacets('greetings').length);
+    expect(stats['greetings']!.practicedFacets, stats['greetings']!.totalFacets);
+  });
+
+  test('mapTier and skillTierOf are inverse', () {
+    for (final t in MapTier.values) {
+      expect(mapTier(skillTierOf(t)), t);
+    }
   });
 }

@@ -121,7 +121,7 @@ class _SkillNodeState extends State<SkillNode> {
                   Positioned(
                     right: 0,
                     bottom: 0,
-                    child: TierBadgeSlot(tier: stats.tier, style: w.style, size: badge),
+                    child: TierBadgeSlot(tier: stats.tier, style: w.style, size: badge, reduceMotion: w.reduceMotion),
                   ),
                 ],
               ),

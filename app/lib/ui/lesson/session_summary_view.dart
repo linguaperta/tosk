@@ -49,72 +49,99 @@ class SessionSummaryView extends ConsumerWidget {
     final dur = summary.endedAt.difference(summary.startedAt);
     final time = dur.inMinutes > 0 ? '${dur.inMinutes}m ${dur.inSeconds % 60}s' : '${dur.inSeconds}s';
 
+    // Scrolling content (built eagerly: it is short) with Done pinned below.
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 640),
-        child: ListView(
+        child: Column(
           key: const ValueKey('session-summary'),
-          padding: const EdgeInsets.all(20),
           children: [
-            Icon(
-              summary.answered == 0
-                  ? Icons.flag_outlined
-                  : (pct >= 80 ? Icons.emoji_events : Icons.check_circle_outline),
-              size: 64,
-              color: theme.colorScheme.primary,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              endless ? 'Run finished' : 'Session complete',
-              textAlign: TextAlign.center,
-              style: theme.textTheme.headlineSmall,
-            ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(
-                  child: _Stat(label: 'Answered', value: '${summary.answered}', key: const ValueKey('stat-answered')),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Icon(
+                      summary.answered == 0
+                          ? Icons.flag_outlined
+                          : (pct >= 80 ? Icons.emoji_events : Icons.check_circle_outline),
+                      size: 64,
+                      color: theme.colorScheme.primary,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      endless ? 'Run finished' : 'Session complete',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.headlineSmall,
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _Stat(
+                            label: 'Answered',
+                            value: '${summary.answered}',
+                            key: const ValueKey('stat-answered'),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _Stat(label: 'Accuracy', value: '$pct%', key: const ValueKey('stat-accuracy')),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _Stat(label: 'Time', value: time),
+                        ),
+                      ],
+                    ),
+                    if (summary.mistakes.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      Text('To review', style: theme.textTheme.titleMedium),
+                      const SizedBox(height: 4),
+                      for (final m in summary.mistakes)
+                        ListTile(
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                          leading: Icon(Icons.replay, color: theme.colorScheme.error),
+                          title: Text(facetLabel(m, course, lang)),
+                        ),
+                    ] else if (summary.answered > 0) ...[
+                      const SizedBox(height: 16),
+                      Text('No mistakes. Well done!', textAlign: TextAlign.center, style: theme.textTheme.titleMedium),
+                    ],
+                    const SizedBox(height: 16),
+                    SummaryProgressSlot(summary: summary),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _Stat(label: 'Accuracy', value: '$pct%', key: const ValueKey('stat-accuracy')),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _Stat(label: 'Time', value: time),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            SummaryProgressSlot(summary: summary),
-            if (summary.mistakes.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text('To review', style: theme.textTheme.titleMedium),
-              const SizedBox(height: 4),
-              for (final m in summary.mistakes)
-                ListTile(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  leading: Icon(Icons.replay, color: theme.colorScheme.error),
-                  title: Text(facetLabel(m, course, lang)),
-                ),
-            ] else if (summary.answered > 0) ...[
-              const SizedBox(height: 8),
-              Text('No mistakes. Well done!', textAlign: TextAlign.center, style: theme.textTheme.titleMedium),
-            ],
-            const SizedBox(height: 24),
-            FilledButton(
-              key: const ValueKey('summary-done'),
-              onPressed: onDone,
-              child: const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Text('Done')),
-            ),
-            if (onAgain != null) ...[
-              const SizedBox(height: 8),
-              OutlinedButton(
-                onPressed: onAgain,
-                child: const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Text('Practice again')),
               ),
-            ],
+            ),
+            SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    FilledButton(
+                      key: const ValueKey('summary-done'),
+                      onPressed: onDone,
+                      child: const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Text('Done')),
+                    ),
+                    if (onAgain != null) ...[
+                      const SizedBox(height: 8),
+                      OutlinedButton(
+                        onPressed: onAgain,
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                          child: Text('Practice again'),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ),

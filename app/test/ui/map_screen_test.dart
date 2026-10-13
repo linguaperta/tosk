@@ -1,6 +1,6 @@
 import 'package:tosk/core/core.dart';
 import 'package:tosk/ui/demo/demo_courses.dart';
-import 'package:tosk/ui/demo/demo_skill_stats.dart';
+import 'package:tosk/ui/demo/demo_seed.dart';
 import 'package:tosk/ui/lesson/player_screen.dart';
 import 'package:tosk/ui/map/map_layout.dart';
 import 'package:tosk/ui/map/skill_map_view.dart';
@@ -8,7 +8,6 @@ import 'package:tosk/ui/map/skill_node.dart';
 import 'package:tosk/ui/map/skill_sheet.dart';
 import 'package:tosk/ui/map/skill_stats.dart';
 import 'package:tosk/ui/settings/setting_keys.dart';
-import 'package:tosk/ui/demo/demo_progress_store.dart';
 import 'package:tosk/ui/theme/skin.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -68,7 +67,7 @@ void main() {
   });
 
   testWidgets('item sheet shows articles and glosses in the chosen source language', (tester) async {
-    await pumpApp(tester, store: InMemoryProgressStore(settings: {SettingKeys.sourceLang: 'nl'}));
+    await pumpApp(tester, store: TestProgressStore(settings: {SettingKeys.sourceLang: 'nl'}));
     final node = find.byKey(const ValueKey('skill-node-food'));
     await tester.ensureVisible(node);
     await tester.longPress(node);
@@ -108,7 +107,7 @@ void main() {
 
   testWidgets('nodes reflect stats: ring, days, locked, fading', (tester) async {
     final course = buildDemoItalian();
-    final store = InMemoryProgressStore();
+    final store = TestProgressStore();
     await seedDemoProgress(store, course, testNow);
     await pumpApp(tester, store: store);
     SkillNode node(String id) => tester.widget<SkillNode>(

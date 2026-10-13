@@ -6,6 +6,7 @@ const _destinations = [
   (icon: Icons.map_outlined, selected: Icons.map, label: 'Map'),
   (icon: Icons.science_outlined, selected: Icons.science, label: 'Lab'),
   (icon: Icons.all_inclusive, selected: Icons.all_inclusive, label: 'Non-stop'),
+  (icon: Icons.insights_outlined, selected: Icons.insights, label: 'Progress'),
   (icon: Icons.settings_outlined, selected: Icons.settings, label: 'Settings'),
 ];
 

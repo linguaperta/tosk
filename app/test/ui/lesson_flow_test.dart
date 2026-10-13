@@ -1,6 +1,5 @@
 import 'package:tosk/core/core.dart';
 import 'package:tosk/providers.dart';
-import 'package:tosk/ui/demo/demo_progress_store.dart';
 import 'package:tosk/ui/lesson/feedback_banner.dart';
 import 'package:tosk/ui/lesson/player_screen.dart';
 import 'package:tosk/ui/lesson/why_explainer.dart';
@@ -165,7 +164,7 @@ void main() {
   testWidgets('reduce motion: feedback banner is not animated, fx disabled', (tester) async {
     await pumpApp(
       tester,
-      store: InMemoryProgressStore(settings: {SettingKeys.reduceMotion: 'true'}),
+      store: TestProgressStore(settings: {SettingKeys.reduceMotion: 'true'}),
       initialLocation: '/play/lab?skills=present-are&types=conj_pick&length=1',
     );
     await answerWrongWithoutContinuing(tester);
