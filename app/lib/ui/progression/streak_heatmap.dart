@@ -152,9 +152,13 @@ class StreakHeatmap extends StatelessWidget {
         ),
         if (showLegend) ...[
           const SizedBox(height: 6),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
+          // Wraps on narrow screens / large text instead of overflowing.
+          Wrap(
+            alignment: WrapAlignment.end,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            runSpacing: 4,
             children: [
+              Row(mainAxisSize: MainAxisSize.min, children: [
               Text('Less', style: labelStyle),
               const SizedBox(width: 4),
               for (var b = 0; b <= data.maxBucket; b++)
@@ -171,10 +175,13 @@ class StreakHeatmap extends StatelessWidget {
                 ),
               const SizedBox(width: 4),
               Text('More', style: labelStyle),
+              ]),
               const SizedBox(width: 10),
-              Icon(Icons.ac_unit, size: cellSize, color: ProgressionColors.freeze(cs)),
-              const SizedBox(width: 2),
-              Text('Freeze', style: labelStyle),
+              Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.ac_unit, size: cellSize, color: ProgressionColors.freeze(cs)),
+                const SizedBox(width: 2),
+                Text('Freeze', style: labelStyle),
+              ]),
             ],
           ),
         ],

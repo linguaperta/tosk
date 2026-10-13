@@ -1,4 +1,4 @@
-import '../../core/core.dart';
+import 'package:tosk/core/core.dart';
 
 /// Grades every exercise type for the fake session. The real grading (with
 /// spelling variants, per-language normalization and fast-answer thresholds)

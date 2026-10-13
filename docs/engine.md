@@ -60,7 +60,7 @@ UI notes on the exercise contract:
 
 **Stages** (`StagePolicy`): a facet is *fresh* when it has never been reviewed, *learning* while its stability is under 5 days, and *stable* after that. `kStageAffinity` weights the types per stage: fresh facets get flashcards, multiple choice, conjugation pick and a grid with prefilled cells; stable facets get the sentence builder, cloze, a full grid, transform and spot the error. The selector multiplies that weight by the focus weight and draws one type. If no type has weight under the focus (say, a vocabulary focus on a pure grammar skill), it ignores the focus, and as a last resort it tries every allowed type.
 
-Cloze uses free text when the preferred input is keyboard or ink, or once the facet is very stable (`freeTextDays` = 21). Otherwise it stays tap-first.
+Cloze uses free text only when the preferred input is keyboard or ink ("typing is never required": with tap input it always offers choices). For keyboard and ink, `StagePolicy.freeTextDays` (default 0, meaning always) can hold free text back until the facet reaches that stability.
 
 ## Template rules
 

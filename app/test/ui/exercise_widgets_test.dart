@@ -1,6 +1,7 @@
 import 'package:tosk/core/core.dart';
-import 'package:tosk/ui/demo/demo_exercises.dart';
+import 'fakes/demo_exercises.dart';
 import 'package:tosk/ui/lesson/answer_input.dart';
+import 'package:tosk/ui/lesson/feedback_banner.dart';
 import 'package:tosk/ui/lesson/exercises/cloze_view.dart';
 import 'package:tosk/ui/lesson/exercises/common.dart';
 import 'package:tosk/ui/lesson/exercises/conj_grid_view.dart';
@@ -157,7 +158,8 @@ void main() {
     });
 
     testWidgets('empty ending is labelled', (tester) async {
-      expect(endingLabel(''), '∅');
+      expect(endingLabel(''), '–');
+      expect(endingLabel('–'), '–');
       expect(endingLabel('iamo'), '-iamo');
     });
   });
@@ -327,6 +329,101 @@ void main() {
     await host(tester, MultipleChoiceView(exercise: e, onChanged: p.onChanged, result: result));
     await tap(tester, 'option-0');
     expect(p.draft, isNull);
+  });
+
+  group('engine fields', () {
+    testWidgets('multiple choice shows the hint (article questions)', (tester) async {
+      const e = MultipleChoiceExercise(
+        id: 'mc',
+        facetId: 'it:ragazzo#article',
+        prompt: '___ ragazzo',
+        options: ['il', 'lo', 'la'],
+        correctIndex: 0,
+        direction: Direction.produce,
+        hint: 'boy',
+      );
+      await host(tester, MultipleChoiceView(exercise: e, onChanged: (_) {}));
+      expect(find.text('___ ragazzo'), findsOneWidget);
+      expect(find.text('boy'), findsOneWidget);
+    });
+
+    testWidgets('conj pick: the engine\'s no-ending option shows as – and fills nothing', (tester) async {
+      const e = ConjPickExercise(
+        id: 'cp',
+        facetId: 'nl:werken#form:tegenwoordige_tijd',
+        lemma: 'werken',
+        gloss: 'to work',
+        tense: 'tegenwoordige_tijd',
+        tenseLabel: 'present',
+        person: 'ik',
+        personLabel: 'ik',
+        stem: 'werk',
+        endings: ['–', 't', 'en'],
+        correctIndex: 0,
+        fullForm: 'werk',
+      );
+      final p = Probe();
+      await host(tester, ConjPickView(exercise: e, onChanged: p.onChanged));
+      expect(find.text('–'), findsOneWidget);
+      expect(find.text('-t'), findsOneWidget);
+      await tap(tester, 'ending-0');
+      expect((p.draft! as ChoiceAnswer).index, 0);
+      final word = tester.widget<Text>(find.byKey(const ValueKey('conj-pick-word'))).textSpan!.toPlainText();
+      expect(word, 'werk');
+    });
+
+    testWidgets('spot the error groups tokens by tokenPre (elision, punctuation)', (tester) async {
+      const tokens = ["L'", 'acqua', 'sono', 'fredda', '.'];
+      const pre = ['', '', ' ', ' ', ''];
+      expect(groupTokens(tokens, const [true, true, true, true, false], pre: pre), [
+        [0, 1],
+        [2],
+        [3, 4],
+      ]);
+      const e = SpotErrorExercise(
+        id: 'se',
+        facetId: 'it:essere#form:presente',
+        tokens: tokens,
+        tokenPre: pre,
+        tokenIsWord: [true, true, true, true, false],
+        errorIndex: 2,
+        correction: 'è',
+        translation: 'The water is cold.',
+      );
+      final p = Probe();
+      await host(tester, SpotErrorView(exercise: e, onChanged: p.onChanged));
+      await tap(tester, 'token-2');
+      expect((p.draft! as TokenAnswer).index, 2);
+      expect(find.text('The water is cold.'), findsOneWidget);
+    });
+
+    testWidgets('transform shows the translation', (tester) async {
+      const e = TransformExercise(
+        id: 'tr',
+        facetId: 'it:mangiare#form:passato_prossimo',
+        source: 'Mangio una mela.',
+        targetDescription: '→ passato prossimo',
+        tiles: ['Ho', 'mangiato', 'una', 'mela.'],
+        answers: [
+          ['Ho', 'mangiato', 'una', 'mela.'],
+        ],
+        translation: 'I eat an apple.',
+      );
+      await host(tester, TransformView(exercise: e, onChanged: (_) {}));
+      expect(find.byKey(const ValueKey('transform-translation')), findsOneWidget);
+      expect(find.text('I eat an apple.'), findsOneWidget);
+    });
+
+    testWidgets('an accent slip is accepted with a "watch the accent" note', (tester) async {
+      const r = Result(correct: true, expected: 'città', given: 'citta', outcomes: [], accentSlip: true);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: FeedbackBanner(result: r, onContinue: () {}, reduceMotion: true)),
+        ),
+      );
+      expect(find.text('Correct!'), findsOneWidget);
+      expect(find.text('Watch the accent: città'), findsOneWidget);
+    });
   });
 }
 

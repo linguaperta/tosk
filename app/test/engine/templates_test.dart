@@ -16,6 +16,7 @@ GenContext _ctx(
   String? skill,
   Map<String, FacetState> states = const {},
   InputMode input = InputMode.tap,
+  StagePolicy stagePolicy = const StagePolicy(),
 }) =>
     GenContext(
       course: c,
@@ -24,6 +25,7 @@ GenContext _ctx(
       states: states,
       skill: skill == null ? null : c.skill(skill),
       now: _now,
+      stagePolicy: stagePolicy,
     );
 
 SkillFacet _facet(CourseData c, String skillId, String facetId) =>
@@ -224,12 +226,27 @@ void main() {
       expect(g.tiles.where((t) => t == 'werken').length, 3);
     });
 
-    test('cloze: choices while young, free text when stable or keyboard', () {
+    test('cloze: typing is never required; free text only for keyboard/ink learners', () {
       final f = _facet(it, 'presente-are', 'it:parlare#form:presente');
-      expect((const ClozeTemplate().generate(f, _ctx(it)) as ClozeExercise).options, isNotNull);
-      final s = {f.facetId: _stable(f.facetId, 30)};
-      expect((const ClozeTemplate().generate(f, _ctx(it, states: s)) as ClozeExercise).options, isNull);
-      expect((const ClozeTemplate().generate(f, _ctx(it, input: InputMode.keyboard)) as ClozeExercise).options, isNull);
+      ClozeExercise gen({Map<String, FacetState> states = const {}, InputMode input = InputMode.tap, double days = 0}) =>
+          const ClozeTemplate().generate(
+                f,
+                _ctx(it, states: states, input: input, stagePolicy: StagePolicy(freeTextDays: days)),
+              )
+              as ClozeExercise;
+      final young = <String, FacetState>{};
+      final stable = {f.facetId: _stable(f.facetId, 400)};
+      // Tap: always choices, however stable the facet or high/low the threshold.
+      for (final days in [0.0, 21.0]) {
+        expect(gen(days: days).options, isNotNull);
+        expect(gen(states: stable, days: days).options, isNotNull);
+      }
+      // Keyboard and ink: free text (default threshold 0) ...
+      expect(gen(input: InputMode.keyboard).options, isNull);
+      expect(gen(input: InputMode.ink).options, isNull);
+      // ... or, with a threshold, once the facet is stable enough.
+      expect(gen(input: InputMode.keyboard, states: young, days: 21).options, isNotNull);
+      expect(gen(input: InputMode.keyboard, states: stable, days: 21).options, isNull);
     });
 
     test('cloze grading: accents, case, alternatives and ink candidates', () {

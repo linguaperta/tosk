@@ -3,16 +3,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/core.dart';
+import 'debug/debug_route.dart';
 import 'lab/lab_screen.dart';
 import 'lesson/player_screen.dart';
 import 'lesson/session_request.dart';
 import 'map/map_screen.dart';
 import 'map/skill_sheet.dart';
 import 'nonstop/nonstop_screen.dart';
+import 'progress/progress_screen.dart';
+import 'progress/verb_collection_screen.dart';
 import 'routes.dart';
 import 'settings/settings_screen.dart';
 import 'shell/app_shell.dart';
-import 'shell/debug_placeholder.dart';
 
 /// A go_router page that shows its child as a modal bottom sheet.
 class BottomSheetPage<T> extends Page<T> {
@@ -46,6 +48,15 @@ GoRouter buildRouter({String initialLocation = Routes.map}) {
           ),
           StatefulShellBranch(
             routes: [GoRoute(path: Routes.nonstop, builder: (_, _) => const NonStopScreen())],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: Routes.progress,
+                builder: (_, _) => const ProgressScreen(),
+                routes: [GoRoute(path: 'verbs', builder: (_, _) => const VerbCollectionScreen())],
+              ),
+            ],
           ),
           StatefulShellBranch(
             routes: [GoRoute(path: Routes.settings, builder: (_, _) => const SettingsScreen())],
@@ -91,8 +102,7 @@ GoRouter buildRouter({String initialLocation = Routes.map}) {
       GoRoute(
         path: Routes.debug,
         parentNavigatorKey: rootNavigatorKey,
-        // TODO(integration): the data layer's DebugScreen (lib/ui/debug/debug_screen.dart).
-        builder: (_, _) => const DebugPlaceholderScreen(),
+        builder: (_, _) => const DebugRoute(),
       ),
     ],
   );

@@ -3,8 +3,7 @@
 // the test (golden-free).
 import 'package:tosk/core/core.dart';
 import 'package:tosk/ui/demo/demo_courses.dart';
-import 'package:tosk/ui/demo/demo_progress_store.dart';
-import 'package:tosk/ui/demo/demo_skill_stats.dart';
+import 'package:tosk/ui/demo/demo_seed.dart';
 import 'package:tosk/ui/map/skill_sheet.dart';
 import 'package:tosk/ui/routes.dart';
 import 'package:tosk/ui/settings/setting_keys.dart';
@@ -20,8 +19,8 @@ const sizes = {
   'desktop 1280x800': Size(1280, 800),
 };
 
-Future<InMemoryProgressStore> seeded({Map<String, String> settings = const {}}) async {
-  final store = InMemoryProgressStore(settings: settings);
+Future<TestProgressStore> seeded({Map<String, String> settings = const {}}) async {
+  final store = TestProgressStore(settings: settings);
   await seedDemoProgress(store, buildDemoItalian(), testNow);
   return store;
 }
@@ -69,11 +68,28 @@ void main() {
         expect(tester.takeException(), isNull);
       });
 
+      testWidgets('progress and verb collection pages', (tester) async {
+        tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+        addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+        await pumpApp(tester, size: size, store: await seeded(), initialLocation: Routes.progress);
+        await scrollThrough(tester, find.byKey(const ValueKey('progress-list')));
+        await tester.drag(find.byKey(const ValueKey('progress-list')), const Offset(0, 4000));
+        await tester.pumpAndSettle();
+        await tester.scrollUntilVisible(
+          find.byKey(const ValueKey('open-verbs')),
+          200,
+          scrollable: find.descendant(of: find.byKey(const ValueKey('progress-list')), matching: find.byType(Scrollable)).first,
+        );
+        await tapKey(tester, 'open-verbs');
+        await scrollThrough(tester, find.byKey(const ValueKey('verb-collection')));
+        expect(tester.takeException(), isNull);
+      });
+
       testWidgets('dark theme, Dutch (unverified) course map', (tester) async {
         await pumpApp(
           tester,
           size: size,
-          store: InMemoryProgressStore(settings: {SettingKeys.themeMode: 'dark', SettingKeys.course: 'nl'}),
+          store: TestProgressStore(settings: {SettingKeys.themeMode: 'dark', SettingKeys.course: 'nl'}),
         );
         expect(find.byKey(const ValueKey('unverified-badge')), findsOneWidget);
         await scrollThrough(tester, find.byKey(const ValueKey('map-scroll')));

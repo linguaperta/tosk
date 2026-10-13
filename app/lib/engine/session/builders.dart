@@ -334,8 +334,16 @@ class NonStopSession extends EngineSession {
 
     if (_bonusLeft > 0 && _bonusTypes != null) {
       final kinds = {for (final t in _bonusTypes!) ...?ExerciseSelectorTypes.templateKinds(t)};
-      final fitting = [for (final f in pool) if (kinds.contains(f.kind) && st.containsKey(f.facetId)) f];
-      final any = fitting.isNotEmpty ? fitting : [for (final f in pool) if (kinds.contains(f.kind)) f];
+      // Only facets a bonus type can actually be built for (conj_pick skips
+      // irregular tables), or the round would be spent on failed generations.
+      bool buildable(SkillFacet f) {
+        if (!kinds.contains(f.kind)) return false;
+        final ctx = genContext(f);
+        return _bonusTypes!.any((t) => env.selector.template(t)?.canGenerate(f, ctx) ?? false);
+      }
+      final candidates = [for (final f in pool) if (buildable(f)) f];
+      final fitting = [for (final f in candidates) if (st.containsKey(f.facetId)) f];
+      final any = fitting.isNotEmpty ? fitting : candidates;
       if (any.isNotEmpty) {
         _bonusLeft--;
         final f = _byWeakness(any, st, env.scheduler, now).first;

@@ -18,7 +18,8 @@ class SettingsScreen extends ConsumerWidget {
     final settings = ref.watch(settingsProvider);
     final courses = ref.watch(availableCoursesProvider).value ?? const <CourseMeta>[];
     final activeId = ref.watch(activeCourseIdProvider).value;
-    final meta = courses.where((c) => c.id == activeId).firstOrNull;
+    // The opened course's meta (listing metas from packs carry no translations).
+    final meta = ref.watch(courseDataProvider).value?.meta ?? courses.where((c) => c.id == activeId).firstOrNull;
     final lang = ref.watch(sourceLangProvider);
     final ctl = ref.read(settingsProvider.notifier);
 
@@ -47,7 +48,9 @@ class SettingsScreen extends ConsumerWidget {
                           if (c.unverified) ...[const SizedBox(width: 8), const UnverifiedBadge(compact: true)],
                         ],
                       ),
-                      subtitle: Text('v${c.version}'),
+                      subtitle: Text(
+                        '${ref.read(courseCatalogProvider).isDemo(c.id) ? 'Demo content · ' : ''}v${c.version}',
+                      ),
                       selected: c.id == activeId,
                       onTap: () => ctl.change((s) => s.copyWith(courseId: c.id)),
                     ),

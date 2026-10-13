@@ -23,13 +23,14 @@ enum FacetStage {
 
 /// Thresholds that turn a facet state into a [FacetStage].
 class StagePolicy {
-  const StagePolicy({this.stableDays = 5, this.freeTextDays = 21});
+  const StagePolicy({this.stableDays = 5, this.freeTextDays = 0});
 
   /// Stability (days) from which a facet counts as stable.
   final double stableDays;
 
-  /// Stability (days) from which cloze switches to free text even when the
-  /// preferred input is tap.
+  /// Stability (days) from which cloze uses free text, for learners whose
+  /// preferred input is keyboard or ink (0: always). Typing is never required:
+  /// with tap input cloze always offers choices, however stable the facet.
   final double freeTextDays;
 
   FacetStage stageOf(FacetState? s) {
@@ -74,12 +75,14 @@ class GenContext {
   FacetState? state(String facetId) => states[facetId];
   FacetStage stage(String facetId) => stagePolicy.stageOf(states[facetId]);
 
-  /// Free-text input (instead of choices) for cloze: when the learner prefers
-  /// keyboard/ink, or the facet is very stable.
+  /// Free-text input (instead of choices) for cloze: only when the learner
+  /// prefers keyboard/ink (typing is never required), and the facet has reached
+  /// [StagePolicy.freeTextDays].
   bool freeText(String facetId) {
-    if (options.preferredInput == InputMode.keyboard || options.preferredInput == InputMode.ink) {
-      return true;
+    if (options.preferredInput != InputMode.keyboard && options.preferredInput != InputMode.ink) {
+      return false;
     }
+    if (stagePolicy.freeTextDays <= 0) return true;
     final s = states[facetId];
     return s != null && s.reps > 0 && s.stability >= stagePolicy.freeTextDays;
   }

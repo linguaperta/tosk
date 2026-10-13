@@ -36,6 +36,25 @@ class UnverifiedBadge extends StatelessWidget {
   }
 }
 
+/// Chip marking built-in sample content, shown while no course pack is installed.
+class DemoBadge extends StatelessWidget {
+  const DemoBadge({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Tooltip(
+      message: 'Sample content: no course packs are installed yet.',
+      child: Container(
+        key: const ValueKey('demo-badge'),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        decoration: BoxDecoration(color: scheme.tertiaryContainer, borderRadius: BorderRadius.circular(12)),
+        child: Text('Demo', style: Theme.of(context).textTheme.labelSmall?.copyWith(color: scheme.onTertiaryContainer)),
+      ),
+    );
+  }
+}
+
 /// Course title with a menu to switch between installed courses.
 class CourseSwitcher extends ConsumerWidget {
   const CourseSwitcher({super.key});
@@ -47,6 +66,7 @@ class CourseSwitcher extends ConsumerWidget {
     final lang = ref.watch(sourceLangProvider);
     final active = courses.where((c) => c.id == activeId).firstOrNull;
     final title = active == null ? 'tosk' : pickLang(active.title, lang);
+    final demo = ref.watch(activeCourseIsDemoProvider);
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -83,7 +103,9 @@ class CourseSwitcher extends ConsumerWidget {
             ),
           ),
         ),
-        if (active?.unverified ?? false) ...[const SizedBox(width: 8), const UnverifiedBadge()],
+        if (demo) ...[const SizedBox(width: 8), const DemoBadge()],
+        // Icon-only next to the demo chip, so both fit on phones.
+        if (active?.unverified ?? false) ...[const SizedBox(width: 8), UnverifiedBadge(compact: demo)],
       ],
     );
   }

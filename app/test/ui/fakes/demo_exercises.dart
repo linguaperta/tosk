@@ -2,7 +2,7 @@
 /// generates these from pack data.
 library;
 
-import '../../core/core.dart';
+import 'package:tosk/core/core.dart';
 
 List<Exercise> demoExercises(String courseId, String lang) => courseId == 'nl' ? _dutch(lang) : _italian(lang);
 
