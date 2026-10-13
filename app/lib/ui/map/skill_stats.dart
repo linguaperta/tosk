@@ -1,0 +1,50 @@
+import 'package:flutter/foundation.dart';
+
+/// Display tier of a skill on the map. Mirrors the spec's mastery tiers plus
+/// `available` (unlocked but never practiced). Progression maps its own tier
+/// type onto this at integration.
+enum MapTier { locked, available, started, bronze, silver, gold }
+
+/// What the map needs to draw one skill node.
+@immutable
+class SkillStats {
+  const SkillStats({
+    this.strength = 0,
+    this.lastPracticed,
+    this.tier = MapTier.available,
+    this.practicedFacets = 0,
+    this.totalFacets = 0,
+  });
+
+  /// Mean predicted recall across the skill's facets (0..1).
+  final double strength;
+  final DateTime? lastPracticed;
+  final MapTier tier;
+  final int practicedFacets;
+  final int totalFacets;
+
+  bool get practiced => lastPracticed != null;
+
+  /// How much the skill has faded (0 = fresh, 1 = forgotten). Never-practiced skills don't fade.
+  double get decay => practiced ? (1 - strength).clamp(0.0, 1.0) : 0;
+
+  /// Whole days since [lastPracticed] (null when never practiced).
+  int? daysSince(DateTime now) {
+    final last = lastPracticed;
+    if (last == null) return null;
+    final d = now.difference(last).inHours ~/ 24;
+    return d < 0 ? 0 : d;
+  }
+
+  static const empty = SkillStats();
+}
+
+/// "today", "1 day ago", "12 days ago".
+String daysAgoLabel(int days) => switch (days) {
+  0 => 'today',
+  1 => '1 day ago',
+  _ => '$days days ago',
+};
+
+/// Compact form for map nodes: "today", "1d", "12d".
+String daysAgoShort(int days) => days == 0 ? 'today' : '${days}d';
