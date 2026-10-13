@@ -189,12 +189,12 @@ class ProgressionService {
   }
 
   /// Every badge earned up to [now]: challenges, streak and level milestones (oldest first).
-  Future<List<Badge>> badges([DateTime? now]) async {
+  Future<List<EarnedBadge>> badges([DateTime? now]) async {
     await refresh();
     return _badges(calendar.dateOf(now ?? clock()));
   }
 
-  List<Badge> _badges(LocalDate today) {
+  List<EarnedBadge> _badges(LocalDate today) {
     final all = [
       ..._challengeFacts.challengeBadges(today),
       ...streakBadges(_streak(today).milestonesReached),

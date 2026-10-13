@@ -171,8 +171,8 @@ enum BadgeKind { challenge, streak, level }
 
 /// A badge earned, derived from the log.
 @immutable
-class Badge {
-  const Badge({
+class EarnedBadge {
+  const EarnedBadge({
     required this.id,
     required this.kind,
     required this.title,
@@ -213,7 +213,7 @@ class ChallengeBoard {
   final List<Challenge> monthly;
 
   /// All badges, oldest first.
-  final List<Badge> badges;
+  final List<EarnedBadge> badges;
 
   /// Days left in the week / month including [today].
   int daysLeftInWeek(LocalDate today) => today.daysUntil(week.end);
@@ -337,15 +337,15 @@ class ChallengeFacts {
       [for (final t in selectChallenges(period)) evaluate(t, period)];
 
   /// Badges for every completed challenge from the first event's period up to [today]'s.
-  List<Badge> challengeBadges(LocalDate today) {
+  List<EarnedBadge> challengeBadges(LocalDate today) {
     final first = firstDate;
     if (first == null) return const [];
-    final out = <Badge>[];
+    final out = <EarnedBadge>[];
     for (final kind in PeriodKind.values) {
       for (var p = Period.of(kind, first); !p.start.isAfter(today); p = p.next) {
         for (final c in challengesFor(p)) {
           if (!c.completed) continue;
-          out.add(Badge(
+          out.add(EarnedBadge(
             id: c.id,
             kind: BadgeKind.challenge,
             title: c.template.title,
@@ -363,13 +363,13 @@ class ChallengeFacts {
 }
 
 /// Level milestone badges ([levels]) from the replayed log.
-List<Badge> levelBadges(
+List<EarnedBadge> levelBadges(
   List<ReplayStep> steps,
   LocalCalendar calendar, {
   LevelCurve curve = const LevelCurve(),
   List<int> levels = const [5, 10, 25, 50, 100],
 }) {
-  final out = <Badge>[];
+  final out = <EarnedBadge>[];
   var i = 0;
   for (final lvl in levels) {
     final need = curve.threshold(lvl);
@@ -378,7 +378,7 @@ List<Badge> levelBadges(
     }
     if (i >= steps.length) break;
     final at = steps[i].event.at;
-    out.add(Badge(
+    out.add(EarnedBadge(
       id: 'level:$lvl',
       kind: BadgeKind.level,
       title: 'Level $lvl',
@@ -391,9 +391,9 @@ List<Badge> levelBadges(
 }
 
 /// Streak milestone badges from [milestonesReached] (length → day reached).
-List<Badge> streakBadges(Map<int, LocalDate> milestonesReached) => [
+List<EarnedBadge> streakBadges(Map<int, LocalDate> milestonesReached) => [
       for (final e in (milestonesReached.entries.toList()..sort((a, b) => a.key.compareTo(b.key))))
-        Badge(
+        EarnedBadge(
           id: 'streak:${e.key}',
           kind: BadgeKind.streak,
           title: '${e.key}-day streak',

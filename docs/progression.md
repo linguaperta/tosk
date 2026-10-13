@@ -145,7 +145,7 @@ Future<ProgressProfile> profile([DateTime? now])        // XP, LevelInfo, Streak
 Future<Map<String, SkillProgress>> skillTiers([DateTime? now])
 Future<HeatmapData> heatmap({LocalDate? from, LocalDate? to, DateTime? now})
 Future<ChallengeBoard> challenges([DateTime? now])     // weekly, monthly, badges
-Future<List<Badge>> badges([DateTime? now])
+Future<List<EarnedBadge>> badges([DateTime? now])
 Future<VerbCollection> verbCollection([DateTime? now])
 Future<SessionProgressSummary?> sessionSummary(String sessionId)
 Future<NonStopRecord?> bestNonStopRun()
