@@ -96,9 +96,21 @@ Each item says what "done" means. Add newly discovered work at the bottom of its
 - [x] Recomputing from the log gives the same XP and tiers (test)
 - [x] Wire progression into the map, summary, non-stop HUD, profile and verb-collection screens (integration)
 
+## v0.3 (user feedback, 13 October)
+
+- [~] Grammar-first curriculum: a construct is taught by its own skill before other exercises use it
+- [~] Grammar gating data: `sentence_features`, `skill_features` and `base_features` in the pipeline and compiler, with a validator check
+- [ ] Grammar gating in the engine: only sentences whose features are known; unknown vocabulary capped (≤1 for grammar focus, ≤2 for vocab)
+- [~] Bottom-aligned exercise controls (one-handed use)
+- [~] "Explain answer with AI" after every checked answer (Claude or OpenAI key in Settings; no button without a key), streamed and cached
+- [~] Flag an exercise (reason and comment); Submit saves locally with a `.jsonl` export; "Confer with AI" checks the complaint
+- [~] Sounds: correct, wrong, lesson complete, muted select tick; toggle in Settings
+- [ ] Preview 3 APK
+
+
 ## Later (not v1)
 
 - [~] Phase 6: Sarnami (`hns`), a Dutch–Sarnami course from the [source] dictionary. Local-only data ([source] copyright): never committed, and loaded from a file.
 - [-] Phase 7: `GitHubPackSource`, `DriveSyncBackend`. Interfaces only in v1.
-- [-] Phase 8: ink `AnswerInput`, e-ink mode, `ClaudeExplainer`. Interfaces and `reduceMotion` only in v1.
+- [-] Phase 8: ink `AnswerInput` and e-ink mode (v0.5). The AI explainer moved up to v0.3.
 - [-] `listen_pick` exercise (needs audio/TTS)
