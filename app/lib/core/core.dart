@@ -3,6 +3,7 @@ library;
 
 export 'interfaces/course_data.dart';
 export 'interfaces/progress_store.dart';
+export 'interfaces/session.dart';
 export 'models/course.dart';
 export 'models/exercise.dart';
 export 'models/facet.dart';
