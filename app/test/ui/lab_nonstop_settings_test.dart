@@ -1,7 +1,6 @@
 import 'package:tosk/app.dart';
 import 'package:tosk/core/core.dart';
 import 'package:tosk/providers.dart';
-import 'package:tosk/ui/demo/demo_progress_store.dart';
 import 'package:tosk/ui/lab/lab_screen.dart';
 import 'package:tosk/ui/lesson/player_screen.dart';
 import 'package:tosk/ui/lesson/session_request.dart';
@@ -14,11 +13,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'helpers.dart';
-
-Future<void> goTab(WidgetTester tester, String label) async {
-  await tester.tap(find.descendant(of: find.byKey(const ValueKey('bottom-nav')), matching: find.text(label)));
-  await tester.pumpAndSettle();
-}
 
 void main() {
   group('Exercise lab', () {
@@ -132,7 +126,7 @@ void main() {
     });
 
     testWidgets('default focus setting is used when tapping a node', (tester) async {
-      await pumpApp(tester, store: InMemoryProgressStore(settings: {SettingKeys.defaultFocus: 'vocab'}));
+      await pumpApp(tester, store: TestProgressStore(settings: {SettingKeys.defaultFocus: 'vocab'}));
       await tapKey(tester, 'skill-node-greetings');
       final req = tester.widget<PlayerScreen>(find.byType(PlayerScreen)).request as LessonRequest;
       expect(req.focus, LessonFocus.vocab);
@@ -142,7 +136,7 @@ void main() {
       await pumpApp(
         tester,
         size: const Size(400, 1200),
-        store: InMemoryProgressStore(settings: {SettingKeys.course: 'nl', SettingKeys.sourceLang: 'nl'}),
+        store: TestProgressStore(settings: {SettingKeys.course: 'nl', SettingKeys.sourceLang: 'nl'}),
       );
       await goTab(tester, 'Settings');
       expect(find.byKey(const ValueKey('setting-source-lang-English')), findsOneWidget);
@@ -160,7 +154,7 @@ void main() {
     });
 
     test('AppSettings load falls back to defaults for unknown values', () async {
-      final store = InMemoryProgressStore(settings: {SettingKeys.themeMode: 'neon', SettingKeys.defaultFocus: ''});
+      final store = TestProgressStore(settings: {SettingKeys.themeMode: 'neon', SettingKeys.defaultFocus: ''});
       final s = await AppSettings.load(store);
       expect(s, const AppSettings());
     });

@@ -18,9 +18,25 @@ class SpotErrorView extends ExerciseWidget<SpotErrorExercise> {
   State<SpotErrorView> createState() => _SpotErrorViewState();
 }
 
-/// Groups tokens so punctuation sticks to its word: leading punctuation (¿, «)
-/// joins the next word, trailing punctuation the previous one.
-List<List<int>> groupTokens(List<String> tokens, List<bool> isWord) {
+/// Groups tokens into the visual words of the sentence.
+///
+/// With [pre] (the engine's `tokenPre`: whitespace before each token) a token
+/// with no space before it joins the previous group, so `l'` + `acqua` and
+/// `acqua` + `.` render without a gap. Without it, punctuation sticks to its
+/// word: leading punctuation (¿, «) joins the next word, trailing punctuation
+/// the previous one.
+List<List<int>> groupTokens(List<String> tokens, List<bool> isWord, {List<String>? pre}) {
+  if (pre != null && pre.length == tokens.length) {
+    final groups = <List<int>>[];
+    for (var i = 0; i < tokens.length; i++) {
+      if (groups.isEmpty || pre[i].isNotEmpty) {
+        groups.add([i]);
+      } else {
+        groups.last.add(i);
+      }
+    }
+    return groups;
+  }
   final groups = <List<int>>[];
   final pending = <int>[];
   for (var i = 0; i < tokens.length; i++) {
@@ -61,7 +77,7 @@ class _SpotErrorViewState extends State<SpotErrorView> {
     final e = widget.exercise;
     final theme = Theme.of(context);
     final fb = FeedbackColors.of(context);
-    final groups = groupTokens(e.tokens, e.tokenIsWord);
+    final groups = groupTokens(e.tokens, e.tokenIsWord, pre: e.tokenPre);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [

@@ -48,6 +48,21 @@ class _MultipleChoiceViewState extends State<MultipleChoiceView> with ExerciseKe
             style: e.isSentence ? theme.textTheme.titleLarge : theme.textTheme.headlineMedium,
           ),
         ),
+        if (e.hint != null)
+          Center(
+            child: Padding(
+              key: const ValueKey('mc-hint'),
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Text(
+                e.hint!,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+          ),
         const SizedBox(height: 12),
         for (var i = 0; i < e.options.length; i++)
           Padding(

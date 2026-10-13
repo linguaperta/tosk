@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/core.dart';
+import '../../../engine/templates/conj_pick.dart' show kNoEnding;
 import 'common.dart';
 
-/// Display label for an ending; the empty ending (Dutch "ik werk") shows as ∅.
-String endingLabel(String ending) => ending.isEmpty ? '∅' : '-$ending';
+/// Whether [ending] is the empty ending (Dutch "ik werk"): the engine sends it
+/// as [kNoEnding] ('–'); an empty string means the same.
+bool isNoEnding(String ending) => ending.isEmpty || ending == kNoEnding;
+
+/// Display label for an ending; the empty ending shows as [kNoEnding] ('–').
+String endingLabel(String ending) => isNoEnding(ending) ? kNoEnding : '-$ending';
 
 /// The stem is shown (`mang___`); pick the ending for a person and tense.
 class ConjPickView extends ExerciseWidget<ConjPickExercise> {
@@ -41,7 +46,8 @@ class _ConjPickViewState extends State<ConjPickView> with ExerciseKeysMixin<Conj
     final theme = Theme.of(context);
     final fb = FeedbackColors.of(context);
     final sel = _selected;
-    final ending = sel == null ? null : e.endings[sel];
+    final picked = sel == null ? null : e.endings[sel];
+    final ending = picked == null ? null : (isNoEnding(picked) ? '' : picked);
     final endingColor = widget.result == null
         ? theme.colorScheme.secondary
         : (widget.result!.correct ? fb.correct : fb.wrong);

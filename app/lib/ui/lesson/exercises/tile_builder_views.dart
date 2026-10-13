@@ -183,6 +183,10 @@ class _TransformViewState extends State<TransformView> {
       children: [
         InstructionText(e.instruction),
         _SpeechBubble(text: e.source),
+        if (e.translation != null) ...[
+          const SizedBox(height: 6),
+          SubtleText(e.translation!, key: const ValueKey('transform-translation'), italic: true, icon: Icons.translate),
+        ],
         const SizedBox(height: 10),
         Align(
           alignment: Alignment.centerLeft,

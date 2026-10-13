@@ -3,12 +3,34 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/core.dart';
 import '../../providers.dart';
+import 'debug_screen.dart';
 
-/// Stand-in for the data layer's debug screen (`lib/ui/debug/debug_screen.dart`).
+/// `/debug`: the data layer's [DebugScreen] over the app's [appDataProvider].
 ///
-/// TODO(integration): route `/debug` to the data layer's DebugScreen in `router.dart`.
-class DebugPlaceholderScreen extends ConsumerWidget {
-  const DebugPlaceholderScreen({super.key});
+/// Leaving it refreshes the course list and everything derived from progress,
+/// since the screen can install packs and rebuild facet states. Without a data
+/// layer (widget tests on the demo defaults) it shows [DemoDebugScreen].
+class DebugRoute extends ConsumerWidget {
+  const DebugRoute({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final app = ref.watch(appDataProvider);
+    if (app == null) return const DemoDebugScreen();
+    return PopScope(
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) return;
+        ref.invalidate(availableCoursesProvider);
+        ref.read(progressRevisionProvider.notifier).bump();
+      },
+      child: DebugScreen(app: app, sourceLang: ref.watch(sourceLangProvider), clock: ref.watch(clockProvider)),
+    );
+  }
+}
+
+/// Minimal debug view of the active course when no data layer is open.
+class DemoDebugScreen extends ConsumerWidget {
+  const DemoDebugScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -21,6 +43,10 @@ class DebugPlaceholderScreen extends ConsumerWidget {
           ? const Center(child: CircularProgressIndicator())
           : ListView(
               children: [
+                const ListTile(
+                  leading: Icon(Icons.info_outline),
+                  title: Text('No data layer open (demo providers).'),
+                ),
                 ListTile(
                   title: Text('${pickLang(course.meta.title, lang)} (${course.meta.id})'),
                   subtitle: Text(

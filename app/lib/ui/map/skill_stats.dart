@@ -1,8 +1,7 @@
 import 'package:flutter/foundation.dart';
 
-/// Display tier of a skill on the map. Mirrors the spec's mastery tiers plus
-/// `available` (unlocked but never practiced). Progression maps its own tier
-/// type onto this at integration.
+/// Display tier of a skill on the map. Mirrors progression's `SkillTier`
+/// (same names and order; see `skillStatsProvider`).
 enum MapTier { locked, available, started, bronze, silver, gold }
 
 /// What the map needs to draw one skill node.
@@ -14,6 +13,7 @@ class SkillStats {
     this.tier = MapTier.available,
     this.practicedFacets = 0,
     this.totalFacets = 0,
+    this.fading,
   });
 
   /// Mean predicted recall across the skill's facets (0..1).
@@ -23,10 +23,14 @@ class SkillStats {
   final int practicedFacets;
   final int totalFacets;
 
+  /// Progression's fading signal (0 = fresh … 1 = badly faded, over reviewed
+  /// facets). Null falls back to `1 - strength`.
+  final double? fading;
+
   bool get practiced => lastPracticed != null;
 
   /// How much the skill has faded (0 = fresh, 1 = forgotten). Never-practiced skills don't fade.
-  double get decay => practiced ? (1 - strength).clamp(0.0, 1.0) : 0;
+  double get decay => practiced ? (fading ?? 1 - strength).clamp(0.0, 1.0) : 0;
 
   /// Whole days since [lastPracticed] (null when never practiced).
   int? daysSince(DateTime now) {

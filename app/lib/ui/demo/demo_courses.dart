@@ -1,4 +1,5 @@
-/// Small hand-made demo courses so the UI runs before the real data layer is wired.
+/// Small hand-made demo courses. The app falls back to them (labelled "Demo")
+/// when no course pack is installed, and widget tests use them.
 /// Content is illustrative only (and the demo Dutch course is flagged unverified
 /// to exercise the badge).
 library;
@@ -20,6 +21,9 @@ class DemoCourseCatalog implements CourseCatalog {
     if (c == null) throw ArgumentError('Unknown course: $courseId');
     return c;
   }
+
+  @override
+  bool isDemo(String courseId) => true;
 }
 
 // ------------------------------------------------------------------ helpers
