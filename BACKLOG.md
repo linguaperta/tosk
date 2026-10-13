@@ -34,7 +34,9 @@ Each item says what "done" means. Add newly discovered work at the bottom of its
 - [ ] Thin sentence coverage: sparire (1), impazzire (3), nl leven (4); nl perfectum-zijn covers 73% of person slots
 - [ ] About 17% of Italian distractor-pool items lack a Dutch gloss
 - [ ] Dutch separable verbs split in a sentence aren't aligned
-- [~] Compound-tense exercises are wrong on the real packs (auxiliary and participle tokens); generation is slow on the full packs
+- [x] Compound-tense exercises are wrong on the real packs (auxiliary and participle tokens); generation is slow on the full packs. Fixed in the engine and the alignment; the validity suite went from 7 min to 5 s.
+- [x] Dutch sample review (`docs/samples/nl_exercises.txt`): clause rules, inversion, imperatives and passives fixed
+- [~] Curriculum expansion: 8–10 units, ~30 skills and ~1000 taught words per course (imperfetto, futuro, verleden tijd, possessives, …)
 
 ## Phase 2: Local database layer (`app/lib/data`)
 
@@ -61,7 +63,7 @@ Each item says what "done" means. Add newly discovered work at the bottom of its
 - [x] Hooks: `AnswerInput`, `Explainer` and `NullExplainer`, `MistakeContext` stored on wrong answers
 - [x] Sample command: 20 exercises per skill and type (`app/tool/sample_exercises.dart`; switch it to the real packs at integration)
 - [x] Test: every template generates at least 20 valid exercises for every skill in both courses, with no duplicate options and the correct answer present exactly once (fixtures; `runTemplateValidity`)
-- [~] Run `runTemplateValidity` on the real it/nl packs (`test/engine/real_pack_validity_test.dart`, currently failing)
+- [x] Run `runTemplateValidity` on the real it/nl packs (`test/engine/real_pack_validity_test.dart`) and a perf test
 - [x] Free-text cloze only when the input preference is keyboard or ink (spec: typing is never required)
 
 ## Phase 4: App screens (`app/lib/ui`)
@@ -79,8 +81,8 @@ Each item says what "done" means. Add newly discovered work at the bottom of its
 - [x] Full-lesson integration tests: engine with an on-disk `ProgressRepo`, non-stop with a bonus round, boot on the real bundled packs (`test/app/`)
 - [x] Replace demo fakes with real data, engine and progression (integration); demo course only as a no-packs fallback
 - [x] Builds: Windows, web, and a signed release APK (split per ABI; preview 1 sent on 13 October). iOS needs a Mac and is documented only.
-- [ ] Mistake review mode: practice saved `MistakeRecord`s (`SessionMode.review`), with an entry point on the map or progress page
-- [ ] Exploratory QA pass on the running app (Windows/web): full flows on both courses, UX polish
+- [~] Mistake review mode: practice saved `MistakeRecord`s (`SessionMode.review`), with an entry point on the map or progress page
+- [~] Exploratory QA pass on the running app (Windows/web): full flows on both courses, UX polish
 
 ## Phase 5: Progression (`app/lib/progression`)
 
