@@ -62,7 +62,7 @@ Each item says what "done" means. Add newly discovered work at the bottom of its
 - [x] Sample command: 20 exercises per skill and type (`app/tool/sample_exercises.dart`; switch it to the real packs at integration)
 - [x] Test: every template generates at least 20 valid exercises for every skill in both courses, with no duplicate options and the correct answer present exactly once (fixtures; `runTemplateValidity`)
 - [~] Run `runTemplateValidity` on the real it/nl packs (`test/engine/real_pack_validity_test.dart`, currently failing)
-- [~] Free-text cloze only when the input preference is keyboard or ink (spec: typing is never required)
+- [x] Free-text cloze only when the input preference is keyboard or ink (spec: typing is never required)
 
 ## Phase 4: App screens (`app/lib/ui`)
 
@@ -76,9 +76,11 @@ Each item says what "done" means. Add newly discovered work at the bottom of its
 - [x] Settings: course, source language, default focus, accent strictness, theme, reduce motion
 - [x] Polish: haptics, sounds and animations behind `reduceMotion`
 - [x] Widget tests for every exercise widget and overflow tests at 4 screen sizes
-- [ ] Full-lesson integration test on the real packs
-- [~] Replace demo fakes with real data, engine and progression (integration)
-- [~] Builds: Windows and web pass; the signed APK toolchain is verified; final APK with real packs pending (iOS needs a Mac and is documented only)
+- [x] Full-lesson integration tests: engine with an on-disk `ProgressRepo`, non-stop with a bonus round, boot on the real bundled packs (`test/app/`)
+- [x] Replace demo fakes with real data, engine and progression (integration); demo course only as a no-packs fallback
+- [x] Builds: Windows, web, and a signed release APK (split per ABI; preview 1 sent on 13 October). iOS needs a Mac and is documented only.
+- [ ] Mistake review mode: practice saved `MistakeRecord`s (`SessionMode.review`), with an entry point on the map or progress page
+- [ ] Exploratory QA pass on the running app (Windows/web): full flows on both courses, UX polish
 
 ## Phase 5: Progression (`app/lib/progression`)
 
@@ -90,11 +92,11 @@ Each item says what "done" means. Add newly discovered work at the bottom of its
 - [x] Non-stop extras: combo multiplier, bonus rounds (conjugation blitz every 25 correct), best-run record
 - [x] Session summary: XP, improved words, tier changes
 - [x] Recomputing from the log gives the same XP and tiers (test)
-- [~] Wire progression into the map, summary, non-stop HUD, profile and verb-collection screens (integration)
+- [x] Wire progression into the map, summary, non-stop HUD, profile and verb-collection screens (integration)
 
 ## Later (not v1)
 
-- [-] Phase 6: Sarnami (`hns`). Deferred by the spec; local-only data because of the [source] copyright.
+- [~] Phase 6: Sarnami (`hns`), a Dutch–Sarnami course from the [source] dictionary. Local-only data ([source] copyright): never committed, and loaded from a file.
 - [-] Phase 7: `GitHubPackSource`, `DriveSyncBackend`. Interfaces only in v1.
 - [-] Phase 8: ink `AnswerInput`, e-ink mode, `ClaudeExplainer`. Interfaces and `reduceMotion` only in v1.
 - [-] `listen_pick` exercise (needs audio/TTS)
