@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tosk.local/schema/verbs.schema.json",
+  "title": "tosk verb record (one line of content/{course}/verbs/*.jsonl)",
+  "description": "Full conjugation table of one verb item. Compiled into verbs/verb_forms. Tenses are course.yaml tenses or the non-finite 'infinitive', 'participle', 'gerund' (person '_').",
+  "type": "object",
+  "required": ["id", "forms"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {"type": "string", "pattern": "^[a-z]{2,3}:[^\\s#]+$"},
+    "class": {"type": ["string", "null"], "description": "'are','ere','ire','isc','other' (it); 'weak','strong','mixed' (nl)"},
+    "stem": {"type": ["string", "null"], "description": "citation stem, e.g. 'mang' or 'werk'"},
+    "irregular": {"type": "boolean"},
+    "irregular_in": {"type": "array", "uniqueItems": true, "items": {"type": "string"},
+                     "description": "tenses whose forms deviate from the regular pattern (used by skill queries; not compiled)"},
+    "auxiliary": {"type": ["string", "null"], "pattern": "^[^|\\s]+(\\|[^|\\s]+)*$",
+                  "description": "perfect auxiliary, primary first: 'avere', 'essere', 'hebben|zijn'"},
+    "forms": {
+      "type": "object", "minProperties": 1,
+      "propertyNames": {"pattern": "^[a-z][a-z0-9_]*$"},
+      "additionalProperties": {
+        "type": "object", "minProperties": 1,
+        "propertyNames": {"pattern": "^[^.\\s]+$"},
+        "additionalProperties": {"$ref": "#/$defs/form"}
+      }
+    }
+  },
+  "$defs": {
+    "form": {
+      "oneOf": [
+        {"type": "string", "minLength": 1},
+        {
+          "type": "object", "required": ["form"], "additionalProperties": false,
+          "properties": {
+            "form": {"type": "string", "minLength": 1},
+            "stem": {"type": "string", "minLength": 1},
+            "ending": {"type": "string", "description": "may be empty (Dutch 'ik werk' = werk + '')"},
+            "alts": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+          },
+          "dependentRequired": {"stem": ["ending"], "ending": ["stem"]}
+        }
+      ]
+    }
+  }
+}

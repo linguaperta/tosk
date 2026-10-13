@@ -75,6 +75,7 @@ flutter:
     # Bundled course packs (python -m pipeline build ... --install); discovered
     # at runtime through the AssetManifest, so no per-file entries are needed.
     - assets/courses/
+    - assets/config/focus_presets.json
 
   # To add assets to your application, add an assets section, like this:
   # assets:

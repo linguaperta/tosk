@@ -74,12 +74,17 @@ class MultipleChoiceExercise extends Exercise {
     required this.correctIndex,
     required this.direction,
     this.isSentence = false,
+    this.hint,
   });
   final String prompt;
   final List<String> options;
   final int correctIndex;
   final Direction direction;
   final bool isSentence;
+
+  /// Optional context line, e.g. the meaning of the noun in an article question
+  /// (prompt `'___ ragazzo'`, hint `'boy'`).
+  final String? hint;
   @override
   ExerciseType get type => ExerciseType.multipleChoice;
 }
@@ -260,10 +265,15 @@ class SpotErrorExercise extends Exercise {
     required this.correction,
     this.translation,
     this.sentenceId,
+    this.tokenPre,
   });
 
   /// Displayed tokens; one of them is wrong.
   final List<String> tokens;
+
+  /// Whitespace before each displayed token ('' or ' '), parallel to [tokens].
+  /// Concatenating `tokenPre[i] + tokens[i]` renders the (wrong) sentence.
+  final List<String>? tokenPre;
   final List<bool> tokenIsWord;
   final int errorIndex;
   final String correction; // the right form at errorIndex
@@ -285,12 +295,16 @@ class TransformExercise extends Exercise {
     required this.tiles,
     required this.answers,
     this.sentenceId,
+    this.translation,
   });
   final String source; // original sentence
   final String targetDescription; // e.g. "→ passato prossimo" or "→ noi"
   final List<String> tiles;
   final List<List<String>> answers; // first is canonical
   final String? sentenceId;
+
+  /// Translation of the source sentence (context only).
+  final String? translation;
   @override
   ExerciseType get type => ExerciseType.transform;
 }
@@ -361,10 +375,14 @@ class Result {
     required this.given,
     required this.outcomes,
     this.cellCorrect,
+    this.accentSlip = false,
   });
   final bool correct;
   final String expected; // canonical correct answer for feedback
   final String given; // the user's answer as text
   final List<FacetOutcome> outcomes;
   final List<bool>? cellCorrect; // per-cell for grids
+
+  /// Accepted only because accents were folded (lenient mode): show "watch the accent".
+  final bool accentSlip;
 }

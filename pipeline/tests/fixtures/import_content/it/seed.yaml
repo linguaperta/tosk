@@ -1,0 +1,15 @@
+exclude: [porta/verb]
+items:
+  - {lemma: ciao, pos: intj, tags: [greetings], en: [hi, bye], nl: [hoi, doei]}
+  - {lemma: grazie, pos: intj, tags: [greetings], en: [thanks], nl: [bedankt]}
+  - {lemma: uomo, pos: noun, tags: [people], nl: [man]}
+  - {lemma: donna, pos: noun, tags: [people], nl: [vrouw]}
+  - {lemma: casa, pos: noun, tags: [things], nl: [huis]}
+  - {lemma: libro, pos: noun, tags: [things], nl: [boek]}
+  - {lemma: pizza, pos: noun, tags: [things], nl: [pizza]}
+  - {lemma: mangiare, pos: verb, nl: [eten]}
+  - {lemma: parlare, pos: verb, nl: [spreken, praten]}
+  - {lemma: guardare, pos: verb, nl: [kijken]}
+  - {lemma: andare, pos: verb, nl: [gaan]}
+  - {lemma: portare, pos: verb, nl: [brengen, dragen]}
+  - {lemma: nonexistent, pos: verb, nl: [bestaat niet]}
