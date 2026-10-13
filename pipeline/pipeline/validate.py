@@ -14,6 +14,9 @@ Checks:
   * sentences: tokens re-render the text exactly; every token lex exists; a token form exists in
     that verb's table
   * grammar skills have an English and a Dutch grammar note
+  * grammar gating (features.py): every feature a sentence uses is introduced by its home skill,
+    one of that skill's prerequisites (transitively) or the course's base set; base features and
+    feature detectors are well-formed
 """
 from __future__ import annotations
 
@@ -22,7 +25,7 @@ from functools import lru_cache
 
 from jsonschema import Draft202012Validator
 
-from . import query
+from . import features, query
 from .compile import note_texts
 from .content import Pack
 from .paths import SCHEMA_DIR
@@ -236,4 +239,21 @@ def validate(pack: Pack, check_notes: bool = True) -> list[str]:
                     errors.append(f"{code}: sentence {s['id']} token {i} {t['t']!r}: {lex} has no form {form}")
         if s.get("unit") and s["unit"] not in unit_ids:
             errors.append(f"{code}: sentence {s['id']} has unknown unit {s['unit']}")
+
+    # ---- grammar gating
+    try:
+        tagger, graph = features.build(c, pack.items, pack.verbs)
+    except ValueError as e:
+        errors.append(str(e))
+        return errors
+    known_features = {f"tense:{t}" for t in tenses} | set(c.get("feature_detectors") or {})
+    for f in sorted(set(c.get("base_features") or []) - known_features):
+        errors.append(f"{code}: base feature {f!r} is no tense feature and has no detector")
+    for sid in graph.order:
+        for f in sorted(graph.introduces[sid] - known_features):
+            errors.append(f"{code}: skill {sid} introduces {f!r}, which is no tense feature and has no detector")
+    for s in pack.sentences:
+        feats = tagger.tag(s["tokens"])
+        for p in graph.problems(s["tokens"], feats):
+            errors.append(f"{code}: sentence {s['id']} {s['text']!r}: {p}")
     return errors

@@ -19,7 +19,7 @@ from pathlib import Path
 
 import yaml
 
-from . import query
+from . import features, query
 from .align import Aligner
 from .content import load_course_yaml, write_jsonl
 from .fetch import load_freq_words
@@ -39,6 +39,13 @@ ITEM_QUOTA = 25          # sentences per skill item
 VT_QUOTA = 24            # sentences per (grammar verb, tense)
 VTP_QUOTA = 5            # sentences per (grammar verb, tense, person)
 VTP_MIN = 2              # ... always accepted up to this many, even when the verb+tense quota is full
+# Grammar gating: words a learner at the item's skill does not know yet (later skills, pool words,
+# unlinked words; names and numbers don't count). The engine caps them at runtime (2 for vocabulary
+# focus, 1 for grammar focus); pool and unlinked words never become known, so at most one of those.
+MAX_UNKNOWN = 2
+MAX_UNKNOWN_GRAMMAR = 1
+MAX_NEVER_KNOWN = 1
+NEVER = 1 << 30
 # Perfect auxiliaries for Dutch verbs whose nl.wiktionary page has no perfect table (Claude-curated).
 NL_AUX_OVERRIDES = {"zijn": ["zijn"], "hebben": ["hebben"], "worden": ["zijn"], "blijven": ["zijn"]}
 # nl.wiktionary lists 'zijn' as a second auxiliary for most transitive verbs because of the passive
@@ -344,6 +351,20 @@ def run_import(code: str, content_root: str | None = None) -> None:
             lexemes[key].inflections |= new
             scores[key] = scores.get(key, 0) + sum(counts.get(x, 0) for x in new)
 
+    # A tagged (taught) seed item takes the frequency of its lemma from content-word homographs that
+    # Wiktionary lists with more senses ('madre' adj vs noun, 'bene' noun vs adv), so the alignment
+    # links the word to the taught item. Verbs and function words keep their own score.
+    for key, s in chosen.items():
+        if not s.get("tags"):
+            continue
+        others = [k for k in by_lemma.get(key[0], []) if k != key and k not in chosen
+                  and k[1] != "verb" and k[1] not in FUNCTION_POS]
+        top = max([scores.get(k, 0) for k in others], default=0)
+        if top > scores.get(key, 0):
+            scores[key] = top
+            for k in others:
+                scores[k] = scores.get(k, 0) * 0.005
+
     # ---- pool by frequency
     def eligible(key, lx: Lexeme) -> bool:
         if not lx.glosses:
@@ -458,6 +479,12 @@ def run_import(code: str, content_root: str | None = None) -> None:
                 t = skill["verbs"]["tense"]
                 for iid in query.resolve(skill, items, verbs, course["persons"]):
                     grammar_targets.add((iid, t))
+    # grammar gating (features.py): a sentence is only selected when its grammar features are
+    # allowed at its home skill, and it only counts for an item (verb tense) whose introducing
+    # (grammar) skill allows them and knows nearly all its words
+    tagger, graph = features.build(course, items, verbs)
+    skill_pos = graph.pos
+    item_pos = {iid: skill_pos[s] for iid, s in graph.item_skill.items()}
     cands = []
     seen_text = set()
     for sid in sorted(trs):
@@ -488,27 +515,56 @@ def run_import(code: str, content_root: str | None = None) -> None:
         touched = {t["lex"] for t in al if t["lex"] in skill_items}
         if not touched:
             continue
-        cands.append((unlinked, len(words), sid, al, touched))
-    cands.sort(key=lambda c: (c[0], abs(c[1] - 6), c[2]))
-    item_count: Counter = Counter()
-    vt_count: Counter = Counter()
-    vtp_count: Counter = Counter()
-    sentences = []
-    for unlinked, nw, sid, al, touched in cands:
+        feats = tagger.tag(al)
+        if graph.problems(al, feats):
+            continue
+        # skill position at which each word becomes known (NEVER: pool words, unlinked words)
+        known_at = []
+        for t in al:
+            if not t["is_word"] or (not t["lex"] and (t["t"][:1].isdigit() or t["t"][:1].isupper())):
+                continue
+            known_at.append(item_pos.get(t["lex"], NEVER) if t["lex"] else NEVER)
+        if graph.enforced and known_at.count(NEVER) > MAX_NEVER_KNOWN:
+            continue
         vts = set()
         for t in al:
             if t["lex"] and t["form"] and "." in t["form"]:
                 tense, person = t["form"].split(".", 1)
                 if (t["lex"], tense) in grammar_targets:
                     vts.add((t["lex"], tense, person))
-        useful = any(item_count[i] < ITEM_QUOTA for i in touched) or any(
+
+        def usable(skill_id: str | None, limit: int) -> int | None:
+            """Unknown words for a learner at skill_id, or None when the sentence doesn't fit."""
+            if skill_id is None or (graph.enforced and not feats <= graph.allowed[skill_id]):
+                return None
+            unknown = sum(1 for k in known_at if k > skill_pos[skill_id])
+            return unknown if unknown <= limit or not graph.enforced else None
+
+        ok_items = {i: usable(graph.item_skill.get(i), MAX_UNKNOWN) for i in touched}
+        ok_items = {i: u for i, u in ok_items.items() if u is not None}
+        ok_vts = {}
+        for v, t, p in vts:
+            u = usable(graph.grammar_skill(v, t), MAX_UNKNOWN_GRAMMAR)
+            if u is not None:
+                ok_vts[(v, t, p)] = u
+        if not ok_items and not ok_vts:
+            continue
+        best = min([*ok_items.values(), *ok_vts.values()])
+        cands.append((best, unlinked, len(words), sid, al, touched, ok_items, ok_vts))
+    cands.sort(key=lambda c: (c[0], c[1], abs(c[2] - 6), c[3]))
+    item_count: Counter = Counter()
+    vt_count: Counter = Counter()
+    vtp_count: Counter = Counter()
+    sentences = []
+    for _best, unlinked, nw, sid, al, touched, ok_items, ok_vts in cands:
+        useful = any(item_count[i] < ITEM_QUOTA for i in ok_items) or any(
             vtp_count[(v, t, p)] < VTP_QUOTA and (vt_count[(v, t)] < VT_QUOTA or vtp_count[(v, t, p)] < VTP_MIN)
-            for v, t, p in vts)
+            for v, t, p in ok_vts)
         if not useful:
             continue
-        for i in touched:
+        for i in ok_items:
             item_count[i] += 1
-        for v, t, p in vts:
+        for v, t, p in ok_vts:
             vt_count[(v, t)] += 1
             vtp_count[(v, t, p)] += 1
         unit_idx = max(unit_order.index(item_by_id[i]["unit"]) for i in touched)
