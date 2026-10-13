@@ -14,11 +14,6 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'helpers.dart';
 
-Future<void> goTab(WidgetTester tester, String label) async {
-  await tester.tap(find.descendant(of: find.byKey(const ValueKey('bottom-nav')), matching: find.text(label)));
-  await tester.pumpAndSettle();
-}
-
 void main() {
   group('Exercise lab', () {
     testWidgets('pick skills (by unit) and types, choose length, play to summary', (tester) async {

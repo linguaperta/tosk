@@ -64,6 +64,14 @@ class FeedbackBanner extends StatelessWidget {
                         ),
                     ],
                   ),
+                  if (ok && result.accentSlip) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      'Watch the accent: ${result.expected}',
+                      key: const ValueKey('feedback-accent'),
+                      style: theme.textTheme.titleMedium?.copyWith(color: fg),
+                    ),
+                  ],
                   if (!ok && result.expected.isNotEmpty) ...[
                     const SizedBox(height: 6),
                     Text('Correct answer:', style: theme.textTheme.labelLarge?.copyWith(color: fg)),

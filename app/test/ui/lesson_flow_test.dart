@@ -2,7 +2,6 @@ import 'package:tosk/core/core.dart';
 import 'package:tosk/providers.dart';
 import 'package:tosk/ui/lesson/feedback_banner.dart';
 import 'package:tosk/ui/lesson/player_screen.dart';
-import 'package:tosk/ui/lesson/why_explainer.dart';
 import 'package:tosk/ui/map/map_screen.dart';
 import 'package:tosk/ui/map/skill_node.dart';
 import 'package:tosk/ui/map/skill_stats.dart';
@@ -13,12 +12,12 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'helpers.dart';
 
-class _FakeExplainer implements WhyExplainer {
-  WhyContext? last;
+class _FakeExplainer implements Explainer {
+  MistakeContext? last;
   @override
-  bool get available => true;
+  bool get isAvailable => true;
   @override
-  Stream<String> explain(WhyContext context) {
+  Stream<String> explain(MistakeContext context) {
     last = context;
     return Stream.fromIterable(['Because ', 'noi takes -iamo.']);
   }
@@ -182,6 +181,7 @@ void main() {
     await pumpApp(
       tester,
       initialLocation: '/play/fading',
+      engine: true, // no fake factory: this test overrides the factory itself
       overrides: [sessionFactoryProvider.overrideWith((ref) => Future<SessionFactory>.error(StateError('boom')))],
     );
     expect(find.text('Something went wrong'), findsOneWidget);

@@ -8,6 +8,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/core.dart';
@@ -15,14 +16,12 @@ import 'data/app_data.dart';
 import 'data/fsrs/fsrs_scheduler.dart';
 import 'data/progress/in_memory_progress_store.dart';
 import 'data/stats/skill_stats.dart' as data;
+import 'engine/engine.dart' show EngineSessionFactory, FocusPresets;
 import 'progression/progression.dart';
 import 'ui/common/fx.dart';
 import 'ui/course_catalog.dart';
 import 'ui/demo/demo_courses.dart';
-import 'ui/demo/demo_session.dart';
 import 'ui/lesson/answer_input.dart';
-import 'ui/lesson/recording_store.dart';
-import 'ui/lesson/why_explainer.dart';
 import 'ui/map/map_layout.dart';
 import 'ui/map/skill_stats.dart';
 import 'ui/settings/app_settings.dart';
@@ -53,12 +52,6 @@ final courseCatalogProvider = Provider<CourseCatalog>((ref) => DemoCourseCatalog
 /// `main.dart` overrides this with `AppData.progress` (drift `ProgressRepo`).
 final progressStoreProvider = Provider<ProgressStore>(
   (ref) => InMemoryProgressStore(scheduler: ref.watch(schedulerProvider)),
-);
-
-/// The store sessions record through: [progressStoreProvider] plus the last
-/// recorded event per session (the non-stop HUD reads its `at`).
-final recordingStoreProvider = Provider<RecordingProgressStore>(
-  (ref) => RecordingProgressStore(ref.watch(progressStoreProvider)),
 );
 
 // ------------------------------------------------------------------ settings
@@ -142,31 +135,39 @@ final sessionOptionsProvider = Provider<SessionOptions>(
   ),
 );
 
-/// Creates practice sessions for the active course.
-///
-/// Contract for the factory: record through `ref.watch(recordingStoreProvider)`
-/// (not the raw progress store), with every facet outcome of one exercise at
-/// the same `at`, and `sessionId` = `PracticeSession.id`. See docs/ui.md.
+/// Focus-preset weights from `assets/config/focus_presets.json` (the engine's
+/// embedded defaults if the asset can't be read).
+final focusPresetsProvider = FutureProvider<FocusPresets>((ref) async {
+  try {
+    return FocusPresets.fromJsonString(await rootBundle.loadString('assets/config/focus_presets.json'));
+  } catch (e) {
+    debugPrint('[engine] focus presets asset unreadable, using defaults: $e');
+    return FocusPresets.defaults;
+  }
+});
+
+/// Creates practice sessions for the active course: the exercise engine over
+/// the course (a pack, or the demo course), the progress store, FSRS and the
+/// session options. Rebuilt when the course or the settings change.
 final sessionFactoryProvider = FutureProvider<SessionFactory>((ref) async {
   final course = await ref.watch(courseDataProvider.future);
   await ref.watch(settingsProvider.future);
-  // TODO(integration-engine): return the engine's SessionFactory here (course,
-  // ref.watch(recordingStoreProvider), ref.watch(schedulerProvider),
-  // ref.watch(sessionOptionsProvider), ref.watch(clockProvider)), then delete
-  // ui/demo/demo_session.dart, demo_exercises.dart and demo_grader.dart.
-  return DemoSessionFactory(
+  final presets = await ref.watch(focusPresetsProvider.future);
+  return EngineSessionFactory(
     course: course,
-    store: ref.watch(recordingStoreProvider),
+    store: ref.watch(progressStoreProvider),
+    scheduler: ref.watch(schedulerProvider),
     options: ref.watch(sessionOptionsProvider),
+    presets: presets,
     clock: ref.watch(clockProvider),
   );
 });
 
-/// "Why?" explanations. Hidden while unavailable.
-/// TODO(integration-engine): `Explainer` from `core/interfaces/hooks.dart` (NullExplainer in v1).
-final explainerProvider = Provider<WhyExplainer>((ref) => const UnavailableWhyExplainer());
+/// "Why?" explanations (`core/interfaces/hooks.dart`). v1 ships [NullExplainer]:
+/// the button is hidden.
+final explainerProvider = Provider<Explainer>((ref) => const NullExplainer());
 
-final explainerAvailableProvider = Provider<bool>((ref) => ref.watch(explainerProvider).available);
+final explainerAvailableProvider = Provider<bool>((ref) => ref.watch(explainerProvider).isAvailable);
 
 /// Free-text input widget: keyboard now, handwriting later.
 final answerInputBuilderProvider = Provider<AnswerInputBuilder>((ref) => keyboardAnswerInputBuilder);

@@ -1,15 +1,14 @@
+import 'package:tosk/core/core.dart';
+import 'package:tosk/ui/settings/app_settings.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../core/core.dart';
-import '../settings/app_settings.dart';
 import 'demo_exercises.dart';
 import 'demo_grader.dart';
 
-/// Fake [SessionFactory] over the hand-made demo exercises. It grades correctly,
-/// records every outcome in the [ProgressStore] and re-queues mistakes once, so
-/// the UI behaves as it will with the real engine.
-///
-/// TODO(integration): replace with the engine's SessionFactory in `providers.dart`.
+/// Test fake [SessionFactory] over hand-made exercises of every type (the app
+/// itself uses the engine). It grades correctly, records every outcome in the
+/// [ProgressStore] and re-queues mistakes once, so widget tests get a fixed,
+/// deterministic exercise of each type.
 class DemoSessionFactory implements SessionFactory {
   DemoSessionFactory({
     required this.course,

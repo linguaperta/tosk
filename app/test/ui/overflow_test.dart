@@ -68,6 +68,23 @@ void main() {
         expect(tester.takeException(), isNull);
       });
 
+      testWidgets('progress and verb collection pages', (tester) async {
+        tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+        addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+        await pumpApp(tester, size: size, store: await seeded(), initialLocation: Routes.progress);
+        await scrollThrough(tester, find.byKey(const ValueKey('progress-list')));
+        await tester.drag(find.byKey(const ValueKey('progress-list')), const Offset(0, 4000));
+        await tester.pumpAndSettle();
+        await tester.scrollUntilVisible(
+          find.byKey(const ValueKey('open-verbs')),
+          200,
+          scrollable: find.descendant(of: find.byKey(const ValueKey('progress-list')), matching: find.byType(Scrollable)).first,
+        );
+        await tapKey(tester, 'open-verbs');
+        await scrollThrough(tester, find.byKey(const ValueKey('verb-collection')));
+        expect(tester.takeException(), isNull);
+      });
+
       testWidgets('dark theme, Dutch (unverified) course map', (tester) async {
         await pumpApp(
           tester,

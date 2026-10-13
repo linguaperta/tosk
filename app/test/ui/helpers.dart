@@ -10,6 +10,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 
+import 'fakes/demo_session.dart';
+
 final testNow = DateTime.utc(2026, 10, 13, 12);
 
 /// The data layer's in-memory FSRS store with preset settings and a readable
@@ -41,12 +43,26 @@ void setSurface(WidgetTester tester, Size size) {
   addTearDown(tester.view.reset);
 }
 
+/// The fake session factory over hand-made exercises (a fixed exercise per type).
+final fakeSessionFactoryOverride = sessionFactoryProvider.overrideWith((ref) async {
+  final course = await ref.watch(courseDataProvider.future);
+  await ref.watch(settingsProvider.future);
+  return DemoSessionFactory(
+    course: course,
+    store: ref.watch(progressStoreProvider),
+    options: ref.watch(sessionOptionsProvider),
+    clock: ref.watch(clockProvider),
+  );
+});
+
 /// Pumps the whole app with demo data, a fixed clock and an in-memory store.
+/// Sessions come from the fake factory unless [engine] is true (the real engine).
 Future<TestProgressStore> pumpApp(
   WidgetTester tester, {
   Size size = const Size(400, 800),
   TestProgressStore? store,
   String? initialLocation,
+  bool engine = false,
   List<Override> overrides = const [],
 }) async {
   setSurface(tester, size);
@@ -58,6 +74,7 @@ Future<TestProgressStore> pumpApp(
         progressStoreProvider.overrideWithValue(s),
         clockProvider.overrideWithValue(() => testNow),
         calendarProvider.overrideWithValue(LocalCalendar.utc),
+        if (!engine) fakeSessionFactoryOverride,
         if (initialLocation != null)
           routerProvider.overrideWith((ref) => buildRouter(initialLocation: initialLocation)),
         ...overrides,
@@ -67,6 +84,12 @@ Future<TestProgressStore> pumpApp(
   );
   await tester.pumpAndSettle();
   return s;
+}
+
+/// Taps a destination in the bottom navigation bar.
+Future<void> goTab(WidgetTester tester, String label) async {
+  await tester.tap(find.descendant(of: find.byKey(const ValueKey('bottom-nav')), matching: find.text(label)));
+  await tester.pumpAndSettle();
 }
 
 /// Scrolls [finder] into view, taps it and settles.
