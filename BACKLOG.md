@@ -10,8 +10,8 @@ Each item says what "done" means. Add newly discovered work at the bottom of its
 - [x] Spec in repo (`docs/SPEC.md`), architecture and contracts (`docs/ARCHITECTURE.md`), this backlog
 - [x] Compiled course DB contract (`schema/course_db.sql`)
 - [x] Toolchain: Flutter stable, JDK 17, Android cmdline-tools
-- [ ] Android SDK packages (platform-tools, platform, build-tools). Needs the user to accept the SDK licenses.
-- [ ] Flutter project skeleton (`app/`), dependencies, `core/` models and interfaces, CI-style check script
+- [x] Android SDK 36 (licenses accepted by the user on 13 October), release signing keystore (`docs/release.md`)
+- [x] Flutter project skeleton (`app/`), dependencies, `core/` models and interfaces (`core/interfaces/session.dart` is the engine↔UI contract), `check.sh`
 
 ## Phase 1: Content format and pipeline (`pipeline/`, `schema/`, `../tosk-data/content`)
 
