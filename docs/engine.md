@@ -8,7 +8,7 @@
 | --- | --- |
 | `template.dart` | The `ExerciseTemplate` contract, `OptionPicker` (wrong-option filter), shared grading helpers |
 | `templates/*.dart` | The nine templates, plus `alterations.dart` (one-word sentence errors shared by spot-the-error and multiple choice) |
-| `course_index.dart` | Cached derived lookups: verb-form and article occurrences in sentences, synonyms, distractor pools, pro-drop and compound-contiguity statistics |
+| `course_index.dart` | Cached derived lookups: verb-form and article occurrences in sentences, auxiliary positions, synonyms (through gloss/spelling indexes), distractor pools, sentences by translation, pro-drop and compound-contiguity statistics, and `memo` for templates' `canGenerate` answers |
 | `gen_context.dart` | `GenContext` (course, options, seeded `Random`, facet states, skill) and `FacetStage` / `StagePolicy` |
 | `selector.dart` | Picks the exercise type for a facet (stage affinity × focus weight × restrictions) and generates it |
 | `focus_presets.dart` | Focus weights, parsed from `assets/config/focus_presets.json`, with identical embedded defaults |
@@ -73,28 +73,31 @@ Every wrong option goes through `OptionPicker`. It rejects an option that is emp
   - *Sentence:* other sentences whose aligned items and forms are not equivalent (synonyms count as equal), with distinct translations. Producing a sentence also offers the same sentence with one verb form or article swapped.
   - *Article:* the course's other articles.
 - **Match pairs:** five `#rec` facets, from the skill first, then from other skills. No two items on the board may overlap, and no displayed meaning may be a meaning of another board item or of its synonyms. Each pair grades its own facet.
-- **Conjugation pick:** only cells with a stem/ending split and a single word. Wrong endings come from other persons in the same tense, then other tenses, then same-class verbs, then any verb. An ending is never offered when stem + ending is an accepted form of the asked cell, which covers homographs such as Dutch `eet` (ik = jij = hij) and alternative spellings.
+- **Conjugation pick:** only cells with a stem/ending split and a single word. Wrong endings come from other persons in the same tense, then other tenses, then same-class verbs, then any verb; another verb's ending only when its stem ends like this one (both in a vowel or both in a consonant: `ga` + `n`, never `denk` + `n`). An ending is never offered when stem + ending is an accepted form of the asked cell, which covers homographs such as Dutch `eet` (ik = jij = hij) and alternative spellings.
 - **Conjugation grid:** distractors that match no form of any cell. In priority order:
   - the person-dependent word of a compound form swapped with another verb's (`sono mangiato`), skipped when the verb's `auxiliary` has a `|` because both would be right;
-  - the stem with another class's ending (`mangete`) or another person's ending (`maaken`);
+  - the stem with another class's ending (`mangete`, only from a stem that ends alike) or another person's ending (`maaken`);
   - the verb's other tenses with the same word count;
   - other verbs' forms.
-- **Sentence builder:** the sentence's word tiles, the first one lower-cased unless it looks like a proper noun, plus wrong tiles: other persons' verb forms, wrong articles and related words. A wrong tile is never a word of the sentence, a spelling of a synonym, or a word of an accepted verb form in the sentence. Accepted answers are the sentence plus any other sentence with the same translation whose words fit the tiles. Grading joins the words, so `l'` + `acqua` and `l'acqua` are equal.
+- **Sentence builder:** the sentence's word tiles, the first one (and the first of a later sentence in the text, `"Was Bill in Japan?" "Ja, …"`) lower-cased unless it looks like a proper noun, plus wrong tiles: other persons' verb forms, wrong articles and related words. A wrong tile is never a word of the sentence or of another sentence with the same translation (`Come stai?` / `Come sta?`), a spelling of a synonym, or a word of an accepted verb form in the sentence. Accepted answers are the sentence plus any other sentence with the same translation whose words fit the tiles. Grading joins the words, so `l'` + `acqua` and `l'acqua` are equal.
 - **Cloze:** the gap is an aligned token, rendered so that `before + expected + after == sentence.text`.
-  - `#form`: a contiguous multi-word form is one gap. For a split form (`heb … gegeten`) only the person-dependent word is gapped.
+  - `#form`: a contiguous multi-word form is one gap. For a split form (`heb … gegeten`) only the person-dependent word is gapped. Options of another tense must have the gap's word count (`Ik ga` would fit the gap of `Ik ben gegaan`).
   - `#prod`: verbs offer the same cell of other verbs; other words their lemma or plural.
   - `#article`: an elided article inside a token (`l’acqua`) can be gapped too.
   - Wrong forms exclude every accepted form of the cell and of persons that share its pronoun (Dutch `hij/zij` and `zij`).
-- **Spot the error:** one word is replaced, by the matching word of another person's form (then another tense's) or by a wrong article. The same exclusions apply (Italian `sono` is io and loro). Elision spacing is fixed through `tokenPre`. The translation is always shown, because in pro-drop sentences the error is defined relative to it (`Mangiate alle otto.` is grammatical on its own).
+- **Spot the error:** one word is replaced, by the matching word of another person's form in the same tense or by a wrong article. Never by another tense: `De leerlingen mochten …` for `mogen` is grammatical and wrong only against the translation. The same exclusions apply (Italian `sono` is io and loro). Elision spacing is fixed through `tokenPre`. The translation is always shown, because in pro-drop sentences the error is defined relative to it (`Mangiate alle otto.` is grammatical on its own).
 - **Transform:** built only when the result is reliably constructible:
   1. *Same word count:* the words are replaced in place, wherever they stand.
   2. *Compound → single word:* the finite (first) word is replaced and the rest removed. This is valid for V2 and subordinate clauses.
   3. *Single word → compound:* only when the course's own sentences show that tense's compound forms as contiguous (≥ 90 %, so Italian yes and Dutch no) or the verb ends the sentence, and no clitic pronoun precedes the verb.
-  4. *Person changes:* only in pro-drop sentences. The course must usually omit the subject pronoun for both persons (`dropsPronoun`, learned from the data: never for Dutch), only adverbs, conjunctions and prepositions may precede the verb, and the sentence may contain no pronoun.
+  4. *Person changes:* only in pro-drop sentences. The course must usually omit the subject pronoun for both persons (`dropsPronoun`, learned from the data, counting the pronouns of the person key and its labels, `jij/je`: never for Dutch), only adverbs, conjunctions and prepositions may precede the verb, and the sentence may contain no pronoun and no name (`Heeft Tom …`).
+  5. *Tense changes* only when every other verb in the sentence is in the source or the target tense and has a known form (`Wie was de filosoof die ooit geleefd heeft?` would mix tenses); not for an auxiliary verb next to a participle (`als ik nee had gezegd`), not into a compound form next to a participle (passive `gezegd werd`), and not from a form spelled like the infinitive (`vertellen` may be an infinitive after a modal). A form written out of order (`opgestaan ben`) is only rewritten into the same tense.
 
   Gendered alternatives (`sono partito;sono partita`) become extra accepted answers.
 
 **Occurrences.** `CourseIndex.formOccurrences` matches aligned tokens against the cell's accepted forms, in any order (Dutch subordinate `gegeten heeft`). When only the participle is aligned, it finds the auxiliary nearby. A token whose text is not an accepted form of its aligned cell, such as Dutch inverted `Werk jij?` aligned to `jij: werkt`, is never used.
+
+**Compound tenses.** The pipeline aligns a compound form on its participle (`mangiato` → `passato_prossimo.io`, the cell's form being `ho mangiato`) and the auxiliary separately to the auxiliary verb's present (`ho` → `avere`, `presente.io`). `CourseIndex.auxiliaryPositions(sentence)` finds those auxiliaries (the nearest token within 6 that reads the form's other word, for the first accepted spelling whose words are all present). They belong to the compound form: they are never an occurrence of the auxiliary verb's own present (`Zijn jullie … geweest?` is no `zijn` present exercise, and `Ho mangiato` no `avere` one), so cloze, spot the error and transform only touch them through the compound form. The validator applies the same convention independently (`_ownerCell`).
 
 ## Grading and recording
 
@@ -136,21 +139,28 @@ A wrong facet is re-queued 2–4 exercises later, at most twice per session. Re-
 
 ## Testing against real packs
 
-`runTemplateValidity(CourseData course)` in `test/engine/template_validity.dart` is course-agnostic. Once the data layer's loader exists, a real-pack test is:
+`runTemplateValidity(CourseData course)` in `test/engine/template_validity.dart` is course-agnostic. `test/engine/real_pack_validity_test.dart` runs it on the bundled packs (`app/assets/courses/*.sqlite`) for every source language: no failures, at least 20 exercises per applicable skill × template, every template used, at least 3 templates per skill (about 5 s for both packs).
 
-```dart
-final report = runTemplateValidity(await loadCourseFile('assets/courses/it.sqlite'));
-expect(report.failures, isEmpty);
-expect(report.shortfalls(20), isEmpty);
-```
+`test/engine/real_pack_perf_test.dart` prints and loosely bounds the speed on the real packs (index warm-up, single exercises, 12-exercise lessons). On a desktop: warm-up about 20–130 ms once per course, a single exercise about 0.1 ms median and 2 ms p95, a lesson (generate, grade and record 12 exercises) about 6 ms median.
 
-`tool/sample_exercises.dart` currently runs on the fixtures. Switch its `_load` to `loadCourseFile(path)` after the merge.
+`tool/sample_exercises.dart` prints examples from a pack: `dart run tool/sample_exercises.dart nl --per 8` (a course id loads `assets/courses/{id}.sqlite`, a path loads that file). The committed samples are `docs/samples/{it,nl}_exercises.txt`; regenerate them after engine or pack changes and read the diff.
+
+## Performance
+
+Generation is synchronous, so everything a template needs repeatedly is cached per course in `CourseIndex` (an `Expando` on the `CourseData`):
+
+- occurrences per verb and per sentence, auxiliary positions, finite forms per verb and tense, word splits and accepted-form keys;
+- synonyms through inverted gloss and spelling indexes, meanings per item and language, sentences by normalized translation;
+- `memo(key, …)`: templates cache their `canGenerate` answer (deterministic per facet, language and template parameters) and the conjugation grid its candidate groups per facet.
+
+`normalizeAnswer` and `foldAnswer` are memoized (bounded caches), and `InMemoryCourseData.itemsNearFreq` sorts only a window of the frequency-sorted pool instead of the whole part of speech.
 
 ## Known limitations
 
 - **Transform** can produce a semantically odd sentence when a past-time adverb remains (`Ieri ho mangiato` → `Ieri mangio`). It is grammatical but odd, and it can't be detected without semantic tags. Person changes are rare by design (pro-drop only).
 - **Conjugation pick** needs stem/ending splits. Fully irregular tables (essere, avere, zijn, hebben) and compound tenses never get it; the grid and cloze cover them.
 - **Spot the error and cloze** rely on the translation for pro-drop person swaps.
+- **Person hints** come from the alignment. Where two persons share the form (Dutch `maakt` for jij and hij), a subject far from the verb can be missed; the pipeline then leaves the person open rather than guess, so such sentences are simply not used.
 - **Sentence builder** accepts only orders attested in the course: the sentence itself, or another sentence with the same translation.
 - **NFC** composition covers Latin letters (U+00C0–U+024F, U+1E00–U+1EFF). Other scripts pass through unnormalized.
 - **Instruction strings** are in `engine/strings.dart` (English and Dutch); the UI may later move them to its localization.

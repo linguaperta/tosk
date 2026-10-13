@@ -1,0 +1,2672 @@
+========================================================================
+SKILL greetings (vocab)  Greetings
+========================================================================
+--- flashcard: 8 example(s)
+[flashcard] it:ciao#prod  (skill greetings)
+  How do you say this?
+  hi, bye  =>  ciao   [intj]
+
+[flashcard] it:ciao#rec  (skill greetings)
+  What does this mean?
+  ciao  =>  hi, bye   [intj]
+
+[flashcard] it:signore#prod  (skill greetings)
+  How do you say this?
+  gentleman, sir, Mr  =>  il signore   [noun]
+
+[flashcard] it:signore#rec  (skill greetings)
+  What does this mean?
+  il signore  =>  gentleman, sir, Mr   [noun]
+
+[flashcard] it:buongiorno#prod  (skill greetings)
+  How do you say this?
+  good morning, hello  =>  buongiorno   [intj]
+
+[flashcard] it:buongiorno#rec  (skill greetings)
+  What does this mean?
+  buongiorno  =>  good morning, hello   [intj]
+
+[flashcard] it:bene.2#prod  (skill greetings)
+  How do you say this?
+  well, fine, good  =>  bene   [adv]
+
+[flashcard] it:bene.2#rec  (skill greetings)
+  What does this mean?
+  bene  =>  well, fine, good   [adv]
+
+--- multiple_choice: 8 example(s)
+[multiple_choice] it:ciao#prod  (skill greetings)
+  Pick the right word
+  hi
+   buonanotte  |  *ciao  |   arrivederci  |   buongiorno
+
+[multiple_choice] it:ciao#rec  (skill greetings)
+  Pick the right translation
+  ciao
+   good evening  |   goodbye  |  *hi  |   good night
+
+[multiple_choice] it:signore#prod  (skill greetings)
+  Pick the right word
+  gentleman
+  *signore  |   padre  |   ragazza  |   bambino
+
+[multiple_choice] it:signore#rec  (skill greetings)
+  Pick the right translation
+  signore   (il signore)
+   friend  |   man  |  *gentleman  |   daughter
+
+[multiple_choice] it:buongiorno#prod  (skill greetings)
+  Pick the right word
+  good morning
+   buonanotte  |   grazie  |  *buongiorno  |   buonasera
+
+[multiple_choice] it:buongiorno#rec  (skill greetings)
+  Pick the right translation
+  buongiorno
+   you're welcome  |   thank you  |   hi  |  *good morning
+
+[multiple_choice] it:bene.2#prod  (skill greetings)
+  Pick the right word
+  well
+   no  |   sì  |  *bene  |   come
+
+[multiple_choice] it:bene.2#rec  (skill greetings)
+  Pick the right translation
+  bene
+  *well  |   yes  |   no  |   badly
+
+--- match_pairs: 8 example(s)
+[match_pairs] it:ciao#rec  (skill greetings)
+  Match the pairs
+  benvenuto  =  welcome
+  per favore  =  please
+  piacere  =  pleasure
+  ciao  =  hi
+  sì  =  yes
+
+[match_pairs] it:signore#rec  (skill greetings)
+  Match the pairs
+  signora  =  lady
+  scusa  =  sorry
+  buongiorno  =  good morning
+  prego  =  you're welcome
+  signore  =  gentleman
+
+[match_pairs] it:buongiorno#rec  (skill greetings)
+  Match the pairs
+  arrivederci  =  goodbye
+  sì  =  yes
+  buonanotte  =  good night
+  buongiorno  =  good morning
+  scusa  =  sorry
+
+[match_pairs] it:bene.2#rec  (skill greetings)
+  Match the pairs
+  male  =  badly
+  bene  =  well
+  buongiorno  =  good morning
+  signora  =  lady
+  grazie  =  thank you
+
+[match_pairs] it:benvenuto#rec  (skill greetings)
+  Match the pairs
+  come  =  how
+  benvenuto  =  welcome
+  buonasera  =  good evening
+  no  =  no
+  prego  =  you're welcome
+
+[match_pairs] it:prego#rec  (skill greetings)
+  Match the pairs
+  ciao  =  hi
+  prego  =  you're welcome
+  no  =  no
+  signora  =  lady
+  buonanotte  =  good night
+
+[match_pairs] it:signora#rec  (skill greetings)
+  Match the pairs
+  sì  =  yes
+  per favore  =  please
+  signora  =  lady
+  no  =  no
+  male  =  badly
+
+[match_pairs] it:buonasera#rec  (skill greetings)
+  Match the pairs
+  buonasera  =  good evening
+  piacere  =  pleasure
+  per favore  =  please
+  buongiorno  =  good morning
+  ciao  =  hi
+
+--- sentence_builder: 8 example(s)
+[sentence_builder] it:ciao#prod  (skill greetings)
+  Translate this sentence
+  Hi everyone, I'm Tom.
+  tiles: Tom · sono · ero · è · a · tutti · ciao · siete
+  => ciao a tutti sono Tom
+
+[sentence_builder] it:signore#prod  (skill greetings)
+  Translate this sentence
+  Ladies and gentlemen, good evening!
+  tiles: signore · ehm · e · signora · signori · guerra · buonasera
+  => signore e signori buonasera
+
+[sentence_builder] it:buongiorno#prod  (skill greetings)
+  Translate this sentence
+  Good morning, my sweet dog.
+  tiles: dolce · ah · buongiorno · okay · fiume · cane · mio
+  => buongiorno mio dolce cane
+
+[sentence_builder] it:bene.2#prod  (skill greetings)
+  Translate this sentence
+  You may as well leave such a decision to your daughter.
+  tiles: lasciare · benissimo · questa · decisione · possiamo · potrai · tua · può · a · puoi · figlia
+  => puoi lasciare benissimo questa decisione a tua figlia
+
+[sentence_builder] it:prego#prod  (skill greetings)
+  Translate this sentence
+  I beg you to do it carefully.
+  tiles: basta · la · buonanotte · prego · di · con · attenzione · farla · al
+  => la prego di farla con attenzione
+
+[sentence_builder] it:signora#prod  (skill greetings)
+  Translate this sentence
+  No, I don't understand Mrs. Kunze.
+  tiles: signora · no · capisco · capirò · non · la · Kunze · capisci · capite
+  => no non capisco la signora Kunze
+
+[sentence_builder] it:buonasera#prod  (skill greetings)
+  Translate this sentence
+  Good evening, how are you?
+  tiles: starai · stanno · stai · come · stiamo · buonasera
+  => buonasera come stai
+
+[sentence_builder] it:salve#prod  (skill greetings)
+  Translate this sentence
+  Hello. How are you today?
+  tiles: come · salve · sta · stanno · stava · oggi · stai
+  => salve come sta oggi
+  => salve come sta oggi
+
+--- cloze: 8 example(s)
+[cloze] it:ciao#prod  (skill greetings)
+  Fill in the gap
+  ___, ragazza con il vestito rosso!   (hi)
+  "Hello, girl with the red dress!"
+  *Ciao  |   Scusa  |   Arrivederci  |   Buongiorno
+
+[cloze] it:signore#prod  (skill greetings)
+  Fill in the gap
+  Ecco la tua ricevuta, ___.   (gentleman)
+  "Here's your receipt, sir."
+   marito  |  *signore  |   bambina  |   ragazza
+
+[cloze] it:buongiorno#prod  (skill greetings)
+  Fill in the gap
+  ___, Tom.   (good morning)
+  "Good morning, Tom."
+   Grazie  |   Ciao  |  *Buongiorno  |   Buonasera
+
+[cloze] it:prego#prod  (skill greetings)
+  Fill in the gap
+  La ___ di farlo con attenzione.   (you're welcome)
+  "I beg you to do it carefully."
+  *prego  |   buongiorno  |   scusa  |   buonasera
+
+[cloze] it:signora#prod  (skill greetings)
+  Fill in the gap
+  Non fate mai aspettare una ___.   (lady)
+  "Never keep a lady waiting."
+  *signora  |   figlia  |   marito  |   piacere
+
+[cloze] it:buonasera#prod  (skill greetings)
+  Fill in the gap
+  ___, come stai?   (good evening)
+  "Good evening, how are you?"
+   Buonanotte  |   Arrivederci  |  *Buonasera  |   Scusa
+
+[cloze] it:salve#prod  (skill greetings)
+  Fill in the gap
+  ___, io sono Sepideh.   (hello)
+  "Hello, I am Sepideh."
+  *Salve  |   Ciao  |   Scusa  |   Grazie
+
+[cloze] it:sì.2#prod  (skill greetings)
+  Fill in the gap
+  Avete detto loro di ___, spero.   (yes)
+  "You told them yes, I hope."
+   male  |  *sì  |   come  |   bene
+
+========================================================================
+SKILL people (vocab)  People
+========================================================================
+--- flashcard: 8 example(s)
+[flashcard] it:io#prod  (skill people)
+  How do you say this?
+  I  =>  io   [pron]
+
+[flashcard] it:io#rec  (skill people)
+  What does this mean?
+  io  =>  I   [pron]
+
+[flashcard] it:tu#prod  (skill people)
+  How do you say this?
+  you  =>  tu   [pron]
+
+[flashcard] it:tu#rec  (skill people)
+  What does this mean?
+  tu  =>  you   [pron]
+
+[flashcard] it:lei#prod  (skill people)
+  How do you say this?
+  she, her, you (formal)  =>  lei   [pron]
+
+[flashcard] it:lei#rec  (skill people)
+  What does this mean?
+  lei  =>  she, her, you (formal)   [pron]
+
+[flashcard] it:lui#prod  (skill people)
+  How do you say this?
+  he, him  =>  lui   [pron]
+
+[flashcard] it:lui#rec  (skill people)
+  What does this mean?
+  lui  =>  he, him   [pron]
+
+--- multiple_choice: 8 example(s)
+[multiple_choice] it:io#prod  (skill people)
+  Pick the right word
+  I
+   loro  |  *io  |   lui  |   voi
+
+[multiple_choice] it:io#rec  (skill people)
+  Pick the right translation
+  io
+   they  |   you  |  *I  |   you (plural)
+
+[multiple_choice] it:tu#prod  (skill people)
+  Pick the right word
+  you
+  *tu  |   lui  |   io  |   noi
+
+[multiple_choice] it:tu#rec  (skill people)
+  Pick the right translation
+  tu
+   they  |  *you  |   he  |   I
+
+[multiple_choice] it:lei#prod  (skill people)
+  Pick the right word
+  she
+   lui  |   io  |  *lei  |   noi
+
+[multiple_choice] it:lei#rec  (skill people)
+  Pick the right translation
+  lei
+  *she  |   he  |   I  |   we
+
+[multiple_choice] it:lui#prod  (skill people)
+  Pick the right word
+  he
+   tu  |  *lui  |   io  |   loro
+
+[multiple_choice] it:lui#rec  (skill people)
+  Pick the right translation
+  lui
+  *he  |   she  |   I  |   we
+
+--- match_pairs: 8 example(s)
+[match_pairs] it:io#rec  (skill people)
+  Match the pairs
+  zia  =  aunt
+  gente  =  people
+  io  =  I
+  madre  =  mother
+  insegnante  =  teacher
+
+[match_pairs] it:tu#rec  (skill people)
+  Match the pairs
+  signora  =  lady
+  zio  =  uncle
+  tu  =  you
+  bambino  =  child
+  padre  =  father
+
+[match_pairs] it:lei#rec  (skill people)
+  Match the pairs
+  bambina  =  little girl
+  donna  =  woman
+  lei  =  she
+  lui  =  he
+  marito  =  husband
+
+[match_pairs] it:lui#rec  (skill people)
+  Match the pairs
+  ragazza  =  girl
+  noi  =  we
+  persona  =  person
+  lui  =  he
+  gente  =  people
+
+[match_pairs] it:noi#rec  (skill people)
+  Match the pairs
+  gente  =  people
+  voi  =  you (plural)
+  noi  =  we
+  sorella  =  sister
+  ragazzo  =  boy
+
+[match_pairs] it:loro#rec  (skill people)
+  Match the pairs
+  io  =  I
+  marito  =  husband
+  loro  =  they
+  studente  =  student
+  zia  =  aunt
+
+[match_pairs] it:persona#rec  (skill people)
+  Match the pairs
+  persona  =  person
+  famiglia  =  family
+  lui  =  he
+  padre  =  father
+  sorella  =  sister
+
+[match_pairs] it:padre#rec  (skill people)
+  Match the pairs
+  io  =  I
+  gente  =  people
+  zia  =  aunt
+  bambina  =  little girl
+  padre  =  father
+
+--- sentence_builder: 8 example(s)
+[sentence_builder] it:io#prod  (skill people)
+  Translate this sentence
+  I was not a happy girl.
+  tiles: sono · felice · ero · ragazza · eri · una · non · io · eravamo
+  => io non ero una ragazza felice
+
+[sentence_builder] it:tu#prod  (skill people)
+  Translate this sentence
+  You don't play golf, do you?
+  tiles: a · vero · non · gioca · tu · giocate · giochi · giochiamo · golf
+  => tu non giochi a golf vero
+
+[sentence_builder] it:lei#prod  (skill people)
+  Translate this sentence
+  She has a daughter named Mary.
+  tiles: hai · ha · lei · figlia · chiamata · Mary · una · hanno · avete
+  => lei ha una figlia chiamata Mary
+
+[sentence_builder] it:lui#prod  (skill people)
+  Translate this sentence
+  Is it OK if I go out with him?
+  tiles: esci · lui · con · uscivo · esco · bene · andava · va · se
+  => va bene se esco con lui
+
+[sentence_builder] it:noi#prod  (skill people)
+  Translate this sentence
+  We will be living here next month.
+  tiles: vivrò · il · prossimo · lì · vivremo · vivevamo · mese · noi · vivrete
+  => noi vivremo lì il mese prossimo
+
+[sentence_builder] it:loro#prod  (skill people)
+  Translate this sentence
+  They drove the adults crazy.
+  tiles: impazzire · ha · loro · gli · hanno · avete · ho · adulti · fatto
+  => loro hanno fatto impazzire gli adulti
+  => hanno fatto impazzire gli adulti
+
+[sentence_builder] it:persona#prod  (skill people)
+  Translate this sentence
+  This hall was full of people.
+  tiles: era · questa · è · persone · ero · di · sarà · sala · piena
+  => questa sala era piena di persone
+
+[sentence_builder] it:padre#prod  (skill people)
+  Translate this sentence
+  She resembles her father in character.
+  tiles: come · a · carattere · assomiglia · padre · assomigli · suo · assomigliate · assomigliava
+  => assomiglia a suo padre come carattere
+
+--- cloze: 8 example(s)
+[cloze] it:io#prod  (skill people)
+  Fill in the gap
+  ___ sto lavorando a Tokyo adesso.   (I)
+  "I'm working in Tokyo now."
+   Tu  |  *Io  |   Noi  |   Lui
+
+[cloze] it:tu#prod  (skill people)
+  Fill in the gap
+  ___ hai mai voluto essere ricco?   (you)
+  "Have you ever wanted to be rich?"
+  *Tu  |   Noi  |   Lui  |   Loro
+
+[cloze] it:lei#prod  (skill people)
+  Fill in the gap
+  ___ scopre alcuni dei segreti di sua madre.   (she)
+  "She discovers some of her mother's secrets."
+  *Lei  |   Noi  |   Lui  |   Io
+
+[cloze] it:lui#prod  (skill people)
+  Fill in the gap
+  Quando piove ___ si sente triste.   (he)
+  "When it rains, he feels blue."
+   tu  |   noi  |  *lui  |   voi
+
+[cloze] it:noi#prod  (skill people)
+  Fill in the gap
+  A volte ___ ci perdiamo.   (we)
+  "Sometimes we get lost."
+   lui  |   voi  |  *noi  |   tu
+
+[cloze] it:loro#prod  (skill people)
+  Fill in the gap
+  Fanno qualunque cosa che chiedo ___.   (they)
+  "They do anything I ask them to."
+   tu  |   lui  |   voi  |  *loro
+
+[cloze] it:persona#prod  (skill people)
+  Fill in the gap
+  Certi valori rendono le ___ americane.   (person)
+  "Certain values make people American."
+   amiche  |   madri  |  *persone  |   famiglie
+
+[cloze] it:padre#prod  (skill people)
+  Fill in the gap
+  Sembra che suo ___ sia avvocato.   (father)
+  "It seems that his father is a lawyer."
+   amico  |   uomo  |   figlio  |  *padre
+
+========================================================================
+SKILL essere-avere (grammar)  Essere and avere
+========================================================================
+--- conj_grid: 8 example(s)
+[conj_grid] it:essere#form:presente  (skill essere-avere)
+  Complete the table
+  essere (to be) — present
+    io       sono
+    tu       (sei)
+    lui/lei (he/she) è
+    noi      (siamo)
+    voi      siete
+    loro (they) (sono)
+  tiles: ero · siete · erano · sarà · sono · è
+
+[conj_grid] it:avere#form:presente  (skill essere-avere)
+  Complete the table
+  avere (to have) — present
+    io       ho
+    tu       (hai)
+    lui/lei (he/she) (ha)
+    noi      abbiamo
+    voi      (avete)
+    loro (they) hanno
+  tiles: ho · hanno · avite · avate · abbiamo · avrai
+
+[conj_grid] it:essere#form:presente  (skill essere-avere)
+  Complete the table
+  essere (to be) — present
+    io       (sono)
+    tu       (sei)
+    lui/lei (he/she) è
+    noi      siamo
+    voi      siete
+    loro (they) (sono)
+  tiles: eravate · siete · siamo · sarai · saranno · è
+
+[conj_grid] it:avere#form:presente  (skill essere-avere)
+  Complete the table
+  avere (to have) — present
+    io       ho
+    tu       hai
+    lui/lei (he/she) ha
+    noi      (abbiamo)
+    voi      (avete)
+    loro (they) (hanno)
+  tiles: ho · avevano · ha · avate · hai · avite
+
+[conj_grid] it:essere#form:presente  (skill essere-avere)
+  Complete the table
+  essere (to be) — present
+    io       (sono)
+    tu       (sei)
+    lui/lei (he/she) (è)
+    noi      siamo
+    voi      siete
+    loro (they) sono
+  tiles: eri · sono · ero · siamo · siete · erano
+
+[conj_grid] it:avere#form:presente  (skill essere-avere)
+  Complete the table
+  avere (to have) — present
+    io       ho
+    tu       (hai)
+    lui/lei (he/she) ha
+    noi      abbiamo
+    voi      (avete)
+    loro (they) (hanno)
+  tiles: avite · avrete · avate · abbiamo · ho · ha
+
+[conj_grid] it:essere#form:presente  (skill essere-avere)
+  Complete the table
+  essere (to be) — present
+    io       sono
+    tu       (sei)
+    lui/lei (he/she) (è)
+    noi      siamo
+    voi      siete
+    loro (they) (sono)
+  tiles: eravate · siamo · sarai · siete · sono · sarete
+
+[conj_grid] it:avere#form:presente  (skill essere-avere)
+  Complete the table
+  avere (to have) — present
+    io       ho
+    tu       (hai)
+    lui/lei (he/she) (ha)
+    noi      abbiamo
+    voi      avete
+    loro (they) (hanno)
+  tiles: avevi · avite · avete · avate · abbiamo · ho
+
+--- cloze: 8 example(s)
+[cloze] it:essere#form:presente  (skill essere-avere)
+  Fill in the right form
+  C'___ molto freddo questa mattina.   (essere (lui/lei (he/she), present))
+  "It is very cold this morning."
+   sei  |   siamo  |  *è  |   siete
+
+[cloze] it:avere#form:presente  (skill essere-avere)
+  Fill in the right form
+  L'___ letta alla mia famiglia.   (avere (io, present))
+  "I read it to my family."
+  *ho  |   ha  |   avete  |   hai
+
+[cloze] it:essere#form:presente  (skill essere-avere)
+  Fill in the right form
+  Entrambe le sorelle ___ molto belle.   (essere (loro (they), present))
+  "Both sisters are very beautiful."
+  *sono  |   siete  |   siamo  |   è
+
+[cloze] it:avere#form:presente  (skill essere-avere)
+  Fill in the right form
+  Non ___ né tempo né denaro.   (avere (io, present))
+  "I have neither time nor money."
+   ha  |   hai  |  *ho  |   abbiamo
+
+[cloze] it:essere#form:presente  (skill essere-avere)
+  Fill in the right form
+  L'acqua non ___ molto calda.   (essere (lui/lei (he/she), present))
+  "The water's not very warm."
+   siamo  |   sono  |   siete  |  *è
+
+[cloze] it:avere#form:presente  (skill essere-avere)
+  Fill in the right form
+  Oggi non vi ___ interrogati, vero?   (avere (loro (they), present))
+  "You weren't interrogated today, right?"
+   ha  |   avete  |  *hanno  |   abbiamo
+
+[cloze] it:essere#form:presente  (skill essere-avere)
+  Fill in the right form
+  La stanza ___ piena di gente.   (essere (lui/lei (he/she), present))
+  "The room is full of people."
+   siamo  |   siete  |  *è  |   sono
+
+[cloze] it:avere#form:presente  (skill essere-avere)
+  Fill in the right form
+  Lei ci ___ aiutati con piacere.   (avere (lui/lei (he/she), present))
+  "She helped us with pleasure."
+   hai  |   avete  |   ho  |  *ha
+
+--- spot_error: 8 example(s)
+[spot_error] it:essere#form:presente  (skill essere-avere)
+  Tap the wrong word
+  Guardi se il gas sei spento.
+  "See if the gas is turned off."
+  error: "sei" -> "è"
+
+[spot_error] it:avere#form:presente  (skill essere-avere)
+  Tap the wrong word
+  L'ha guardata tutti con attenzione.
+  "Everyone watched her carefully."
+  error: "ha" -> "hanno"
+
+[spot_error] it:essere#form:presente  (skill essere-avere)
+  Tap the wrong word
+  Siamo difficile capire cosa intende Tom.
+  "It's difficult to understand what Tom means."
+  error: "Siamo" -> "È"
+
+[spot_error] it:avere#form:presente  (skill essere-avere)
+  Tap the wrong word
+  Non l'hanno mai vista prima.
+  "She has never seen it before."
+  error: "hanno" -> "ha"
+
+[spot_error] it:essere#form:presente  (skill essere-avere)
+  Tap the wrong word
+  Questa foto sono di mio zio.
+  "This picture is of my uncle."
+  error: "sono" -> "è"
+
+[spot_error] it:avere#form:presente  (skill essere-avere)
+  Tap the wrong word
+  Lei non ho bisogno di lavorare.
+  "She doesn't need to work."
+  error: "ho" -> "ha"
+
+[spot_error] it:essere#form:presente  (skill essere-avere)
+  Tap the wrong word
+  La stanza siamo piena di gente.
+  "The room is full of people."
+  error: "siamo" -> "è"
+
+[spot_error] it:avere#form:presente  (skill essere-avere)
+  Tap the wrong word
+  Quanto tempo hai intenzione di rimanere?
+  "How long are you planning to stay?"
+  error: "hai" -> "ha"
+
+--- transform: 8 example(s)
+[transform] it:essere#form:presente  (skill essere-avere)
+  Rewrite the sentence
+  Era ancora qui quando sei arrivato?   → io, present
+  tiles: quando · siete · qui · era · sei · sono · ancora · siamo · arrivato
+  => sono ancora qui quando sei arrivato
+
+[transform] it:avere#form:presente  (skill essere-avere)
+  Rewrite the sentence
+  Avevo intenzione di finire il lavoro.   → present
+  tiles: finire · il · avevo · ho · di · ha · lavoro · intenzione · hai
+  => ho intenzione di finire il lavoro
+
+[transform] it:essere#form:presente  (skill essere-avere)
+  Rewrite the sentence
+  Sono stati sposati per dieci anni.   → present
+  tiles: per · stati · sposati · dieci · siamo · è · sono · anni
+  => sono sposati per dieci anni
+
+[transform] it:avere#form:presente  (skill essere-avere)
+  Rewrite the sentence
+  Lord Ashburton aveva una moglie americana.   → present
+  tiles: aveva · ha · ho · lord · americana · moglie · una · Ashburton · avete
+  => lord Ashburton ha una moglie americana
+
+[transform] it:essere#form:presente  (skill essere-avere)
+  Rewrite the sentence
+  Lui era orgoglioso di sua figlia.   → present
+  tiles: orgoglioso · lui · sua · figlia · era · è · sono · di · sei
+  => lui è orgoglioso di sua figlia
+
+[transform] it:avere#form:presente  (skill essere-avere)
+  Rewrite the sentence
+  Abbiamo avuto sei ospiti a cena.   → present
+  tiles: a · abbiamo · cena · avuto · avete · ospiti · hanno · sei
+  => abbiamo sei ospiti a cena
+
+[transform] it:essere#form:presente  (skill essere-avere)
+  Rewrite the sentence
+  Se mangiate quello, Tom sarà arrabbiato.   → present
+  tiles: se · mangiate · quello · siamo · arrabbiato · sarà · è · siete · Tom
+  => se mangiate quello Tom è arrabbiato
+
+[transform] it:avere#form:presente  (skill essere-avere)
+  Rewrite the sentence
+  Mia zia ha avuto tre figli.   → present
+  tiles: figli · hanno · avuto · ha · mia · avete · zia · tre
+  => mia zia ha tre figli
+
+========================================================================
+SKILL food (vocab)  Food and drink
+========================================================================
+--- flashcard: 8 example(s)
+[flashcard] it:buono#prod  (skill food)
+  How do you say this?
+  good, tasty, kind  =>  buono   [adj]
+
+[flashcard] it:buono#rec  (skill food)
+  What does this mean?
+  buono  =>  good, tasty, kind   [adj]
+
+[flashcard] it:acqua#prod  (skill food)
+  How do you say this?
+  water  =>  l'acqua   [noun]
+
+[flashcard] it:acqua#rec  (skill food)
+  What does this mean?
+  l'acqua  =>  water   [noun]
+
+[flashcard] it:cibo#prod  (skill food)
+  How do you say this?
+  food  =>  il cibo   [noun]
+
+[flashcard] it:cibo#rec  (skill food)
+  What does this mean?
+  il cibo  =>  food   [noun]
+
+[flashcard] it:birra#prod  (skill food)
+  How do you say this?
+  beer  =>  la birra   [noun]
+
+[flashcard] it:birra#rec  (skill food)
+  What does this mean?
+  la birra  =>  beer   [noun]
+
+--- multiple_choice: 8 example(s)
+[multiple_choice] it:buono#prod  (skill food)
+  Pick the right word
+  good
+  *buono  |   diverso  |   piano  |   fatto
+
+[multiple_choice] it:buono#rec  (skill food)
+  Pick the right translation
+  buono
+   careful  |   some  |   certain  |  *good
+
+[multiple_choice] it:acqua#prod  (skill food)
+  Pick the right word
+  water
+   pranzo  |   carne  |  *acqua  |   pizza
+
+[multiple_choice] it:acqua#rec  (skill food)
+  Pick the right translation
+  acqua   (l'acqua)
+  *water  |   restaurant  |   vegetables  |   fruit
+
+[multiple_choice] it:cibo#prod  (skill food)
+  Pick the right word
+  food
+  *cibo  |   pranzo  |   carne  |   pane
+
+[multiple_choice] it:cibo#rec  (skill food)
+  Pick the right translation
+  cibo   (il cibo)
+   cheese  |   meat  |   breakfast  |  *food
+
+[multiple_choice] it:birra#prod  (skill food)
+  Pick the right word
+  beer
+   pizza  |   pane  |   latte  |  *birra
+
+[multiple_choice] it:birra#rec  (skill food)
+  Pick the right translation
+  birra   (la birra)
+   tea  |   meat  |   sugar  |  *beer
+
+--- match_pairs: 8 example(s)
+[match_pairs] it:buono#rec  (skill food)
+  Match the pairs
+  latte  =  milk
+  colazione  =  breakfast
+  pesce  =  fish
+  vino  =  wine
+  buono  =  good
+
+[match_pairs] it:acqua#rec  (skill food)
+  Match the pairs
+  sale  =  salt
+  pizza  =  pizza
+  acqua  =  water
+  latte  =  milk
+  colazione  =  breakfast
+
+[match_pairs] it:cibo#rec  (skill food)
+  Match the pairs
+  pesce  =  fish
+  cibo  =  food
+  acqua  =  water
+  caffè  =  coffee
+  latte  =  milk
+
+[match_pairs] it:birra#rec  (skill food)
+  Match the pairs
+  pizza  =  pizza
+  mela  =  apple
+  birra  =  beer
+  frutta  =  fruit
+  vino  =  wine
+
+[match_pairs] it:vino#rec  (skill food)
+  Match the pairs
+  colazione  =  breakfast
+  birra  =  beer
+  carne  =  meat
+  vino  =  wine
+  cibo  =  food
+
+[match_pairs] it:carne#rec  (skill food)
+  Match the pairs
+  vino  =  wine
+  carne  =  meat
+  colazione  =  breakfast
+  pesce  =  fish
+  ristorante  =  restaurant
+
+[match_pairs] it:pesce#rec  (skill food)
+  Match the pairs
+  pesce  =  fish
+  zucchero  =  sugar
+  cibo  =  food
+  verdura  =  vegetables
+  uovo  =  egg
+
+[match_pairs] it:caffè#rec  (skill food)
+  Match the pairs
+  caffè  =  coffee
+  birra  =  beer
+  acqua  =  water
+  zucchero  =  sugar
+  ristorante  =  restaurant
+
+--- sentence_builder: 8 example(s)
+[sentence_builder] it:buono#prod  (skill food)
+  Translate this sentence
+  This textbook is good.
+  tiles: questo · era · buono · testo · siamo · libro · testa · è · di
+  => questo libro di testo è buono
+
+[sentence_builder] it:acqua#prod  (skill food)
+  Translate this sentence
+  The water was five feet deep.
+  tiles: è · eravate · piedi · erano · cinque · profonda · era · l' · acqua
+  => l' acqua era profonda cinque piedi
+
+[sentence_builder] it:cibo#prod  (skill food)
+  Translate this sentence
+  We cannot exist without food.
+  tiles: potremo · cibo · esistere · potete · può · il · possiamo · non · senza · noi
+  => noi non possiamo esistere senza il cibo
+  => non possiamo esistere senza cibo
+  => non possiamo esistere senza il cibo
+  => noi non possiamo esistere senza cibo
+
+[sentence_builder] it:birra#prod  (skill food)
+  Translate this sentence
+  In my house we drink a lot of beer.
+  tiles: molta · beviamo · bevono · bevo · birra · casa · a · mia · bevi
+  => a casa mia beviamo molta birra
+
+[sentence_builder] it:vino#prod  (skill food)
+  Translate this sentence
+  Do you prefer white wine or red wine?
+  tiles: voi · preferirete · vino · preferivate · preferiscono · rosso · o · bianco · preferite
+  => voi preferite vino bianco o rosso
+
+[sentence_builder] it:carne#prod  (skill food)
+  Translate this sentence
+  I don't usually eat red meat.
+  tiles: di · rossa · mangiamo · mangiate · carne · mangio · solito · mangia · non
+  => di solito non mangio carne rossa
+
+[sentence_builder] it:pesce#prod  (skill food)
+  Translate this sentence
+  I really like seafood.
+  tiles: il · piacete · molto · a · piaccio · me · piace · piaceva · pesce
+  => a me piace molto il pesce
+
+[sentence_builder] it:caffè#prod  (skill food)
+  Translate this sentence
+  I had two cups of coffee.
+  tiles: ho · preso · due · di · avete · tazze · caffè · hai · ha
+  => ho preso due tazze di caffè
+
+--- cloze: 8 example(s)
+[cloze] it:buono#prod  (skill food)
+  Fill in the gap
+  Lui è ___ come il pane.   (good)
+  "He's as good as gold."
+   solito  |   tranquillo  |  *buono  |   sentito
+
+[cloze] it:acqua#prod  (skill food)
+  Fill in the gap
+  Il bicchiere è pieno d'___.   (water)
+  "The glass is full of water."
+   vino  |  *acqua  |   pranzo  |   formaggio
+
+[cloze] it:cibo#prod  (skill food)
+  Fill in the gap
+  Noi non possiamo esistere senza il ___.   (food)
+  "We cannot exist without food."
+   caffè  |   latte  |  *cibo  |   pasta
+
+[cloze] it:birra#prod  (skill food)
+  Fill in the gap
+  Ho offerto a Tom una ___.   (beer)
+  "I offered Tom a beer."
+   acqua  |   cibo  |  *birra  |   sale
+
+[cloze] it:vino#prod  (skill food)
+  Fill in the gap
+  A lei piace bere il ___?   (wine)
+  "Do you like to drink wine?"
+   pranzo  |  *vino  |   pesce  |   mela
+
+[cloze] it:carne#prod  (skill food)
+  Fill in the gap
+  Di solito non mangio ___ rossa.   (meat)
+  "I don't usually eat red meat."
+   uovo  |   tè  |  *carne  |   frutta
+
+[cloze] it:pesce#prod  (skill food)
+  Fill in the gap
+  A me piace veramente il ___.   (fish)
+  "I really like seafood."
+   verdura  |   sale  |  *pesce  |   latte
+
+[cloze] it:caffè#prod  (skill food)
+  Fill in the gap
+  Servi il ___, per favore.   (coffee)
+  "Serve the coffee, please."
+   cena  |  *caffè  |   verdura  |   latte
+
+========================================================================
+SKILL articles (grammar)  The article
+========================================================================
+--- multiple_choice: 8 example(s)
+[multiple_choice] it:persona#article  (skill articles)
+  Pick the right article
+  ___ persona   (person)
+   lo  |   il  |   l'  |  *la
+
+[multiple_choice] it:padre#article  (skill articles)
+  Pick the right article
+  ___ padre   (father)
+   la  |   l'  |  *il  |   lo
+
+[multiple_choice] it:ragazzo#article  (skill articles)
+  Pick the right article
+  ___ ragazzo   (boy)
+   l'  |   lo  |   la  |  *il
+
+[multiple_choice] it:famiglia#article  (skill articles)
+  Pick the right article
+  ___ famiglia   (family)
+   lo  |   il  |  *la  |   l'
+
+[multiple_choice] it:amico#article  (skill articles)
+  Pick the right article
+  ___ amico   (friend)
+   il  |   lo  |  *l'  |   la
+
+[multiple_choice] it:moglie#article  (skill articles)
+  Pick the right article
+  ___ moglie   (wife)
+  *la  |   l'  |   lo  |   il
+
+[multiple_choice] it:fratello#article  (skill articles)
+  Pick the right article
+  ___ fratello   (brother)
+   l'  |  *il  |   la  |   lo
+
+[multiple_choice] it:uomo#article  (skill articles)
+  Pick the right article
+  ___ uomo   (man)
+   il  |   lo  |  *l'  |   la
+
+--- cloze: 8 example(s)
+[cloze] it:padre#article  (skill articles)
+  Fill in the right article
+  Vede ___ padre e la madre?   (father)
+  "Do you see the father and the mother?"
+  *il  |   la  |   lo  |   l'
+
+[cloze] it:ragazzo#article  (skill articles)
+  Fill in the right article
+  ___ ragazzo ha la febbre alta.   (boy)
+  "The boy has a high fever."
+   L'  |   La  |  *Il  |   Lo
+
+[cloze] it:famiglia#article  (skill articles)
+  Fill in the right article
+  Lavora duramente per mantenere ___ famiglia.   (family)
+  "He is working hard to support his family."
+   il  |  *la  |   l'  |   lo
+
+[cloze] it:moglie#article  (skill articles)
+  Fill in the right article
+  Io conosco ___ moglie di Tom.   (wife)
+  "I know Tom's wife."
+   il  |   l'  |   lo  |  *la
+
+[cloze] it:fratello#article  (skill articles)
+  Fill in the right article
+  È ___ fratello maggiore di Taro.   (brother)
+  "He is Taro's older brother."
+  *il  |   lo  |   la  |   l'
+
+[cloze] it:uomo#article  (skill articles)
+  Fill in the right article
+  Occhio, ___uomo ha una pistola.   (man)
+  "Watch out, the man has a gun."
+   il  |  *l'  |   la  |   lo
+
+[cloze] it:bambino#article  (skill articles)
+  Fill in the right article
+  ___ bambino sta cercando sua madre.   (child)
+  "The baby is looking for its mother."
+   La  |   Lo  |   L'  |  *Il
+
+[cloze] it:donna#article  (skill articles)
+  Fill in the right article
+  Io sto aspettando ___ donna giusta.   (woman)
+  "I'm waiting for the right woman."
+   il  |  *la  |   lo  |   l'
+
+--- spot_error: 8 example(s)
+[spot_error] it:padre#article  (skill articles)
+  Tap the wrong word
+  Lo padre non colpisce il figlio.
+  "The father doesn't beat his son."
+  error: "Lo" -> "Il"
+
+[spot_error] it:ragazzo#article  (skill articles)
+  Tap the wrong word
+  La ragazzo ha mangiato la mela.
+  "The boy ate the apple."
+  error: "La" -> "Il"
+
+[spot_error] it:famiglia#article  (skill articles)
+  Tap the wrong word
+  Lavora duro per mantenere lo famiglia.
+  "He is working hard to support his family."
+  error: "lo" -> "la"
+
+[spot_error] it:moglie#article  (skill articles)
+  Tap the wrong word
+  Lei è il moglie di Alain.
+  "She's Alain's wife."
+  error: "il" -> "la"
+
+[spot_error] it:fratello#article  (skill articles)
+  Tap the wrong word
+  È la fratello maggiore di Taro.
+  "He is Taro's older brother."
+  error: "la" -> "il"
+
+[spot_error] it:uomo#article  (skill articles)
+  Tap the wrong word
+  Il uomo è destinato a soffrire.
+  "Man is destined to suffer."
+  error: "Il" -> "L'"
+
+[spot_error] it:bambino#article  (skill articles)
+  Tap the wrong word
+  L'bambino sta cercando sua madre.
+  "The baby is looking for its mother."
+  error: "L'" -> "Il"
+
+[spot_error] it:donna#article  (skill articles)
+  Tap the wrong word
+  È il donna dei miei desideri.
+  "She is the woman of my desires."
+  error: "il" -> "la"
+
+========================================================================
+SKILL present-are (grammar)  Present tense of -are verbs
+========================================================================
+--- conj_pick: 8 example(s)
+[conj_pick] it:pensare#form:presente  (skill present-are)
+  Pick the right ending
+  pensare (to think) — lui/lei (he/she), present
+  pens___    ate  |   o  |  *a  |   ano   => pensa
+
+[conj_pick] it:parlare#form:presente  (skill present-are)
+  Pick the right ending
+  parlare (to talk) — voi, present
+  parl___    iamo  |  *ate  |   ano  |   i   => parlate
+
+[conj_pick] it:aspettare#form:presente  (skill present-are)
+  Pick the right ending
+  aspettare (to wait for) — tu, present
+  aspett___    iamo  |   ano  |   o  |  *i   => aspetti
+
+[conj_pick] it:sembrare#form:presente  (skill present-are)
+  Pick the right ending
+  sembrare (to seem) — noi, present
+  sembr___    o  |   a  |  *iamo  |   ate   => sembriamo
+
+[conj_pick] it:guardare#form:presente  (skill present-are)
+  Pick the right ending
+  guardare (to look at) — noi, present
+  guard___    a  |   i  |   ano  |  *iamo   => guardiamo
+
+[conj_pick] it:tornare#form:presente  (skill present-are)
+  Pick the right ending
+  tornare (to return) — loro (they), present
+  torn___    iamo  |   i  |   a  |  *ano   => tornano
+
+[conj_pick] it:lasciare#form:presente  (skill present-are)
+  Pick the right ending
+  lasciare (to leave) — lui/lei (he/she), present
+  lasci___    i  |  *a  |   ano  |   ate   => lascia
+
+[conj_pick] it:cercare#form:presente  (skill present-are)
+  Pick the right ending
+  cercare (to look for) — tu, present
+  cerch___   *i  |   o  |   a  |   ano   => cerchi
+
+--- conj_grid: 8 example(s)
+[conj_grid] it:pensare#form:presente  (skill present-are)
+  Complete the table
+  pensare (to think) — present
+    io       penso
+    tu       (pensi)
+    lui/lei (he/she) pensa
+    noi      pensiamo
+    voi      (pensate)
+    loro (they) (pensano)
+  tiles: penso · pensete · pensa · pensiamo · pensono · pense
+
+[conj_grid] it:parlare#form:presente  (skill present-are)
+  Complete the table
+  parlare (to talk) — present
+    io       (parlo)
+    tu       (parli)
+    lui/lei (he/she) parla
+    noi      parliamo
+    voi      parlate
+    loro (they) (parlano)
+  tiles: parliamo · parlite · parle · parla · parlate · parlono
+
+[conj_grid] it:aspettare#form:presente  (skill present-are)
+  Complete the table
+  aspettare (to wait for) — present
+    io       (aspetto)
+    tu       (aspetti)
+    lui/lei (he/she) (aspetta)
+    noi      aspettiamo
+    voi      aspettate
+    loro (they) aspettano
+  tiles: aspettate · aspettano · aspette · aspettiamo · aspettete · aspettite
+
+[conj_grid] it:sembrare#form:presente  (skill present-are)
+  Complete the table
+  sembrare (to seem) — present
+    io       sembro
+    tu       (sembri)
+    lui/lei (he/she) (sembra)
+    noi      sembriamo
+    voi      (sembrate)
+    loro (they) sembrano
+  tiles: sembrisce · sembriamo · sembro · sembrete · sembrano · sembrite
+
+[conj_grid] it:guardare#form:presente  (skill present-are)
+  Complete the table
+  guardare (to look at) — present
+    io       guardo
+    tu       (guardi)
+    lui/lei (he/she) (guarda)
+    noi      guardiamo
+    voi      (guardate)
+    loro (they) guardano
+  tiles: guardono · guardano · guardisco · guarde · guardo · guardiamo
+
+[conj_grid] it:tornare#form:presente  (skill present-are)
+  Complete the table
+  tornare (to return) — present
+    io       torno
+    tu       (torni)
+    lui/lei (he/she) torna
+    noi      torniamo
+    voi      (tornate)
+    loro (they) (tornano)
+  tiles: tornite · tornete · torne · torniamo · torna · torno
+
+[conj_grid] it:lasciare#form:presente  (skill present-are)
+  Complete the table
+  lasciare (to leave) — present
+    io       (lascio)
+    tu       (lasci)
+    lui/lei (he/she) lascia
+    noi      (lasciamo)
+    voi      lasciate
+    loro (they) lasciano
+  tiles: lasciano · lasciite · lascii · lascia · lasciate · lascisci
+
+[conj_grid] it:cercare#form:presente  (skill present-are)
+  Complete the table
+  cercare (to look for) — present
+    io       (cerco)
+    tu       cerchi
+    lui/lei (he/she) (cerca)
+    noi      cerchiamo
+    voi      cercate
+    loro (they) (cercano)
+  tiles: cercate · cerchi · cercete · cerce · cercono · cerchiamo
+
+--- cloze: 8 example(s)
+[cloze] it:pensare#form:presente  (skill present-are)
+  Fill in the right form
+  Noi non ___ che sia serio.   (pensare (noi, present))
+  "We don't think it's serious."
+   pensano  |   pensa  |   penso  |  *pensiamo
+
+[cloze] it:parlare#form:presente  (skill present-are)
+  Fill in the right form
+  ___ inglese e francese in Canada.   (parlare (loro (they), present))
+  "They speak English and French in Canada."
+   Parlo  |   Parlate  |  *Parlano  |   Parliamo
+
+[cloze] it:aspettare#form:presente  (skill present-are)
+  Fill in the right form
+  ___, perché vi sto dicendo questo?   (aspettare (voi, present))
+  "Wait, why am I telling you this?"
+  *Aspettate  |   Aspettiamo  |   Aspetti  |   Aspettano
+
+[cloze] it:sembrare#form:presente  (skill present-are)
+  Fill in the right form
+  Voi ___ essere di grande fretta.   (sembrare (voi, present))
+  "You seem to be in a big hurry."
+   sembri  |  *sembrate  |   sembrano  |   sembriamo
+
+[cloze] it:guardare#form:presente  (skill present-are)
+  Fill in the right form
+  Noi ___ la TV ogni sera.   (guardare (noi, present))
+  "We watch TV every night."
+   guarda  |   guardi  |   guardano  |  *guardiamo
+
+[cloze] it:tornare#form:presente  (skill present-are)
+  Fill in the right form
+  ___ dall'America fra una settimana.   (tornare (lui/lei (he/she), present))
+  "He's coming back from America a week from today."
+   Tornate  |  *Torna  |   Torno  |   Torni
+
+[cloze] it:lasciare#form:presente  (skill present-are)
+  Fill in the right form
+  Perché non le ___ da sole?   (lasciare (lui/lei (he/she), present))
+  "Why don't you leave them alone?"
+  *lascia  |   lasciate  |   lasciano  |   lascio
+
+[cloze] it:cercare#form:presente  (skill present-are)
+  Fill in the right form
+  Alcune persone ___ solo il piacere.   (cercare (loro (they), present))
+  "Some people pursue only pleasure."
+   cerchiamo  |  *cercano  |   cerchi  |   cercate
+
+--- spot_error: 8 example(s)
+[spot_error] it:pensare#form:presente  (skill present-are)
+  Tap the wrong word
+  Pensiamo a quello che avete dimenticato!
+  "Think about what you have forgotten!"
+  error: "Pensiamo" -> "Pensate"
+
+[spot_error] it:parlare#form:presente  (skill present-are)
+  Tap the wrong word
+  Salve. È Ogawa che parli.
+  "Hello. This is Ogawa speaking."
+  error: "parli" -> "parla"
+
+[spot_error] it:aspettare#form:presente  (skill present-are)
+  Tap the wrong word
+  Noi ci aspetti che torni presto.
+  "We expect him to come back soon."
+  error: "aspetti" -> "aspettiamo"
+
+[spot_error] it:sembrare#form:presente  (skill present-are)
+  Tap the wrong word
+  La nostra professoressa sembrano molto giovane.
+  "Our teacher looks very young."
+  error: "sembrano" -> "sembra"
+
+[spot_error] it:guardare#form:presente  (skill present-are)
+  Tap the wrong word
+  Lui non guardano assolutamente la TV.
+  "He does not watch TV at all."
+  error: "guardano" -> "guarda"
+
+[spot_error] it:tornare#form:presente  (skill present-are)
+  Tap the wrong word
+  Torna ogni estate.
+  "They come back every summer."
+  error: "Torna" -> "Tornano"
+
+[spot_error] it:lasciare#form:presente  (skill present-are)
+  Tap the wrong word
+  Lasci in pace la mia famiglia.
+  "Leave my family alone."
+  error: "Lasci" -> "Lascia"
+
+[spot_error] it:cercare#form:presente  (skill present-are)
+  Tap the wrong word
+  Cercate di migliorare il tuo francese.
+  "Try to improve your French."
+  error: "Cercate" -> "Cerca"
+
+--- transform: 8 example(s)
+[transform] it:pensare#form:presente  (skill present-are)
+  Rewrite the sentence
+  Hai mai pensato di diventare una scrittrice?   → io, present
+  tiles: scrittrice · di · penso · pensano · una · mai · pensato · hai · diventare
+  => penso mai di diventare una scrittrice
+
+[transform] it:parlare#form:presente  (skill present-are)
+  Rewrite the sentence
+  Gli hai parlato dei tuoi progetti?   → present
+  tiles: parli · tuoi · parlano · dei · gli · hai · parlato · progetti
+  => gli parli dei tuoi progetti
+
+[transform] it:aspettare#form:presente  (skill present-are)
+  Rewrite the sentence
+  Quanto avete aspettato per vedere il dottore?   → present
+  tiles: dottore · vedere · aspettano · avete · aspettato · il · aspettate · quanto · per
+  => quanto aspettate per vedere il dottore
+
+[transform] it:sembrare#form:presente  (skill present-are)
+  Rewrite the sentence
+  Lui è sembrato sorpreso.   → present
+  tiles: lui · è · sembrate · sorpreso · sembrato · sembra
+  => lui sembra sorpreso
+
+[transform] it:guardare#form:presente  (skill present-are)
+  Rewrite the sentence
+  Ho guardato la televisione questa mattina.   → present
+  tiles: questa · guardo · guardi · televisione · la · mattina · guardato · ho
+  => guardo la televisione questa mattina
+
+[transform] it:tornare#form:presente  (skill present-are)
+  Rewrite the sentence
+  Io sono appena tornata dalla Svezia.   → present
+  tiles: tornate · Svezia · tornata · sono · dalla · appena · torno · io
+  => io torno appena dalla Svezia
+
+[transform] it:lasciare#form:presente  (skill present-are)
+  Rewrite the sentence
+  Ho lasciato il mio posto alla signora anziana.   → present
+  tiles: ho · posto · il · signora · anziana · lasciato · lascio · lasciamo · mio · alla
+  => lascio il mio posto alla signora anziana
+
+[transform] it:cercare#form:presente  (skill present-are)
+  Rewrite the sentence
+  Cercherò di seguire il vostro consiglio.   → present
+  tiles: il · consiglio · cerco · cercate · cercherò · seguire · di · cerchi · vostro
+  => cerco di seguire il vostro consiglio
+
+========================================================================
+SKILL present-ere (grammar)  Present tense of -ere verbs
+========================================================================
+--- conj_pick: 8 example(s)
+[conj_pick] it:vedere#form:presente  (skill present-ere)
+  Pick the right ending
+  vedere (to see) — lui/lei (he/she), present
+  ved___    ete  |   ono  |   o  |  *e   => vede
+
+[conj_pick] it:prendere#form:presente  (skill present-ere)
+  Pick the right ending
+  prendere (to take) — voi, present
+  prend___    iamo  |   i  |   ono  |  *ete   => prendete
+
+[conj_pick] it:chiedere#form:presente  (skill present-ere)
+  Pick the right ending
+  chiedere (to ask) — tu, present
+  chied___    iamo  |   o  |   ono  |  *i   => chiedi
+
+[conj_pick] it:conoscere#form:presente  (skill present-ere)
+  Pick the right ending
+  conoscere (to know) — noi, present
+  conosc___    ete  |   o  |  *iamo  |   e   => conosciamo
+
+[conj_pick] it:succedere#form:presente  (skill present-ere)
+  Pick the right ending
+  succedere (to take the place) — noi, present
+  succed___   *iamo  |   e  |   ono  |   i   => succediamo
+
+[conj_pick] it:credere#form:presente  (skill present-ere)
+  Pick the right ending
+  credere (to believe) — loro (they), present
+  cred___    i  |   iamo  |  *ono  |   e   => credono
+
+[conj_pick] it:mettere#form:presente  (skill present-ere)
+  Pick the right ending
+  mettere (to put) — lui/lei (he/she), present
+  mett___    ete  |  *e  |   ono  |   i   => mette
+
+[conj_pick] it:vivere#form:presente  (skill present-ere)
+  Pick the right ending
+  vivere (to live) — tu, present
+  viv___    o  |  *i  |   ono  |   e   => vivi
+
+--- conj_grid: 8 example(s)
+[conj_grid] it:vedere#form:presente  (skill present-ere)
+  Complete the table
+  vedere (to see) — present
+    io       (vedo)
+    tu       (vedi)
+    lui/lei (he/she) vede
+    noi      (vediamo)
+    voi      vedete
+    loro (they) vedono
+  tiles: vedano · vedete · veda · vedono · vede · vedate
+
+[conj_grid] it:prendere#form:presente  (skill present-ere)
+  Complete the table
+  prendere (to take) — present
+    io       (prendo)
+    tu       (prendi)
+    lui/lei (he/she) prende
+    noi      prendiamo
+    voi      prendete
+    loro (they) (prendono)
+  tiles: prendano · prende · prendete · prendiamo · prendite · prenda
+
+[conj_grid] it:chiedere#form:presente  (skill present-ere)
+  Complete the table
+  chiedere (to ask) — present
+    io       (chiedo)
+    tu       chiedi
+    lui/lei (he/she) chiede
+    noi      (chiediamo)
+    voi      (chiedete)
+    loro (they) chiedono
+  tiles: chieda · chiedi · chiedono · chiedate · chiedano · chiede
+
+[conj_grid] it:conoscere#form:presente  (skill present-ere)
+  Complete the table
+  conoscere (to know) — present
+    io       conosco
+    tu       (conosci)
+    lui/lei (he/she) conosce
+    noi      (conosciamo)
+    voi      conoscete
+    loro (they) (conoscono)
+  tiles: conoscete · conosco · conosca · conoscate · conosce · conoscano
+
+[conj_grid] it:succedere#form:presente  (skill present-ere)
+  Complete the table
+  succedere (to take the place) — present
+    io       (succedo)
+    tu       succedi
+    lui/lei (he/she) (succede)
+    noi      succediamo
+    voi      (succedete)
+    loro (they) succedono
+  tiles: succediamo · succedono · succeda · succedate · succedano · succedi
+
+[conj_grid] it:credere#form:presente  (skill present-ere)
+  Complete the table
+  credere (to believe) — present
+    io       credo
+    tu       (credi)
+    lui/lei (he/she) crede
+    noi      (crediamo)
+    voi      credete
+    loro (they) (credono)
+  tiles: credete · crede · credate · credo · creda · crediscono
+
+[conj_grid] it:mettere#form:presente  (skill present-ere)
+  Complete the table
+  mettere (to put) — present
+    io       (metto)
+    tu       (metti)
+    lui/lei (he/she) mette
+    noi      mettiamo
+    voi      (mettete)
+    loro (they) mettono
+  tiles: mettate · mettite · mettono · mettisce · mette · mettiamo
+
+[conj_grid] it:vivere#form:presente  (skill present-ere)
+  Complete the table
+  vivere (to live) — present
+    io       (vivo)
+    tu       vivi
+    lui/lei (he/she) (vive)
+    noi      viviamo
+    voi      vivete
+    loro (they) (vivono)
+  tiles: viviamo · vivete · viva · vivano · vivate · vivi
+
+--- cloze: 8 example(s)
+[cloze] it:vedere#form:presente  (skill present-ere)
+  Fill in the right form
+  Tu cosa ci ___ in lui?   (vedere (tu, present))
+  "What do you see in him?"
+   vedo  |   vedono  |   vede  |  *vedi
+
+[cloze] it:prendere#form:presente  (skill present-ere)
+  Fill in the right form
+  ___ una sedia per Tom, OK?   (prendere (voi, present))
+  "Get a chair for Tom, would you?"
+   Prendono  |   Prende  |   Prendo  |  *Prendete
+
+[cloze] it:chiedere#form:presente  (skill present-ere)
+  Fill in the right form
+  Perché non le ___ di aiutare?   (chiedere (noi, present))
+  "Why don't we ask her to help?"
+  *chiediamo  |   chiedete  |   chiede  |   chiedono
+
+[cloze] it:conoscere#form:presente  (skill present-ere)
+  Fill in the right form
+  ___ l'uomo in questa foto?   (conoscere (voi, present))
+  "Do you know the man in this picture?"
+  *Conoscete  |   Conosce  |   Conosciamo  |   Conoscono
+
+[cloze] it:succedere#form:presente  (skill present-ere)
+  Fill in the right form
+  Cosa ___ se premo questo pulsante?   (succedere (lui/lei (he/she), present))
+  "What happens if I press this button?"
+   succedete  |   succedo  |  *succede  |   succedi
+
+[cloze] it:credere#form:presente  (skill present-ere)
+  Fill in the right form
+  ___ a tutto ciò che dico.   (credere (lui/lei (he/she), present))
+  "He believes everything I say."
+   Credono  |   Credi  |  *Crede  |   Credete
+
+[cloze] it:mettere#form:presente  (skill present-ere)
+  Fill in the right form
+  Non ___ l'azienda in pericolo.   (mettere (voi, present))
+  "Don't put the company in danger."
+   mettiamo  |   mette  |  *mettete  |   mettono
+
+[cloze] it:vivere#form:presente  (skill present-ere)
+  Fill in the right form
+  Le persone non ___ per sempre.   (vivere (loro (they), present))
+  "People don't live forever."
+   vivete  |   vivi  |   viviamo  |  *vivono
+
+--- spot_error: 8 example(s)
+[spot_error] it:vedere#form:presente  (skill present-ere)
+  Tap the wrong word
+  Loro non ci vediamo mai.
+  "They never see us."
+  error: "vediamo" -> "vedono"
+
+[spot_error] it:prendere#form:presente  (skill present-ere)
+  Tap the wrong word
+  Prende due di queste pillole rosse.
+  "Take two of these red pills."
+  error: "Prende" -> "Prendi"
+
+[spot_error] it:chiedere#form:presente  (skill present-ere)
+  Tap the wrong word
+  Chiedo a Tom cosa fare dopo.
+  "Ask Tom what to do next."
+  error: "Chiedo" -> "Chiedi"
+
+[spot_error] it:conoscere#form:presente  (skill present-ere)
+  Tap the wrong word
+  Sono l'unica che le conoscete.
+  "I'm the only one who knows them."
+  error: "conoscete" -> "conosce"
+
+[spot_error] it:succedere#form:presente  (skill present-ere)
+  Tap the wrong word
+  Questo genere di cose succedete continuamente.
+  "This kind of thing happens all the time."
+  error: "succedete" -> "succede"
+
+[spot_error] it:credere#form:presente  (skill present-ere)
+  Tap the wrong word
+  Perché lei non crediamo in Dio?
+  "Why do you not believe in God?"
+  error: "crediamo" -> "crede"
+
+[spot_error] it:mettere#form:presente  (skill present-ere)
+  Tap the wrong word
+  Mettiamo in ordine la tua stanza.
+  "Put your room in order."
+  error: "Mettiamo" -> "Metti"
+
+[spot_error] it:vivere#form:presente  (skill present-ere)
+  Tap the wrong word
+  Mia zia vivi a New York.
+  "My aunt lives in New York."
+  error: "vivi" -> "vive"
+
+--- transform: 8 example(s)
+[transform] it:vedere#form:presente  (skill present-ere)
+  Rewrite the sentence
+  Ho visto l'incontro ieri sera.   → tu, present
+  tiles: l' · vedete · incontro · sera · visto · ieri · ho · vedi
+  => vedi l' incontro ieri sera
+
+[transform] it:prendere#form:presente  (skill present-ere)
+  Rewrite the sentence
+  Ha preso parte alla discussione ieri?   → present
+  tiles: preso · prende · discussione · alla · parte · prendo · ieri · ha
+  => prende parte alla discussione ieri
+
+[transform] it:chiedere#form:presente  (skill present-ere)
+  Rewrite the sentence
+  Lei ha chiesto il mio aiuto.   → present
+  tiles: chiesto · mio · chiede · il · lei · aiuto · chiedono · ha
+  => lei chiede il mio aiuto
+
+[transform] it:conoscere#form:presente  (skill present-ere)
+  Rewrite the sentence
+  L'ho conosciuto venerdì 13.   → present
+  tiles: conosco · venerdì · 13 · ho · conosciuto · conosce · l'
+  => l' conosco venerdì 13
+
+[transform] it:succedere#form:presente  (skill present-ere)
+  Rewrite the sentence
+  Volete davvero sapere cos'è successo?   → present
+  tiles: è · succedi · davvero · successo · sapere · volete · cos' · succede
+  => volete davvero sapere cos' succede
+
+[transform] it:credere#form:presente  (skill present-ere)
+  Rewrite the sentence
+  Non credeva alla voce di corridoio.   → present
+  tiles: corridoio · credo · credeva · crede · di · credete · alla · non · voce
+  => non crede alla voce di corridoio
+
+[transform] it:mettere#form:presente  (skill present-ere)
+  Rewrite the sentence
+  Metterò il suo coraggio alla prova.   → present
+  tiles: mettiamo · metterò · suo · alla · il · mettono · metto · coraggio · prova
+  => metto il suo coraggio alla prova
+
+[transform] it:vivere#form:presente  (skill present-ere)
+  Rewrite the sentence
+  Vivrò a Sasayama l'anno prossimo.   → present
+  tiles: vivrò · a · vivete · anno · Sasayama · viviamo · prossimo · vivo · l'
+  => vivo a Sasayama l' anno prossimo
+
+========================================================================
+SKILL present-ire (grammar)  Present tense of -ire verbs
+========================================================================
+--- conj_pick: 8 example(s)
+[conj_pick] it:capire#form:presente  (skill present-ire)
+  Pick the right ending
+  capire (to understand) — lui/lei (he/she), present
+  cap___    iscono  |  *isce  |   isco  |   ite   => capisce
+
+[conj_pick] it:sentire#form:presente  (skill present-ire)
+  Pick the right ending
+  sentire (to feel) — voi, present
+  sent___   *ite  |   ono  |   i  |   iamo   => sentite
+
+[conj_pick] it:servire#form:presente  (skill present-ire)
+  Pick the right ending
+  servire (to serve) — tu, present
+  serv___    ono  |   iamo  |  *i  |   o   => servi
+
+[conj_pick] it:dormire#form:presente  (skill present-ire)
+  Pick the right ending
+  dormire (to sleep) — noi, present
+  dorm___    e  |   o  |  *iamo  |   ite   => dormiamo
+
+[conj_pick] it:finire#form:presente  (skill present-ire)
+  Pick the right ending
+  finire (to finish) — noi, present
+  fin___   *iamo  |   isce  |   iscono  |   isci   => finiamo
+
+[conj_pick] it:aprire#form:presente  (skill present-ire)
+  Pick the right ending
+  aprire (to open) — loro (they), present
+  apr___   *ono  |   e  |   i  |   iamo   => aprono
+
+[conj_pick] it:scoprire#form:presente  (skill present-ire)
+  Pick the right ending
+  scoprire (to uncover) — lui/lei (he/she), present
+  scopr___    ono  |  *e  |   ite  |   i   => scopre
+
+[conj_pick] it:seguire#form:presente  (skill present-ire)
+  Pick the right ending
+  seguire (to follow) — tu, present
+  segu___    o  |   ono  |   e  |  *i   => segui
+
+--- conj_grid: 8 example(s)
+[conj_grid] it:capire#form:presente  (skill present-ire)
+  Complete the table
+  capire (to understand) — present
+    io       (capisco)
+    tu       (capisci)
+    lui/lei (he/she) capisce
+    noi      (capiamo)
+    voi      capite
+    loro (they) capiscono
+  tiles: capiscono · capi · capite · capa · capisce · capo
+
+[conj_grid] it:sentire#form:presente  (skill present-ire)
+  Complete the table
+  sentire (to feel) — present
+    io       sento
+    tu       senti
+    lui/lei (he/she) (sente)
+    noi      (sentiamo)
+    voi      (sentite)
+    loro (they) sentono
+  tiles: sento · sentisce · senta · sentano · senti · sentono
+
+[conj_grid] it:servire#form:presente  (skill present-ire)
+  Complete the table
+  servire (to serve) — present
+    io       servo
+    tu       (servi)
+    lui/lei (he/she) serve
+    noi      (serviamo)
+    voi      servite
+    loro (they) (servono)
+  tiles: servo · servate · servite · serviscono · serve · servano
+
+[conj_grid] it:dormire#form:presente  (skill present-ire)
+  Complete the table
+  dormire (to sleep) — present
+    io       dormo
+    tu       dormi
+    lui/lei (he/she) (dorme)
+    noi      (dormiamo)
+    voi      dormite
+    loro (they) (dormono)
+  tiles: dormi · dormisce · dormo · dormate · dormite · dorma
+
+[conj_grid] it:finire#form:presente  (skill present-ire)
+  Complete the table
+  finire (to finish) — present
+    io       (finisco)
+    tu       finisci
+    lui/lei (he/she) (finisce)
+    noi      (finiamo)
+    voi      finite
+    loro (they) finiscono
+  tiles: fino · finate · finisci · finite · fini · finiscono
+
+[conj_grid] it:aprire#form:presente  (skill present-ire)
+  Complete the table
+  aprire (to open) — present
+    io       (apro)
+    tu       (apri)
+    lui/lei (he/she) (apre)
+    noi      apriamo
+    voi      aprite
+    loro (they) aprono
+  tiles: aprate · aprisco · aprono · aprisci · apriamo · aprite
+
+[conj_grid] it:scoprire#form:presente  (skill present-ire)
+  Complete the table
+  scoprire (to uncover) — present
+    io       scopro
+    tu       (scopri)
+    lui/lei (he/she) scopre
+    noi      scopriamo
+    voi      (scoprite)
+    loro (they) (scoprono)
+  tiles: scopre · scopriamo · scopra · scoprano · scopro · scoprate
+
+[conj_grid] it:seguire#form:presente  (skill present-ire)
+  Complete the table
+  seguire (to follow) — present
+    io       (seguo)
+    tu       (segui)
+    lui/lei (he/she) segue
+    noi      seguiamo
+    voi      (seguite)
+    loro (they) seguono
+  tiles: seguono · segue · segua · seguiamo · seguano · seguate
+
+--- cloze: 8 example(s)
+[cloze] it:capire#form:presente  (skill present-ire)
+  Fill in the right form
+  Lei non ___ la tecnologia moderna.   (capire (lui/lei (he/she), present))
+  "She does not understand modern technology."
+   capiscono  |   capite  |   capiamo  |  *capisce
+
+[cloze] it:sentire#form:presente  (skill present-ire)
+  Fill in the right form
+  Come vi ___ riguardo a Tom?   (sentire (voi, present))
+  "How do you feel about Tom?"
+   sentono  |   sente  |   sento  |  *sentite
+
+[cloze] it:servire#form:presente  (skill present-ire)
+  Fill in the right form
+  Questo hotel non ___ il pranzo.   (servire (lui/lei (he/she), present))
+  "This hotel does not serve lunch."
+  *serve  |   servo  |   serviamo  |   servi
+
+[cloze] it:dormire#form:presente  (skill present-ire)
+  Fill in the right form
+  Di solito ___ in questa camera.   (dormire (noi, present))
+  "We usually sleep in this room."
+   dorme  |  *dormiamo  |   dormi  |   dormite
+
+[cloze] it:finire#form:presente  (skill present-ire)
+  Fill in the right form
+  Sbrigati e ___ di mangiare.   (finire (tu, present))
+  "Hurry up and finish eating."
+   finite  |   finisco  |   finisce  |  *finisci
+
+[cloze] it:aprire#form:presente  (skill present-ire)
+  Fill in the right form
+  ___ la mente a idee diverse.   (aprire (tu, present))
+  "Open your mind to different ideas."
+   Apro  |   Aprite  |  *Apri  |   Apre
+
+[cloze] it:scoprire#form:presente  (skill present-ire)
+  Fill in the right form
+  ___ di più su di lui.   (scoprire (noi, present))
+  "Let's find out more about him."
+   Scopro  |   Scoprite  |   Scopre  |  *Scopriamo
+
+[cloze] it:seguire#form:presente  (skill present-ire)
+  Fill in the right form
+  Voi non ___ le regole.   (seguire (voi, present))
+  "You don't follow the rules."
+   segui  |  *seguite  |   seguono  |   seguiamo
+
+--- spot_error: 8 example(s)
+[spot_error] it:capire#form:presente  (skill present-ire)
+  Tap the wrong word
+  Capisco quello che ho appena detto?
+  "Do you understand what I just said?"
+  error: "Capisco" -> "Capisce"
+
+[spot_error] it:sentire#form:presente  (skill present-ire)
+  Tap the wrong word
+  Come vi senti riguardo a loro?
+  "How do you feel about them?"
+  error: "senti" -> "sentite"
+
+[spot_error] it:servire#form:presente  (skill present-ire)
+  Tap the wrong word
+  A Tom servo subito il denaro.
+  "Tom needs the money right away."
+  error: "servo" -> "serve"
+
+[spot_error] it:dormire#form:presente  (skill present-ire)
+  Tap the wrong word
+  Normalmente dormi in questa stanza.
+  "They usually sleep in this room."
+  error: "dormi" -> "dormono"
+
+[spot_error] it:finire#form:presente  (skill present-ire)
+  Tap the wrong word
+  Sbrigati e finisce di mangiare.
+  "Hurry up and finish eating."
+  error: "finisce" -> "finisci"
+
+[spot_error] it:aprire#form:presente  (skill present-ire)
+  Tap the wrong word
+  Per favore, non aprono questa finestra.
+  "Please don't open this window."
+  error: "aprono" -> "aprite"
+
+[spot_error] it:scoprire#form:presente  (skill present-ire)
+  Tap the wrong word
+  Scopro quello che vuole Tom.
+  "Find out what Tom knows."
+  error: "Scopro" -> "Scopri"
+
+[spot_error] it:seguire#form:presente  (skill present-ire)
+  Tap the wrong word
+  Qualcuno ci ha seguono qui?
+  "Did someone follow us here?"
+  error: "seguono" -> "seguite"
+
+--- transform: 8 example(s)
+[transform] it:capire#form:presente  (skill present-ire)
+  Rewrite the sentence
+  Non ho capito cos'ha detto.   → tu, present
+  tiles: capisce · capisci · ho · ha · non · detto · capito · cos'
+  => non capisci cos' ha detto
+
+[transform] it:sentire#form:presente  (skill present-ire)
+  Rewrite the sentence
+  Non ho sentito aprire la porta.   → present
+  tiles: ho · la · sentito · porta · sento · senti · non · aprire
+  => non sento aprire la porta
+
+[transform] it:servire#form:presente  (skill present-ire)
+  Rewrite the sentence
+  Ci servirà il tuo aiuto, vero?   → present
+  tiles: servirà · il · servono · serve · ci · vero · aiuto · servite · tuo
+  => ci serve il tuo aiuto vero
+
+[transform] it:dormire#form:presente  (skill present-ire)
+  Rewrite the sentence
+  Dove ha dormito la scorsa notte?   → present
+  tiles: scorsa · la · dove · dorme · ha · dormito · dormiamo · notte
+  => dove dorme la scorsa notte
+
+[transform] it:finire#form:presente  (skill present-ire)
+  Rewrite the sentence
+  Le mie preoccupazioni finanziarie sono finite.   → present
+  tiles: finanziarie · le · finisco · preoccupazioni · mie · finiscono · finite · sono
+  => le mie preoccupazioni finanziarie finiscono
+
+[transform] it:aprire#form:presente  (skill present-ire)
+  Rewrite the sentence
+  Ho aperto tutte le mie valigie.   → present
+  tiles: tutte · valigie · apri · le · apro · mie · ho · aperto
+  => apro tutte le mie valigie
+
+[transform] it:scoprire#form:presente  (skill present-ire)
+  Rewrite the sentence
+  Lui ha scoperto l'acqua calda.   → present
+  tiles: acqua · ha · scopro · scopre · scoperto · calda · lui · l'
+  => lui scopre l' acqua calda
+
+[transform] it:seguire#form:presente  (skill present-ire)
+  Rewrite the sentence
+  Lei lo ha seguito a casa.   → present
+  tiles: casa · lo · ha · lei · a · seguito · segue · segui
+  => lei lo segue a casa
+
+========================================================================
+SKILL time (vocab)  Time and days
+========================================================================
+--- flashcard: 8 example(s)
+[flashcard] it:mai#prod  (skill time)
+  How do you say this?
+  never, ever  =>  mai   [adv]
+
+[flashcard] it:mai#rec  (skill time)
+  What does this mean?
+  mai  =>  never, ever   [adv]
+
+[flashcard] it:anno#prod  (skill time)
+  How do you say this?
+  year  =>  l'anno   [noun]
+
+[flashcard] it:anno#rec  (skill time)
+  What does this mean?
+  l'anno  =>  year   [noun]
+
+[flashcard] it:sempre#prod  (skill time)
+  How do you say this?
+  always  =>  sempre   [adv]
+
+[flashcard] it:sempre#rec  (skill time)
+  What does this mean?
+  sempre  =>  always   [adv]
+
+[flashcard] it:tempo#prod  (skill time)
+  How do you say this?
+  time, weather  =>  il tempo   [noun]
+
+[flashcard] it:tempo#rec  (skill time)
+  What does this mean?
+  il tempo  =>  time, weather   [noun]
+
+--- multiple_choice: 8 example(s)
+[multiple_choice] it:mai#prod  (skill time)
+  Pick the right word
+  never
+   sempre  |  *mai  |   ieri  |   oggi
+
+[multiple_choice] it:mai#rec  (skill time)
+  Pick the right translation
+  mai
+   tomorrow  |   now  |   yesterday  |  *never
+
+[multiple_choice] it:anno#prod  (skill time)
+  Pick the right word
+  year
+   tempo  |   giorno  |   minuto  |  *anno
+
+[multiple_choice] it:anno#rec  (skill time)
+  Pick the right translation
+  anno   (l'anno)
+   week  |  *year  |   day  |   Monday
+
+[multiple_choice] it:sempre#prod  (skill time)
+  Pick the right word
+  always
+   oggi  |  *sempre  |   mai  |   adesso
+
+[multiple_choice] it:sempre#rec  (skill time)
+  Pick the right translation
+  sempre
+   yesterday  |  *always  |   tomorrow  |   today
+
+[multiple_choice] it:tempo#prod  (skill time)
+  Pick the right word
+  time
+   mese  |   minuto  |   giovedì  |  *tempo
+
+[multiple_choice] it:tempo#rec  (skill time)
+  Pick the right translation
+  tempo   (il tempo)
+   Sunday  |   week  |  *time  |   morning
+
+--- match_pairs: 8 example(s)
+[match_pairs] it:mai#rec  (skill time)
+  Match the pairs
+  mese  =  month
+  mai  =  never
+  giorno  =  day
+  sempre  =  always
+  domenica  =  Sunday
+
+[match_pairs] it:anno#rec  (skill time)
+  Match the pairs
+  sera  =  evening
+  mercoledì  =  Wednesday
+  mese  =  month
+  martedì  =  Tuesday
+  anno  =  year
+
+[match_pairs] it:sempre#rec  (skill time)
+  Match the pairs
+  sabato  =  Saturday
+  minuto  =  minute
+  mercoledì  =  Wednesday
+  sempre  =  always
+  domani  =  tomorrow
+
+[match_pairs] it:tempo#rec  (skill time)
+  Match the pairs
+  venerdì  =  Friday
+  oggi  =  today
+  mese  =  month
+  ieri  =  yesterday
+  tempo  =  time
+
+[match_pairs] it:adesso#rec  (skill time)
+  Match the pairs
+  tempo  =  time
+  mai  =  never
+  adesso  =  now
+  domenica  =  Sunday
+  venerdì  =  Friday
+
+[match_pairs] it:giorno#rec  (skill time)
+  Match the pairs
+  settimana  =  week
+  sera  =  evening
+  anno  =  year
+  venerdì  =  Friday
+  giorno  =  day
+
+[match_pairs] it:oggi#rec  (skill time)
+  Match the pairs
+  minuto  =  minute
+  oggi  =  today
+  ieri  =  yesterday
+  domani  =  tomorrow
+  mercoledì  =  Wednesday
+
+[match_pairs] it:notte#rec  (skill time)
+  Match the pairs
+  notte  =  night
+  minuto  =  minute
+  sabato  =  Saturday
+  giovedì  =  Thursday
+  mese  =  month
+
+--- sentence_builder: 8 example(s)
+[sentence_builder] it:mai#prod  (skill time)
+  Translate this sentence
+  He has never been abroad.
+  tiles: sono · stato · all' · non · mai · estero · sopra · sei · è
+  => non è mai stato all' estero
+
+[sentence_builder] it:anno#prod  (skill time)
+  Translate this sentence
+  My cousin is already four years old.
+  tiles: avete · ha · mia · già · hanno · cugina · quattro · avrà · anni
+  => mia cugina ha già quattro anni
+
+[sentence_builder] it:sempre#prod  (skill time)
+  Translate this sentence
+  He always wanted to study Japanese.
+  tiles: hanno · studiare · sempre · ho · abbiamo · il · ha · voluto · giapponese
+  => ha sempre voluto studiare il giapponese
+
+[sentence_builder] it:tempo#prod  (skill time)
+  Translate this sentence
+  We have been good friends for a long time.
+  tiles: amiche · tempo · molto · sono · buone · è · eravamo · siamo · da
+  => siamo buone amiche da molto tempo
+
+[sentence_builder] it:adesso#prod  (skill time)
+  Translate this sentence
+  You must start for Nagoya now.
+  tiles: devo · deve · dobbiamo · partire · per · adesso · lei · Nagoya · doveva
+  => lei deve partire per Nagoya adesso
+
+[sentence_builder] it:giorno#prod  (skill time)
+  Translate this sentence
+  She is getting worse and worse every day.
+  tiles: stava · lei · sta · giorno · peggio · ogni · stiamo · state · diventando · sempre
+  => lei sta diventando sempre peggio ogni giorno
+  => sta diventando sempre peggio ogni giorno
+
+[sentence_builder] it:oggi#prod  (skill time)
+  Translate this sentence
+  My new class starts today.
+  tiles: corso · inizia · iniziamo · iniziava · inizi · il · oggi · mio · nuovo
+  => il mio nuovo corso inizia oggi
+
+[sentence_builder] it:notte#prod  (skill time)
+  Translate this sentence
+  What keeps you up at night?
+  tiles: tiene · la · alzato · la · tengo · notte · cosa · tengono · tenete
+  => cosa la tiene alzato la notte
+
+--- cloze: 8 example(s)
+[cloze] it:mai#prod  (skill time)
+  Fill in the gap
+  Tu hai ___ voluto essere ricco?   (never)
+  "Have you ever wanted to be rich?"
+   adesso  |   oggi  |   ieri  |  *mai
+
+[cloze] it:anno#prod  (skill time)
+  Fill in the gap
+  Lo ha sposato l'___ scorso.   (year)
+  "She married him last year."
+   giorno  |  *anno  |   sera  |   tempo
+
+[cloze] it:sempre#prod  (skill time)
+  Fill in the gap
+  Cerco ___ di dire la verità.   (always)
+  "I always try to tell the truth."
+  *sempre  |   domani  |   mai  |   oggi
+
+[cloze] it:tempo#prod  (skill time)
+  Fill in the gap
+  Il ___ vola quando ci si diverte.   (time)
+  "Time flies when you're having fun."
+   sera  |   mercoledì  |   notte  |  *tempo
+
+[cloze] it:adesso#prod  (skill time)
+  Fill in the gap
+  Mia sorella non sta studiando ___.   (now)
+  "My sister isn't studying now."
+   ieri  |  *adesso  |   sempre  |   domani
+
+[cloze] it:giorno#prod  (skill time)
+  Fill in the gap
+  Cerco di essere positivo ogni ___.   (day)
+  "I try to be positive every day."
+   tempo  |   mercoledì  |   sera  |  *giorno
+
+[cloze] it:oggi#prod  (skill time)
+  Fill in the gap
+  ___ il tempo è peggio di ieri.   (today)
+  "The weather today is worse than yesterday."
+   Mai  |   Ieri  |   Domani  |  *Oggi
+
+[cloze] it:notte#prod  (skill time)
+  Fill in the gap
+  Buona ___ e sogni d'oro.   (night)
+  "Good night and sweet dreams."
+   martedì  |   mattina  |   venerdì  |  *notte
+
+========================================================================
+SKILL irregular-present (grammar)  Irregular verbs in the present
+========================================================================
+--- conj_grid: 8 example(s)
+[conj_grid] it:stare#form:presente  (skill irregular-present)
+  Complete the table
+  stare (to stay) — present
+    io       sto
+    tu       stai
+    lui/lei (he/she) (sta)
+    noi      stiamo
+    voi      (state)
+    loro (they) (stanno)
+  tiles: stai · stiamo · ste · stete · stite · sto
+
+[conj_grid] it:andare#form:presente  (skill irregular-present)
+  Complete the table
+  andare (to go) — present
+    io       (vado)
+    tu       (vai)
+    lui/lei (he/she) va
+    noi      andiamo
+    voi      andate
+    loro (they) (vanno)
+  tiles: andate · va · andete · andite · andavate · andiamo
+
+[conj_grid] it:fare#form:presente  (skill irregular-present)
+  Complete the table
+  fare (to do) — present
+    io       (faccio)
+    tu       (fai)
+    lui/lei (he/she) fa
+    noi      (facciamo)
+    voi      fate
+    loro (they) fanno
+  tiles: facciisco · fao · fanno · faccii · fa · fate
+
+[conj_grid] it:volere#form:presente  (skill irregular-present)
+  Complete the table
+  volere (to want) — present
+    io       voglio
+    tu       vuoi
+    lui/lei (he/she) vuole
+    noi      (vogliamo)
+    voi      (volete)
+    loro (they) (vogliono)
+  tiles: voglio · volevano · vuole · volate · vuoi · volite
+
+[conj_grid] it:potere#form:presente  (skill irregular-present)
+  Complete the table
+  potere (can) — present
+    io       (posso)
+    tu       puoi
+    lui/lei (he/she) può
+    noi      possiamo
+    voi      (potete)
+    loro (they) (possono)
+  tiles: può · puoi · potevamo · potite · possiamo · potate
+
+[conj_grid] it:dovere#form:presente  (skill irregular-present)
+  Complete the table
+  dovere (must) — present
+    io       devo
+    tu       (devi)
+    lui/lei (he/she) deve
+    noi      dobbiamo
+    voi      (dovete)
+    loro (they) (devono)
+  tiles: dovite · dovrete · dovate · dobbiamo · devo · deve
+
+[conj_grid] it:sapere#form:presente  (skill irregular-present)
+  Complete the table
+  sapere (to know) — present
+    io       (so)
+    tu       sai
+    lui/lei (he/she) sa
+    noi      (sappiamo)
+    voi      (sapete)
+    loro (they) sanno
+  tiles: sapi · sapate · sanno · sa · sapite · sai
+
+[conj_grid] it:dire#form:presente  (skill irregular-present)
+  Complete the table
+  dire (to say) — present
+    io       (dico)
+    tu       (dici)
+    lui/lei (he/she) dice
+    noi      diciamo
+    voi      (dite)
+    loro (they) dicono
+  tiles: diciamo · dicono · dicano · dica · dice · dicisce
+
+--- cloze: 8 example(s)
+[cloze] it:stare#form:presente  (skill irregular-present)
+  Fill in the right form
+  Io ___ ascoltando qui in Brasile.   (stare (io, present))
+  "I'm listening here in Brazil."
+   stanno  |   sta  |   stai  |  *sto
+
+[cloze] it:andare#form:presente  (skill irregular-present)
+  Fill in the right form
+  Lei ___ a scuola il sabato?   (andare (lui/lei (he/she), present))
+  "Do you go to school on Saturday?"
+   andiamo  |  *va  |   vado  |   vanno
+
+[cloze] it:fare#form:presente  (skill irregular-present)
+  Fill in the right form
+  "Tutti ___ errori." "Specialmente gli idioti!"   (fare (loro (they), present))
+  ""Everyone makes mistakes." "Especially idiots!""
+  *fanno  |   fate  |   faccio  |   fa
+
+[cloze] it:volere#form:presente  (skill irregular-present)
+  Fill in the right form
+  ___ che moriamo con loro.   (volere (loro (they), present))
+  "They want us to die with them."
+  *Vogliono  |   Voglio  |   Vuoi  |   Volete
+
+[cloze] it:potere#form:presente  (skill irregular-present)
+  Fill in the right form
+  Non ___ guidare. Stai bevendo alcolici.   (potere (tu, present))
+  "You can't drive. You've been drinking."
+  *puoi  |   potete  |   posso  |   può
+
+[cloze] it:dovere#form:presente  (skill irregular-present)
+  Fill in the right form
+  ___ ancora comprare il tuo libro.   (dovere (io, present))
+  "I still have to buy your book."
+   Dovete  |  *Devo  |   Devono  |   Dobbiamo
+
+[cloze] it:sapere#form:presente  (skill irregular-present)
+  Fill in the right form
+  ___ dov'è il mio orologio?   (sapere (voi, present))
+  "Do you know where my watch is?"
+  *Sapete  |   Sappiamo  |   Sanno  |   Sa
+
+[cloze] it:dire#form:presente  (skill irregular-present)
+  Fill in the right form
+  Come si ___ "formaggio" in tedesco?   (dire (lui/lei (he/she), present))
+  "How do you say "cheese" in German?"
+   dite  |   dico  |   dicono  |  *dice
+
+--- spot_error: 8 example(s)
+[spot_error] it:stare#form:presente  (skill irregular-present)
+  Tap the wrong word
+  Io state aspettando la donna giusta.
+  "I'm waiting for the right woman."
+  error: "state" -> "sto"
+
+[spot_error] it:andare#form:presente  (skill irregular-present)
+  Tap the wrong word
+  C'è qualcosa che non vanno, Signore?
+  "Is there anything wrong, sir?"
+  error: "vanno" -> "va"
+
+[spot_error] it:fare#form:presente  (skill irregular-present)
+  Tap the wrong word
+  Per piacere, non facciamo fotografie qui.
+  "Please do not take photos here."
+  error: "facciamo" -> "fate"
+
+[spot_error] it:volere#form:presente  (skill irregular-present)
+  Tap the wrong word
+  Vogliamo davvero sapere cos'è successo?
+  "Do you really want to know what happened?"
+  error: "Vogliamo" -> "Vuole"
+
+[spot_error] it:potere#form:presente  (skill irregular-present)
+  Tap the wrong word
+  Ne possono avere quanti ne volete.
+  "You can have any you want."
+  error: "possono" -> "potete"
+
+[spot_error] it:dovere#form:presente  (skill irregular-present)
+  Tap the wrong word
+  Dobbiamo solo chiedere il suo aiuto.
+  "You have only to ask for his help."
+  error: "Dobbiamo" -> "Dovete"
+
+[spot_error] it:sapere#form:presente  (skill irregular-present)
+  Tap the wrong word
+  Dirò alla donna ciò che sappiamo.
+  "I will tell the woman what I know."
+  error: "sappiamo" -> "so"
+
+[spot_error] it:dire#form:presente  (skill irregular-present)
+  Tap the wrong word
+  Noi dobbiamo fare come dico, Tom.
+  "We must do as they say, Tom."
+  error: "dico" -> "dicono"
+
+--- transform: 8 example(s)
+[transform] it:stare#form:presente  (skill irregular-present)
+  Rewrite the sentence
+  Sto benissimo, grazie.   → loro (they)
+  tiles: benissimo · stai · grazie · sto · stiamo · stanno
+  => stanno benissimo grazie
+
+[transform] it:andare#form:presente  (skill irregular-present)
+  Rewrite the sentence
+  Siamo andati al parco a giocare.   → present
+  tiles: a · giocare · al · andiamo · siamo · andati · vado · parco
+  => andiamo al parco a giocare
+
+[transform] it:fare#form:presente  (skill irregular-present)
+  Rewrite the sentence
+  Ho fatto riparare la mia bicicletta.   → present
+  tiles: la · fai · mia · faccio · riparare · ho · bicicletta · fatto
+  => faccio riparare la mia bicicletta
+
+[transform] it:volere#form:presente  (skill irregular-present)
+  Rewrite the sentence
+  Ho sempre voluto studiare il francese.   → present
+  tiles: vogliamo · voglio · voluto · sempre · francese · studiare · ho · il
+  => voglio sempre studiare il francese
+
+[transform] it:potere#form:presente  (skill irregular-present)
+  Rewrite the sentence
+  Non abbiamo potuto fare a meno di piangere.   → present
+  tiles: meno · possiamo · fare · non · possono · potuto · di · abbiamo · a · piangere
+  => non possiamo fare a meno di piangere
+
+[transform] it:dovere#form:presente  (skill irregular-present)
+  Rewrite the sentence
+  Abbiamo dovuto abbandonare il nostro piano.   → present
+  tiles: dovuto · abbandonare · nostro · piano · dobbiamo · abbiamo · il · devi
+  => dobbiamo abbandonare il nostro piano
+
+[transform] it:sapere#form:presente  (skill irregular-present)
+  Rewrite the sentence
+  Come l'ha saputo il mio nome?   → present
+  tiles: mio · l' · il · nome · sapete · saputo · sa · come · ha
+  => come l' sa il mio nome
+
+[transform] it:dire#form:presente  (skill irregular-present)
+  Rewrite the sentence
+  Hanno detto che non vogliono venire.   → present
+  tiles: vogliono · dico · venire · non · hanno · dicono · detto · che
+  => dicono che non vogliono venire
+
+========================================================================
+SKILL passato-prossimo (grammar)  The passato prossimo
+========================================================================
+--- conj_grid: 8 example(s)
+[conj_grid] it:essere#form:passato_prossimo  (skill passato-prossimo)
+  Complete the table
+  essere (to be) — present perfect (passato prossimo)
+    io       (sono stato)
+    tu       sei stato
+    lui/lei (he/she) è stato
+    noi      siamo stati
+    voi      (siete stati)
+    loro (they) (sono stati)
+  tiles: è stato · siamo stati · sei stato · ha stato · avete stati · ho stato
+
+[conj_grid] it:avere#form:passato_prossimo  (skill passato-prossimo)
+  Complete the table
+  avere (to have) — present perfect (passato prossimo)
+    io       ho avuto
+    tu       (hai avuto)
+    lui/lei (he/she) (ha avuto)
+    noi      abbiamo avuto
+    voi      (avete avuto)
+    loro (they) hanno avuto
+  tiles: ho avuto · hanno avuto · siamo avuto · sono avuto · abbiamo avuto · è avuto
+
+[conj_grid] it:andare#form:passato_prossimo  (skill passato-prossimo)
+  Complete the table
+  andare (to go) — present perfect (passato prossimo)
+    io       (sono andato)
+    tu       sei andato
+    lui/lei (he/she) è andato
+    noi      (siamo andati)
+    voi      (siete andati)
+    loro (they) sono andati
+  tiles: ha andato · avete andati · sei andato · è andato · abbiamo andati · sono andati
+
+[conj_grid] it:fare#form:passato_prossimo  (skill passato-prossimo)
+  Complete the table
+  fare (to do) — present perfect (passato prossimo)
+    io       ho fatto
+    tu       hai fatto
+    lui/lei (he/she) ha fatto
+    noi      (abbiamo fatto)
+    voi      (avete fatto)
+    loro (they) (hanno fatto)
+  tiles: ho fatto · sono fatto · ha fatto · siete fatto · hai fatto · sei fatto
+
+[conj_grid] it:volere#form:passato_prossimo  (skill passato-prossimo)
+  Complete the table
+  volere (to want) — present perfect (passato prossimo)
+    io       (ho voluto)
+    tu       hai voluto
+    lui/lei (he/she) ha voluto
+    noi      abbiamo voluto
+    voi      (avete voluto)
+    loro (they) (hanno voluto)
+  tiles: ha voluto · hai voluto · sei voluto · è voluto · abbiamo voluto · siete voluto
+
+[conj_grid] it:potere#form:passato_prossimo  (skill passato-prossimo)
+  Complete the table
+  potere (can) — present perfect (passato prossimo)
+    io       ho potuto
+    tu       hai potuto
+    lui/lei (he/she) ha potuto
+    noi      (abbiamo potuto)
+    voi      (avete potuto)
+    loro (they) (hanno potuto)
+  tiles: siete esplosi · ho potuto · hanno riflesso · hai potuto · hanno fatto · ha potuto
+
+[conj_grid] it:dovere#form:passato_prossimo  (skill passato-prossimo)
+  Complete the table
+  dovere (must) — present perfect (passato prossimo)
+    io       (ho dovuto)
+    tu       hai dovuto
+    lui/lei (he/she) ha dovuto
+    noi      (abbiamo dovuto)
+    voi      avete dovuto
+    loro (they) (hanno dovuto)
+  tiles: ha dovuto · sono stati · ha rimesso · sono riuscito · avete dovuto · hai dovuto
+
+[conj_grid] it:sapere#form:passato_prossimo  (skill passato-prossimo)
+  Complete the table
+  sapere (to know) — present perfect (passato prossimo)
+    io       (ho saputo)
+    tu       hai saputo
+    lui/lei (he/she) ha saputo
+    noi      (abbiamo saputo)
+    voi      avete saputo
+    loro (they) (hanno saputo)
+  tiles: hai trasmesso · ha saputo · avete tenuto · avete diretto · hai saputo · avete saputo
+
+--- cloze: 8 example(s)
+[cloze] it:essere#form:passato_prossimo  (skill passato-prossimo)
+  Fill in the right form
+  Quand'___ costruita questa chiesa?   (essere (lui/lei (he/she), present perfect (passato prossimo)))
+  "When was this church built?"
+   siamo stati  |   siete stati  |   sono stato  |  *è stata
+
+[cloze] it:avere#form:passato_prossimo  (skill passato-prossimo)
+  Fill in the right form
+  Tu ___ troppo da bere.   (avere (tu, present perfect (passato prossimo)))
+  "You've had too much to drink."
+   ha avuto  |  *hai avuto  |   ho avuto  |   abbiamo avuto
+
+[cloze] it:andare#form:passato_prossimo  (skill passato-prossimo)
+  Fill in the right form
+  Sai dove ___ tuo padre?   (andare (lui/lei (he/she), present perfect (passato prossimo)))
+  "Do you know where your father went?"
+   sei andato  |   siamo andati  |  *è andato  |   siete andati
+
+[cloze] it:fare#form:passato_prossimo  (skill passato-prossimo)
+  Fill in the right form
+  Noi ___ qualcosa di sbagliato.   (fare (noi, present perfect (passato prossimo)))
+  "We made something wrong."
+   avete fatto  |  *abbiamo fatto  |   ho fatto  |   hai fatto
+
+[cloze] it:volere#form:passato_prossimo  (skill passato-prossimo)
+  Fill in the right form
+  ___ sempre voluto studiare il giapponese.   (volere (lui/lei (he/she), present perfect (passato prossimo)))
+  "He always wanted to study Japanese."
+  *Ha  |   Abbiamo  |   Avete  |   Ho
+
+[cloze] it:potere#form:passato_prossimo  (skill passato-prossimo)
+  Fill in the right form
+  Come ___ fare questo?   (potere (tu, present perfect (passato prossimo)))
+  "How could you do this?"
+  *hai potuto  |   hanno potuto  |   avete potuto  |   ha potuto
+
+[cloze] it:dovere#form:passato_prossimo  (skill passato-prossimo)
+  Fill in the right form
+  Perché ___ andare a Boston?   (dovere (lui/lei (he/she), present perfect (passato prossimo)))
+  "Why did you have to go to Boston?"
+   avete dovuto  |   abbiamo dovuto  |  *è dovuta  |   hanno dovuto
+
+[cloze] it:sapere#form:passato_prossimo  (skill passato-prossimo)
+  Fill in the right form
+  ___ la notizia leggendo il giornale.   (sapere (lui/lei (he/she), present perfect (passato prossimo)))
+  "He learned the news while reading the newspaper."
+  *Ha saputo  |   Avete saputo  |   Hai saputo  |   Abbiamo saputo
+
+--- spot_error: 8 example(s)
+[spot_error] it:essere#form:passato_prossimo  (skill passato-prossimo)
+  Tap the wrong word
+  Il prigioniero sei stato liberato ieri.
+  "The prisoner was set free yesterday."
+  error: "sei" -> "è"
+
+[spot_error] it:avere#form:passato_prossimo  (skill passato-prossimo)
+  Tap the wrong word
+  Io non avete avuto vendite oggi.
+  "I had no sales today."
+  error: "avete" -> "ho"
+
+[spot_error] it:andare#form:passato_prossimo  (skill passato-prossimo)
+  Tap the wrong word
+  Siete andati a scuola in autobus.
+  "We went to school by bus."
+  error: "Siete" -> "Siamo"
+
+[spot_error] it:fare#form:passato_prossimo  (skill passato-prossimo)
+  Tap the wrong word
+  Rifletti su ciò che hanno fatto.
+  "Reflect on what you have done."
+  error: "hanno" -> "hai"
+
+[spot_error] it:volere#form:passato_prossimo  (skill passato-prossimo)
+  Tap the wrong word
+  È quello che ho sempre voluto.
+  "That's what you've always wanted."
+  error: "ho" -> "avete"
+
+[spot_error] it:potere#form:passato_prossimo  (skill passato-prossimo)
+  Tap the wrong word
+  Perché non ho potuto venire lunedì?
+  "Why couldn't you come on Monday?"
+  error: "ho" -> "sei"
+
+[spot_error] it:dovere#form:passato_prossimo  (skill passato-prossimo)
+  Tap the wrong word
+  Ha dovuto annullare il loro viaggio.
+  "They had to cancel their trip."
+  error: "Ha" -> "Hanno"
+
+[spot_error] it:sapere#form:passato_prossimo  (skill passato-prossimo)
+  Tap the wrong word
+  Come hanno saputo che è sposato?
+  "How did you know that he is married?"
+  error: "hanno" -> "avete"
+
+--- transform: 8 example(s)
+[transform] it:essere#form:passato_prossimo  (skill passato-prossimo)
+  Rewrite the sentence
+  Quando è stata costruita questa chiesa?   → io
+  tiles: chiesa · quando · costruita · questa · è · sei · stato · sono · siete
+  => quando sono stato costruita questa chiesa
+  => quando sono stata costruita questa chiesa
+
+[transform] it:avere#form:passato_prossimo  (skill passato-prossimo)
+  Rewrite the sentence
+  Quando ha avuto luogo il matrimonio?   → voi
+  tiles: hanno · quando · ha · matrimonio · luogo · il · avete · avuto · hai
+  => quando avete avuto luogo il matrimonio
+
+[transform] it:andare#form:passato_prossimo  (skill passato-prossimo)
+  Rewrite the sentence
+  Io ho chiesto cosa non andava.   → present perfect (passato prossimo)
+  tiles: non · io · andati · andava · andato · chiesto · sei · ho · è · cosa
+  => io ho chiesto cosa non è andato
+  => io ho chiesto cosa non è andata
+
+[transform] it:fare#form:passato_prossimo  (skill passato-prossimo)
+  Rewrite the sentence
+  Ho visto Tom qualche minuto fa.   → present perfect (passato prossimo)
+  tiles: ha · abbiamo · visto · fa · qualche · Tom · fatto · hanno · minuto · ho
+  => ho visto Tom qualche minuto ha fatto
+
+[transform] it:volere#form:passato_prossimo  (skill passato-prossimo)
+  Rewrite the sentence
+  Puoi andare o restare, come vuoi.   → present perfect (passato prossimo)
+  tiles: hanno · vuoi · andare · voluto · o · puoi · restare · ho · hai · come
+  => puoi andare o restare come hai voluto
+
+[transform] it:potere#form:passato_prossimo  (skill passato-prossimo)
+  Rewrite the sentence
+  Io voglio morire, però non posso.   → present perfect (passato prossimo)
+  tiles: morire · potuto · ho · voglio · posso · io · hanno · avete · non · però
+  => io voglio morire però non ho potuto
+  => io voglio morire però non sono potuto
+  => io voglio morire però non sono potuta
+
+[transform] it:dovere#form:passato_prossimo  (skill passato-prossimo)
+  Rewrite the sentence
+  Ho dovuto lavorare il weekend scorso.   → voi
+  tiles: avete · scorso · weekend · dovuto · lavorare · ha · il · hai · ho
+  => avete dovuto lavorare il weekend scorso
+  => siete dovuti lavorare il weekend scorso
+  => siete dovute lavorare il weekend scorso
+
+[transform] it:dire#form:passato_prossimo  (skill passato-prossimo)
+  Rewrite the sentence
+  La prego di trascrivere quello che lui dice.   → present perfect (passato prossimo)
+  tiles: abbiamo · lui · avete · che · di · trascrivere · ha · dice · quello · detto · la · prego
+  => la prego di trascrivere quello che lui ha detto
+
+
