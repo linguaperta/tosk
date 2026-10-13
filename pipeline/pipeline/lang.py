@@ -47,6 +47,14 @@ class Lang:
     skip_between: set[str] = field(default_factory=set)  # words skipped when looking for a subject pronoun
     third_sg: str = ""
     third_pl: str = ""
+    # subject pronouns that take the forms of several persons interchangeably (Dutch polite 'u':
+    # 'u bent' / 'u is', 'u hebt' / 'u heeft'); a verb next to one gets no person
+    vague_pronouns: set[str] = field(default_factory=set)
+    # lemmas of modal verbs that take a (perfect) infinitive: 'zou ... geweest zijn'
+    modals: set[str] = field(default_factory=set)
+    # auxiliary that also forms the passive: when a verb lists it only as its second auxiliary,
+    # aux + participle is not linked to the compound tense
+    passive_aux: str = ""
 
     @property
     def tenses(self) -> list[str]:
@@ -315,6 +323,9 @@ class Dutch(Lang):
             skip_between={"niet", "ook", "nog", "al", "graag", "altijd", "nooit", "vaak", "dan", "toch"},
             third_sg="hij/zij",
             third_pl="zij",
+            vague_pronouns={"u"},
+            modals={"zullen", "kunnen", "moeten", "willen", "mogen", "hoeven"},
+            passive_aux="zijn",
         )
 
     def slot(self, tags):

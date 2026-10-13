@@ -41,7 +41,8 @@ def nl_aligner():
              item("nl:jij", "pron", 4), item("nl:hij", "pron", 5), item("nl:wij", "pron", 6),
              item("nl:werken", "verb", 30), item("nl:lopen", "verb", 40), item("nl:gaan", "verb", 10),
              item("nl:willen", "verb", 20), item("nl:waar", "adv", 15), item("nl:waren", "verb", 900),
-             item("nl:huis", "noun", 50), item("nl:naar", "prep", 12), item("nl:vandaag", "adv", 60)]
+             item("nl:huis", "noun", 50), item("nl:naar", "prep", 12), item("nl:vandaag", "adv", 60),
+             item("nl:zien", "verb", 25), item("nl:zijn.2", "det", 70, lemma="zijn"), item("nl:belofte", "noun", 80)]
     T = "tegenwoordige_tijd"
     verbs = {v["id"]: v for v in [
         verb("nl:zijn", NL_P, ["ben", "bent", "is", "zijn", "zijn", "zijn"], "geweest", "zijn", T),
@@ -51,6 +52,7 @@ def nl_aligner():
         verb("nl:gaan", NL_P, ["ga", "gaat", "gaat", "gaan", "gaan", "gaan"], "gegaan", "zijn", T),
         verb("nl:willen", NL_P, ["wil", "wilt", "wil", "willen", "willen", "willen"], "gewild", "hebben", T),
         verb("nl:waren", NL_P, ["waar", "waart", "waart", "waren", "waren", "waren"], "gewaard", "hebben", T),
+        verb("nl:zien", NL_P, ["zie", "ziet", "ziet", "zien", "zien", "zien"], "gezien", "hebben|zijn", T),
     ]}
     return Aligner(get_lang("nl"), items, verbs)
 
@@ -142,3 +144,65 @@ def test_dutch_ik_form_without_ik_is_not_a_verb():
     r = run(nl_aligner(), "Waar is hij?", "nl")
     assert r["Waar"] == ("nl:waar", None)
     assert r["is"] == ("nl:zijn", "tegenwoordige_tijd.hij/zij")
+
+
+def test_dutch_inverted_auxiliary_leaves_the_person_open():
+    # 'heb je' uses the ik-form for jij: neither word may claim the ik cell
+    r = run(nl_aligner(), "Heb je vandaag gewerkt?", "nl")
+    assert r["Heb"] == ("nl:hebben", None)
+    assert r["gewerkt"] == ("nl:werken", None)
+    r = run(nl_aligner(), "Waar ben jij geweest?", "nl")
+    assert r["ben"] == ("nl:zijn", None)
+    assert r["geweest"] == ("nl:zijn", None)
+    # the plain order still links
+    r = run(nl_aligner(), "Jij bent naar huis gegaan.", "nl")
+    assert r["gegaan"] == ("nl:gaan", "perfectum.jij")
+
+
+def test_dutch_polite_u_leaves_the_person_open():
+    # 'u bent' and 'u is', 'u hebt' and 'u heeft' are both right
+    a = nl_aligner()
+    assert run(a, "Bent u vandaag naar huis gegaan?", "nl")["gegaan"] == ("nl:gaan", None)
+    assert run(a, "Heeft u gewerkt?", "nl")["gewerkt"] == ("nl:werken", None)
+    assert run(a, "U bent welkom.", "nl")["bent"] == ("nl:zijn", None)
+    assert run(a, "Wilt u lopen?", "nl")["lopen"] == ("nl:lopen", "infinitive._")
+
+
+def test_dutch_modal_with_perfect_infinitive_is_not_perfectum():
+    r = run(nl_aligner(), "Waarom wil hij daar geweest zijn?", "nl")
+    assert r["geweest"] == ("nl:zijn", "participle._")
+    assert r["zijn"] == ("nl:zijn", "infinitive._")
+    r = run(nl_aligner(), "Hij wil vandaag gewerkt hebben.", "nl")
+    assert r["gewerkt"] == ("nl:werken", "participle._")
+    assert r["hebben"] == ("nl:hebben", "infinitive._")
+    # a finite auxiliary at the end of a subordinate clause is still perfectum
+    r = run(nl_aligner(), "Ik weet waar hij geweest is.", "nl")
+    assert r["geweest"] == ("nl:zijn", "perfectum.hij/zij")
+
+
+def test_dutch_passive_zijn_is_not_perfectum():
+    # 'zien' lists zijn only second (passive): 'is gezien' is not the perfectum of zien
+    a = nl_aligner()
+    r = run(a, "Hij is vandaag gezien.", "nl")
+    assert r["gezien"] == ("nl:zien", "participle._")
+    assert r["is"] == ("nl:zijn", "tegenwoordige_tijd.hij/zij")
+    assert run(a, "Hij heeft het huis gezien.", "nl")["gezien"] == ("nl:zien", "perfectum.hij/zij")
+    # a primary zijn verb still takes hebben too ('heb gelopen')
+    assert run(a, "Ik heb vandaag gelopen.", "nl")["gelopen"] == ("nl:lopen", "perfectum.ik")
+
+
+def test_dutch_possessive_zijn_is_not_an_auxiliary():
+    r = run(nl_aligner(), "Hij heeft zijn belofte gezien.", "nl")
+    assert r["zijn"] == ("nl:zijn.2", None)
+    assert r["heeft"] == ("nl:hebben", "tegenwoordige_tijd.hij/zij")
+    assert r["gezien"] == ("nl:zien", "perfectum.hij/zij")
+
+
+def test_italian_participle_after_essere_is_not_a_present_form():
+    a = it_aligner()
+    r = run(a, "Sono stati portati a casa.", "it")
+    assert r["stati"] == ("it:essere", "passato_prossimo.loro")
+    assert r["portati"] == ("it:portare", "participle._")
+    r = run(a, "Siete state portate a casa.", "it")
+    assert r["portate"] == ("it:portare", "participle._")
+    assert run(a, "Voi portate il libro.", "it")["portate"] == ("it:portare", "presente.voi")

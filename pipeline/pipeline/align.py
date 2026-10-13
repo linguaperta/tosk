@@ -34,6 +34,17 @@ Rules (also in pipeline/README.md):
        e. otherwise 3rd person singular, then 3rd plural, then the first in person order.
   4. Dutch inversion: 'loop jij' uses the ik-form for jij; such a token keeps its lex but gets no
      form. Dutch imperatives ('Vertel eens') likewise get no form.
+  5. Compound-tense exceptions (the words keep their lex, the compound form is not linked):
+       a. a subject pronoun next to the auxiliary that fits none of its persons: inversion
+          ('Heb je gegeten?' uses the ik-form), a coordinated subject ('io e lui abbiamo');
+       b. Dutch polite 'u' (also in simple tenses): 'u bent' / 'u is' are both right, so no person;
+       c. Dutch modal + perfect infinitive ('zou ... geweest zijn'): 'zijn'/'hebben' after a finite
+          modal in the clause is an infinitive, the participle stays 'participle._';
+       d. Dutch verbs that list 'zijn' only as their second auxiliary (nl.wiktionary does so for
+          transitive verbs because of the passive): 'is gezien' is passive, not perfectum;
+       e. Dutch possessive 'zijn' before a noun ('zijn belofte') is never an auxiliary;
+       f. Italian: a word after a form of 'essere' that is both a participle and a finite form is
+          the participle ('sono state costruite', not 'voi costruite').
   Unmatched tokens stay unlinked.
 """
 from __future__ import annotations
@@ -54,6 +65,7 @@ ELISION_IT = {
 CLITIC_NL = {"'t": ["het"], "'k": ["ik"], "'n": ["een"], "m'n": ["mijn"], "z'n": ["zijn"], "d'r": ["haar"],
              "'m": ["hem"], "'r": ["haar"]}
 OBJECT_CLITICS_IT = {"lo", "la", "li", "le", "l'", "ne"}
+VAGUE = "?"   # pseudo-person of a vague subject pronoun (Dutch 'u'): fits no person
 CLAUSE_PUNCT = {",", ".", "?", "!", ";", ":", "...", "…", "—", "–", "(", ")", '"', "«", "»", "“", "”"}
 
 
@@ -85,6 +97,11 @@ class Aligner:
             v = verbs[vid]
             forms = v.get("forms") or {}
             auxes = [a for a in (v.get("auxiliary") or "").split("|") if a]
+            if lang.passive_aux and len(auxes) > 1 and auxes[0] != lang.passive_aux:
+                # nl.wiktionary lists 'zijn' second for most transitive verbs because of the
+                # passive ('het is gedaan'); zijn + participle of such a verb is not linked to
+                # the perfectum ('Hij is door iedereen gezien' is passive)
+                auxes = [a for a in auxes if a != lang.passive_aux]
             for tense, table in forms.items():
                 if tense in lang.compound_tenses:
                     continue
@@ -115,6 +132,15 @@ class Aligner:
                 if table.get(person) is not None:
                     d[norm(_form(table[person]))].append(person)
             self.aux_present[aux] = dict(d)
+        # Italian: every form of 'essere' (present + participle variants), after which a word that
+        # is both a participle and a finite form is a participle ('sono state costruite')
+        self.essere_forms: set[str] = set()
+        if lang.code == "it" and "essere" in self.aux_ids:
+            ev = verbs[self.aux_ids["essere"]]["forms"]
+            self.essere_forms = set(self.aux_present.get("essere", {}))
+            part = ev.get("participle", {}).get("_")
+            if part:
+                self.essere_forms |= {norm(x) for x in lang.participle_variants(_form(part), "essere")}
         for it in items:
             if it["pos"] == "verb":
                 continue
@@ -171,6 +197,9 @@ class Aligner:
             if self._punct_between(toks, ti, words[k + 1]):
                 break
             w = norm(toks[ti]["t"])
+            if w in lang.vague_pronouns:
+                before = [VAGUE]
+                break
             if w in lang.pronouns:
                 before = list(lang.pronouns[w])
                 break
@@ -180,7 +209,9 @@ class Aligner:
         after: list[str] = []
         if wi + 1 < len(words) and not self._punct_between(toks, words[wi], words[wi + 1]):
             w = norm(toks[words[wi + 1]]["t"])
-            if w in lang.pronouns:
+            if w in lang.vague_pronouns:
+                after = [VAGUE]
+            elif w in lang.pronouns:
                 after = list(lang.pronouns[w])
         return before, after
 
@@ -212,12 +243,18 @@ class Aligner:
         finite = [c for c in cands if c[1] != "_"]
         nonfinite = [c for c in cands if c[1] == "_"]
         before, after = self._pronoun_persons(words, toks, wi)
+        vague = False
         if finite:
-            hit = [c for c in finite if c[1] in before] or [c for c in finite if c[1] in after]
+            hit = [c for c in finite if c[1] in before]
+            if not hit and VAGUE not in before:
+                hit = [c for c in finite if c[1] in after]
             if hit:
                 return self._order(hit)[0]
+            vague = VAGUE in before or VAGUE in after
         if inf and (prev == "te" or finite_before or not finite):
             return inf[0]
+        if vague:
+            return None                      # 'u bent' / 'u is': the person is not determined
         if not finite:
             return self._order(nonfinite)[0] if nonfinite else None
         cands = finite
@@ -246,6 +283,33 @@ class Aligner:
             if hit:
                 return self._order(hit)[0]
         return self._order(cands)[0]
+
+    def _perfect_infinitive(self, toks: list[dict], words: list[int], lo: int, aj: int, a_s: str) -> bool:
+        """Whether the auxiliary candidate at token aj is an infinitive after a finite modal in the
+        same clause ('Waarom zou Tom daar geweest zijn?': 'zijn' is part of the perfect infinitive
+        'geweest zijn', not a present form)."""
+        if not self.lang.modals or a_s not in {norm(a) for a in self.lang.auxiliaries}:
+            return False
+        for x in words:
+            if x < lo or x >= aj:
+                continue
+            for vid, tense, person in self.verb_index.get(norm(toks[x]["t"]), []):
+                if person != "_" and self.items.get(vid, {}).get("lemma") in self.lang.modals:
+                    return True
+        return False
+
+    def _possessive(self, toks: list[dict], words: list[int], wi: int) -> bool:
+        """A determiner/pronoun reading directly before a noun ('zijn belofte'), not a verb."""
+        s = norm(toks[words[wi]]["t"])
+        lex = self.lex_lookup(s)
+        if not lex or self.items[lex]["pos"] not in ("det", "pron") or wi + 1 >= len(words):
+            return False
+        prev = norm(toks[words[wi - 1]]["t"]) if wi > 0 else ""
+        if prev in self.lang.pronouns:
+            return False
+        nxt = norm(toks[words[wi + 1]]["t"])
+        nlex = self.lex_lookup(nxt)
+        return bool(nlex and self.items[nlex]["pos"] == "noun" and not self.verb_index.get(nxt))
 
     # ------------------------------------------------------------------ main
     def align(self, toks: list[dict]) -> list[dict]:
@@ -277,6 +341,8 @@ class Aligner:
                 if awi > 0 and norm(out[words[awi - 1]]["t"]) == "te":
                     continue
                 a_s = norm(out[aj]["t"])
+                if self._perfect_infinitive(out, words, lo, aj, a_s) or self._possessive(out, words, awi):
+                    continue
                 for vid, aux, needs_clitic in sorted(pc, key=lambda e: self.rank.get(e[0], (True, 0, e[0]))):
                     persons = self.aux_present.get(aux, {}).get(a_s)
                     if not persons:
@@ -291,9 +357,18 @@ class Aligner:
                 continue
             aj, vid, aux, persons = hit
             person = persons[0]
+            b, a = self._pronoun_persons(words, out, pos_in_words[aj])
+            fits = [p for p in persons if p in b] or ([] if VAGUE in b else [p for p in persons if p in a])
+            if not fits and (b or a):
+                # a subject pronoun that fits no form of the auxiliary: Dutch inversion ('heb je
+                # gegeten' uses the ik-form for jij), polite 'u' (bent/is), a coordinated subject
+                # ('io e lui abbiamo'): link the words but leave the person open
+                out[ti]["lex"], out[ti]["form"] = vid, None
+                out[aj]["lex"], out[aj]["form"] = self.aux_ids[aux], None
+                done |= {ti, aj}
+                continue
             if len(persons) > 1:
-                b, a = self._pronoun_persons(words, out, pos_in_words[aj])
-                pick = [p for p in persons if p in b] or [p for p in persons if p in a]
+                pick = fits
                 if not pick and lang.code == "it":
                     plural = s[-1:] in ("i", "e")
                     pick = [p for p in persons if (lang.persons.index(p) >= 3) == plural]
@@ -324,13 +399,10 @@ class Aligner:
                 before, after = self._pronoun_persons(words, out, wi)
                 if persons == {"ik"} and "ik" not in before + after:
                     use_verb = False         # 'waar' (adverb) rather than 'ik waar' (waren)
-            if use_verb and lex and self.items[lex]["pos"] in ("det", "pron") and wi + 1 < len(words) \
-                    and prev not in lang.pronouns:
-                # possessive 'zijn boek' (det + noun) rather than the verb 'zijn'
-                nxt = norm(out[words[wi + 1]]["t"])
-                nlex = self.lex_lookup(nxt)
-                if nlex and self.items[nlex]["pos"] == "noun" and not self.verb_index.get(nxt):
-                    use_verb = False
+            if use_verb and self._possessive(out, words, wi):
+                use_verb = False             # possessive 'zijn boek' (det + noun) rather than the verb 'zijn'
+            if use_verb and pc and prev in self.essere_forms:
+                use_verb = False             # 'sono state costruite': participle, not 'voi costruite'
             if use_verb and pc and lang.code == "nl" and finite_seen:
                 use_verb = False             # 'wordt als keuken gebruikt': participle, not present
                 lex = None
@@ -350,6 +422,8 @@ class Aligner:
                         nxt = norm(out[words[wi + 1]]["t"])
                         if nxt in ("jij", "je") and (tense, "jij") not in by_verb[vid]:
                             out[ti]["form"] = None
+                elif all(p != "_" for _, p in by_verb[vid]):
+                    finite_seen = True       # finite, person open ('Wilt u ...', 'Werk jij ...')
                 continue
             if lex:
                 out[ti]["lex"] = lex

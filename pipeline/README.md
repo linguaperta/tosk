@@ -145,11 +145,19 @@ conjugation tables. Rules:
   token gets `form = passato_prossimo.{person}` / `perfectum.{person}` and the auxiliary token gets
   its own present form. *The participle token's text is only part of the multi-word form in
   `verb_forms`* (`mangiato` vs `ho mangiato`). Participles without auxiliary → `participle._`.
+  Not linked (both words keep `lex`, no compound `form`), because an exercise built on them would be
+  wrong: an auxiliary whose adjacent subject pronoun fits none of its persons (inversion `Heb je
+  gegeten?`, `io e lui abbiamo`) or is polite *u*; Dutch modal + perfect infinitive (`zou … geweest
+  zijn`: `zijn` is an infinitive); *zijn* + participle of a verb that lists *zijn* only as its second
+  auxiliary (nl.wiktionary does that for transitive verbs because of the passive: `is gezien`);
+  possessive *zijn* before a noun. Italian: after a form of *essere*, a participle/finite homograph
+  is the participle (`sono state costruite`).
 * Ambiguous persons: an adjacent subject pronoun decides; a pronoun that fits no form (subjunctive)
   leaves `form` unset; Dutch infinitive after *te* or a finite verb in the clause; a name/noun subject
   requires a 3rd-person form (else unset); Italian *sono*: following -i/-e adjective/participle =
   *loro*, else *io*; otherwise 3rd singular, 3rd plural, first person in order.
-* Dutch inversion (`werk jij`) and imperatives keep `lex` but get no `form`.
+* Dutch inversion (`werk jij`), imperatives and verbs next to polite *u* (`u bent` / `u is`) keep
+  `lex` but get no `form`.
 * Unmatched tokens stay unlinked.
 
 ## IDs
