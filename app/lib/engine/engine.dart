@@ -11,6 +11,7 @@ export 'selector.dart';
 export 'session/builders.dart';
 export 'session/engine_session.dart';
 export 'session/engine_session_factory.dart';
+export 'session/mistake_review.dart';
 export 'strings.dart';
 export 'template.dart';
 export 'templates/alterations.dart';

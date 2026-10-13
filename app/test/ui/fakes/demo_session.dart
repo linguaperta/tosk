@@ -62,6 +62,15 @@ class DemoSessionFactory implements SessionFactory {
 
   @override
   Future<PracticeSession> fading({int length = 12}) async => _make(SessionMode.review, pool.reversed.toList(), length);
+
+  /// The pool's exercises whose facet has a stored mistake (no resolution
+  /// rule here; the engine's `openMistakes` is tested in the engine tests).
+  @override
+  Future<PracticeSession> review({int length = 12}) async {
+    final facets = {for (final m in await store.mistakes(courseId: course.meta.id)) m.facetId};
+    final source = pool.where((e) => facets.contains(e.facetId)).toList();
+    return _make(SessionMode.review, source, source.isEmpty ? 0 : length.clamp(1, source.length));
+  }
 }
 
 class DemoPracticeSession implements PracticeSession {

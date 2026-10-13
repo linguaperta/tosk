@@ -36,7 +36,7 @@ for (var e = await session.next(); e != null; e = await session.next()) {
 final summary = session.summary();
 ```
 
-`lesson`, `lab`, `nonStop` and `fading` return `LessonSession`, `LabSession`, `NonStopSession` and `FadingSession`, all `EngineSession`s. Beyond `PracticeSession` they offer `results` (a broadcast stream of `AnswerEvent`), `mistakeContext(exerciseId)`, and on non-stop `unlockedSkills()` and `enqueueBonus(types:, count:)`.
+`lesson`, `lab`, `nonStop`, `fading` and `review` return `LessonSession`, `LabSession`, `NonStopSession`, `FadingSession` and `MistakeReviewSession`, all `EngineSession`s. Beyond `PracticeSession` they offer `results` (a broadcast stream of `AnswerEvent`), `mistakeContext(exerciseId)`, and on non-stop `unlockedSkills()` and `enqueueBonus(types:, count:)`.
 
 UI notes on the exercise contract:
 
@@ -124,6 +124,12 @@ A wrong facet is re-queued 2–4 exercises later, at most twice per session. Re-
 - **Lab** (`LabBuilder(skills, types, length)`): due facets, then new ones (round-robin across skills), then the weakest, cycled. Only the chosen types are used, overriding skill restrictions.
 - **Non-stop** (`NonStopQueue`): endless. It serves due facets from unlocked skills and mixes in a new facet every 4th exercise; when nothing is due and nothing is new, it takes from the three weakest. A skill is unlocked when every prerequisite is *started* (at least one facet reviewed), re-evaluated after each answer. `enqueueBonus` restricts the next exercises to some types, for a progression bonus round.
 - **Fading** (`FadingBuilder`, mode `review`): due facets, then the lowest predicted recall, across all skills. No new facets.
+- **Mistake review** (`ReviewBuilder`, `factory.review(length:)`, mode `review`, `session/mistake_review.dart`): one exercise per *open* mistake, up to `length` (default 12). `openMistakes(store:, course:, scheduler:, now:)` lists them (the UI uses it for the count and the list):
+  - It scans the latest 300 `MistakeRecord`s of the course and keeps the latest per facet, with a count.
+  - **Resolution rule:** a mistake is resolved once its facet is answered correctly in a *later session*: a correct event after the mistake whose session id differs from the mistake event's (the record id is the event id). The re-ask 2–4 exercises later in the same session does not count. A new mistake on the facet (also during review) opens it again.
+  - Facets the course no longer trains (pack update) are skipped.
+  - Order: still weak (predicted recall < 0.9, `kMistakeWeakRecall`) first, then the rest; most recent first within each group.
+  - Each facet is asked with the exercise type that was missed when the skill allows it and the template can build it (`only: {type}`); flashcard mistakes (a self-graded Again) and types that can't serve the facet fall back to the normal selector. If the restricted generation still fails, the slot is retried unrestricted.
 
 ## Adding a template
 
