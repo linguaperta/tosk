@@ -119,6 +119,7 @@ Each item says what "done" means. Add newly discovered work at the bottom of its
 - [ ] Pipeline: AI-generated example sentences for thin slots (verb × person × tense < 5 sentences), under gating constraints, validated by the aligner, `src: claude-gen`, reviewed in samples
 - [ ] Sentence variety: log the sentence id with each answer; the engine prefers unseen or least-recently-seen sentences
 - [ ] Sentence floor: generation tops up every verb×person×tense slot and every vocab topic to ≥8–10 distinct sentences
+- [ ] Course picker as a pop-up menu: +/- to add or remove each course, a preview per course (description, units/skills, sample words and sentences, unverified badge); the app only shows courses you've added
 - [ ] Preview 3 APK
 
 
@@ -142,7 +143,7 @@ Each one at the expanded it/nl scale: 8–10 units, ~30 skills, ~1000 taught wor
 - [ ] Swedish (`sv`)
 - [ ] Norwegian Bokmål (`nb`)
 - [ ] Danish (`da`)
-- [ ] Course picker that scales to ~10 courses (grouped by source language, with flags/icons), and an `index.json` listing all of them
+- [ ] `index.json` listing all courses (the course picker itself is in v0.3)
 
 ## Later (not v1)
 
