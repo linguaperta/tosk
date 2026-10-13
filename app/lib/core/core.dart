@@ -2,6 +2,7 @@
 library;
 
 export 'interfaces/course_data.dart';
+export 'interfaces/hooks.dart';
 export 'interfaces/packs.dart';
 export 'interfaces/progress_store.dart';
 export 'interfaces/session.dart';

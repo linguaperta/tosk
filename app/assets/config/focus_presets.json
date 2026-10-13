@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "presets": {
+    "mixed": {
+      "flashcard": 1.0,
+      "multiple_choice": 1.0,
+      "match_pairs": 0.8,
+      "conj_pick": 1.0,
+      "conj_grid": 0.8,
+      "sentence_builder": 1.0,
+      "cloze": 1.0,
+      "spot_error": 0.7,
+      "transform": 0.7
+    },
+    "vocab": {
+      "flashcard": 1.0,
+      "multiple_choice": 1.0,
+      "match_pairs": 1.0,
+      "sentence_builder": 1.0
+    },
+    "grammar": {
+      "conj_pick": 1.0,
+      "conj_grid": 1.0,
+      "cloze": 1.0,
+      "transform": 1.0,
+      "spot_error": 1.0
+    }
+  }
+}

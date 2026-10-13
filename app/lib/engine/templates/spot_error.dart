@@ -1,0 +1,127 @@
+import '../../core/models/exercise.dart';
+import '../../core/models/facet.dart';
+import '../../core/models/progress.dart';
+import '../course_index.dart';
+import '../gen_context.dart';
+import '../grading/rating.dart';
+import '../strings.dart';
+import '../template.dart';
+import 'alterations.dart';
+
+/// One planned error in a sentence.
+class _Plan {
+  _Plan(this.sentenceId, this.translation, this.tokens, this.errorIndex, this.correction);
+  final String sentenceId;
+  final String? translation;
+  final List<(String, String)> tokens;
+  final int errorIndex;
+  final String correction;
+}
+
+/// Tap the wrong word.
+///
+/// * `#form:{tense}`: one word of the verb form is replaced by the matching
+///   word of another person's form (then another tense's), only when that
+///   form is not an accepted form of the cell nor of a person sharing its
+///   pronoun (Italian `sono` io/loro, Dutch `eet` ik/jij/hij are never used).
+/// * `#article`: the article before the noun is replaced by a wrong one.
+///
+/// Without an explicit subject a person swap can be grammatical on its own
+/// (pro-drop: `Mangiate alle otto`), so the translation is always included:
+/// the error is defined relative to it.
+class SpotErrorTemplate extends ExerciseTemplate {
+  const SpotErrorTemplate();
+
+  @override
+  ExerciseType get type => ExerciseType.spotError;
+
+  @override
+  Set<FacetKind> get kinds => const {FacetKind.form, FacetKind.article};
+
+  @override
+  bool canGenerate(SkillFacet facet, GenContext ctx) => supports(facet) && _plans(facet, ctx, shuffle: false, limit: 1).isNotEmpty;
+
+  List<_Plan> _plans(SkillFacet facet, GenContext ctx, {bool shuffle = true, int limit = 1 << 30}) {
+    final ix = ctx.index;
+    final out = <_Plan>[];
+    if (facet.kind == FacetKind.form && facet.tense != null) {
+      final occ = ix.formOccurrencesIn(facet.itemId, facet.tense!);
+      for (final o in shuffle ? ctx.shuffled(occ) : occ) {
+        if (out.length >= limit) break;
+        final swaps = formSwaps(ix, o);
+        if (swaps.isEmpty) continue;
+        // Prefer other persons of the same tense (listed first).
+        final sameTense = [for (final s in swaps) if (s.replacement.tense == o.tense) s];
+        final pool = sameTense.isNotEmpty ? sameTense : swaps;
+        final sw = shuffle ? ctx.pick(pool) : pool.first;
+        out.add(_Plan(
+          o.sentence.id,
+          o.sentence.translation(ctx.lang),
+          sw.render(),
+          sw.tokenPos,
+          o.sentence.tokens[sw.tokenPos].t,
+        ));
+      }
+    } else if (facet.kind == FacetKind.article) {
+      final noun = ctx.course.item(facet.itemId);
+      if (noun == null) return out;
+      final wrong = wrongArticles(ix, noun);
+      if (wrong.isEmpty) return out;
+      final occ = ix.articleOccurrences(facet.itemId);
+      for (final o in shuffle ? ctx.shuffled(occ) : occ) {
+        if (out.length >= limit) break;
+        final rep = shuffle ? ctx.pick(wrong) : wrong.first;
+        final idx = o.withinToken ? o.nounPos : o.articlePos;
+        out.add(_Plan(
+          o.sentence.id,
+          o.sentence.translation(ctx.lang),
+          renderArticleSwap(o, rep),
+          idx,
+          o.sentence.tokens[idx].t,
+        ));
+      }
+    }
+    return out;
+  }
+
+  @override
+  Exercise? generate(SkillFacet facet, GenContext ctx) {
+    if (!supports(facet)) return null;
+    final plans = _plans(facet, ctx, limit: 1);
+    if (plans.isEmpty) return null;
+    final p = plans.first;
+    final sentence = ctx.course.sentence(p.sentenceId)!;
+    return SpotErrorExercise(
+      id: ctx.nextId(),
+      facetId: facet.facetId,
+      skillId: ctx.skill?.id,
+      instruction: instruction('spot_error', ctx.lang),
+      tokens: [for (final t in p.tokens) t.$2],
+      tokenPre: [for (final t in p.tokens) t.$1],
+      tokenIsWord: [for (final t in sentence.tokens) t.isWord],
+      errorIndex: p.errorIndex,
+      correction: p.correction,
+      translation: p.translation,
+      sentenceId: p.sentenceId,
+    );
+  }
+
+  @override
+  Result grade(Exercise exercise, Answer answer, {required Duration elapsed, GradeOptions options = const GradeOptions()}) {
+    final e = exercise as SpotErrorExercise;
+    final idx = answer is TokenAnswer ? answer.index : -1;
+    final correct = idx == e.errorIndex;
+    return Result(
+      correct: correct,
+      expected: '${e.tokens[e.errorIndex]} → ${e.correction}',
+      given: idx >= 0 && idx < e.tokens.length ? e.tokens[idx] : answerText(answer),
+      outcomes: [rateOutcome(e.type, e.facetId, correct: correct, elapsed: elapsed, options: options)],
+    );
+  }
+}
+
+/// Renders a spot-error exercise's tokens (with [SpotErrorExercise.tokenPre]).
+String renderSpotError(SpotErrorExercise e, {Map<int, String> replace = const {}}) => renderPairs([
+      for (var i = 0; i < e.tokens.length; i++)
+        (e.tokenPre == null ? (i == 0 ? '' : ' ') : e.tokenPre![i], replace[i] ?? e.tokens[i]),
+    ]);
