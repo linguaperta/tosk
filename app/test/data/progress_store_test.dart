@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math';
 
 import 'package:drift/drift.dart' show driftRuntimeOptions;
@@ -10,44 +11,7 @@ import 'package:tosk/data/progress/progress_repo.dart';
 import 'package:tosk/data/progress/replay.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// A seeded random log: several hundred events over many facets and ~120 days,
-/// with some identical timestamps (tie-broken by id).
-List<ReviewEvent> sampleLog({int seed = 42, int count = 600, String course = 'it'}) {
-  final rnd = Random(seed);
-  final facets = [
-    for (var i = 0; i < 25; i++) '$course:w$i#${['rec', 'prod', 'form:presente'][i % 3]}',
-    'nl:huis#rec', // another course
-  ];
-  final start = DateTime.utc(2026, 6, 1).millisecondsSinceEpoch;
-  final events = <ReviewEvent>[];
-  for (var i = 0; i < count; i++) {
-    final facet = facets[rnd.nextInt(facets.length)];
-    // Mostly spread over 120 days, sometimes clustered within the same minute.
-    final at = rnd.nextInt(10) == 0
-        ? start + 86400000 * 30 + rnd.nextInt(60000)
-        : start + rnd.nextInt(86400 * 120) * 1000 + rnd.nextInt(1000);
-    final rating = Rating.values[[0, 1, 2, 2, 2, 2, 3][rnd.nextInt(7)]];
-    events.add(ReviewEvent(
-      id: _uuid(rnd),
-      facetId: facet,
-      at: DateTime.fromMillisecondsSinceEpoch(at, isUtc: true),
-      rating: rating,
-      exerciseType: ExerciseType.values[rnd.nextInt(ExerciseType.values.length)].id,
-      inputMode: InputMode.values[rnd.nextInt(InputMode.values.length)],
-      responseMs: rnd.nextInt(20000),
-      correct: rating != Rating.again,
-      answer: rnd.nextBool() ? 'answer $i' : null,
-      sessionId: 'session-${i ~/ 12}',
-      mode: 'lesson',
-    ));
-  }
-  return events;
-}
-
-String _uuid(Random r) {
-  String hex(int n) => List.generate(n, (_) => r.nextInt(16).toRadixString(16)).join();
-  return '${hex(8)}-${hex(4)}-4${hex(3)}-a${hex(3)}-${hex(12)}';
-}
+import '../fixtures/sample_log.dart';
 
 typedef StoreFactory = Future<(ProgressStore, Future<void> Function())> Function();
 
@@ -199,6 +163,44 @@ void main() {
     final expected = replayLog(FsrsScheduler(), log);
     expect({for (final s in await repo.allStates()) s.facetId: s}, expected);
     expect({for (final s in await mem.allStates()) s.facetId: s}, expected);
+  });
+
+  group('schema', () {
+    late Directory tmp;
+    setUp(() => tmp = Directory.systemTemp.createTempSync('tosk_progress_'));
+    tearDown(() => tmp.deleteSync(recursive: true));
+
+    test('file database persists across reopen at the current version', () async {
+      final file = File('${tmp.path}/progress.sqlite');
+      final e = sampleLog(count: 1).single;
+      var repo = ProgressRepo(ProgressDb(NativeDatabase(file)));
+      final s = await repo.record(e);
+      await repo.close();
+      repo = ProgressRepo(ProgressDb(NativeDatabase(file)));
+      expect(await repo.state(e.facetId), s);
+      final v = await repo.db.customSelect('PRAGMA user_version').getSingle();
+      expect(v.data.values.single, ProgressDb.currentSchemaVersion);
+      // The expected tables and indexes exist.
+      final names = (await repo.db
+              .customSelect("SELECT name FROM sqlite_master WHERE type IN ('table','index')")
+              .get())
+          .map((r) => r.read<String>('name'))
+          .toSet();
+      expect(names, containsAll(['review_log', 'facet_state', 'mistakes', 'settings',
+          'review_log_facet_at', 'review_log_at', 'facet_state_due']));
+      await repo.close();
+    });
+
+    test('refuses a database from a newer app version', () async {
+      final file = File('${tmp.path}/progress.sqlite');
+      final repo = ProgressRepo(ProgressDb(NativeDatabase(file)));
+      await repo.setSetting('k', 'v');
+      await repo.db.customStatement('PRAGMA user_version = 99');
+      await repo.close();
+      final newer = ProgressRepo(ProgressDb(NativeDatabase(file)));
+      await expectLater(newer.getSetting('k'), throwsA(isA<StateError>()));
+      await newer.close();
+    });
   });
 
   test('dueStates uses the due index and course filter', () async {

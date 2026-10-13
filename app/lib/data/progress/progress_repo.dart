@@ -12,10 +12,11 @@ import 'package:drift/drift.dart';
 
 import '../../core/core.dart';
 import '../fsrs/fsrs_scheduler.dart';
+import 'event_importer.dart';
 import 'progress_db.dart';
 import 'replay.dart';
 
-class ProgressRepo implements ProgressStore {
+class ProgressRepo implements ProgressStore, EventImporter {
   ProgressRepo(this.db, {Scheduler? scheduler}) : scheduler = scheduler ?? FsrsScheduler();
 
   final ProgressDb db;
@@ -58,6 +59,7 @@ class ProgressRepo implements ProgressStore {
 
   /// Merges [events] (sync pull, file import): inserts ids not yet present and
   /// replays only the facets that received new events. Returns the count added.
+  @override
   Future<int> importEvents(Iterable<ReviewEvent> events) {
     final list = events.map(normalizeEvent).toList();
     if (list.isEmpty) return Future.value(0);

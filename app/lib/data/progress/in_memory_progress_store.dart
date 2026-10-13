@@ -5,9 +5,10 @@ library;
 
 import '../../core/core.dart';
 import '../fsrs/fsrs_scheduler.dart';
+import 'event_importer.dart';
 import 'replay.dart';
 
-class InMemoryProgressStore implements ProgressStore {
+class InMemoryProgressStore implements ProgressStore, EventImporter {
   InMemoryProgressStore({Scheduler? scheduler}) : scheduler = scheduler ?? FsrsScheduler();
 
   final Scheduler scheduler;
@@ -52,6 +53,7 @@ class InMemoryProgressStore implements ProgressStore {
 
   /// Merges events (e.g. from sync or an import), ignoring ids already present.
   /// Returns how many were new.
+  @override
   Future<int> importEvents(Iterable<ReviewEvent> events) async {
     final touched = <String>{};
     var added = 0;
