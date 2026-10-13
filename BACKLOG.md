@@ -45,18 +45,20 @@ Each item says what "done" means. Add newly discovered work at the bottom of its
 
 ## Phase 3: Exercise engine (`app/lib/engine`)
 
-- [~] `ExerciseTemplate` interface and the sealed `Exercise` and `Result` types
-- [~] Templates: flashcard, multiple_choice, match_pairs, conj_pick, conj_grid, sentence_builder, cloze, spot_error, transform
-- [~] Distractor generator (same tense with other persons, same tag, similar freq), checked against all valid answers
-- [~] Answer normalization (case, punctuation, variants, accent strictness)
-- [~] Exercise-type choice by facet stability (new items get recognition and choice, stable items get production)
-- [~] `LessonBuilder` (due, then up to 5 new, then filler; about 12 exercises), `LabBuilder`, `NonStopQueue`, "what's fading" mixed practice
-- [~] Focus presets config (mixed, vocab, grammar) with weights per exercise type
-- [~] Mistakes return later in the same lesson and are logged for mistake review
-- [~] Grading mapped to FSRS ratings and written with `ProgressRepo.record()`
-- [~] Hooks: `AnswerInput`, `Explainer` and `NullExplainer`, `MistakeContext` stored on wrong answers
-- [~] Sample command: 20 exercises per skill and type
-- [~] Test: every template generates at least 20 valid exercises for every skill in both courses, with no duplicate options and the correct answer present exactly once
+- [x] `ExerciseTemplate` interface and the sealed `Exercise` and `Result` types
+- [x] Templates: flashcard, multiple_choice, match_pairs, conj_pick, conj_grid, sentence_builder, cloze, spot_error, transform
+- [x] Distractor generator (same tense with other persons, same tag, similar freq), checked against all valid answers
+- [x] Answer normalization (case, punctuation, variants, accent strictness)
+- [x] Exercise-type choice by facet stability (new items get recognition and choice, stable items get production)
+- [x] `LessonBuilder` (due, then up to 5 new, then filler; about 12 exercises), `LabBuilder`, `NonStopQueue`, "what's fading" mixed practice
+- [x] Focus presets config (mixed, vocab, grammar) with weights per exercise type
+- [x] Mistakes return later in the same lesson and are logged for mistake review
+- [x] Grading mapped to FSRS ratings and written with `ProgressRepo.record()`
+- [x] Hooks: `AnswerInput`, `Explainer` and `NullExplainer`, `MistakeContext` stored on wrong answers
+- [x] Sample command: 20 exercises per skill and type (`app/tool/sample_exercises.dart`; switch it to the real packs at integration)
+- [x] Test: every template generates at least 20 valid exercises for every skill in both courses, with no duplicate options and the correct answer present exactly once (fixtures; `runTemplateValidity`)
+- [ ] Run `runTemplateValidity` on the real it/nl packs
+- [~] Free-text cloze only when the input preference is keyboard or ink (spec: typing is never required)
 
 ## Phase 4: App screens (`app/lib/ui`)
 
