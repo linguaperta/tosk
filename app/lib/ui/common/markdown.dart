@@ -177,6 +177,28 @@ List<String> _cells(String row) {
   return [for (final c in r.split('|')) c.trim()];
 }
 
+/// Plain-text excerpt of a note: its first paragraph (or list item, or quote),
+/// without inline markers, cut at a word boundary to about [max] characters.
+/// Null when the note has no prose.
+String? noteExcerpt(String? markdown, {int max = 180}) {
+  if (markdown == null || markdown.trim().isEmpty) return null;
+  String? first;
+  for (final b in parseMarkdown(markdown)) {
+    first = switch (b) {
+      MdParagraph(:final text) || MdQuote(:final text) => text,
+      MdList(:final items) when items.isNotEmpty => items.first,
+      _ => null,
+    };
+    if (first != null && first.trim().isNotEmpty) break;
+  }
+  if (first == null) return null;
+  final plain = parseInline(first).map((s) => s.text).join().replaceAll(RegExp(r'\s+'), ' ').trim();
+  if (plain.length <= max) return plain;
+  var cut = plain.lastIndexOf(' ', max);
+  if (cut < max ~/ 2) cut = max;
+  return '${plain.substring(0, cut).trimRight()}…';
+}
+
 /// Splits inline markdown into styled spans. Unmatched markers stay literal.
 List<MdSpan> parseInline(String text) {
   final out = <MdSpan>[];

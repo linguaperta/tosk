@@ -82,60 +82,67 @@ class _ConjGridViewState extends State<ConjGridView> with ExerciseKeysMixin<Conj
     final e = widget.exercise;
     final theme = Theme.of(context);
     final marks = widget.result?.cellCorrect;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        InstructionText(e.instruction),
-        Text.rich(
-          TextSpan(
-            children: [
-              TextSpan(
-                text: e.lemma,
-                style: const TextStyle(fontWeight: FontWeight.w700),
-              ),
-              if (e.gloss.isNotEmpty) TextSpan(text: '  ·  ${e.gloss}'),
-              TextSpan(
-                text: '  ·  ${e.tenseLabel}',
-                style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
-              ),
-            ],
-          ),
-          style: theme.textTheme.bodyLarge,
-        ),
-        const SizedBox(height: 12),
-        for (var i = 0; i < _cells.length; i++)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Row(
+    return ExerciseLayout(
+      prompt: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          InstructionText(e.instruction),
+          Text.rich(
+            TextSpan(
               children: [
-                SizedBox(
-                  width: 84,
-                  child: Text(
-                    _cells[i].personLabel,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                  ),
+                TextSpan(
+                  text: e.lemma,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
-                Expanded(child: _cell(context, i, marks == null || i >= marks.length ? null : marks[i])),
+                if (e.gloss.isNotEmpty) TextSpan(text: '  ·  ${e.gloss}'),
+                TextSpan(
+                  text: '  ·  ${e.tenseLabel}',
+                  style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+                ),
               ],
             ),
+            style: theme.textTheme.bodyLarge,
           ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          alignment: WrapAlignment.center,
-          children: [
-            for (var t = 0; t < e.tiles.length; t++)
-              WordTile(
-                key: ValueKey('grid-tile-$t'),
-                label: e.tiles[t],
-                hidden: _filled.containsValue(t),
-                onTap: widget.locked ? null : () => _tapTile(t),
+        ],
+      ),
+      gap: 16,
+      controls: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < _cells.length; i++)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 84,
+                    child: Text(
+                      _cells[i].personLabel,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                    ),
+                  ),
+                  Expanded(child: _cell(context, i, marks == null || i >= marks.length ? null : marks[i])),
+                ],
               ),
-          ],
-        ),
-      ],
+            ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.center,
+            children: [
+              for (var t = 0; t < e.tiles.length; t++)
+                WordTile(
+                  key: ValueKey('grid-tile-$t'),
+                  label: e.tiles[t],
+                  hidden: _filled.containsValue(t),
+                  onTap: widget.locked ? null : () => _tapTile(t),
+                ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -180,7 +187,7 @@ class _ConjGridViewState extends State<ConjGridView> with ExerciseKeysMixin<Conj
           borderRadius: BorderRadius.circular(10),
           onTap: c.prefilled || widget.locked ? null : () => _tapCell(i),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 44),
+            constraints: const BoxConstraints(minHeight: 48),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Row(

@@ -16,7 +16,7 @@ import 'data/app_data.dart';
 import 'data/fsrs/fsrs_scheduler.dart';
 import 'data/progress/in_memory_progress_store.dart';
 import 'data/stats/skill_stats.dart' as data;
-import 'engine/engine.dart' show EngineSessionFactory, FocusPresets;
+import 'engine/engine.dart' show EngineSessionFactory, FocusPresets, OpenMistake, openMistakes;
 import 'progression/progression.dart';
 import 'ui/common/fx.dart';
 import 'ui/course_catalog.dart';
@@ -270,6 +270,20 @@ final challengeBoardProvider = FutureProvider<ChallengeBoard>((ref) async {
   ref.watch(progressRevisionProvider);
   final svc = await ref.watch(progressionServiceProvider.future);
   return svc.challenges(ref.watch(clockProvider)());
+});
+
+/// Open mistakes of the active course, one per facet, in review order (still
+/// weak first, then most recent). Resolved once answered correctly in a later
+/// session (the engine's `openMistakes`, see docs/engine.md).
+final openMistakesProvider = FutureProvider<List<OpenMistake>>((ref) async {
+  ref.watch(progressRevisionProvider);
+  final course = await ref.watch(courseDataProvider.future);
+  return openMistakes(
+    store: ref.watch(progressStoreProvider),
+    course: course,
+    scheduler: ref.watch(schedulerProvider),
+    now: ref.watch(clockProvider)().toUtc(),
+  );
 });
 
 /// Verb tables of the active course with their mastery.

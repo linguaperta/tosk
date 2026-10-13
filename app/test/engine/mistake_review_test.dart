@@ -16,12 +16,12 @@ void main() {
   late DateTime clock;
 
   EngineSessionFactory factory({int seed = 1}) => EngineSessionFactory(
-        course: it,
-        store: store,
-        scheduler: const FakeScheduler(),
-        options: SessionOptions(sourceLang: 'en', seed: seed),
-        clock: () => clock,
-      );
+    course: it,
+    store: store,
+    scheduler: const FakeScheduler(),
+    options: SessionOptions(sourceLang: 'en', seed: seed),
+    clock: () => clock,
+  );
 
   Future<List<OpenMistake>> open() =>
       openMistakes(store: store, course: it, scheduler: const FakeScheduler(), now: clock);
@@ -46,55 +46,58 @@ void main() {
   /// A mistake on [facetId] in session [session] at [at] (event + record, as the engine writes them).
   Future<void> mistake(String facetId, {required DateTime at, String session = 's1', String type = 'cloze'}) async {
     final id = 'm-$facetId-${at.millisecondsSinceEpoch}';
-    await store.record(ReviewEvent(
-      id: id,
-      facetId: facetId,
-      at: at,
-      rating: Rating.again,
-      exerciseType: type,
-      inputMode: InputMode.tap,
-      responseMs: 1000,
-      correct: false,
-      sessionId: session,
-      mode: 'lesson',
-    ));
-    await store.saveMistake(MistakeRecord(
-      id: id,
-      facetId: facetId,
-      at: at,
-      exerciseType: type,
-      prompt: 'p',
-      expected: 'e',
-      given: 'g',
-      skillId: it.skillsForFacet(facetId).firstOrNull,
-    ));
-  }
-
-  Future<void> correct(String facetId, {required DateTime at, String? session}) => store.record(ReviewEvent(
-        id: 'c-$facetId-${at.millisecondsSinceEpoch}',
+    await store.record(
+      ReviewEvent(
+        id: id,
         facetId: facetId,
         at: at,
-        rating: Rating.good,
-        exerciseType: 'cloze',
+        rating: Rating.again,
+        exerciseType: type,
         inputMode: InputMode.tap,
         responseMs: 1000,
-        correct: true,
+        correct: false,
         sessionId: session,
         mode: 'lesson',
-      ));
+      ),
+    );
+    await store.saveMistake(
+      MistakeRecord(
+        id: id,
+        facetId: facetId,
+        at: at,
+        exerciseType: type,
+        prompt: 'p',
+        expected: 'e',
+        given: 'g',
+        skillId: it.skillsForFacet(facetId).firstOrNull,
+      ),
+    );
+  }
+
+  Future<void> correct(String facetId, {required DateTime at, String? session}) => store.record(
+    ReviewEvent(
+      id: 'c-$facetId-${at.millisecondsSinceEpoch}',
+      facetId: facetId,
+      at: at,
+      rating: Rating.good,
+      exerciseType: 'cloze',
+      inputMode: InputMode.tap,
+      responseMs: 1000,
+      correct: true,
+      sessionId: session,
+      mode: 'lesson',
+    ),
+  );
 
   group('open mistakes', () {
     test('a lesson\'s mistakes stay open after the same-session re-ask', () async {
       final lesson = await factory().lesson('presente-are');
       final served = await drive(lesson, wrong: (i, e) => i == 0 || i == 2);
-      final wrongFacets = {
-        for (final m in store.mistakeList) m.facetId,
-      };
+      final wrongFacets = {for (final m in store.mistakeList) m.facetId};
       expect(wrongFacets, isNotEmpty);
       // Every wrong facet was answered right again later in the lesson (re-ask).
       for (final f in wrongFacets) {
-        expect(store.events.any((e) => e.facetId == f && e.correct && e.sessionId == lesson.id), isTrue,
-            reason: f);
+        expect(store.events.any((e) => e.facetId == f && e.correct && e.sessionId == lesson.id), isTrue, reason: f);
       }
       expect(served, isNotEmpty);
       final o = await open();
@@ -130,11 +133,7 @@ void main() {
       // ragazzo was strengthened since (in the same session, so the mistake stays open but recall is high).
       store.seed(stateWith('it:ragazzo#rec', stability: 400, now: _now, ago: const Duration(hours: 1)));
       final o = await open();
-      expect(o.map((m) => m.record.facetId), [
-        'it:parlare#form:presente',
-        'it:pane#rec',
-        'it:ragazzo#rec',
-      ]);
+      expect(o.map((m) => m.record.facetId), ['it:parlare#form:presente', 'it:pane#rec', 'it:ragazzo#rec']);
       expect(o.first.recall, lessThan(kMistakeWeakRecall));
       expect(o.last.recall, greaterThanOrEqualTo(kMistakeWeakRecall));
     });

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../core/core.dart';
 
+export 'exercise_layout.dart' show ExerciseLayout;
+
 /// Shortcut presses forwarded from the player to the current exercise widget
 /// (desktop: digits pick options, Enter on an exercise without a draft = primary action).
 class ExerciseKeys extends ChangeNotifier {
@@ -157,7 +159,9 @@ class OptionButton extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
           onTap: onTap,
-          child: Padding(
+          child: Container(
+            // At least 48 px tall: a comfortable tap target.
+            constraints: const BoxConstraints(minHeight: 48),
             padding: EdgeInsets.symmetric(horizontal: 12, vertical: large ? 14 : 10),
             child: Row(
               children: [
@@ -211,11 +215,19 @@ class WordTile extends StatelessWidget {
       OptionState.wrong => (fb.wrongContainer, fb.wrong, fb.onWrongContainer),
       OptionState.dimmed => (scheme.surface, scheme.outlineVariant, scheme.onSurface.withValues(alpha: 0.4)),
     };
-    final child = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: hidden ? Colors.transparent : fg),
+    // At least 48 x 48 px: a comfortable tap target even for one-letter tiles.
+    final child = ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 48, minWidth: 48),
+      child: Align(
+        widthFactor: 1,
+        heightFactor: 1,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Text(
+            label,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: hidden ? Colors.transparent : fg),
+          ),
+        ),
       ),
     );
     if (hidden) {
@@ -224,14 +236,19 @@ class WordTile extends StatelessWidget {
         child: ExcludeSemantics(child: child),
       );
     }
-    return Material(
-      color: bg,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-        side: BorderSide(color: border, width: 1.2),
+    return Semantics(
+      button: true,
+      enabled: onTap != null,
+      selected: state == OptionState.selected,
+      child: Material(
+        color: bg,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+          side: BorderSide(color: border, width: 1.2),
+        ),
+        elevation: state == OptionState.idle ? 1 : 0,
+        child: InkWell(borderRadius: BorderRadius.circular(10), onTap: onTap, child: child),
       ),
-      elevation: state == OptionState.idle ? 1 : 0,
-      child: InkWell(borderRadius: BorderRadius.circular(10), onTap: onTap, child: child),
     );
   }
 }

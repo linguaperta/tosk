@@ -25,15 +25,17 @@ go_router, in `ui/router.dart`. Path builders are in `ui/routes.dart`.
 
 | Route | Screen | Notes |
 | --- | --- | --- |
-| `/` | `MapScreen` (`ui/map/`) | Home. Course switcher in the app bar, with the demo and unverified badges. Level/streak header (tap: progress page). Zoom in and out. "What's fading" button. |
+| `/` | `MapScreen` (`ui/map/`) | Home. Course switcher in the app bar, with the demo and unverified badges. Level/streak header (tap: progress page). Zoom in and out. "What's fading" button, with "Review mistakes (N)" above it while mistakes are open (starts a mistake review). |
 | `/lab` | `LabScreen` (`ui/lab/`) | Skills multi-select grouped by unit, with a tri-state checkbox per unit. Exercise types multi-select (9). Length chips 5/10/20/30/50. |
 | `/nonstop` | `NonStopScreen` (`ui/nonstop/`) | Start screen with a slot for the best run. |
-| `/progress` | `ProgressScreen` (`ui/progress/`) | Level and XP, streak with freezes, the 26-week heatmap, the verb collection entry, weekly and monthly challenges, badges. |
+| `/progress` | `ProgressScreen` (`ui/progress/`) | Level and XP, streak with freezes, the 26-week heatmap, the verb collection entry, the mistakes entry ("Review mistakes (N)"), weekly and monthly challenges, badges. |
+| `/mistakes` | `MistakesScreen` (`ui/mistakes/`) | Open mistakes (`openMistakesProvider`), one card each: facet label, skill · missed type · when · count, the stored prompt, "You answered" / "Correct", an excerpt of the skill's grammar note (`noteExcerpt`) with a "Grammar note" link to the skill sheet, and the "Why?" slot (shown only when the explainer is available, or a cached explanation exists). A pinned "Review N mistakes" button starts `/play/review`. Empty state when nothing is open. |
 | `/progress/verbs` | `VerbCollectionScreen` (`ui/progress/`) | `VerbCollectionView`: one card per verb, tense pills light up with mastery. |
 | `/settings` | `SettingsScreen` (`ui/settings/`) | Course, source language, default focus, accents, theme, reduce motion, and a link to the debug screen. |
 | `/skill/:id` | `SkillSheet` as a modal bottom sheet (`BottomSheetPage`) | Opened by long-press or right-click on a node. Shows a focus chooser and Start, the grammar note (markdown, in the source language), and the item list (article + lemma, gloss, and the forms in the skill's tense for verbs). |
 | `/play/lesson/:skillId?focus=` | `PlayerScreen(LessonRequest)` | Tapping a node starts a lesson with the default focus. |
 | `/play/fading` | `PlayerScreen(FadingRequest)` | |
+| `/play/review` | `PlayerScreen(ReviewRequest)` | Mistake review (`SessionFactory.review`, see `docs/engine.md`); "No mistakes to review" when nothing is open. |
 | `/play/lab?skills=&types=&length=` | `PlayerScreen(LabRequest)` | |
 | `/play/nonstop` | `PlayerScreen(NonStopRequest)` | Endless. The title shows a running count, and Stop leads to the summary. |
 | `/debug` | `DebugRoute` (`ui/debug/debug_route.dart`) | The data layer's `DebugScreen` over `appDataProvider` (packs, add a pack, rebuild states, per-skill stats). Leaving it re-lists the courses and bumps `progressRevisionProvider`. Without a data layer it shows `DemoDebugScreen`. |
@@ -50,6 +52,7 @@ The five top-level screens (Map, Lab, Non-stop, Progress, Settings) sit in a `St
   - **Non-stop scoring.** The player keeps a progression `NonStopRun` and feeds it one graded exercise at a time from the engine's `EngineSession.results` stream: `run = run.applyResult(event.exercise, event.result, at: toStoredTime(event.events.first.at))`. When a run starts a bonus round (`NonStopSignal.bonusRoundStarted`) it calls `NonStopSession.enqueueBonus(types: run.preferredTypes, count: round.targetAnswers)`; `_advance` waits for the result event of the last submit before drawing the next exercise, so the bonus applies to the very next one. The HUD (`NonStopHudSlot`) shows the run.
   - **Contract (engine ↔ progression ↔ UI).** The engine records every facet outcome of one exercise with the same `at` (`env.now()`), the session id and mode `nonstop`; the UI feeds `NonStopRun` with that recorded `at` (UTC, whole milliseconds, as stored). The best run replayed from the log (`bestNonStopRunProvider`) then equals the live score. One known gap: a wrong *re-ask* after a mistake records no event, so the live run breaks the combo while the replay doesn't see that answer.
   - **"Why?"** uses the core `Explainer` (`explainerProvider`, `NullExplainer` in v1, so the button is hidden). The context is `EngineSession.mistakeContext(exercise.id)`, or one built from the exercise for other sessions.
+- **Thumb zone.** Every exercise widget returns an `ExerciseLayout(prompt:, controls:)` (`exercises/exercise_layout.dart`, a small render object). The player gives the exercise at least the visible height of its scroll view, so the prompt sits at the top and the interactive part (options, endings, tiles and answer line, the grid and its tile bank, the match columns, the flashcard buttons, the spot-the-error sentence) at the bottom, just above Check / the feedback panel. Taller content stacks and scrolls. The column is centered and at most 640 px wide. Options, tiles and grid cells are at least 48 px tall (tiles also 48 px wide). `test/ui/thumb_zone_test.dart` checks every type at 400×800 and 1280×800.
 - `exercises/`: one widget per type, all subclasses of `ExerciseWidget<E>`.
   - Each widget reports a draft `Answer?` through `onChanged`.
   - Flashcard (self-grade) and match pairs (once everything is matched) submit themselves through `onSubmit`.
@@ -68,7 +71,9 @@ The five top-level screens (Map, Lab, Non-stop, Progress, Settings) sit in a `St
   | transform | `TransformView` (source sentence, its `translation`, target chip, tiles) | `TilesAnswer` |
 
 - `answer_input.dart`: `AnswerInputWidget` is the free-text input abstraction. `KeyboardAnswerField` ships now (renamed from `KeyboardAnswerInput`, which is now the core hook in `core/interfaces/hooks.dart`). A handwriting widget (Phase 8) implements the same class, reports `TextAnswer(inputMode: ink, candidates: [...])`, and plugs in through `answerInputBuilderProvider`.
-- `feedback_banner.dart`: right or wrong, `result.expected`, "Watch the accent: …" when `result.accentSlip`, an optional "Why?" button, and Continue. It slides up unless motion is reduced.
+- `feedback_banner.dart`: right or wrong, `result.expected`, "Watch the accent: …" when `result.accentSlip`, an **actions row**, and Continue (full width, last). It slides up unless motion is reduced. It takes at most 60 % of the screen height; the details scroll above a pinned Continue (long answers at large text sizes).
+  - The actions row (`feedback-actions`, a `Wrap` of outlined `FeedbackAction` buttons, 48 px tall) holds "Why?" (only when `explainerAvailableProvider` and the answer was wrong) and then `extraActions`. That is the slot for later answer-panel actions such as "Explain with AI" or "Flag exercise": pass them as `FeedbackBanner(extraActions: [...])` from the player.
+  - `why_sheet.dart`: `showWhySheet(context, stream)`, shared by the player and the mistakes list.
 - `session_summary_view.dart`: answered, accuracy and time, a mistakes list (facet ids rendered as "il pane · produce") and the `SummaryProgressSlot`, scrolling above a pinned Done button.
 
 ### Skill map (`ui/map/`)
@@ -144,6 +149,7 @@ I chose this over `flutter_markdown_plus` and `gpt_markdown` because grammar not
 | `explainerProvider` | `Explainer` (core hook) | `NullExplainer` |
 | `explainerAvailableProvider` | `bool` | `explainer.isAvailable` (false: "Why?" hidden) |
 | `answerInputBuilderProvider` | `AnswerInputBuilder` | Keyboard (`KeyboardAnswerField`); ink in Phase 8 |
+| `openMistakesProvider` | `Future<List<OpenMistake>>` | The engine's `openMistakes` for the active course (map button count, progress entry, mistakes list); watches `progressRevisionProvider` |
 | `progressRevisionProvider` | `int` (Notifier, `bump()`) | Bumped after every session and when leaving the debug screen; every progress-derived provider watches it |
 | `progressionServiceProvider` | `Future<ProgressionService>` | For the active course (store, scheduler, clock, calendar); caches its log replay |
 | `skillStatsProvider` | `Future<Map<String, SkillStats>>` | Strength and last practice from the data layer's `SkillStatsService.forCourse`, tier and fading from `ProgressionService.skillTiers` (`mapSkillStats`) |
@@ -195,4 +201,6 @@ Unknown or missing values fall back to the defaults. They live in the progress d
 | `ui/map_screen_test` | Nodes, tap → lesson, long-press → sheet (note, table, items, forms, focus), fading, course switch + unverified badge, zoom, node stats |
 | `ui/lesson_flow_test` | Full lesson → summary → map with refreshed stats, wrong answers and re-queue, progress bar, exit confirmation (button and system back), keyboard shortcuts, the "Why?" hook, reduce motion, empty and error states |
 | `ui/lab_nonstop_settings_test` | Lab selection → session, non-stop count/stop, settings persistence and read-back, default focus, source-language restriction, navigation rail, debug route, default providers |
-| `ui/overflow_test` | Every screen (including progress and verb pages) and every exercise type (wrong → retry → summary) at 360×640, 320×568, 768×1024 and 1280×800, in dark mode, and with text scale 1.3. Any layout overflow fails the test |
+| `ui/mistake_review_test` | Map "Review mistakes (N)" after a mistake → review session → resolved; progress → mistakes list (prompt, answers, note excerpt, note link, review button, empty list); "Why?" on a mistake with an explainer; empty review session; the feedback actions row with an extra action |
+| `ui/thumb_zone_test` | Controls of every exercise type in the lower part of the screen (phone and desktop, centered column), 48 px targets, `ExerciseLayout` geometry |
+| `ui/overflow_test` | Every screen (including progress and verb pages) and every exercise type (wrong → retry → summary) at 360×640, 320×568, 768×1024 and 1280×800, in dark mode, and with text scale 1.3; every exercise type at text scale 1.5 on the two phone sizes; the mistakes list and the map with its mistakes button. Any layout overflow fails the test |

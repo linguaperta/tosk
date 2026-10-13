@@ -44,60 +44,69 @@ class _FlashcardViewState extends State<FlashcardView> with ExerciseKeysMixin<Fl
     final e = widget.exercise;
     final theme = Theme.of(context);
     final revealed = _revealed || widget.locked;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        InstructionText(e.instruction),
-        Card(
-          margin: EdgeInsets.zero,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 28),
-            child: Column(
-              children: [
-                Text(e.front, textAlign: TextAlign.center, style: theme.textTheme.headlineMedium),
-                if (e.hint != null) ...[
-                  const SizedBox(height: 6),
-                  Text(e.hint!, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+    return ExerciseLayout(
+      prompt: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          InstructionText(e.instruction),
+          Card(
+            margin: EdgeInsets.zero,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 28),
+              child: Column(
+                children: [
+                  Text(e.front, textAlign: TextAlign.center, style: theme.textTheme.headlineMedium),
+                  if (e.hint != null) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      e.hint!,
+                      style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                    ),
+                  ],
+                  AnimatedSize(
+                    duration: widget.reduceMotion ? Duration.zero : const Duration(milliseconds: 200),
+                    child: revealed
+                        ? Column(
+                            children: [
+                              const Divider(height: 32),
+                              Text(
+                                e.back,
+                                key: const ValueKey('flashcard-back'),
+                                textAlign: TextAlign.center,
+                                style: theme.textTheme.headlineSmall?.copyWith(color: theme.colorScheme.primary),
+                              ),
+                            ],
+                          )
+                        : const SizedBox(width: double.infinity),
+                  ),
                 ],
-                AnimatedSize(
-                  duration: widget.reduceMotion ? Duration.zero : const Duration(milliseconds: 200),
-                  child: revealed
-                      ? Column(
-                          children: [
-                            const Divider(height: 32),
-                            Text(
-                              e.back,
-                              key: const ValueKey('flashcard-back'),
-                              textAlign: TextAlign.center,
-                              style: theme.textTheme.headlineSmall?.copyWith(color: theme.colorScheme.primary),
-                            ),
-                          ],
-                        )
-                      : const SizedBox(width: double.infinity),
-                ),
-              ],
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: 20),
-        if (!revealed)
-          FilledButton.tonal(
-            key: const ValueKey('flashcard-reveal'),
-            onPressed: _reveal,
-            child: const Padding(padding: EdgeInsets.symmetric(vertical: 10), child: Text('Show answer')),
-          )
-        else
-          Row(
-            children: [
-              for (final r in Rating.values) ...[
-                if (r != Rating.again) const SizedBox(width: 8),
-                Expanded(
-                  child: _GradeButton(rating: r, onPressed: widget.locked ? null : () => _grade(r)),
-                ),
+        ],
+      ),
+      controls: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (!revealed)
+            FilledButton.tonal(
+              key: const ValueKey('flashcard-reveal'),
+              onPressed: _reveal,
+              child: const Padding(padding: EdgeInsets.symmetric(vertical: 10), child: Text('Show answer')),
+            )
+          else
+            Row(
+              children: [
+                for (final r in Rating.values) ...[
+                  if (r != Rating.again) const SizedBox(width: 8),
+                  Expanded(
+                    child: _GradeButton(rating: r, onPressed: widget.locked ? null : () => _grade(r)),
+                  ),
+                ],
               ],
-            ],
-          ),
-      ],
+            ),
+        ],
+      ),
     );
   }
 }

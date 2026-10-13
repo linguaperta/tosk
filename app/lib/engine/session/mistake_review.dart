@@ -39,7 +39,7 @@ const double kMistakeWeakRecall = 0.9;
 ///
 /// **Resolution rule.** A mistake is resolved once its facet has been answered
 /// correctly in a *later session* (any review event for that facet with
-/// `correct`, `at` after the mistake, and a session id other than the
+/// `correct`, `at` not before the mistake, and a session id other than the
 /// mistake's own). The re-ask in the same session does not count: getting it
 /// right two exercises later is short-term memory. A new mistake on the facet
 /// (e.g. during mistake review) opens it again. Mistakes on facets the course
@@ -71,7 +71,7 @@ Future<List<OpenMistake>> openMistakes({
   bool resolved(MistakeRecord m) {
     final session = sessionOf[m.id];
     for (final e in byFacet[m.facetId] ?? const <ReviewEvent>[]) {
-      if (!e.correct || !e.at.isAfter(m.at)) continue;
+      if (!e.correct || e.at.isBefore(m.at) || e.id == m.id) continue;
       if (session == null || e.sessionId == null || e.sessionId != session) return true;
     }
     return false;
@@ -83,12 +83,14 @@ Future<List<OpenMistake>> openMistakes({
     if (resolved(m)) continue;
     final facet = _facetFor(course, m.facetId, m.skillId);
     if (facet == null) continue;
-    open.add(OpenMistake(
-      record: m,
-      facet: facet,
-      count: counts[m.facetId]!,
-      recall: scheduler.retrievability(states[m.facetId], now),
-    ));
+    open.add(
+      OpenMistake(
+        record: m,
+        facet: facet,
+        count: counts[m.facetId]!,
+        recall: scheduler.retrievability(states[m.facetId], now),
+      ),
+    );
   }
   open.sort((a, b) {
     final wa = a.recall < kMistakeWeakRecall, wb = b.recall < kMistakeWeakRecall;
@@ -130,7 +132,7 @@ class ReviewBuilder {
 
 class MistakeReviewSession extends EngineSession {
   MistakeReviewSession._(super.env, Map<String, FacetState> states, this.mistakes)
-      : super(mode: SessionMode.review, states: states);
+    : super(mode: SessionMode.review, states: states);
 
   /// The mistakes this session reviews, in order.
   final List<OpenMistake> mistakes;

@@ -33,6 +33,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final reduceMotion = ref.watch(reduceMotionProvider);
     final defaultFocus = ref.watch(settingsProvider.select((s) => s.value?.defaultFocus));
     final now = ref.watch(clockProvider)();
+    final mistakeCount = ref.watch(openMistakesProvider).value?.length ?? 0;
+    final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(
@@ -50,11 +52,32 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        key: const ValueKey('fading-button'),
-        onPressed: () => context.push(Routes.fading),
-        icon: const Icon(Icons.restore),
-        label: const Text("What's fading"),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          if (mistakeCount > 0) ...[
+            FloatingActionButton.extended(
+              key: const ValueKey('mistakes-button'),
+              heroTag: 'mistakes-fab',
+              tooltip: 'Practice your open mistakes',
+              backgroundColor: scheme.tertiaryContainer,
+              foregroundColor: scheme.onTertiaryContainer,
+              onPressed: () => context.push(Routes.review),
+              icon: const Icon(Icons.replay),
+              label: Text('Review mistakes ($mistakeCount)'),
+            ),
+            const SizedBox(height: 12),
+          ],
+          FloatingActionButton.extended(
+            key: const ValueKey('fading-button'),
+            heroTag: 'fading-fab',
+            tooltip: 'Practice what you are forgetting',
+            onPressed: () => context.push(Routes.fading),
+            icon: const Icon(Icons.restore),
+            label: const Text("What's fading"),
+          ),
+        ],
       ),
       body: AsyncView(
         value: course,
@@ -67,7 +90,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           }
           return SingleChildScrollView(
             key: const ValueKey('map-scroll'),
-            padding: const EdgeInsets.only(top: 8, bottom: 96),
+            // Room below the last band for the action buttons.
+            padding: EdgeInsets.only(top: 8, bottom: mistakeCount > 0 ? 168 : 96),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
