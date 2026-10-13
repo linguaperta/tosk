@@ -162,6 +162,15 @@ Result wrongKind(Exercise e, Answer a, String expected) => Result(
       outcomes: [FacetOutcome(facetId: e.facetId, correct: false, rating: Rating.again)],
     );
 
+/// Whether two stems end alike (both in a vowel or both in a consonant), so an
+/// ending taken from a verb with one stem is a plausible wrong ending for the
+/// other: `ga` + `n` gives `gan`, but `denk` + `n` gives the unlikely `denkn`.
+bool stemsEndAlike(String a, String b) {
+  if (a.isEmpty || b.isEmpty) return a.isEmpty == b.isEmpty;
+  bool vowel(String s) => 'aeiouy'.contains(foldDiacritics(s.substring(s.length - 1).toLowerCase()));
+  return vowel(a) == vowel(b);
+}
+
 /// Display name of a verb for hints: `mangiare (noi, present)`.
 String formHint(CourseMeta meta, Item verb, String person, String tense, String lang) =>
     '${verb.lemma} (${meta.personLabel(person, lang)}, ${meta.tenseLabel(tense, lang)})';

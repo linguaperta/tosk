@@ -35,18 +35,37 @@ class ConjGridTemplate extends ExerciseTemplate {
   @override
   bool canGenerate(SkillFacet facet, GenContext ctx) {
     if (!supports(facet) || facet.tense == null) return false;
-    final cells = ctx.index.finiteForms(facet.itemId, facet.tense!);
-    return cells.length >= minCells && _distractors(facet, cells, ctx, shuffle: false).isNotEmpty;
+    return ctx.index.memo('conj_grid/$distractorCount/$minCells|${facet.facetId}', () {
+      final cells = ctx.index.finiteForms(facet.itemId, facet.tense!);
+      return cells.length >= minCells && _distractors(facet, cells, ctx, shuffle: false).isNotEmpty;
+    });
   }
 
   List<String> _distractors(SkillFacet facet, List<VerbForm> cells, GenContext ctx, {bool shuffle = true}) {
+    final forbidden = [for (final c in cells) ...c.accepted];
+    final picker = OptionPicker(forbidden: forbidden, max: distractorCount);
+    // The candidate groups depend only on the course and the facet.
+    final groups = ctx.index.memo('conj_grid.groups|${facet.facetId}', () => _candidateGroups(facet, cells, ctx));
+    if (shuffle) {
+      picker.addGroups(groups, ctx.random);
+    } else {
+      for (final g in groups) {
+        for (final o in g) {
+          if (picker.full) return picker.picked;
+          picker.add(o);
+        }
+      }
+    }
+    return picker.picked;
+  }
+
+  /// Wrong-form candidates in priority groups (see the class comment).
+  List<List<String>> _candidateGroups(SkillFacet facet, List<VerbForm> cells, GenContext ctx) {
     final course = ctx.course;
     final ix = ctx.index;
     final tense = facet.tense!;
     final verb = course.verb(facet.itemId);
-    final forbidden = [for (final c in cells) ...c.accepted];
-    final picker = OptionPicker(forbidden: forbidden, max: distractorCount);
-    final wordCounts = [for (final c in cells) splitWords(c.form).length];
+    final wordCounts = [for (final c in cells) ix.wordsOf(c.form).length];
     final typicalWords = wordCounts.fold<Map<int, int>>({}, (m, n) => m..[n] = (m[n] ?? 0) + 1).entries
         .reduce((a, b) => a.value >= b.value ? a : b)
         .key;
@@ -61,7 +80,7 @@ class ConjGridTemplate extends ExerciseTemplate {
     if (!auxAmbiguous && typicalWords > 1) {
       final varying = <int>{
         for (var k = 0; k < typicalWords; k++)
-          if ({for (final c in cells) if (splitWords(c.form).length == typicalWords) foldAnswer(splitWords(c.form)[k])}.length > 1) k,
+          if ({for (final c in cells) if (ix.wordsOf(c.form).length == typicalWords) foldAnswer(ix.wordsOf(c.form)[k])}.length > 1) k,
       };
       if (varying.isNotEmpty) {
         final k = varying.reduce(min);
@@ -69,8 +88,8 @@ class ConjGridTemplate extends ExerciseTemplate {
           for (final f in ix.finiteForms(v.id, tense)) {
             final mine = byPerson[f.person];
             if (mine == null) continue;
-            final w = splitWords(mine.form);
-            final w2 = splitWords(f.form);
+            final w = ix.wordsOf(mine.form);
+            final w2 = ix.wordsOf(f.form);
             if (w.length != typicalWords || w2.length != typicalWords) continue;
             if (foldAnswer(w[k]) == foldAnswer(w2[k])) continue;
             a.add((List.of(w)..[k] = w2[k]).join(' '));
@@ -88,7 +107,7 @@ class ConjGridTemplate extends ExerciseTemplate {
       for (final v in others) {
         if (verb?.verbClass != null && course.verb(v.id)?.verbClass == verb!.verbClass) continue;
         final f = course.verbForms(v.id)[cell.key];
-        if (f != null && f.hasSplit && f.ending != cell.ending) b.add(cell.stem! + f.ending!);
+        if (f != null && f.hasSplit && f.ending != cell.ending && stemsEndAlike(f.stem!, cell.stem!)) b.add(cell.stem! + f.ending!);
       }
       for (final other in cells) {
         if (other.person != cell.person && other.hasSplit) c.add(cell.stem! + other.ending!);
@@ -98,7 +117,7 @@ class ConjGridTemplate extends ExerciseTemplate {
     // d) The verb's own forms in other tenses with the same word count.
     final d = [
       for (final f in course.verbForms(facet.itemId).values)
-        if (f.tense != tense && f.person != kNoPerson && splitWords(f.form).length == typicalWords) f.form,
+        if (f.tense != tense && f.person != kNoPerson && ix.wordsOf(f.form).length == typicalWords) f.form,
     ];
 
     // e) Other verbs' forms in this tense (irregular verbs prefer irregular ones).
@@ -108,19 +127,17 @@ class ConjGridTemplate extends ExerciseTemplate {
     for (final v in others) {
       final sameKind = (course.verb(v.id)?.irregular ?? false) == irregular;
       for (final f in ix.finiteForms(v.id, tense)) {
-        if (splitWords(f.form).length != typicalWords) continue;
+        if (ix.wordsOf(f.form).length != typicalWords) continue;
         (sameKind ? e1 : e2).add(f.form);
       }
     }
 
-    if (shuffle) {
-      picker.addGroups([[...a, ...b, ...c], d, e1, e2], ctx.random);
-    } else {
-      for (final o in [...a, ...b, ...c, ...d, ...e1, ...e2]) {
-        picker.add(o);
-      }
-    }
-    return picker.picked;
+    return [
+      [...a, ...b, ...c],
+      d,
+      e1,
+      e2,
+    ];
   }
 
   @override

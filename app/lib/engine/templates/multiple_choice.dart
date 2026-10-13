@@ -33,8 +33,10 @@ class MultipleChoiceTemplate extends ExerciseTemplate {
   Set<FacetKind> get kinds => const {FacetKind.rec, FacetKind.prod, FacetKind.article};
 
   @override
-  bool canGenerate(SkillFacet facet, GenContext ctx) {
-    if (!supports(facet)) return false;
+  bool canGenerate(SkillFacet facet, GenContext ctx) => supports(facet) &&
+      ctx.index.memo('multiple_choice/$sentenceShare/$optionCount|${facet.facetId}|${ctx.lang}', () => _can(facet, ctx));
+
+  bool _can(SkillFacet facet, GenContext ctx) {
     final item = ctx.course.item(facet.itemId);
     if (item == null) return false;
     if (facet.kind == FacetKind.article) {
@@ -118,24 +120,31 @@ class MultipleChoiceTemplate extends ExerciseTemplate {
     final ix = ctx.index;
     for (final s in ctx.shuffled(pool).take(4)) {
       final translation = s.translation(ctx.lang)!;
-      final others = [
-        for (final t in ctx.shuffled(ix.allSentences))
-          if (!ix.equivalent(s, t) && (t.translation(ctx.lang) ?? '').trim().isNotEmpty) t,
-      ];
-      // Prefer sentences that share a word with [s].
+      final shuffled = ctx.shuffled(ix.allSentences);
+      // Prefer sentences that share a word with [s]. Filtered lazily: only a
+      // few candidates are needed.
       final lexes = {for (final t in s.tokens) if (t.lex != null) t.lex};
       bool related(Sentence t) => t.tokens.any((x) => x.lex != null && lexes.contains(x.lex));
-      final ordered = [...others.where(related), ...others.where((t) => !related(t))];
+      bool usable(Sentence t) => (t.translation(ctx.lang) ?? '').trim().isNotEmpty && !ix.equivalent(s, t);
+      final ordered = shuffled
+          .where((t) => related(t) && usable(t))
+          .followedBy(shuffled.where((t) => !related(t) && usable(t)));
 
       final List<String> distractors;
       if (rec) {
         final picker = OptionPicker(forbidden: [translation], max: optionCount - 1);
         for (final t in ordered) {
+          if (picker.full) break;
           picker.add(t.translation(ctx.lang)!);
         }
         distractors = picker.picked;
       } else {
-        final picker = OptionPicker(forbidden: [s.text], max: optionCount - 1);
+        // Every course sentence with the same translation is right too (an
+        // altered person can be one: `Riesce …` next to `Riesci …` for "Can you …").
+        final picker = OptionPicker(forbidden: [
+          s.text,
+          for (final t in ix.sentencesWithTranslation(ctx.lang, translation)) t.text,
+        ], max: optionCount - 1);
         final altered = <String>[
           for (final o in ix.formOccurrencesInSentence(s))
             for (final sw in formSwaps(ix, o)) renderPairs(sw.render()),
@@ -148,6 +157,7 @@ class MultipleChoiceTemplate extends ExerciseTemplate {
           picker.add(a);
         }
         for (final t in ordered) {
+          if (picker.full) break;
           picker.add(t.text);
         }
         for (final a in alt) {

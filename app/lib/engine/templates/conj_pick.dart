@@ -78,12 +78,12 @@ class ConjPickTemplate extends ExerciseTemplate {
     addGroup([
       for (final v in sameClass)
         for (final f in ix.finiteForms(v.id, cell.tense))
-          if (f.hasSplit) f,
+          if (f.hasSplit && stemsEndAlike(f.stem!, cell.stem!)) f,
     ]);
     addGroup([
       for (final v in others)
         for (final f in ix.finiteForms(v.id, cell.tense))
-          if (f.hasSplit) f,
+          if (f.hasSplit && stemsEndAlike(f.stem!, cell.stem!)) f,
     ]);
     return out;
   }
@@ -93,7 +93,8 @@ class ConjPickTemplate extends ExerciseTemplate {
   @override
   bool canGenerate(SkillFacet facet, GenContext ctx) {
     if (!supports(facet)) return false;
-    return _cells(facet, ctx).any((c) => _distractors(facet, c, ctx, shuffle: false).length >= 2);
+    return ctx.index.memo('conj_pick/$optionCount|${facet.facetId}',
+        () => _cells(facet, ctx).any((c) => _distractors(facet, c, ctx, shuffle: false).length >= 2));
   }
 
   @override

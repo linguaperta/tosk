@@ -145,11 +145,30 @@ conjugation tables. Rules:
   token gets `form = passato_prossimo.{person}` / `perfectum.{person}` and the auxiliary token gets
   its own present form. *The participle token's text is only part of the multi-word form in
   `verb_forms`* (`mangiato` vs `ho mangiato`). Participles without auxiliary → `participle._`.
+  Not linked (both words keep `lex`, no compound `form`), because an exercise built on them would be
+  wrong: an auxiliary whose adjacent subject pronoun fits none of its persons (inversion `Heb je
+  gegeten?`, `io e lui abbiamo`) or is polite *u*; Dutch modal + perfect infinitive (`zou … geweest
+  zijn`: `zijn` is an infinitive); *zijn* + participle of a verb that lists *zijn* only as its second
+  auxiliary (nl.wiktionary does that for transitive verbs because of the passive: `is gezien`);
+  possessive *zijn* before a noun. Italian: after a form of *essere*, a participle/finite homograph
+  is the participle (`sono state costruite`).
 * Ambiguous persons: an adjacent subject pronoun decides; a pronoun that fits no form (subjunctive)
   leaves `form` unset; Dutch infinitive after *te* or a finite verb in the clause; a name/noun subject
   requires a 3rd-person form (else unset); Italian *sono*: following -i/-e adjective/participle =
   *loro*, else *io*; otherwise 3rd singular, 3rd plural, first person in order.
-* Dutch inversion (`werk jij`) and imperatives keep `lex` but get no `form`.
+* Dutch inversion (`werk jij`, `wil je`, `kwam je`), imperatives and other clause-initial verbs
+  without a subject pronoun after them (`Laat me …`, `Werkt Tom …?`), verbs next to polite *u*
+  (`u bent` / `u is`), forms of two different verbs (`was`: zijn or wassen) and conditional *zou*
+  keep `lex` but get no `form`.
+* Dutch clauses (`Lang.clause_starters`, `coordinators`, …): one finite verb per clause, so a later
+  infinitive homograph is the infinitive (`Ik zal jullie vertellen`, `Wat kan ik voor jullie doen?`)
+  and an adjective homograph the adjective (`te laat`, `hoe laat`); a subordinate clause starts over
+  when a pronoun, name or *er* directly follows its conjunction (`Ik weet dat jullie werken`), not
+  after a demonstrative *dat* (`Kun je me dat laten weten?`). In a verb-final clause where several
+  persons share the form (`maakt`: jij/hij), only an unambiguous subject pronoun earlier in the clause
+  decides (`dat ik weg moet`); `je`/`ze`/`het` may be objects, so with them the person stays open.
+  A clause-initial noun or a noun after an inflected adjective is not a verb (`Leven is …`, `het
+  eeuwige leven`).
 * Unmatched tokens stay unlinked.
 
 ## IDs
