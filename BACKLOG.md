@@ -15,22 +15,22 @@ Each item says what "done" means. Add newly discovered work at the bottom of its
 
 ## Phase 1: Content format and pipeline (`pipeline/`, `schema/`, `../tosk-data/content`)
 
-- [ ] JSON Schemas: `course.yaml`, lexicon, verbs and sentences JSONL
-- [ ] Download/cache layer (kaikki, Tatoeba, frequency lists), streaming, never committed
-- [ ] kaikki importer for Italian and Dutch: lemma, POS, gender, article, plural, translations, conjugation tables (stem and ending split)
-- [ ] Dutch glosses for Italian (and other pivots) when kaikki has none: the strategy is documented and the gaps are filled
-- [ ] Tatoeba importer: it–en, it–nl and nl–en pairs
-- [ ] Frequency lists, giving the freq rank per lemma
-- [ ] Token alignment: sentence tokens linked to items and forms, with unmatched tokens left unlinked
-- [ ] Stable ID registry (`ids.tsv`)
-- [ ] `course.yaml` for it: 3 units and about 8 skills (-are, -ere and -ire present, essere/avere, articles, vocab)
-- [ ] `course.yaml` for nl: 3 units and about 8 skills (present, perfectum with hebben or zijn, de/het, vocab)
-- [ ] Grammar notes (en and nl) for every grammar skill
-- [ ] Compiler: JSONL and YAML into `course.sqlite`, following the DDL, with a schema version
-- [ ] Validator: unique IDs, no cycles, tokens point to real items, grammar skills have enough complete tables
-- [ ] Report: item and facet counts per skill
-- [ ] `index.json` and `ATTRIBUTION.md` in tosk-data
-- [ ] `python -m pipeline build it nl [--install]` works end to end and is tested with pytest
+- [~] JSON Schemas: `course.yaml`, lexicon, verbs and sentences JSONL
+- [~] Download/cache layer (kaikki, Tatoeba, frequency lists), streaming, never committed
+- [~] kaikki importer for Italian and Dutch: lemma, POS, gender, article, plural, translations, conjugation tables (stem and ending split)
+- [~] Dutch glosses for Italian (and other pivots) when kaikki has none: the strategy is documented and the gaps are filled
+- [~] Tatoeba importer: it–en, it–nl and nl–en pairs
+- [~] Frequency lists, giving the freq rank per lemma
+- [~] Token alignment: sentence tokens linked to items and forms, with unmatched tokens left unlinked
+- [~] Stable ID registry (`ids.tsv`)
+- [~] `course.yaml` for it: 3 units and about 8 skills (-are, -ere and -ire present, essere/avere, articles, vocab)
+- [~] `course.yaml` for nl: 3 units and about 8 skills (present, perfectum with hebben or zijn, de/het, vocab)
+- [~] Grammar notes (en and nl) for every grammar skill
+- [~] Compiler: JSONL and YAML into `course.sqlite`, following the DDL, with a schema version
+- [~] Validator: unique IDs, no cycles, tokens point to real items, grammar skills have enough complete tables
+- [~] Report: item and facet counts per skill
+- [~] `index.json` and `ATTRIBUTION.md` in tosk-data
+- [~] `python -m pipeline build it nl [--install]` works end to end and is tested with pytest
 
 ## Phase 2: Local database layer (`app/lib/data`)
 
@@ -45,18 +45,18 @@ Each item says what "done" means. Add newly discovered work at the bottom of its
 
 ## Phase 3: Exercise engine (`app/lib/engine`)
 
-- [ ] `ExerciseTemplate` interface and the sealed `Exercise` and `Result` types
-- [ ] Templates: flashcard, multiple_choice, match_pairs, conj_pick, conj_grid, sentence_builder, cloze, spot_error, transform
-- [ ] Distractor generator (same tense with other persons, same tag, similar freq), checked against all valid answers
-- [ ] Answer normalization (case, punctuation, variants, accent strictness)
-- [ ] Exercise-type choice by facet stability (new items get recognition and choice, stable items get production)
-- [ ] `LessonBuilder` (due, then up to 5 new, then filler; about 12 exercises), `LabBuilder`, `NonStopQueue`, "what's fading" mixed practice
-- [ ] Focus presets config (mixed, vocab, grammar) with weights per exercise type
-- [ ] Mistakes return later in the same lesson and are logged for mistake review
-- [ ] Grading mapped to FSRS ratings and written with `ProgressRepo.record()`
-- [ ] Hooks: `AnswerInput`, `Explainer` and `NullExplainer`, `MistakeContext` stored on wrong answers
-- [ ] Sample command: 20 exercises per skill and type
-- [ ] Test: every template generates at least 20 valid exercises for every skill in both courses, with no duplicate options and the correct answer present exactly once
+- [~] `ExerciseTemplate` interface and the sealed `Exercise` and `Result` types
+- [~] Templates: flashcard, multiple_choice, match_pairs, conj_pick, conj_grid, sentence_builder, cloze, spot_error, transform
+- [~] Distractor generator (same tense with other persons, same tag, similar freq), checked against all valid answers
+- [~] Answer normalization (case, punctuation, variants, accent strictness)
+- [~] Exercise-type choice by facet stability (new items get recognition and choice, stable items get production)
+- [~] `LessonBuilder` (due, then up to 5 new, then filler; about 12 exercises), `LabBuilder`, `NonStopQueue`, "what's fading" mixed practice
+- [~] Focus presets config (mixed, vocab, grammar) with weights per exercise type
+- [~] Mistakes return later in the same lesson and are logged for mistake review
+- [~] Grading mapped to FSRS ratings and written with `ProgressRepo.record()`
+- [~] Hooks: `AnswerInput`, `Explainer` and `NullExplainer`, `MistakeContext` stored on wrong answers
+- [~] Sample command: 20 exercises per skill and type
+- [~] Test: every template generates at least 20 valid exercises for every skill in both courses, with no duplicate options and the correct answer present exactly once
 
 ## Phase 4: App screens (`app/lib/ui`)
 
