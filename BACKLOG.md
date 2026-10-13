@@ -105,6 +105,12 @@ Each item says what "done" means. Add newly discovered work at the bottom of its
 - [~] "Explain answer with AI" after every checked answer (Claude or OpenAI key in Settings; no button without a key), streamed and cached
 - [~] Flag an exercise (reason and comment); Submit saves locally with a `.jsonl` export; "Confer with AI" checks the complaint
 - [~] Sounds: correct, wrong, lesson complete, muted select tick; toggle in Settings
+- [ ] Tap a word in any exercise sentence for its gloss; verbs show lemma, person and tense
+- [ ] Progress backup: export and import the review log (Settings), until Drive sync in v0.4
+- [ ] Test out of a skill (short quiz marks it learned and unlocks what follows) + optional placement at course start
+- [ ] Conjugation and word lookup: searchable reference of all pack verbs (full tables) and words; extends the verb collection
+- [ ] Daily goal (lessons or XP) + local reminder notification at a chosen time; goal line on the heatmap
+- [ ] Typing mode toggle ("challenge mode": production exercises take typed answers)
 - [ ] Preview 3 APK
 
 
