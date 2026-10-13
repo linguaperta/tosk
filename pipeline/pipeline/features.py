@@ -37,6 +37,7 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict
+from types import SimpleNamespace
 
 from . import query
 from .lang import get_lang
@@ -64,7 +65,13 @@ class FeatureTagger:
 
     def __init__(self, course: dict, items: list[dict], verbs: dict[str, dict]):
         self.code = course["id"]
-        self.lang = get_lang(self.code)
+        try:
+            self.lang = get_lang(self.code)
+        except KeyError:
+            # a course without pipeline language rules (e.g. one with its own importer): tenses
+            # from the token forms only, no compound tenses or auxiliaries
+            self.lang = SimpleNamespace(present=(course.get("tenses") or [None])[0], compound_tenses={},
+                                        auxiliaries=[], persons=list(course.get("persons") or ["_"]))
         self.items = {it["id"]: it for it in items}
         self.verbs = verbs
         self.present = self.lang.present

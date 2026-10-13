@@ -238,6 +238,15 @@ def test_importer_drops_sentences_with_unintroduced_features(import_env, monkeyp
     assert gating == []
 
 
+def test_course_without_language_rules_is_tagged_from_forms():
+    course = {"id": "xx", "persons": ["1s"], "tenses": ["pres", "past"], "units": []}
+    verbs = {"xx:go": {"id": "xx:go", "forms": {"pres": {"1s": {"form": "go"}}, "past": {"1s": {"form": "went"}}}}}
+    items = [{"id": "xx:go", "lemma": "go", "pos": "verb", "freq": 1, "tr": {"en": ["to go"]}}]
+    t = FeatureTagger(course, items, verbs)
+    assert t.tag([tok("went", "xx:go", "past.1s", "")]) == {"tense:past"}
+    assert t.tag([tok("went", "xx:go", None, "")]) == {"tense:past"}
+
+
 def test_sentence_dedupe_ignores_punctuation_and_case():
     from pipeline.importer import dedupe_key
     assert dedupe_key("Grazie mille!") == dedupe_key("grazie mille.") == dedupe_key("Grazie  mille")
