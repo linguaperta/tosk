@@ -93,7 +93,8 @@ class ConjPickTemplate extends ExerciseTemplate {
   @override
   bool canGenerate(SkillFacet facet, GenContext ctx) {
     if (!supports(facet)) return false;
-    return _cells(facet, ctx).any((c) => _distractors(facet, c, ctx, shuffle: false).length >= 2);
+    return ctx.index.memo('conj_pick/$optionCount|${facet.facetId}',
+        () => _cells(facet, ctx).any((c) => _distractors(facet, c, ctx, shuffle: false).length >= 2));
   }
 
   @override

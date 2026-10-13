@@ -71,7 +71,10 @@ class ClozeTemplate extends ExerciseTemplate {
   Set<FacetKind> get kinds => const {FacetKind.form, FacetKind.prod, FacetKind.article};
 
   @override
-  bool canGenerate(SkillFacet facet, GenContext ctx) => supports(facet) && _gaps(facet, ctx, shuffle: false).isNotEmpty;
+  bool canGenerate(SkillFacet facet, GenContext ctx) =>
+      supports(facet) &&
+      ctx.index.memo('cloze/$optionCount|${facet.facetId}|${ctx.lang}',
+          () => _gaps(facet, ctx, shuffle: false, limit: 1).isNotEmpty);
 
   int _minDistractors(SkillFacet f) => f.kind == FacetKind.article ? 1 : 2;
 
@@ -130,12 +133,18 @@ class ClozeTemplate extends ExerciseTemplate {
       final sameTense = <String>[];
       final sameP = <String>[];
       final rest = <String>[];
+      final words = splitWords(expected).length;
       for (final f in forms.values) {
         if (f.person == kNoPerson || f.key == o.cell.key) continue;
         if (forbidden.contains(foldAnswer(f.form))) continue;
         final opt = matchCase(f.form, expected);
         if (f.tense == o.tense) {
           sameTense.add(opt);
+        } else if (splitWords(f.form).length != words) {
+          // Another tense with another word count can fit the gap's context
+          // (`zou … zijn` for `zou … zijn geweest`, `Ik ga` for `Ik ben gegaan`)
+          // and gives the answer away anyway.
+          continue;
         } else if (f.person == o.person) {
           sameP.add(opt);
         } else {

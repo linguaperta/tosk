@@ -55,7 +55,9 @@ class TransformTemplate extends ExerciseTemplate {
 
   @override
   bool canGenerate(SkillFacet facet, GenContext ctx) =>
-      supports(facet) && _plans(facet, ctx).any((p) => _distractors(p, ctx, shuffle: false).isNotEmpty);
+      supports(facet) &&
+      ctx.index.memo('transform/$distractorCount|${facet.facetId}|${ctx.lang}',
+          () => _plans(facet, ctx).any((p) => _distractors(p, ctx, shuffle: false).isNotEmpty));
 
   List<_Plan> _plans(SkillFacet facet, GenContext ctx) {
     final tense = facet.tense;
@@ -120,6 +122,14 @@ class TransformTemplate extends ExerciseTemplate {
     final replace = <int, String>{};
     final delete = <int>{};
     if (wt.length == n) {
+      // A form written out of order (Dutch subordinate `opgestaan ben`) only
+      // keeps a valid order when the new form has the same shape: `sta op`
+      // would become `op sta` (instead of `opsta`).
+      if (n > 1 && targetTense != o.tense) {
+        for (var k = 0; k + 1 < n; k++) {
+          if (o.positions[k + 1] < o.positions[k]) return null;
+        }
+      }
       for (var k = 0; k < n; k++) {
         replace[o.positions[k]] = matchCase(wt[k], tokens[o.positions[k]].t);
       }
