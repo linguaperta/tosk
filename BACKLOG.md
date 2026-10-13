@@ -81,8 +81,8 @@ Each item says what "done" means. Add newly discovered work at the bottom of its
 - [x] Full-lesson integration tests: engine with an on-disk `ProgressRepo`, non-stop with a bonus round, boot on the real bundled packs (`test/app/`)
 - [x] Replace demo fakes with real data, engine and progression (integration); demo course only as a no-packs fallback
 - [x] Builds: Windows, web, and a signed release APK (split per ABI; preview 1 sent on 13 October). iOS needs a Mac and is documented only.
-- [~] Mistake review mode: practice saved `MistakeRecord`s (`SessionMode.review`), with an entry point on the map or progress page
-- [~] Exploratory QA pass on the running app (Windows/web): full flows on both courses, UX polish
+- [x] Mistake review mode: practice saved `MistakeRecord`s (`SessionMode.review`), with an entry point on the map or progress page
+- [x] Exploratory QA pass on the running app (Windows/web): full flows on both courses, UX polish
 
 ## Phase 5: Progression (`app/lib/progression`)
 
@@ -101,7 +101,7 @@ Each item says what "done" means. Add newly discovered work at the bottom of its
 - [~] Grammar-first curriculum: a construct is taught by its own skill before other exercises use it
 - [~] Grammar gating data: `sentence_features`, `skill_features` and `base_features` in the pipeline and compiler, with a validator check
 - [ ] Grammar gating in the engine: only sentences whose features are known; unknown vocabulary capped (≤1 for grammar focus, ≤2 for vocab)
-- [~] Bottom-aligned exercise controls (one-handed use)
+- [x] Bottom-aligned exercise controls (one-handed use)
 - [~] "Explain answer with AI" after every checked answer (Claude or OpenAI key in Settings; no button without a key), streamed and cached
 - [~] Flag an exercise (reason and comment); Submit saves locally with a `.jsonl` export; "Confer with AI" checks the complaint
 - [~] Sounds: correct, wrong, lesson complete, muted select tick; toggle in Settings
@@ -120,7 +120,8 @@ Each item says what "done" means. Add newly discovered work at the bottom of its
 - [ ] Sentence variety: log the sentence id with each answer; the engine prefers unseen or least-recently-seen sentences
 - [ ] Sentence floor: generation tops up every verb×person×tense slot and every vocab topic to ≥8–10 distinct sentences
 - [ ] Course picker as a pop-up menu: +/- to add or remove each course, a preview per course (description, units/skills, sample words and sentences, unverified badge); the app only shows courses you've added
-- [~] Black & white (e-ink) mode for the Boox: pure B/W skin, nothing conveyed by color (icons, labels, patterns, inverted fills), reduce motion forced on. Tested: grayscale-only assertions on every screen and exercise type, goldens, overflow at Boox and phone sizes
+- [x] Black & white (e-ink) mode for the Boox: pure B/W skin, nothing conveyed by color (icons, labels, patterns, inverted fills), reduce motion forced on. Tested: grayscale-only assertions on every screen and exercise type, goldens, overflow at Boox and phone sizes
+- [ ] QA leftovers: `ciao` MC offers "hello" as a distractor (synonym data); instruction can slide under the app bar on tall exercises; a "jump to current unit" button on long maps
 - [ ] Preview 3 APK
 
 
