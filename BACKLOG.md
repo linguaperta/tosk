@@ -15,22 +15,26 @@ Each item says what "done" means. Add newly discovered work at the bottom of its
 
 ## Phase 1: Content format and pipeline (`pipeline/`, `schema/`, `../tosk-data/content`)
 
-- [~] JSON Schemas: `course.yaml`, lexicon, verbs and sentences JSONL
-- [~] Download/cache layer (kaikki, Tatoeba, frequency lists), streaming, never committed
-- [~] kaikki importer for Italian and Dutch: lemma, POS, gender, article, plural, translations, conjugation tables (stem and ending split)
-- [~] Dutch glosses for Italian (and other pivots) when kaikki has none: the strategy is documented and the gaps are filled
-- [~] Tatoeba importer: it–en, it–nl and nl–en pairs
-- [~] Frequency lists, giving the freq rank per lemma
-- [~] Token alignment: sentence tokens linked to items and forms, with unmatched tokens left unlinked
-- [~] Stable ID registry (`ids.tsv`)
-- [~] `course.yaml` for it: 3 units and about 8 skills (-are, -ere and -ire present, essere/avere, articles, vocab)
-- [~] `course.yaml` for nl: 3 units and about 8 skills (present, perfectum with hebben or zijn, de/het, vocab)
-- [~] Grammar notes (en and nl) for every grammar skill
-- [~] Compiler: JSONL and YAML into `course.sqlite`, following the DDL, with a schema version
-- [~] Validator: unique IDs, no cycles, tokens point to real items, grammar skills have enough complete tables
-- [~] Report: item and facet counts per skill
-- [~] `index.json` and `ATTRIBUTION.md` in tosk-data
-- [~] `python -m pipeline build it nl [--install]` works end to end and is tested with pytest
+- [x] JSON Schemas: `course.yaml`, lexicon, verbs and sentences JSONL
+- [x] Download/cache layer (kaikki, Tatoeba, frequency lists), streaming, never committed
+- [x] kaikki importer for Italian and Dutch: lemma, POS, gender, article, plural, translations, conjugation tables (stem and ending split)
+- [x] Dutch glosses for Italian (and other pivots) when kaikki has none: the strategy is documented and the gaps are filled
+- [x] Tatoeba importer: it–en, it–nl and nl–en pairs
+- [x] Frequency lists, giving the freq rank per lemma
+- [x] Token alignment: sentence tokens linked to items and forms, with unmatched tokens left unlinked
+- [x] Stable ID registry (`ids.tsv`)
+- [x] `course.yaml` for it: 3 units and about 8 skills (-are, -ere and -ire present, essere/avere, articles, vocab)
+- [x] `course.yaml` for nl: 3 units and about 8 skills (present, perfectum with hebben or zijn, de/het, vocab)
+- [x] Grammar notes (en and nl) for every grammar skill
+- [x] Compiler: JSONL and YAML into `course.sqlite`, following the DDL, with a schema version
+- [x] Validator: unique IDs, no cycles, tokens point to real items, grammar skills have enough complete tables
+- [x] Report: item and facet counts per skill
+- [x] `index.json` and `ATTRIBUTION.md` in tosk-data
+- [x] `python -m pipeline build it nl [--install]` works end to end and is tested with pytest
+- [ ] Thin sentence coverage: sparire (1), impazzire (3), nl leven (4); nl perfectum-zijn covers 73% of person slots
+- [ ] About 17% of Italian distractor-pool items lack a Dutch gloss
+- [ ] Dutch separable verbs split in a sentence aren't aligned
+- [~] Compound-tense exercises are wrong on the real packs (auxiliary and participle tokens); generation is slow on the full packs
 
 ## Phase 2: Local database layer (`app/lib/data`)
 
@@ -57,7 +61,7 @@ Each item says what "done" means. Add newly discovered work at the bottom of its
 - [x] Hooks: `AnswerInput`, `Explainer` and `NullExplainer`, `MistakeContext` stored on wrong answers
 - [x] Sample command: 20 exercises per skill and type (`app/tool/sample_exercises.dart`; switch it to the real packs at integration)
 - [x] Test: every template generates at least 20 valid exercises for every skill in both courses, with no duplicate options and the correct answer present exactly once (fixtures; `runTemplateValidity`)
-- [ ] Run `runTemplateValidity` on the real it/nl packs
+- [~] Run `runTemplateValidity` on the real it/nl packs (`test/engine/real_pack_validity_test.dart`, currently failing)
 - [~] Free-text cloze only when the input preference is keyboard or ink (spec: typing is never required)
 
 ## Phase 4: App screens (`app/lib/ui`)
