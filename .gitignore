@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+pipeline/build/
+# Local-only data (never commit: copyrighted sources, caches)
+local/
+*.local.*
+# Signing
+*.jks
+*.keystore
+key.properties
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+# Claude worktrees
+.claude/worktrees/
