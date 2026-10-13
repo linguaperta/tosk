@@ -238,6 +238,13 @@ def test_importer_drops_sentences_with_unintroduced_features(import_env, monkeyp
     assert gating == []
 
 
+def test_sentence_dedupe_ignores_punctuation_and_case():
+    from pipeline.importer import dedupe_key
+    assert dedupe_key("Grazie mille!") == dedupe_key("grazie mille.") == dedupe_key("Grazie  mille")
+    assert dedupe_key("L’acqua è fredda.") == dedupe_key("L'acqua è fredda!")
+    assert dedupe_key("Grazie mille, Tom.") != dedupe_key("Grazie mille.")
+
+
 def test_italian_irregular_imperfetto_and_futuro():
     from pipeline.lang import get_lang
     it = get_lang("it")

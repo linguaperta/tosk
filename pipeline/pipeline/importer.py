@@ -60,6 +60,13 @@ def log(msg: str) -> None:
     print(msg, file=sys.stderr, flush=True)
 
 
+def dedupe_key(text: str) -> str:
+    """Sentences that differ only in case, punctuation or spacing are duplicates ('Grazie mille!'
+    and 'Grazie mille.'): the app compares sentences by their normalized text."""
+    s = re.sub(r"[^\w\s'’]", " ", text.lower())
+    return " ".join(s.replace("’", "'").split())
+
+
 # --------------------------------------------------------------------------------------- frequency
 def lemma_scores(lexemes: dict[tuple[str, str], Lexeme], counts: dict[str, int]) -> dict[tuple[str, str], float]:
     """Frequency score: count of the lemma plus the counts of inflected forms that are not
@@ -351,14 +358,13 @@ def run_import(code: str, content_root: str | None = None) -> None:
             lexemes[key].inflections |= new
             scores[key] = scores.get(key, 0) + sum(counts.get(x, 0) for x in new)
 
-    # A tagged (taught) seed item takes the frequency of its lemma from content-word homographs that
-    # Wiktionary lists with more senses ('madre' adj vs noun, 'bene' noun vs adv), so the alignment
-    # links the word to the taught item. Verbs and function words keep their own score.
+    # A tagged (taught) seed item takes the frequency of its lemma from the homographs that Wiktionary
+    # lists with more senses ('madre' adj vs noun, 'bene' noun vs adv, 'solo' conj vs adv), so the
+    # alignment links the word to the taught item. Verbs and other seed items keep their own score.
     for key, s in chosen.items():
         if not s.get("tags"):
             continue
-        others = [k for k in by_lemma.get(key[0], []) if k != key and k not in chosen
-                  and k[1] != "verb" and k[1] not in FUNCTION_POS]
+        others = [k for k in by_lemma.get(key[0], []) if k != key and k not in chosen and k[1] != "verb"]
         top = max([scores.get(k, 0) for k in others], default=0)
         if top > scores.get(key, 0):
             scores[key] = top
@@ -489,7 +495,7 @@ def run_import(code: str, content_root: str | None = None) -> None:
     seen_text = set()
     for sid in sorted(trs):
         text = target[sid]
-        low = text.lower()
+        low = dedupe_key(text)
         if low in seen_text:
             continue
         seen_text.add(low)
