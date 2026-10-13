@@ -1,0 +1,10 @@
+targets:
+  $default:
+    builders:
+      drift_dev:
+        options:
+          databases:
+            progress: lib/data/progress/progress_db.dart
+          schema_dir: drift_schemas/
+          test_dir: test/drift/
+          store_date_time_values_as_text: false
