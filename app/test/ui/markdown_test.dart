@@ -87,4 +87,17 @@ code block
     expect(find.text('•'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  test('noteExcerpt: first prose block, plain text, cut at a word', () {
+    expect(noteExcerpt(null), isNull);
+    expect(noteExcerpt('# Only a heading'), isNull);
+    expect(
+      noteExcerpt('# Title\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\nVerbs in **-are** take *these* endings.'),
+      'Verbs in -are take these endings.',
+    );
+    expect(noteExcerpt('- first item\n- second'), 'first item');
+    final long = noteExcerpt('word ' * 100, max: 40)!;
+    expect(long.length, lessThanOrEqualTo(41));
+    expect(long, endsWith('word…'));
+  });
 }

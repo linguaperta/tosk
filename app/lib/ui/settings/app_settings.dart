@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import '../../core/core.dart';
 import 'setting_keys.dart';
 
+/// How the app draws: the normal color theme, or pure black and white for
+/// e-ink readers (Boox and similar), which also forces reduced motion.
+enum DisplayMode { color, bw }
+
 /// User settings as one immutable value. Persisted key by key in the [ProgressStore].
 @immutable
 class AppSettings {
@@ -13,6 +17,7 @@ class AppSettings {
     this.accents = AccentStrictness.lenient,
     this.themeMode = ThemeMode.system,
     this.reduceMotion = false,
+    this.display = DisplayMode.color,
   });
 
   /// Null until the user picks a course; the first available course is used then.
@@ -23,6 +28,12 @@ class AppSettings {
   final ThemeMode themeMode;
   final bool reduceMotion;
 
+  /// Color, or black & white (e-ink).
+  final DisplayMode display;
+
+  /// Black & white (e-ink) display.
+  bool get bw => display == DisplayMode.bw;
+
   AppSettings copyWith({
     String? courseId,
     String? sourceLang,
@@ -30,6 +41,7 @@ class AppSettings {
     AccentStrictness? accents,
     ThemeMode? themeMode,
     bool? reduceMotion,
+    DisplayMode? display,
   }) => AppSettings(
     courseId: courseId ?? this.courseId,
     sourceLang: sourceLang ?? this.sourceLang,
@@ -37,6 +49,7 @@ class AppSettings {
     accents: accents ?? this.accents,
     themeMode: themeMode ?? this.themeMode,
     reduceMotion: reduceMotion ?? this.reduceMotion,
+    display: display ?? this.display,
   );
 
   /// Reads every setting from [store], falling back to defaults for missing or unknown values.
@@ -48,6 +61,7 @@ class AppSettings {
     final accents = await store.getSetting(SettingKeys.accents);
     final theme = await store.getSetting(SettingKeys.themeMode);
     final motion = await store.getSetting(SettingKeys.reduceMotion);
+    final display = await store.getSetting(SettingKeys.display);
     return AppSettings(
       courseId: (course == null || course.isEmpty) ? null : course,
       sourceLang: (lang == null || lang.isEmpty) ? d.sourceLang : lang,
@@ -55,6 +69,7 @@ class AppSettings {
       accents: _byName(AccentStrictness.values, accents) ?? d.accents,
       themeMode: _byName(ThemeMode.values, theme) ?? d.themeMode,
       reduceMotion: motion == 'true',
+      display: _byName(DisplayMode.values, display) ?? d.display,
     );
   }
 
@@ -70,6 +85,7 @@ class AppSettings {
     await put(SettingKeys.accents, accents.name, old?.accents.name);
     await put(SettingKeys.themeMode, themeMode.name, old?.themeMode.name);
     await put(SettingKeys.reduceMotion, '$reduceMotion', old == null ? null : '${old.reduceMotion}');
+    await put(SettingKeys.display, display.name, old?.display.name);
   }
 
   @override
@@ -80,10 +96,11 @@ class AppSettings {
       other.defaultFocus == defaultFocus &&
       other.accents == accents &&
       other.themeMode == themeMode &&
-      other.reduceMotion == reduceMotion;
+      other.reduceMotion == reduceMotion &&
+      other.display == display;
 
   @override
-  int get hashCode => Object.hash(courseId, sourceLang, defaultFocus, accents, themeMode, reduceMotion);
+  int get hashCode => Object.hash(courseId, sourceLang, defaultFocus, accents, themeMode, reduceMotion, display);
 }
 
 T? _byName<T extends Enum>(List<T> values, String? name) {

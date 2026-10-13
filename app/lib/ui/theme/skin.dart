@@ -48,6 +48,7 @@ class MapStyle {
     required this.onNode,
     this.nodeShape = const CircleBorder(),
     this.edgePainter = const CurvedEdgePainter(),
+    this.monochrome = false,
   });
 
   final Color vocabColor;
@@ -66,18 +67,24 @@ class MapStyle {
   final ShapeBorder nodeShape;
   final EdgePainter edgePainter;
 
+  /// Black & white (e-ink): nodes are outlined, the strength ring has a
+  /// dotted track, fading shows as a dashed border and tiers as letters.
+  final bool monochrome;
+
   Color nodeColor(SkillKind kind) => kind == SkillKind.vocab ? vocabColor : grammarColor;
 
   Color bandColor(int index) => bandColors[index % bandColors.length];
 
-  Color tierColor(MapTier tier) => switch (tier) {
-    MapTier.gold => const Color(0xFFE6B422),
-    MapTier.silver => const Color(0xFFA8B2BD),
-    MapTier.bronze => const Color(0xFFC07A45),
-    MapTier.started => ringColor,
-    MapTier.available => ringTrack,
-    MapTier.locked => lockedColor,
-  };
+  Color tierColor(MapTier tier) => monochrome
+      ? ringColor
+      : switch (tier) {
+          MapTier.gold => const Color(0xFFE6B422),
+          MapTier.silver => const Color(0xFFA8B2BD),
+          MapTier.bronze => const Color(0xFFC07A45),
+          MapTier.started => ringColor,
+          MapTier.available => ringTrack,
+          MapTier.locked => lockedColor,
+        };
 }
 
 /// Draws one prerequisite edge between two node centers (bottom of [from] to top of [to]).

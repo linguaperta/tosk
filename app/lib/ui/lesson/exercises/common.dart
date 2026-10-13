@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/core.dart';
+import '../../theme/bw_skin.dart';
+
+export 'exercise_layout.dart' show ExerciseLayout;
 
 /// Shortcut presses forwarded from the player to the current exercise widget
 /// (desktop: digits pick options, Enter on an exercise without a draft = primary action).
@@ -95,20 +98,103 @@ mixin ExerciseKeysMixin<W extends ExerciseWidget> on State<W> {
 }
 
 /// Colors for right/wrong marks.
+///
+/// In black & white everything is black on white: right and wrong are told
+/// apart by [markIcon], labels, border weight and strikethrough instead.
 class FeedbackColors {
   FeedbackColors.of(BuildContext context) : _scheme = Theme.of(context).colorScheme;
   final ColorScheme _scheme;
   bool get _dark => _scheme.brightness == Brightness.dark;
 
-  Color get correct => _dark ? const Color(0xFF81C784) : const Color(0xFF2E7D32);
-  Color get correctContainer => _dark ? const Color(0xFF1E3A22) : const Color(0xFFDDF3DF);
-  Color get onCorrectContainer => _dark ? const Color(0xFFC8EBC9) : const Color(0xFF0F3D14);
+  /// Black & white (e-ink) theme.
+  bool get mono => isMonochrome(_scheme);
+
+  Color get correct => mono ? kBwBlack : (_dark ? const Color(0xFF81C784) : const Color(0xFF2E7D32));
+  Color get correctContainer => mono ? kBwWhite : (_dark ? const Color(0xFF1E3A22) : const Color(0xFFDDF3DF));
+  Color get onCorrectContainer => mono ? kBwBlack : (_dark ? const Color(0xFFC8EBC9) : const Color(0xFF0F3D14));
   Color get wrong => _scheme.error;
   Color get wrongContainer => _scheme.errorContainer;
   Color get onWrongContainer => _scheme.onErrorContainer;
 }
 
 enum OptionState { idle, selected, correct, wrong, dimmed }
+
+/// The mark shown on a right or wrong option in black & white (✓ / ✗).
+IconData? markIcon(OptionState s) => switch (s) {
+  OptionState.correct => Icons.check,
+  OptionState.wrong => Icons.close,
+  _ => null,
+};
+
+/// Colors, border width and text style of an option or tile in [state]. In
+/// black & white: idle is outlined (2 px), selected is inverted (black fill,
+/// white text), correct has a 3.5 px border, bold text and ✓, wrong a 2 px
+/// border, struck-through text and ✗, dimmed is the one gray.
+({Color bg, Color border, Color fg, double width, TextStyle style}) optionLook(
+  BuildContext context,
+  OptionState state, {
+  required TextStyle? base,
+}) {
+  final scheme = Theme.of(context).colorScheme;
+  final fb = FeedbackColors.of(context);
+  final b = base ?? const TextStyle();
+  if (fb.mono) {
+    return switch (state) {
+      OptionState.idle => (
+        bg: kBwWhite,
+        border: kBwBlack,
+        fg: kBwBlack,
+        width: kBwBorder,
+        style: b.copyWith(color: kBwBlack),
+      ),
+      OptionState.selected => (
+        bg: kBwBlack,
+        border: kBwBlack,
+        fg: kBwWhite,
+        width: kBwBorder,
+        style: b.copyWith(color: kBwWhite, fontWeight: FontWeight.w700),
+      ),
+      OptionState.correct => (
+        bg: kBwWhite,
+        border: kBwBlack,
+        fg: kBwBlack,
+        width: 3.5,
+        style: b.copyWith(color: kBwBlack, fontWeight: FontWeight.w800),
+      ),
+      OptionState.wrong => (
+        bg: kBwWhite,
+        border: kBwBlack,
+        fg: kBwBlack,
+        width: kBwBorder,
+        style: b.copyWith(
+          color: kBwBlack,
+          decoration: TextDecoration.lineThrough,
+          decorationColor: kBwBlack,
+          decorationThickness: 2,
+        ),
+      ),
+      OptionState.dimmed => (
+        bg: kBwWhite,
+        border: kBwGray,
+        fg: kBwGray,
+        width: kBwBorder,
+        style: b.copyWith(color: kBwGray),
+      ),
+    };
+  }
+  final (Color bg, Color border, Color fg) = switch (state) {
+    OptionState.idle => (scheme.surface, scheme.outlineVariant, scheme.onSurface),
+    OptionState.selected => (scheme.secondaryContainer, scheme.secondary, scheme.onSecondaryContainer),
+    OptionState.correct => (fb.correctContainer, fb.correct, fb.onCorrectContainer),
+    OptionState.wrong => (fb.wrongContainer, fb.wrong, fb.onWrongContainer),
+    OptionState.dimmed => (
+      scheme.surface,
+      scheme.outlineVariant.withValues(alpha: 0.5),
+      scheme.onSurface.withValues(alpha: 0.45),
+    ),
+  };
+  return (bg: bg, border: border, fg: fg, width: state == OptionState.idle ? 1.2 : 2, style: b.copyWith(color: fg));
+}
 
 /// A tappable answer option with an optional shortcut number.
 class OptionButton extends StatelessWidget {
@@ -131,33 +217,30 @@ class OptionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final fb = FeedbackColors.of(context);
-    final (Color bg, Color border, Color fg) = switch (state) {
-      OptionState.idle => (scheme.surface, scheme.outlineVariant, scheme.onSurface),
-      OptionState.selected => (scheme.secondaryContainer, scheme.secondary, scheme.onSecondaryContainer),
-      OptionState.correct => (fb.correctContainer, fb.correct, fb.onCorrectContainer),
-      OptionState.wrong => (fb.wrongContainer, fb.wrong, fb.onWrongContainer),
-      OptionState.dimmed => (
-        scheme.surface,
-        scheme.outlineVariant.withValues(alpha: 0.5),
-        scheme.onSurface.withValues(alpha: 0.45),
-      ),
-    };
     final text = Theme.of(context).textTheme;
+    final look = optionLook(context, state, base: large ? text.titleMedium : text.bodyLarge);
+    final (bg, border, fg) = (look.bg, look.border, look.fg);
+    final mark = FeedbackColors.of(context).mono ? markIcon(state) : null;
     return Semantics(
       button: true,
       selected: state == OptionState.selected,
+      hint: switch (state) {
+        OptionState.correct => 'correct answer',
+        OptionState.wrong => 'wrong answer',
+        _ => null,
+      },
       child: Material(
         color: bg,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: BorderSide(color: border, width: state == OptionState.idle ? 1.2 : 2),
+          side: BorderSide(color: border, width: look.width),
         ),
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
           onTap: onTap,
-          child: Padding(
+          child: Container(
+            // At least 48 px tall: a comfortable tap target.
+            constraints: const BoxConstraints(minHeight: 48),
             padding: EdgeInsets.symmetric(horizontal: 12, vertical: large ? 14 : 10),
             child: Row(
               children: [
@@ -175,12 +258,9 @@ class OptionButton extends StatelessWidget {
                   const SizedBox(width: 10),
                 ],
                 Expanded(
-                  child: Text(
-                    label,
-                    textAlign: center ? TextAlign.center : TextAlign.start,
-                    style: (large ? text.titleMedium : text.bodyLarge)?.copyWith(color: fg),
-                  ),
+                  child: Text(label, textAlign: center ? TextAlign.center : TextAlign.start, style: look.style),
                 ),
+                if (mark != null) ...[const SizedBox(width: 6), Icon(mark, size: 22, color: fg)],
               ],
             ),
           ),
@@ -203,35 +283,58 @@ class WordTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final fb = FeedbackColors.of(context);
-    final (Color bg, Color border, Color fg) = switch (state) {
-      OptionState.idle => (scheme.surface, scheme.outlineVariant, scheme.onSurface),
-      OptionState.selected => (scheme.secondaryContainer, scheme.secondary, scheme.onSecondaryContainer),
-      OptionState.correct => (fb.correctContainer, fb.correct, fb.onCorrectContainer),
-      OptionState.wrong => (fb.wrongContainer, fb.wrong, fb.onWrongContainer),
-      OptionState.dimmed => (scheme.surface, scheme.outlineVariant, scheme.onSurface.withValues(alpha: 0.4)),
-    };
-    final child = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: hidden ? Colors.transparent : fg),
+    final mono = FeedbackColors.of(context).mono;
+    final look = optionLook(context, state, base: Theme.of(context).textTheme.bodyLarge);
+    final mark = mono ? markIcon(state) : null;
+    // At least 48 x 48 px: a comfortable tap target even for one-letter tiles.
+    final child = ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 48, minWidth: 48),
+      child: Align(
+        widthFactor: 1,
+        heightFactor: 1,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: Text(label, style: hidden ? look.style.copyWith(color: Colors.transparent) : look.style),
+              ),
+              if (mark != null && !hidden) ...[const SizedBox(width: 4), Icon(mark, size: 18, color: look.fg)],
+            ],
+          ),
+        ),
       ),
     );
     if (hidden) {
+      // The tile's empty slot: a gray outline in black & white.
       return Container(
-        decoration: BoxDecoration(color: scheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)),
+        decoration: BoxDecoration(
+          color: mono ? kBwWhite : scheme.surfaceContainerHighest,
+          border: mono ? Border.all(color: kBwGray, width: kBwBorder) : null,
+          borderRadius: BorderRadius.circular(10),
+        ),
         child: ExcludeSemantics(child: child),
       );
     }
-    return Material(
-      color: bg,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-        side: BorderSide(color: border, width: 1.2),
+    return Semantics(
+      button: true,
+      enabled: onTap != null,
+      selected: state == OptionState.selected,
+      hint: switch (state) {
+        OptionState.correct => 'correct',
+        OptionState.wrong => 'wrong',
+        _ => null,
+      },
+      child: Material(
+        color: look.bg,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+          side: BorderSide(color: look.border, width: mono ? look.width : 1.2),
+        ),
+        elevation: state == OptionState.idle && !mono ? 1 : 0,
+        child: InkWell(borderRadius: BorderRadius.circular(10), onTap: onTap, child: child),
       ),
-      elevation: state == OptionState.idle ? 1 : 0,
-      child: InkWell(borderRadius: BorderRadius.circular(10), onTap: onTap, child: child),
     );
   }
 }

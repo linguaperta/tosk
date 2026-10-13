@@ -78,7 +78,9 @@ void main() {
         await tester.scrollUntilVisible(
           find.byKey(const ValueKey('open-verbs')),
           200,
-          scrollable: find.descendant(of: find.byKey(const ValueKey('progress-list')), matching: find.byType(Scrollable)).first,
+          scrollable: find
+              .descendant(of: find.byKey(const ValueKey('progress-list')), matching: find.byType(Scrollable))
+              .first,
         );
         await tapKey(tester, 'open-verbs');
         await scrollThrough(tester, find.byKey(const ValueKey('verb-collection')));
@@ -111,6 +113,38 @@ void main() {
         });
       }
 
+      if (size.width < 400) {
+        for (final type in ExerciseType.values) {
+          testWidgets('player at text scale 1.5: ${type.id}', (tester) async {
+            tester.platformDispatcher.textScaleFactorTestValue = 1.5;
+            addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+            await pumpApp(
+              tester,
+              size: size,
+              initialLocation: Routes.labPlay(skills: allSkills, types: [type], length: 1),
+            );
+            await answerCurrent(tester, wrong: true);
+            await playToSummary(tester);
+            expect(tester.takeException(), isNull);
+          });
+        }
+      }
+
+      testWidgets('mistakes list and map button, text scale 1.3', (tester) async {
+        tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+        addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+        final store = await seeded();
+        await seedMistakes(store);
+        await pumpApp(tester, size: size, store: store, initialLocation: Routes.mistakes);
+        expect(find.byKey(const ValueKey('mistakes-review')), findsOneWidget);
+        await scrollThrough(tester, find.byKey(const ValueKey('mistakes-list')));
+        await tester.pageBack();
+        await tester.pumpAndSettle();
+        expect(find.byKey(const ValueKey('mistakes-button')), findsOneWidget);
+        await scrollThrough(tester, find.byKey(const ValueKey('map-scroll')));
+        expect(tester.takeException(), isNull);
+      });
+
       testWidgets('non-stop player and text scale 1.3', (tester) async {
         tester.platformDispatcher.textScaleFactorTestValue = 1.3;
         addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
@@ -123,5 +157,42 @@ void main() {
         expect(tester.takeException(), isNull);
       });
     });
+  }
+}
+
+/// Open mistakes with long prompts and answers on several facets of the demo course.
+Future<void> seedMistakes(TestProgressStore store) async {
+  final course = buildDemoItalian();
+  var i = 0;
+  for (final skill in course.skills) {
+    final f = course.skillFacets(skill.id).first;
+    final at = testNow.subtract(Duration(hours: ++i));
+    await store.record(
+      ReviewEvent(
+        id: 'mistake-$i',
+        facetId: f.facetId,
+        at: at,
+        rating: Rating.again,
+        exerciseType: i.isEven ? 'cloze' : 'sentence_builder',
+        inputMode: InputMode.tap,
+        responseMs: 4000,
+        correct: false,
+        sessionId: 'seed-mistakes',
+        mode: 'lesson',
+      ),
+    );
+    await store.saveMistake(
+      MistakeRecord(
+        id: 'mistake-$i',
+        facetId: f.facetId,
+        at: at,
+        exerciseType: i.isEven ? 'cloze' : 'sentence_builder',
+        prompt: 'Translate: I would really like to eat the bread with the water of the house, please, thank you',
+        expected: "Vorrei davvero mangiare il pane con l'acqua della casa, per favore, grazie",
+        given: "Vorrei mangiare il pane con l'acqua",
+        skillId: skill.id,
+        note: course.note(skill.id, 'en'),
+      ),
+    );
   }
 }

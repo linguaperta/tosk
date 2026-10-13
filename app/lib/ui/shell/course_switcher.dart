@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/core.dart';
 import '../../providers.dart';
+import '../theme/bw_skin.dart';
 
 /// Small chip warning that a course hasn't been checked by a speaker.
 class UnverifiedBadge extends StatelessWidget {
@@ -17,7 +18,12 @@ class UnverifiedBadge extends StatelessWidget {
       child: Container(
         key: const ValueKey('unverified-badge'),
         padding: EdgeInsets.symmetric(horizontal: compact ? 6 : 8, vertical: 2),
-        decoration: BoxDecoration(color: scheme.errorContainer, borderRadius: BorderRadius.circular(12)),
+        // Black & white: outlined text (errorContainer is white there).
+        decoration: BoxDecoration(
+          color: scheme.errorContainer,
+          borderRadius: BorderRadius.circular(12),
+          border: isMonochrome(scheme) ? Border.all(color: kBwBlack, width: 1.5) : null,
+        ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -48,7 +54,11 @@ class DemoBadge extends StatelessWidget {
       child: Container(
         key: const ValueKey('demo-badge'),
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-        decoration: BoxDecoration(color: scheme.tertiaryContainer, borderRadius: BorderRadius.circular(12)),
+        decoration: BoxDecoration(
+          color: scheme.tertiaryContainer,
+          borderRadius: BorderRadius.circular(12),
+          border: isMonochrome(scheme) ? Border.all(color: kBwBlack, width: 1.5) : null,
+        ),
         child: Text('Demo', style: Theme.of(context).textTheme.labelSmall?.copyWith(color: scheme.onTertiaryContainer)),
       ),
     );

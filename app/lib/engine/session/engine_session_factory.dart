@@ -14,6 +14,7 @@ import '../selector.dart';
 import '../template.dart';
 import 'builders.dart';
 import 'engine_session.dart';
+import 'mistake_review.dart';
 
 /// Creates sessions for one course.
 ///
@@ -84,4 +85,7 @@ class EngineSessionFactory implements SessionFactory {
 
   @override
   Future<FadingSession> fading({int length = 12}) => FadingBuilder(length: length).start(_env());
+
+  @override
+  Future<MistakeReviewSession> review({int length = 12}) => ReviewBuilder(length: length).start(_env());
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../progression/progression.dart';
+import '../theme/bw_skin.dart';
 import 'level_badge.dart';
 import 'progression_colors.dart';
 import 'tier_badge.dart';
@@ -81,8 +82,9 @@ class SessionSummaryCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: ProgressionColors.gold(cs).withValues(alpha: 0.18),
+                  color: ProgressionColors.tint(ProgressionColors.gold(cs), 0.18, cs),
                   borderRadius: BorderRadius.circular(8),
+                  border: isMonochrome(cs) ? Border.all(color: kBwBlack, width: kBwBorder) : null,
                 ),
                 child: Row(children: [
                   Icon(Icons.trending_up, color: ProgressionColors.gold(cs)),

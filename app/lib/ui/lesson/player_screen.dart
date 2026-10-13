@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -17,6 +18,7 @@ import '../../data/progress/replay.dart' show toStoredTime;
 import '../../engine/engine.dart';
 import 'session_request.dart';
 import 'session_summary_view.dart';
+import 'why_sheet.dart';
 
 enum PlayerPhase { loading, playing, empty, summary, error }
 
@@ -253,13 +255,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     final s = _session;
     // The engine keeps the context of every wrong answer; other sessions get one built here.
     final ctx = (s is EngineSession ? s.mistakeContext(ex.id) : null) ?? _fallbackContext(ex, r);
-    final stream = ref.read(explainerProvider).explain(ctx);
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      builder: (context) => _WhySheet(stream: stream),
-    );
+    showWhySheet(context, ref.read(explainerProvider).explain(ctx));
   }
 
   MistakeContext _fallbackContext(Exercise ex, Result r) {
@@ -410,7 +406,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
               children: [
                 const Icon(Icons.inbox_outlined, size: 48),
                 const SizedBox(height: 12),
-                const Text('Nothing to practice here right now.', textAlign: TextAlign.center),
+                Text(widget.request.emptyMessage, key: const ValueKey('player-empty'), textAlign: TextAlign.center),
                 const SizedBox(height: 12),
                 FilledButton(onPressed: _close, child: const Text('Back')),
               ],
@@ -435,22 +431,30 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       children: [
         if (_endless) NonStopHudSlot(run: _run),
         Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 640),
-                child: ExerciseView(
-                  key: ValueKey('exercise-$_counter'),
-                  exercise: ex,
-                  result: result,
-                  keys: _keys,
-                  onChanged: (a) => setState(() => _draft = a),
-                  onSubmit: (a) => unawaited(_submit(a)),
-                  onCheck: _check,
+          // The exercise fills at least the visible height, so its controls
+          // (`ExerciseLayout`) sit at the bottom, in the thumb zone; the
+          // column is centered and at most 640 px wide.
+          child: LayoutBuilder(
+            builder: (context, viewport) {
+              const top = 12.0, bottom = 16.0;
+              final side = math.max(16.0, (viewport.maxWidth - 640) / 2);
+              return SingleChildScrollView(
+                key: const ValueKey('exercise-scroll'),
+                padding: EdgeInsets.fromLTRB(side, top, side, bottom),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: math.max(0, viewport.maxHeight - top - bottom)),
+                  child: ExerciseView(
+                    key: ValueKey('exercise-$_counter'),
+                    exercise: ex,
+                    result: result,
+                    keys: _keys,
+                    onChanged: (a) => setState(() => _draft = a),
+                    onSubmit: (a) => unawaited(_submit(a)),
+                    onCheck: _check,
+                  ),
                 ),
-              ),
-            ),
+              );
+            },
           ),
         ),
         if (result != null)
@@ -482,49 +486,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
             ),
           ),
       ],
-    );
-  }
-}
-
-class _WhySheet extends StatelessWidget {
-  const _WhySheet({required this.stream});
-  final Stream<String> stream;
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-        child: StreamBuilder<String>(
-          stream: stream.transform(_accumulate()),
-          builder: (context, snap) {
-            if (snap.hasError) return Text('Could not get an explanation: ${snap.error}');
-            final text = snap.data ?? '';
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text('Why?', style: Theme.of(context).textTheme.titleLarge),
-                const SizedBox(height: 8),
-                if (text.isEmpty && snap.connectionState != ConnectionState.done)
-                  const LinearProgressIndicator()
-                else
-                  Text(text),
-              ],
-            );
-          },
-        ),
-      ),
-    );
-  }
-
-  static StreamTransformer<String, String> _accumulate() {
-    var acc = '';
-    return StreamTransformer.fromHandlers(
-      handleData: (chunk, sink) {
-        acc += chunk;
-        sink.add(acc);
-      },
     );
   }
 }

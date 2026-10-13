@@ -16,7 +16,7 @@ import 'data/app_data.dart';
 import 'data/fsrs/fsrs_scheduler.dart';
 import 'data/progress/in_memory_progress_store.dart';
 import 'data/stats/skill_stats.dart' as data;
-import 'engine/engine.dart' show EngineSessionFactory, FocusPresets;
+import 'engine/engine.dart' show EngineSessionFactory, FocusPresets, OpenMistake, openMistakes;
 import 'progression/progression.dart';
 import 'ui/common/fx.dart';
 import 'ui/course_catalog.dart';
@@ -25,6 +25,7 @@ import 'ui/lesson/answer_input.dart';
 import 'ui/map/map_layout.dart';
 import 'ui/map/skill_stats.dart';
 import 'ui/settings/app_settings.dart';
+import 'ui/theme/bw_skin.dart';
 import 'ui/theme/skin.dart';
 
 // ------------------------------------------------------------------ platform
@@ -72,21 +73,33 @@ class SettingsController extends AsyncNotifier<AppSettings> {
   }
 }
 
+/// Black & white (e-ink) display: the [BwSkin], always light, no motion.
+final bwProvider = Provider<bool>((ref) => ref.watch(settingsProvider.select((s) => s.value?.bw ?? false)));
+
 final themeModeProvider = Provider<ThemeMode>(
-  (ref) => ref.watch(settingsProvider.select((s) => s.value?.themeMode ?? ThemeMode.system)),
+  (ref) => ref.watch(bwProvider)
+      ? ThemeMode.light
+      : ref.watch(settingsProvider.select((s) => s.value?.themeMode ?? ThemeMode.system)),
 );
 
-/// True disables animations, haptics and sounds. The future e-ink mode sets it.
+/// True disables animations (page transitions, slides, fades, progress
+/// tweens): the "Reduce motion" setting, and always in black & white mode
+/// (e-ink screens can't show animations).
 final reduceMotionProvider = Provider<bool>(
-  (ref) => ref.watch(settingsProvider.select((s) => s.value?.reduceMotion ?? false)),
+  (ref) => ref.watch(settingsProvider.select((s) => s.value?.reduceMotion ?? false)) || ref.watch(bwProvider),
 );
 
 final motionProvider = Provider<Motion>((ref) => Motion(ref.watch(reduceMotionProvider)));
 
-final fxProvider = Provider<Fx>((ref) => Fx(enabled: !ref.watch(reduceMotionProvider)));
+/// Haptics and sounds follow the "Reduce motion" setting only; black & white
+/// mode doesn't silence them.
+final fxProvider = Provider<Fx>(
+  (ref) => Fx(enabled: !ref.watch(settingsProvider.select((s) => s.value?.reduceMotion ?? false))),
+);
 
-/// Visual skin (theme + map style). Forest skin later.
-final skinProvider = Provider<Skin>((ref) => const DefaultSkin());
+/// Visual skin (theme + map style): black & white for e-ink, else the default.
+/// A forest skin can come later.
+final skinProvider = Provider<Skin>((ref) => ref.watch(bwProvider) ? const BwSkin() : const DefaultSkin());
 
 // ------------------------------------------------------------------ course
 
@@ -270,6 +283,20 @@ final challengeBoardProvider = FutureProvider<ChallengeBoard>((ref) async {
   ref.watch(progressRevisionProvider);
   final svc = await ref.watch(progressionServiceProvider.future);
   return svc.challenges(ref.watch(clockProvider)());
+});
+
+/// Open mistakes of the active course, one per facet, in review order (still
+/// weak first, then most recent). Resolved once answered correctly in a later
+/// session (the engine's `openMistakes`, see docs/engine.md).
+final openMistakesProvider = FutureProvider<List<OpenMistake>>((ref) async {
+  ref.watch(progressRevisionProvider);
+  final course = await ref.watch(courseDataProvider.future);
+  return openMistakes(
+    store: ref.watch(progressStoreProvider),
+    course: course,
+    scheduler: ref.watch(schedulerProvider),
+    now: ref.watch(clockProvider)().toUtc(),
+  );
 });
 
 /// Verb tables of the active course with their mastery.
