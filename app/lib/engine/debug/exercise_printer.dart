@@ -27,7 +27,10 @@ String exercisePrompt(Exercise e) {
     SpotErrorExercise() => renderSpotError(e),
     TransformExercise() => '${e.source} ${e.targetDescription}',
   };
-  return e.instruction.isEmpty ? body : '${e.instruction}: $body';
+  if (e.instruction.isEmpty) return body;
+  // "What does this mean? ciao", not "What does this mean?: ciao".
+  final sep = RegExp(r'[?:!.]$').hasMatch(e.instruction.trimRight()) ? ' ' : ': ';
+  return '${e.instruction.trimRight()}$sep$body';
 }
 
 /// Multi-line debug rendering with the correct answer marked by `*`.

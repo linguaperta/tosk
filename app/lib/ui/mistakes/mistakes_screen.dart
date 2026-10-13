@@ -187,9 +187,19 @@ class MistakeCard extends ConsumerWidget {
             Text(facetLabel(m.facetId, course, lang), style: theme.textTheme.titleMedium),
             Text(meta, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
             const SizedBox(height: 8),
-            Text(m.prompt, maxLines: 4, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyMedium),
+            // A match-pairs prompt lists the whole board: two lines are enough.
+            Text(
+              m.prompt,
+              maxLines: type == ExerciseType.matchPairs ? 2 : 4,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodyMedium,
+            ),
             const SizedBox(height: 4),
-            answerLine('You answered', m.given, fb.wrong, strike: true),
+            // A flashcard "mistake" is the learner's own Again, not an answer.
+            if (type == ExerciseType.flashcard)
+              answerLine('You marked it', _gradeLabel(m.given), theme.colorScheme.onSurface)
+            else
+              answerLine('You answered', m.given, fb.wrong, strike: true),
             answerLine('Correct', m.expected, fb.correct),
             if (note != null) ...[
               const SizedBox(height: 10),
@@ -258,6 +268,13 @@ class MistakeCard extends ConsumerWidget {
     at: m.at,
   );
 }
+
+/// "again" -> "Again (didn't know)" for self-graded flashcards.
+String _gradeLabel(String given) => switch (given.toLowerCase()) {
+  'again' => "Again (didn't know)",
+  'hard' => 'Hard',
+  _ => given,
+};
 
 String _ago(DateTime at, DateTime now) {
   final d = now.toUtc().difference(at.toUtc());
