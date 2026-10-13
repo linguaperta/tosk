@@ -37,19 +37,19 @@ AnswerInputWidget keyboardAnswerInputBuilder({
   bool enabled = true,
   String? hintText,
 }) =>
-    KeyboardAnswerInput(key: key, onChanged: onChanged, onSubmitted: onSubmitted, enabled: enabled, hintText: hintText);
+    KeyboardAnswerField(key: key, onChanged: onChanged, onSubmitted: onSubmitted, enabled: enabled, hintText: hintText);
 
-class KeyboardAnswerInput extends AnswerInputWidget {
-  const KeyboardAnswerInput({super.key, required super.onChanged, super.onSubmitted, super.enabled, super.hintText});
+class KeyboardAnswerField extends AnswerInputWidget {
+  const KeyboardAnswerField({super.key, required super.onChanged, super.onSubmitted, super.enabled, super.hintText});
 
   @override
   InputMode get inputMode => InputMode.keyboard;
 
   @override
-  State<KeyboardAnswerInput> createState() => _KeyboardAnswerInputState();
+  State<KeyboardAnswerField> createState() => _KeyboardAnswerFieldState();
 }
 
-class _KeyboardAnswerInputState extends State<KeyboardAnswerInput> {
+class _KeyboardAnswerFieldState extends State<KeyboardAnswerField> {
   final _controller = TextEditingController();
 
   @override

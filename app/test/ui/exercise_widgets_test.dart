@@ -256,7 +256,7 @@ void main() {
       final e = _first<ClozeExercise>((c) => c.options == null);
       final p = Probe();
       await host(tester, ClozeView(exercise: e, onChanged: p.onChanged, onCheck: p.onCheck));
-      expect(find.byType(KeyboardAnswerInput), findsOneWidget);
+      expect(find.byType(KeyboardAnswerField), findsOneWidget);
       await tester.enterText(find.byKey(const ValueKey('answer-input')), 'Mangiamo');
       await tester.pump();
       final a = p.draft! as TextAnswer;
