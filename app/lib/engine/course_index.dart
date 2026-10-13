@@ -204,6 +204,13 @@ class CourseIndex {
     return b.spellings.any((s) => sa.contains(foldAnswer(s)));
   }
 
+  /// Folded meanings (in [lang]) of [item] and of all its synonyms: every
+  /// meaning a learner may reasonably give for [item].
+  Set<String> meaningKeys(Item item, String lang) => {
+        ...glossKeysIn(item, lang),
+        for (final s in synonymsOf(item)) ...glossKeysIn(s, lang),
+      };
+
   final Map<String, List<Item>> _synonyms = {};
 
   /// All items that [overlaps] with [item] (excluding itself).

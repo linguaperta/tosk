@@ -64,8 +64,10 @@ class MultipleChoiceTemplate extends ExerciseTemplate {
 
   List<String> _wordDistractors(Item item, bool rec, GenContext ctx, {bool shuffle = true}) {
     final ix = ctx.index;
+    // Recognize: no meaning of the target or of any synonym (a meaning of
+    // "hallo" is also right for "dag"). Produce: no spelling of either.
     final forbidden = rec
-        ? item.glosses(ctx.lang)
+        ? [...item.glosses(ctx.lang), for (final s in ix.synonymsOf(item)) ...s.glosses(ctx.lang)]
         : [...item.spellings, for (final s in ix.synonymsOf(item)) ...s.spellings];
     final picker = OptionPicker(forbidden: forbidden, max: optionCount - 1);
     final groups = ix.relatedItems(item);

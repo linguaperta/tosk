@@ -47,10 +47,11 @@ class MatchPairsTemplate extends ExerciseTemplate {
       final lk = foldAnswer(item.lemma);
       final gk = foldAnswer(item.gloss(ctx.lang));
       if (lemmaKeys.contains(lk) || glossKeys.contains(gk)) return false;
-      // The displayed meaning must not be a meaning of any other word on the board.
+      // The displayed meaning must not be a meaning of any other word on the
+      // board, nor of one of its synonyms (and vice versa).
       for (final c in chosen) {
-        if (ctx.index.glossKeysIn(c.$1, ctx.lang).contains(gk)) return false;
-        if (ctx.index.glossKeysIn(item, ctx.lang).contains(foldAnswer(c.$1.gloss(ctx.lang)))) return false;
+        if (ctx.index.meaningKeys(c.$1, ctx.lang).contains(gk)) return false;
+        if (ctx.index.meaningKeys(item, ctx.lang).contains(foldAnswer(c.$1.gloss(ctx.lang)))) return false;
       }
       chosen.add((item, f));
       lemmaKeys.add(lk);

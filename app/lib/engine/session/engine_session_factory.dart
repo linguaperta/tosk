@@ -69,7 +69,7 @@ class EngineSessionFactory implements SessionFactory {
       );
 
   @override
-  Future<LessonSession> lesson(String skillId, {LessonFocus focus = LessonFocus.mixed, int length = 12}) {
+  Future<LessonSession> lesson(String skillId, {LessonFocus focus = LessonFocus.mixed, int length = 12}) async {
     final skill = course.skill(skillId);
     if (skill == null) throw ArgumentError.value(skillId, 'skillId', 'Unknown skill');
     return LessonBuilder(skill, focus, length: length).start(_env());
