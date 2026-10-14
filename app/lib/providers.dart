@@ -7,12 +7,22 @@
 /// on the demo courses and an in-memory FSRS progress store. See `docs/ui.md`.
 library;
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 
+import 'ai/ai_config.dart';
+import 'ai/caching_explainer.dart';
+import 'ai/flag_reviewer.dart';
+import 'ai/llm_explainer.dart';
+import 'ai/secret_store.dart';
+import 'audio/sound_service.dart';
+import 'audio/test_env.dart';
 import 'core/core.dart';
 import 'data/app_data.dart';
+import 'data/progress/feedback_store.dart';
 import 'data/fsrs/fsrs_scheduler.dart';
 import 'data/progress/in_memory_progress_store.dart';
 import 'data/stats/skill_stats.dart' as data;
@@ -267,9 +277,10 @@ final sessionFactoryProvider = FutureProvider<SessionFactory>((ref) async {
   );
 });
 
-/// "Why?" explanations (`core/interfaces/hooks.dart`). v1 ships [NullExplainer]:
-/// the button is hidden.
-final explainerProvider = Provider<Explainer>((ref) => const NullExplainer());
+/// Answer explanations (`core/interfaces/hooks.dart`): the cached AI
+/// explainer once a provider and key are configured in Settings, else
+/// [NullExplainer] (every explain button is hidden).
+final explainerProvider = Provider<Explainer>((ref) => ref.watch(aiExplainerProvider) ?? const NullExplainer());
 
 final explainerAvailableProvider = Provider<bool>((ref) => ref.watch(explainerProvider).isAvailable);
 
@@ -420,3 +431,109 @@ final sessionProgressSummaryProvider = FutureProvider.family<SessionProgressSumm
   final svc = await ref.watch(progressionServiceProvider.future);
   return svc.sessionSummary(sessionId);
 });
+
+// ------------------------------------------------------------------ AI, flags, sounds
+
+/// HTTP for AI providers (tests override it with `MockClient`).
+final httpClientProvider = Provider<http.Client>((ref) {
+  final client = http.Client();
+  ref.onDispose(client.close);
+  return client;
+});
+
+/// Where the AI API key is kept: the platform's secure storage (in memory
+/// under `flutter test`, which has no plugin).
+final secretStoreProvider = Provider<SecretStore>(
+  (ref) => runningInFlutterTest ? MemorySecretStore() : const SecureSecretStore(),
+);
+
+/// AI explanation settings (provider, model, base URL, reply language, key).
+final aiConfigProvider = AsyncNotifierProvider<AiConfigController, AiConfig>(AiConfigController.new);
+
+class AiConfigController extends AsyncNotifier<AiConfig> {
+  @override
+  Future<AiConfig> build() => AiConfig.load(ref.watch(progressStoreProvider), ref.watch(secretStoreProvider));
+
+  /// Applies [edit] and persists what changed (the key in the secret store).
+  Future<void> change(AiConfig Function(AiConfig c) edit) async {
+    final old = state.value ?? await future;
+    final next = edit(old);
+    if (next == old) return;
+    state = AsyncData(next);
+    await next.save(ref.read(progressStoreProvider), ref.read(secretStoreProvider), old: old);
+  }
+}
+
+/// AI explanation cache and flags: tables in the progress database (in
+/// memory on the defaults).
+final feedbackStoreProvider = Provider<FeedbackStore>(
+  (ref) => ref.watch(appDataProvider)?.feedback ?? InMemoryFeedbackStore(),
+);
+
+/// The configured provider's client, or null (AI not configured).
+final llmExplainerProvider = Provider<LlmExplainer?>((ref) {
+  final config = ref.watch(aiConfigProvider).value;
+  if (config == null) return null;
+  return llmExplainerFor(config, ref.watch(httpClientProvider), browser: kIsWeb);
+});
+
+/// [llmExplainerProvider] behind the explanation cache, with the reply
+/// language from the AI settings. Null when AI isn't configured.
+final aiExplainerProvider = Provider<CachingExplainer?>((ref) {
+  final llm = ref.watch(llmExplainerProvider);
+  if (llm == null) return null;
+  return CachingExplainer(
+    llm,
+    ref.watch(feedbackStoreProvider),
+    clock: ref.watch(clockProvider),
+    provider: llm.providerId,
+    model: llm.model,
+  );
+});
+
+/// A cached AI explanation by (fingerprint, given answer, reply language),
+/// or null. Works offline and without a configured provider.
+final cachedExplanationProvider = FutureProvider.autoDispose.family<String?, (String, String, String)>((ref, key) async {
+  final (fingerprint, given, lang) = key;
+  return (await ref.watch(feedbackStoreProvider).explanation(fingerprint, given, lang))?.text;
+});
+
+/// The language AI replies are written in (the setting, or the source language).
+final explainLangProvider = Provider<String>((ref) {
+  final config = ref.watch(aiConfigProvider).value;
+  final source = ref.watch(sourceLangProvider);
+  return config?.replyLang(source) ?? source;
+});
+
+/// "Confer with AI" on a flag; null when AI isn't configured.
+final flagReviewerProvider = Provider<FlagReviewer?>((ref) {
+  final llm = ref.watch(llmExplainerProvider);
+  return llm == null ? null : FlagReviewer(llm);
+});
+
+/// Bumped when flags are added or deleted.
+final flagsRevisionProvider = NotifierProvider<ProgressRevision, int>(ProgressRevision.new);
+
+/// Every flag on this device, most recent first.
+final flagsProvider = FutureProvider<List<FlagRecord>>((ref) {
+  ref.watch(flagsRevisionProvider);
+  return ref.watch(feedbackStoreProvider).flags();
+});
+
+/// Plays the sound files (silent under `flutter test`; tests override it with a fake).
+final audioBackendProvider = Provider<AudioBackend>((ref) {
+  final AudioBackend backend = runningInFlutterTest ? const SilentAudioBackend() : AudioplayersBackend();
+  ref.onDispose(() => backend.dispose());
+  return backend;
+});
+
+/// The "Sound effects" setting (on by default; separate from reduce motion).
+final soundEffectsProvider = Provider<bool>(
+  (ref) => ref.watch(settingsProvider.select((s) => s.value?.soundEffects ?? true)),
+);
+
+/// Sound effects for the UI: correct, wrong, lesson complete, level up, bonus
+/// round and the select tick.
+final soundServiceProvider = Provider<SoundService>(
+  (ref) => SoundService(ref.watch(audioBackendProvider), enabled: ref.watch(soundEffectsProvider)),
+);

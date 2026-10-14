@@ -1,4 +1,4 @@
-"""CLI: python -m pipeline {fetch,import,build,validate} ..."""
+"""CLI: python -m pipeline {fetch,import,build,validate,flags} ..."""
 from __future__ import annotations
 
 import argparse
@@ -32,6 +32,14 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("langs", nargs="+")
     p.add_argument("--content-root")
     p.add_argument("--local", action="store_true", help="use local/content (always the case for hns)")
+
+    p = sub.add_parser("flags", help="triage exercise flags exported from the app")
+    fsub = p.add_subparsers(dest="flags_cmd", required=True)
+    q = fsub.add_parser("summarize", help="print flags grouped by course/skill/type with the exercise")
+    q.add_argument("files", nargs="+", help="tosk-flags-*.jsonl")
+    q.add_argument("--course", help="only this course id")
+    q.add_argument("--verdict", choices=["exercise_wrong", "ambiguous", "exercise_correct", "none"])
+    q.add_argument("--json", action="store_true", help="also print each raw exercise snapshot")
 
     a = ap.parse_args(argv)
     from .hns.safeguard import RestrictedContentError
@@ -69,6 +77,9 @@ def _run(a) -> int:
     if a.cmd == "validate":
         from .build import validate_only
         return validate_only(a.langs, a.content_root, local=a.local)
+    if a.cmd == "flags":
+        from .flags import main_summarize
+        return main_summarize(a.files, a.course, a.verdict, a.json)
     return 1
 
 

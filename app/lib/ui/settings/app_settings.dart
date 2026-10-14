@@ -21,6 +21,7 @@ class AppSettings {
     this.defaultLength = SessionLength.normal,
     this.leechLapses = 4,
     this.coursesAdded,
+    this.soundEffects = true,
   });
 
   /// Null until the user picks a course; the first available course is used then.
@@ -43,6 +44,9 @@ class AppSettings {
   /// The user's courses, in the order added; null until the course picker
   /// was first used (see [myCourseIds]).
   final List<String>? coursesAdded;
+  /// Short sounds on answers, selections and the end of a lesson (on by
+  /// default; independent of reduce motion).
+  final bool soundEffects;
 
   /// Black & white (e-ink) display.
   bool get bw => display == DisplayMode.bw;
@@ -62,6 +66,7 @@ class AppSettings {
     SessionLength? defaultLength,
     int? leechLapses,
     List<String>? coursesAdded,
+    bool? soundEffects,
   }) => AppSettings(
     courseId: courseId ?? this.courseId,
     sourceLang: sourceLang ?? this.sourceLang,
@@ -73,6 +78,7 @@ class AppSettings {
     defaultLength: defaultLength ?? this.defaultLength,
     leechLapses: leechLapses ?? this.leechLapses,
     coursesAdded: coursesAdded ?? this.coursesAdded,
+    soundEffects: soundEffects ?? this.soundEffects,
   );
 
   /// Reads every setting from [store], falling back to defaults for missing or unknown values.
@@ -88,6 +94,7 @@ class AppSettings {
     final length = await store.getSetting(SettingKeys.defaultLength);
     final leech = int.tryParse(await store.getSetting(SettingKeys.leechLapses) ?? '');
     final added = await store.getSetting(SettingKeys.coursesAdded);
+    final sounds = await store.getSetting(SettingKeys.soundEffects);
     return AppSettings(
       courseId: (course == null || course.isEmpty) ? null : course,
       sourceLang: (lang == null || lang.isEmpty) ? d.sourceLang : lang,
@@ -104,6 +111,7 @@ class AppSettings {
               for (final id in added.split(','))
                 if (id.trim().isNotEmpty) id.trim(),
             ],
+      soundEffects: sounds != 'false',
     );
   }
 
@@ -123,6 +131,7 @@ class AppSettings {
     await put(SettingKeys.defaultLength, defaultLength.name, old?.defaultLength.name);
     await put(SettingKeys.leechLapses, '$leechLapses', old == null ? null : '${old.leechLapses}');
     await put(SettingKeys.coursesAdded, coursesAdded?.join(','), old?.coursesAdded?.join(','));
+    await put(SettingKeys.soundEffects, '$soundEffects', old == null ? null : '${old.soundEffects}');
   }
 
   @override
@@ -137,7 +146,8 @@ class AppSettings {
       other.display == display &&
       other.defaultLength == defaultLength &&
       other.leechLapses == leechLapses &&
-      other.coursesAdded?.join(',') == coursesAdded?.join(',');
+      other.coursesAdded?.join(',') == coursesAdded?.join(',') &&
+      other.soundEffects == soundEffects;
 
   @override
   int get hashCode => Object.hash(
@@ -151,6 +161,7 @@ class AppSettings {
     defaultLength,
     leechLapses,
     coursesAdded?.join(','),
+    soundEffects,
   );
 }
 

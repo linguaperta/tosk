@@ -3,69 +3,50 @@
 /// `kOverrideType` in core: the answer is replayed as Good, its mistake is
 /// resolved, no re-ask), and the exercise is flagged for review.
 ///
-/// Flag storage: until the flags table exists (another v0.3 branch), an
-/// override is kept as a small JSON record in the settings key
-/// [kOverrideFlagsKey] (the newest [kMaxOverrideFlags]); a progress backup
-/// carries it along.
+/// The flag goes to the progress DB's `flags` table ([FlagRecord], see
+/// docs/feedback.md) with reason "answer_wrong" and [kOverrideComment].
 library;
-
-import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
+import '../../app_version.dart';
 import '../../core/core.dart';
-import '../../engine/debug/exercise_printer.dart' show exercisePrompt;
+import '../../feedback/exercise_snapshot.dart';
 
-/// Settings key of the stored override flags (a JSON array, newest last).
-const String kOverrideFlagsKey = 'feedback.overrides';
-const int kMaxOverrideFlags = 200;
-
-/// Stores one override flag: the exercise, both answers and the overridden
-/// event ids, so the exercise can be checked later.
-Future<void> saveOverrideFlag(
-  ProgressStore store, {
+/// The flag stored with an override: reason "The answer is wrong", the
+/// comment [kOverrideComment] and the full exercise snapshot, so the
+/// exercise can be checked like any other flag (Settings, Feedback & flags).
+FlagRecord overrideFlag({
+  required String id,
+  required DateTime at,
   required String courseId,
   required Exercise exercise,
   required Result result,
   required List<ReviewEvent> overrides,
-  required DateTime at,
   String? packVersion,
-}) async {
-  List<Object?> list;
-  try {
-    list = (jsonDecode(await store.getSetting(kOverrideFlagsKey) ?? '[]') as List).toList();
-  } catch (_) {
-    list = [];
-  }
-  list.add({
-    'reason': 'answer_wrong',
-    'comment': 'I was right (override)',
-    'at': at.toUtc().toIso8601String(),
-    'course_id': courseId,
-    'skill_id': ?exercise.skillId,
-    'facet_id': exercise.facetId,
-    'exercise_type': exercise.type.id,
-    'prompt': exercisePrompt(exercise),
-    'given': result.given,
-    'expected': result.expected,
-    'overridden_events': [for (final o in overrides) o.overriddenId],
-    'pack_version': ?packVersion,
-  });
-  if (list.length > kMaxOverrideFlags) list = list.sublist(list.length - kMaxOverrideFlags);
-  await store.setSetting(kOverrideFlagsKey, jsonEncode(list));
-}
+  String? sourceLang,
+}) => FlagRecord(
+  id: id,
+  createdAt: at.toUtc(),
+  courseId: courseId,
+  skillId: exercise.skillId,
+  facetId: exercise.facetId,
+  exerciseType: exercise.type.id,
+  exercise: exerciseToJson(exercise),
+  given: result.given,
+  expected: result.expected,
+  correct: false,
+  reasons: const [FlagReason.answerWrong],
+  comment: overrides.isEmpty
+      ? kOverrideComment
+      : '$kOverrideComment (overridden events: ${overrides.map((o) => o.overriddenId).join(', ')})',
+  appVersion: kAppVersion,
+  packVersion: packVersion,
+  sourceLang: sourceLang,
+);
 
-/// The stored override flags, oldest first.
-Future<List<Map<String, Object?>>> overrideFlags(ProgressStore store) async {
-  try {
-    return [
-      for (final e in jsonDecode(await store.getSetting(kOverrideFlagsKey) ?? '[]') as List)
-        (e as Map).cast<String, Object?>(),
-    ];
-  } catch (_) {
-    return const [];
-  }
-}
+/// Comment of an automatic "I was right" flag.
+const String kOverrideComment = 'I was right: the learner counted this answer as correct';
 
 /// The verdict shown after an override: right, with the same answers.
 Result overriddenResult(Result r) => Result(

@@ -28,12 +28,17 @@ class ExerciseView extends ConsumerWidget {
     required this.onChanged,
     this.onSubmit,
     this.onCheck,
+    this.onSelect,
     this.result,
     this.keys,
   });
 
   final Exercise exercise;
   final ValueChanged<Answer?> onChanged;
+
+  /// Called on every tap that selects an option, tile, token, cell or card
+  /// (not on typing): the player's select tick and haptic.
+  final VoidCallback? onSelect;
   final ValueChanged<Answer>? onSubmit;
   final VoidCallback? onCheck;
   final Result? result;
@@ -44,10 +49,19 @@ class ExerciseView extends ConsumerWidget {
     final reduce = ref.watch(reduceMotionProvider);
     // Typing ("challenge") mode: production types take typed answers.
     final typed = ref.watch(typingModeProvider);
-    return AccentLetters(letters: ref.watch(accentLettersProvider), child: _view(ref, reduce, typed));
+    final tick = onSelect;
+    // Draft changes from taps (choices, tiles, tokens, grid cells) tick;
+    // typed text doesn't.
+    final ValueChanged<Answer?> onChanged = tick == null
+        ? this.onChanged
+        : (a) {
+            if (a is! TextAnswer && !typed) tick();
+            this.onChanged(a);
+          };
+    return AccentLetters(letters: ref.watch(accentLettersProvider), child: _view(ref, reduce, typed, onChanged));
   }
 
-  Widget _view(WidgetRef ref, bool reduce, bool typed) {
+  Widget _view(WidgetRef ref, bool reduce, bool typed, ValueChanged<Answer?> onChanged) {
     return switch (exercise) {
       FlashcardExercise e => FlashcardView(
         exercise: e,
@@ -68,6 +82,7 @@ class ExerciseView extends ConsumerWidget {
         exercise: e,
         onChanged: onChanged,
         onSubmit: onSubmit,
+        onSelect: onSelect,
         result: result,
         keys: keys,
         reduceMotion: reduce,

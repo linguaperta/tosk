@@ -5,11 +5,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../core/core.dart';
+import '../../feedback/answer_context.dart';
 import '../../progression/nonstop.dart';
 import '../../providers.dart';
+import '../ai/ai_explanation_sheet.dart';
 import '../common/async_view.dart';
+import '../feedback/flag_sheet.dart';
 import '../routes.dart';
 import '../slots/progression_slots.dart';
 import 'exercises/exercise_layout.dart';
@@ -21,7 +25,6 @@ import '../../data/progress/replay.dart' show toStoredTime;
 import '../../engine/engine.dart';
 import 'session_request.dart';
 import 'session_summary_view.dart';
-import 'why_sheet.dart';
 
 enum PlayerPhase { loading, playing, empty, summary, error }
 
@@ -52,6 +55,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   /// exercise keeps its marks; the feedback panel shows [_bannerResult].
   bool _overridden = false;
   Result? _bannerResult;
+  /// The current exercise was flagged (the Report action shows "Reported").
+  bool _flagged = false;
 
   /// Non-stop scoring (combo, multiplier, bonus rounds), fed one graded
   /// exercise at a time with the `at` the session recorded.
@@ -100,6 +105,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
         return;
       }
       _session = session;
+      ref.read(soundServiceProvider).warmUp();
       // The engine reports every graded answer with the events it recorded;
       // non-stop scoring is fed from there (same `at` as the review log).
       if (_endless && session is EngineSession) _answers = session.results.listen(_onAnswer);
@@ -140,6 +146,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       _result = null;
       _overridden = false;
       _bannerResult = null;
+      _flagged = false;
       _phase = PlayerPhase.playing;
     });
     _watch
@@ -160,7 +167,14 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       final r = await s.submit(ex, answer, elapsed: _watch.elapsed);
       if (!mounted) return;
       final fx = ref.read(fxProvider);
-      r.correct ? fx.correct() : fx.wrong();
+      final sound = ref.read(soundServiceProvider);
+      if (r.correct) {
+        fx.correct();
+        sound.correct();
+      } else {
+        fx.wrong();
+        sound.wrong();
+      }
       // Sessions without a result stream (test fakes) feed the run here.
       if (_endless && s is! EngineSession) _feedRun(ex, r, ref.read(clockProvider)().toUtc());
       if (ex is FlashcardExercise) {
@@ -196,6 +210,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     _run = _run.applyResult(ex, r, at: at);
     final s = _session;
     final round = _run.bonusRound;
+    if (round != null && _run.lastSignals.contains(NonStopSignal.bonusRoundStarted)) {
+      ref.read(soundServiceProvider).bonus();
+    }
     if (round != null && _run.lastSignals.contains(NonStopSignal.bonusRoundStarted) && s is NonStopSession) {
       final types = {
         for (final id in _run.preferredTypes)
@@ -222,10 +239,34 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     final summary = s.summary();
     ref.read(progressRevisionProvider.notifier).bump();
     ref.read(fxProvider).finished();
+    unawaited(_celebrate(summary.sessionId));
     setState(() {
       _summary = summary;
       _phase = PlayerPhase.summary;
     });
+  }
+
+  /// The end-of-session sound: the level-up fanfare when this session gained
+  /// a level, else the lesson-complete arpeggio.
+  Future<void> _celebrate(String sessionId) async {
+    var levelUp = false;
+    try {
+      final p = await ref
+          .read(sessionProgressSummaryProvider(sessionId).future)
+          .timeout(const Duration(milliseconds: 800));
+      levelUp = p?.leveledUp ?? false;
+    } catch (_) {
+      // No progression summary (yet): just the lesson sound.
+    }
+    if (!mounted) return;
+    final sound = ref.read(soundServiceProvider);
+    levelUp ? sound.levelUp() : sound.complete();
+  }
+
+  /// Select tick and haptic for taps on options, tiles, chips and cards.
+  void _selectTick() {
+    ref.read(soundServiceProvider).select();
+    ref.read(fxProvider).tap();
   }
 
   void _close() {
@@ -274,31 +315,42 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     }
   }
 
-  void _why() {
-    final ex = _exercise, r = _result;
-    if (ex == null || r == null) return;
+  /// The checked answer's context (engine mistake context when there is one,
+  /// so the cached explanation is shared with mistake review).
+  ExplainContext _answerContext(Exercise ex, Result r) {
     final s = _session;
-    // The engine keeps the context of every wrong answer; other sessions get one built here.
-    final ctx = (s is EngineSession ? s.mistakeContext(ex.id) : null) ?? _fallbackContext(ex, r);
-    showWhySheet(context, ref.read(explainerProvider).explain(ctx));
+    return buildExplainContext(
+      exercise: ex,
+      result: r,
+      sourceLang: ref.read(sourceLangProvider),
+      course: ref.read(courseDataProvider).value,
+      explainLang: ref.read(explainLangProvider),
+      at: ref.read(clockProvider)().toUtc(),
+      mistake: s is EngineSession ? s.mistakeContext(ex.id) : null,
+    );
   }
 
-  MistakeContext _fallbackContext(Exercise ex, Result r) {
-    final course = ref.read(courseDataProvider).value;
-    final lang = ref.read(sourceLangProvider);
-    return MistakeContext(
-      courseId: course?.meta.id ?? '',
-      facetId: ex.facetId,
-      exerciseType: ex.type,
-      prompt: exercisePrompt(ex),
-      expected: r.expected,
-      given: r.given,
-      sourceLang: lang,
-      targetLang: course?.meta.target ?? '',
-      skillId: ex.skillId,
-      note: ex.skillId == null ? null : course?.note(ex.skillId!, lang),
-      at: ref.read(clockProvider)().toUtc(),
+  /// "Explain answer with AI" (right or wrong answers).
+  void _explain() {
+    final ex = _exercise, r = _result;
+    if (ex == null || r == null) return;
+    final ctx = _answerContext(ex, r);
+    final explainer = ref.read(explainerProvider);
+    unawaited(showAiExplanationSheet(context, request: () => explainer.explain(ctx), note: ctx.note));
+  }
+
+  /// "Report": the flag sheet for the checked exercise.
+  Future<void> _flag() async {
+    final ex = _exercise, r = _result;
+    if (ex == null || r == null) return;
+    final draft = FlagDraft(
+      exercise: ex,
+      result: r,
+      context: _answerContext(ex, r),
+      packVersion: ref.read(courseDataProvider).value?.meta.version,
     );
+    final saved = await showFlagSheet(context, draft);
+    if (saved == true && mounted && _exercise == ex) setState(() => _flagged = true);
   }
 
   /// "I was right" in the feedback panel: only for a wrong verdict the
@@ -322,15 +374,23 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     if (_exercise != ex) return;
     final events = await s.overrideAnswer(ex.id);
     final course = ref.read(courseDataProvider).value;
-    await saveOverrideFlag(
-      ref.read(progressStoreProvider),
-      courseId: course?.meta.id ?? '',
-      exercise: ex,
-      result: r,
-      overrides: events,
-      at: ref.read(clockProvider)().toUtc(),
-      packVersion: course?.meta.version,
-    );
+    try {
+      await ref.read(feedbackStoreProvider).saveFlag(
+        overrideFlag(
+          id: const Uuid().v4(),
+          at: ref.read(clockProvider)(),
+          courseId: course?.meta.id ?? '',
+          exercise: ex,
+          result: r,
+          overrides: events,
+          packVersion: course?.meta.version,
+          sourceLang: ref.read(sourceLangProvider),
+        ),
+      );
+      ref.read(flagsRevisionProvider.notifier).bump();
+    } catch (e) {
+      debugPrint('[override] flag not saved: $e');
+    }
     if (!mounted || _exercise != ex) return;
     setState(() {
       _overridden = true;
@@ -495,7 +555,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     final ex = _exercise!;
     final result = _result;
     final reduce = ref.watch(reduceMotionProvider);
-    final whyAvailable = ref.watch(explainerAvailableProvider);
+    final aiAvailable = ref.watch(explainerAvailableProvider);
     return Column(
       children: [
         if (_endless) NonStopHudSlot(run: _run),
@@ -521,6 +581,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                     onChanged: (a) => setState(() => _draft = a),
                     onSubmit: (a) => unawaited(_submit(a)),
                     onCheck: _check,
+                    onSelect: _selectTick,
                   ),
                 ),
               );
@@ -533,8 +594,24 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
             result: _bannerResult ?? result,
             reduceMotion: reduce,
             onContinue: _continue,
-            onWhy: whyAvailable && !result.correct ? _why : null,
-            extraActions: [..._overrideActions(ex, result)],
+            extraActions: [
+              // "I was right" after a wrong verdict (engine sessions).
+              ..._overrideActions(ex, result),
+              // Only exists when an AI provider and key are configured.
+              if (aiAvailable)
+                FeedbackAction(
+                  key: const ValueKey('ai-explain-button'),
+                  icon: Icons.auto_awesome_outlined,
+                  label: 'Explain answer with AI',
+                  onPressed: _explain,
+                ),
+              FeedbackAction(
+                key: const ValueKey('flag-button'),
+                icon: _flagged ? Icons.flag : Icons.outlined_flag,
+                label: _flagged ? 'Reported' : 'Report',
+                onPressed: _flagged ? null : () => unawaited(_flag()),
+              ),
+            ],
           )
         else if (!selfSubmitting(ex.type))
           SafeArea(

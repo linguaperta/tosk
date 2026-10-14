@@ -8,3 +8,7 @@ if [ -d "$ROOT/pipeline" ]; then
   (cd "$ROOT" && "$PY" -m pytest -q pipeline/tests)
 fi
 (cd "$ROOT/app" && flutter analyze && flutter test)
+# Local packages (excluded from the app's analysis; see app/packages/).
+for pkg in "$ROOT"/app/packages/*/; do
+  (cd "$pkg" && flutter pub get >/dev/null && flutter analyze && flutter test)
+done

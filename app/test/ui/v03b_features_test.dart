@@ -11,7 +11,6 @@ import 'package:tosk/progression/progression.dart';
 import 'package:tosk/providers.dart';
 import 'package:tosk/reminders/reminder_backend.dart';
 import 'package:tosk/ui/goal/daily_goal_providers.dart';
-import 'package:tosk/ui/lesson/answer_override.dart';
 import 'package:tosk/ui/lesson/typing.dart';
 import 'package:tosk/ui/map/skill_stats.dart';
 import 'package:tosk/ui/routes.dart';
@@ -253,10 +252,13 @@ void main() {
       final log = await store.log();
       final o = log.singleWhere((e) => e.isOverride);
       expect(o.overriddenId, log.firstWhere((e) => !e.isOverride && !e.correct).id);
-      final flags = await overrideFlags(store);
-      expect(flags.single['facet_id'], 'it:mangiare#form:presente');
-      expect(flags.single['given'], 'mangiate');
-      expect(flags.single['overridden_events'], [o.overriddenId]);
+      final container = ProviderScope.containerOf(tester.element(find.byType(Scaffold).first));
+      final flags = await container.read(feedbackStoreProvider).flags();
+      expect(flags.single.facetId, 'it:mangiare#form:presente');
+      expect(flags.single.given, 'mangiate');
+      expect(flags.single.reasons, [FlagReason.answerWrong]);
+      expect(flags.single.comment, contains(o.overriddenId!));
+      expect(flags.single.exercise['type'], 'conj_pick');
       // The state equals a right answer's.
       expect((await store.state('it:mangiare#form:presente'))!.lapses, 0);
     });

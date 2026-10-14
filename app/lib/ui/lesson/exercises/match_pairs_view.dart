@@ -13,6 +13,7 @@ class MatchPairsView extends ExerciseWidget<MatchPairsExercise> {
     required super.exercise,
     required super.onChanged,
     super.onSubmit,
+    super.onSelect,
     super.result,
     super.keys,
     super.reduceMotion,
@@ -43,12 +44,14 @@ class _MatchPairsViewState extends State<MatchPairsView> {
 
   void _tapLeft(int i) {
     if (widget.locked || _matches.containsKey(i)) return;
+    widget.onSelect?.call();
     setState(() => _left = _left == i ? null : i);
     _tryPair();
   }
 
   void _tapRight(int j) {
     if (widget.locked || _matches.containsValue(j)) return;
+    widget.onSelect?.call();
     setState(() => _right = _right == j ? null : j);
     _tryPair();
   }
