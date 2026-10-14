@@ -30,7 +30,8 @@ class InMemoryProgressStore implements ProgressStore, EventImporter {
     _events[e.id] = e;
     final list = _byFacet[e.facetId] ??= [];
     final isLatest = list.isEmpty || compareEvents(e, list.last) > 0;
-    if (isLatest && (list.isEmpty || _states.containsKey(e.facetId))) {
+    // An override rewrites an earlier event: always replay the facet.
+    if (isLatest && !e.isOverride && (list.isEmpty || _states.containsKey(e.facetId))) {
       list.add(e);
       return _states[e.facetId] = scheduler.review(e.facetId, _states[e.facetId], e.rating, e.at);
     }

@@ -40,19 +40,21 @@ int compareEvents(ReviewEvent a, ReviewEvent b) =>
     compareEventKeys(a.at.millisecondsSinceEpoch, a.id, b.at.millisecondsSinceEpoch, b.id);
 
 /// Folds [events] of ONE facet (already in `(at, id)` order) into its state.
+/// Answer overrides are applied first ([applyOverrides]).
 FacetState? foldFacet(Scheduler scheduler, String facetId, Iterable<ReviewEvent> events) {
   FacetState? s;
-  for (final e in events) {
+  for (final e in applyOverrides(events.toList())) {
     s = scheduler.review(facetId, s, e.rating, toStoredTime(e.at));
   }
   return s;
 }
 
 /// Replays a whole log (any order) into states keyed by facet id.
+/// Answer overrides are applied first ([applyOverrides]).
 Map<String, FacetState> replayLog(Scheduler scheduler, Iterable<ReviewEvent> events) {
   final sorted = events.toList()..sort(compareEvents);
   final out = <String, FacetState>{};
-  for (final e in sorted) {
+  for (final e in applyOverrides(sorted)) {
     out[e.facetId] = scheduler.review(e.facetId, out[e.facetId], e.rating, toStoredTime(e.at));
   }
   return out;

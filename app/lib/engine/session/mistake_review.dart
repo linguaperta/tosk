@@ -42,8 +42,9 @@ const double kMistakeWeakRecall = 0.9;
 /// `correct`, `at` not before the mistake, and a session id other than the
 /// mistake's own). The re-ask in the same session does not count: getting it
 /// right two exercises later is short-term memory. A new mistake on the facet
-/// (e.g. during mistake review) opens it again. Mistakes on facets the course
-/// no longer trains (a pack update) are skipped.
+/// (e.g. during mistake review) opens it again. A mistake whose answer the
+/// learner overrode ("I was right", `kOverrideType`) is resolved. Mistakes on
+/// facets the course no longer trains (a pack update) are skipped.
 Future<List<OpenMistake>> openMistakes({
   required ProgressStore store,
   required CourseData course,
@@ -61,7 +62,11 @@ Future<List<OpenMistake>> openMistakes({
     counts[m.facetId] = (counts[m.facetId] ?? 0) + 1;
   }
   final oldest = latest.values.map((m) => m.at).reduce((a, b) => a.isBefore(b) ? a : b);
-  final log = await store.log(since: oldest, courseId: course.meta.id);
+  final raw = await store.log(since: oldest, courseId: course.meta.id);
+  // "I was right": an overridden mistake is resolved, and an overridden
+  // answer counts as a correct one (kOverrideType).
+  final overridden = {for (final e in raw) ?e.overriddenId};
+  final log = applyOverrides(raw);
   final sessionOf = {for (final e in log) e.id: e.sessionId};
   final byFacet = <String, List<ReviewEvent>>{};
   for (final e in log) {
@@ -69,6 +74,7 @@ Future<List<OpenMistake>> openMistakes({
   }
 
   bool resolved(MistakeRecord m) {
+    if (overridden.contains(m.id)) return true;
     final session = sessionOf[m.id];
     for (final e in byFacet[m.facetId] ?? const <ReviewEvent>[]) {
       if (!e.correct || e.at.isBefore(m.at) || e.id == m.id) continue;
