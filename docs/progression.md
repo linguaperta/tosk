@@ -13,6 +13,12 @@ XP, levels, tiers, streaks, freezes, challenges, badges, the verb collection, no
 - Updates are incremental. When the new canonical log extends the old one (new answers at the end), only the new events are replayed. When an older event arrives (a sync merge), the replay is rebuilt from scratch. Either way the result equals a full replay. Tests check this: event by event, by growing prefixes, with shuffled insertion orders, and with out-of-order merges.
 - `ProgressionService` re-reads the log on every query and feeds it to the replay. Derived data (day counts, challenge facts, non-stop runs) is cached per replay version.
 
+### Per language (v0.3.2)
+
+Progress is **per course**: XP, level, challenges, challenge and level badges, skill tiers, the verb collection, mistakes and tough words, non-stop records and session summaries only count the active course's events (facet ids embed the course id: `{course}:{lemma}#…`). **Account-wide**: the daily goal (XP per local day over every course), the streak, freezes, streak badges and the activity heatmap (it shows the streak).
+
+`ProgressionService` keeps two replays: one over the whole log (day counts, streaks, freezes, heatmap, `xpByDay`) and one over the course's events (everything else). A facet's replay depends only on its own events, so the course replay's states and per-event XP equal the whole log's for those facets; both stay incremental and log-derived, and recomputing in any order gives the same split (`progression_service_test`, `fsrs_determinism_test`).
+
 ## XP (`xp.dart`)
 
 XP is earned per review event (one graded facet outcome). Let `before` be the facet's state just before the event, `R` the scheduler's predicted recall at answer time, and `D` the FSRS difficulty (1..10).
@@ -67,6 +73,8 @@ Tiers are computed at `now`, so a skill drops from gold to silver to bronze as r
 - **fading** (0..1, for desaturating the map): the mean over *reviewed* facets of `clamp((0.90 − R) / (0.90 − 0.50), 0, 1)`. It is 0 for a skill that was never started (new, not faded)
 - `dueCount`, `minRetrievability`, `lastPracticed`, and `nextTierProgress` (the share of facets meeting the next tier's rule)
 
+**What the next tier needs** (`nextTierNeeds`, for the skill sheet): the next tier (bronze for a locked, available or started skill, then silver, gold; none at gold) and how many of the skill's **items** don't meet its rule yet (an item counts until all its facets in the skill do). The sheet words it as "Learn 6 more words to reach Bronze" or "Get every word to 85% recall and 7-day stability for Silver — 4 words to go" (verbs for conjugation skills, nouns for article skills).
+
 ## Streaks, freezes and the heatmap (`calendar.dart`, `streaks.dart`)
 
 **Local days.** Events are stored in UTC. A `LocalCalendar` maps each instant to the user's UTC offset *at that instant* (`Duration Function(DateTime utc)`), which gives a `LocalDate`. `LocalCalendar.system()` uses the device's zone rules, including historical DST, through `DateTime.toLocal()`. Tests pass explicit functions to simulate DST switches and travel. No tz database is needed.
@@ -106,7 +114,7 @@ Periods are ISO weeks (Monday to Sunday, id `W2026-42`) and calendar months (`M2
 
 The weekly pool: 150 or 300 reviews, 50 conjugations, practice on 7 or 5 days, 3 perfect lessons, 20 new words, 1,500 XP, strengthen 5 verb tables, and a 25 combo. The monthly pool: 1,000 reviews, 250 conjugations, 20 practice days, 10 perfect lessons, 80 new words, 6,000 XP, master 10 verb tables, and a 50 combo.
 
-**Badges.** Every completed challenge in every period from the first event to today is a badge, with id `{periodId}:{templateId}`. Its `earnedAt` is the instant of the event that completed it. Milestone badges are added on top: streak lengths of 7, 30, 100 and 365 days (`streak:N`) and levels 5, 10, 25, 50 and 100 (`level:N`). All of them are recomputed from the log.
+**Badges.** Every completed challenge in every period from the first event to today is a badge, with id `{periodId}:{templateId}`. Its `earnedAt` is the instant of the event that completed it. Milestone badges are added on top: streak lengths of 7, 30, 100 and 365 days (`streak:N`) and levels 5, 10, 25, 50 and 100 (`level:N`). All of them are recomputed from the log. Challenges, challenge badges and level badges are the active course's; streak badges follow the account-wide streak.
 
 ## Verb collection (`verb_collection.dart`)
 
@@ -155,8 +163,10 @@ Cards are sorted by frequency rank, then by lemma.
 ```dart
 ProgressionService({required ProgressStore store, required Scheduler scheduler, required CourseData course,
                     DateTime Function()? clock, LocalCalendar? calendar, ProgressionConfig config})
-Future<ProgressProfile> profile([DateTime? now])        // XP, LevelInfo, StreakInfo, today's reviews/XP
+Future<ProgressProfile> profile([DateTime? now])        // course XP, LevelInfo, today's course reviews/XP;
+                                                       // account StreakInfo, accountTodayXp/Reviews (daily goal)
 Future<Map<String, SkillProgress>> skillTiers([DateTime? now])
+Future<NextTierNeeds> nextTier(String skillId, [DateTime? now])
 Future<HeatmapData> heatmap({LocalDate? from, LocalDate? to, DateTime? now})
 Future<ChallengeBoard> challenges([DateTime? now])     // weekly, monthly, badges
 Future<List<EarnedBadge>> badges([DateTime? now])
@@ -167,7 +177,7 @@ Future<List<NonStopRecord>> nonStopHistory()
 NonStopRun newNonStopRun()
 ```
 
-XP, level, streak, heatmap, challenges and badges cover the whole log, across all courses. Skill tiers and the verb collection cover the given course.
+XP, level, challenges, badges (except streak badges), skill tiers, the verb collection, non-stop records and session summaries cover the given course. The streak, freezes, heatmap and `xpByDay` (the daily goal) cover the whole log, across all courses. `replay` is the course replay, `accountReplay` the whole log's.
 
 ## Widgets (`app/lib/ui/progression/`)
 
