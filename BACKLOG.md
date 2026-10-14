@@ -195,6 +195,15 @@ Each one at the expanded it/nl scale: 8–10 units, ~30 skills, ~1000 taught wor
 - [ ] Danish (`da`)
 - [ ] `index.json` listing all courses (the course picker itself is in v0.3)
 
+## Branding: tosk (decided 14 October)
+
+- [x] Name **tosk** (after Ratatosk), GitHub org **linguaperta**, mascot Tosk the red squirrel; course paths are branches of Yggdrasil (light on Norse props)
+- [x] Style explorations (8 styles, Fable agents) in `app/assets/brand/explore/`; **storybook** chosen; Tosk **variant c**; wordmark Gelasio Bold as paths (OFL)
+- [ ] Sparklier gold, silver and bronze node states
+- [ ] Map art kit: branch segment, fork and join pieces, an optional trunk spine, node states, leaves, a Tosk position marker (colour + e-ink). Decide top-down vs bottom-up (roots first) scrolling
+- [ ] In-app branding: app name "tosk", launcher icons (adaptive Android, iOS, web, Windows) from the storybook icon, splash, Tosk on empty states and the summary, a wordmark in the header
+- [ ] Rename repos/package ids when the owner is ready (tosk → tosk, linguaperta org)
+
 ## v0.8: pack toolkit (the pack format is the product; see docs/VISION.md)
 
 - [ ] Publish the pack format as a versioned spec (`docs/pack-format.md`) from schema/course_db.sql, the JSON schemas and the conventions
