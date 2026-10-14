@@ -234,12 +234,31 @@ class Italian(Lang):
         actual = [pres.get(p) for p in self.persons]
         if not paradigms or actual not in paradigms:
             irr.append("presente")
-        part = forms.get("participle", {}).get("_")
         stem = lemma[:-3]
+        for tense in ("imperfetto", "futuro"):
+            actual = [forms.get(tense, {}).get(p) for p in self.persons]
+            if all(actual) and actual not in self.regular_simple(lemma, cls, tense):
+                irr.append(tense)
+        part = forms.get("participle", {}).get("_")
         reg_part = {"are": stem + "ato", "ere": stem + "uto", "ire": stem + "ito", "isc": stem + "ito"}.get(cls or "")
         if part is None or part != reg_part:
             irr.append("passato_prossimo")
         return irr
+
+    def regular_simple(self, lemma: str, cls: str | None, tense: str) -> list[list[str]]:
+        """Regular imperfetto/futuro paradigms (spelling variants included): parlavo, cercherò,
+        mangerò (-ciare/-giare drop the i), studierò (a stressed i stays)."""
+        if cls not in IT_ENDINGS.get(tense, {}):
+            return []
+        stem = lemma[:-3]
+        ends = IT_ENDINGS[tense][cls]
+        out = [[stem + e for e in ends]]
+        if tense == "futuro" and cls == "are":
+            if stem.endswith(("c", "g")):
+                out.append([stem + "h" + e for e in ends])
+            if stem.endswith("i"):
+                out.append([stem[:-1] + e for e in ends])
+        return out
 
     def split(self, lemma, cls, tense, person, form, regular, table=None):
         """Italian: ending = the class ending for the person (falling back to other classes);

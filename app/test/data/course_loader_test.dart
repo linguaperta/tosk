@@ -158,6 +158,32 @@ void main() {
     expect(loadCourseFromSqlite(v11).meta.id, 'it');
   });
 
+  test('grammar gating: sentence/skill features and base features load', () {
+    final db = openFixtureCourseDb(overrideMeta: {'base_features': '["tense:presente"]'});
+    addTearDown(db.close);
+    db.execute("INSERT INTO sentence_features VALUES ('s:1010', 'tense:passato_prossimo'), "
+        "('s:1006', 'tense:presente')");
+    db.execute("INSERT INTO skill_features VALUES ('present-are', 'tense:presente'), "
+        "('essere-avere', 'tense:presente')");
+    final c = loadCourseFromSqlite(db);
+    expect(c.meta.baseFeatures, ['tense:presente']);
+    expect(c.sentenceFeatures('s:1010'), {'tense:passato_prossimo'});
+    expect(c.sentenceFeatures('s:1005'), isEmpty);
+    expect(c.skillFeatures('present-are'), {'tense:presente'});
+    expect(c.skillFeatures('food'), isEmpty);
+  });
+
+  test('grammar gating: packs without the feature tables load with empty sets', () {
+    final db = openFixtureCourseDb();
+    addTearDown(db.close);
+    db.execute('DROP TABLE sentence_features');
+    db.execute('DROP TABLE skill_features');
+    final c = loadCourseFromSqlite(db);
+    expect(c.meta.baseFeatures, isEmpty);
+    expect(c.sentenceFeatures('s:1010'), isEmpty);
+    expect(c.skillFeatures('present-are'), isEmpty);
+  });
+
   test('refuses databases that are not course packs', () {
     final db = sqlite3.openInMemory();
     addTearDown(db.close);

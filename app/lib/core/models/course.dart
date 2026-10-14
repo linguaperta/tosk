@@ -27,6 +27,7 @@ class CourseMeta {
     this.unverified = false,
     this.attribution = '',
     this.schemaVersion = 1,
+    this.baseFeatures = const [],
   });
 
   final String id; // 'it'
@@ -42,6 +43,10 @@ class CourseMeta {
   final bool unverified;
   final String attribution;
   final int schemaVersion;
+
+  /// Grammar features allowed from the start (`meta.base_features`, e.g. `tense:presente`).
+  /// See [CourseData.sentenceFeatures] and docs/ARCHITECTURE.md, "Grammar gating".
+  final List<String> baseFeatures;
 
   String tenseLabel(String tense, String lang) =>
       tenseLabels[tense] == null ? tense.replaceAll('_', ' ') : pickLang(tenseLabels[tense]!, lang);

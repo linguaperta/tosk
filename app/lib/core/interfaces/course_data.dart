@@ -48,6 +48,13 @@ abstract interface class CourseData {
 
   /// Grammar note markdown for [skillId] in [lang], falling back to 'en' then any.
   String? note(String skillId, String lang);
+
+  /// Grammar features a sentence uses (`tense:passato_prossimo`, `aux:essere`, ...);
+  /// empty for an unknown sentence or a pack built before grammar gating.
+  Set<String> sentenceFeatures(String sentenceId);
+
+  /// Grammar features a skill introduces (its tense for a verb skill, plus declared constructs).
+  Set<String> skillFeatures(String skillId);
 }
 
 /// Straightforward indexed implementation used by both the data layer and tests.
@@ -63,8 +70,12 @@ class InMemoryCourseData implements CourseData {
     List<VerbForm> verbForms = const [],
     List<Sentence> sentences = const [],
     Map<String, Map<String, String>> notes = const {}, // skillId -> lang -> md
+    Map<String, Set<String>> sentenceFeatures = const {}, // sentenceId -> features
+    Map<String, Set<String>> skillFeatures = const {}, // skillId -> features
   }) : units = (List.of(units)..sort((a, b) => a.ord.compareTo(b.ord))) {
     _notes = notes;
+    _sentenceFeatures = sentenceFeatures;
+    _skillFeatures = skillFeatures;
     final unitOrd = {for (final u in this.units) u.id: u.ord};
     this.skills = List.of(skills)
       ..sort((a, b) {
@@ -126,6 +137,8 @@ class InMemoryCourseData implements CourseData {
   final Map<String, Sentence> _sentences = {};
   final Map<String, List<Sentence>> _sentencesByItem = {};
   late final Map<String, Map<String, String>> _notes;
+  late final Map<String, Set<String>> _sentenceFeatures;
+  late final Map<String, Set<String>> _skillFeatures;
 
   @override
   Skill? skill(String id) => _skills[id];
@@ -207,4 +220,10 @@ class InMemoryCourseData implements CourseData {
     if (n == null || n.isEmpty) return null;
     return n[lang] ?? n['en'] ?? n.values.first;
   }
+
+  @override
+  Set<String> sentenceFeatures(String sentenceId) => _sentenceFeatures[sentenceId] ?? const {};
+
+  @override
+  Set<String> skillFeatures(String skillId) => _skillFeatures[skillId] ?? const {};
 }

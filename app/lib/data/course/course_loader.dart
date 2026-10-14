@@ -153,6 +153,26 @@ CourseRepo loadCourseRepoFromSqlite(CommonDatabase db) {
     (notes[r[0] as String] ??= {})[r[1] as String] = r[2] as String;
   }
 
+  // Grammar gating tables (additive in schema 1; packs built before them have none).
+  final tables = {
+    for (final r in db.select(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('sentence_features', 'skill_features')",
+    ).rows)
+      r[0] as String,
+  };
+  final sentenceFeatures = <String, Set<String>>{};
+  if (tables.contains('sentence_features')) {
+    for (final r in db.select('SELECT sentence_id, feature FROM sentence_features').rows) {
+      (sentenceFeatures[r[0] as String] ??= <String>{}).add(r[1] as String);
+    }
+  }
+  final skillFeatures = <String, Set<String>>{};
+  if (tables.contains('skill_features')) {
+    for (final r in db.select('SELECT skill_id, feature FROM skill_features').rows) {
+      (skillFeatures[r[0] as String] ??= <String>{}).add(r[1] as String);
+    }
+  }
+
   final data = InMemoryCourseData(
     meta: meta,
     units: units,
@@ -164,6 +184,8 @@ CourseRepo loadCourseRepoFromSqlite(CommonDatabase db) {
     verbForms: verbForms,
     sentences: sentences,
     notes: notes,
+    sentenceFeatures: sentenceFeatures,
+    skillFeatures: skillFeatures,
   );
   sw.stop();
   return CourseRepo(
@@ -227,6 +249,7 @@ CourseMeta parseCourseMeta(Map<String, String> raw) {
       unverified: raw['unverified'] == '1' || raw['unverified'] == 'true',
       attribution: raw['attribution'] ?? '',
       schemaVersion: major,
+      baseFeatures: _stringList(raw['base_features']),
     );
   } on FormatException catch (e) {
     throw CourseFormatException('Malformed meta JSON: ${e.message}');
