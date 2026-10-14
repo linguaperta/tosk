@@ -9,6 +9,7 @@ import 'package:uuid/uuid.dart';
 
 import '../brand/tosk.dart';
 import '../../core/core.dart';
+import '../../speech/speech_providers.dart';
 import '../../device/device_providers.dart';
 import '../../device/onyx.dart';
 import '../../feedback/answer_context.dart';
@@ -60,6 +61,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   /// exercise keeps its marks; the feedback panel shows [_bannerResult].
   bool _overridden = false;
   Result? _bannerResult;
+
   /// The current exercise was flagged (the Report action shows "Reported").
   bool _flagged = false;
 
@@ -187,7 +189,12 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       await pending.future.timeout(const Duration(seconds: 2), onTimeout: () {});
       _answerHandled = null;
     }
-    final next = await s.next();
+    var next = await s.next();
+    // "Can't listen now": the running session may still serve listening
+    // exercises; skip them while the snooze lasts (bounded).
+    for (var i = 0; i < 50 && next is ListenPickExercise && ref.read(listenSnoozeProvider.notifier).active; i++) {
+      next = await s.next();
+    }
     if (!mounted) return;
     // A type met for the first time gets its intro first.
     var intro = false;
@@ -325,6 +332,14 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
   void _continue() {
     if (_result != null && !_busy) unawaited(_advance());
+  }
+
+  /// "Can't listen now": skip this listening exercise (ungraded) and any
+  /// others for an hour; new sessions won't generate them meanwhile.
+  void _cantListen() {
+    if (_busy) return;
+    ref.read(listenSnoozeProvider.notifier).snooze();
+    unawaited(_advance());
   }
 
   void _finish() {
@@ -470,18 +485,20 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     final events = await s.overrideAnswer(ex.id);
     final course = ref.read(courseDataProvider).value;
     try {
-      await ref.read(feedbackStoreProvider).saveFlag(
-        overrideFlag(
-          id: const Uuid().v4(),
-          at: ref.read(clockProvider)(),
-          courseId: course?.meta.id ?? '',
-          exercise: ex,
-          result: r,
-          overrides: events,
-          packVersion: course?.meta.version,
-          sourceLang: ref.read(sourceLangProvider),
-        ),
-      );
+      await ref
+          .read(feedbackStoreProvider)
+          .saveFlag(
+            overrideFlag(
+              id: const Uuid().v4(),
+              at: ref.read(clockProvider)(),
+              courseId: course?.meta.id ?? '',
+              exercise: ex,
+              result: r,
+              overrides: events,
+              packVersion: course?.meta.version,
+              sourceLang: ref.read(sourceLangProvider),
+            ),
+          );
       ref.read(flagsRevisionProvider.notifier).bump();
     } catch (e) {
       debugPrint('[override] flag not saved: $e');
@@ -735,7 +752,16 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
               ),
             ],
           )
-        else if (!selfSubmitting(ex.type))
+        else if (!selfSubmitting(ex.type)) ...[
+          if (ex is ListenPickExercise)
+            Center(
+              child: TextButton.icon(
+                key: const ValueKey('cant-listen-button'),
+                onPressed: _busy ? null : _cantListen,
+                icon: const Icon(Icons.hearing_disabled_outlined),
+                label: const Text("Can't listen now (skip for 1 hour)"),
+              ),
+            ),
           SafeArea(
             top: false,
             child: Center(
@@ -755,6 +781,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
               ),
             ),
           ),
+        ],
       ],
     );
   }

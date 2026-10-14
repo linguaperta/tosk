@@ -195,6 +195,11 @@ Each one at the expanded it/nl scale: 8–10 units, ~30 skills, ~1000 taught wor
 - [ ] Danish (`da`)
 - [ ] `index.json` listing all courses (the course picker itself is in v0.3)
 
+## v0.6.x: user testing (15 October)
+
+- [ ] **Listening exercises are silent on the phone** (no audio from listen_pick or pronounce buttons). Investigate: TTS engine availability and language on the device (FP5, Android 15), the flutter_tts init, the audio focus/stream, the `<queries>` TTS_SERVICE entry, and the voice check. Deferred by the user to save tokens
+- [x] "Can't listen now (skip for 1 hour)" button on listening exercises: snoozes listen_pick (skipped in running sessions, not generated in new ones); in memory, so a restart ends it
+
 ## Branding: tosk (decided 14 October)
 
 - [x] Name **tosk** (after Ratatosk), GitHub org **linguaperta**, mascot Tosk the red squirrel; course paths are branches of Yggdrasil (light on Norse props)

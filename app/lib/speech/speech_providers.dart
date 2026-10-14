@@ -31,10 +31,27 @@ final courseVoiceProvider = FutureProvider<bool>((ref) async {
 /// Pronounce buttons are shown (a voice for the course language).
 final canPronounceProvider = Provider<bool>((ref) => ref.watch(courseVoiceProvider).value ?? false);
 
-/// Listening exercises may be generated: a voice, and not switched off in
-/// Settings ("Listening exercises").
-final listeningProvider = Provider<bool>(
-  (ref) =>
+/// "Can't listen right now": listening exercises are skipped until this time
+/// (in memory; an app restart ends the snooze).
+class ListenSnooze extends Notifier<DateTime?> {
+  @override
+  DateTime? build() => null;
+
+  static const duration = Duration(hours: 1);
+
+  void snooze([Duration d = duration]) => state = DateTime.now().add(d);
+
+  bool get active => state != null && DateTime.now().isBefore(state!);
+}
+
+final listenSnoozeProvider = NotifierProvider<ListenSnooze, DateTime?>(ListenSnooze.new);
+
+/// Listening exercises may be generated: a voice, not switched off in
+/// Settings ("Listening exercises"), and not snoozed ("Can't listen now").
+final listeningProvider = Provider<bool>((ref) {
+  final until = ref.watch(listenSnoozeProvider);
+  final snoozed = until != null && DateTime.now().isBefore(until);
+  return !snoozed &&
       ref.watch(canPronounceProvider) &&
-      ref.watch(learnerSettingsProvider.select((s) => s.value?.listening ?? true)),
-);
+      ref.watch(learnerSettingsProvider.select((s) => s.value?.listening ?? true));
+});
