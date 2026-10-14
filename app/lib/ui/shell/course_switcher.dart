@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/core.dart';
 import '../../providers.dart';
+import '../courses/course_picker.dart';
 import '../theme/bw_skin.dart';
 
 /// Small chip warning that a course hasn't been checked by a speaker.
@@ -65,13 +66,16 @@ class DemoBadge extends StatelessWidget {
   }
 }
 
-/// Course title with a menu to switch between installed courses.
+/// Course title with a menu to switch between the user's courses, and
+/// "Add or remove courses" (the course picker).
 class CourseSwitcher extends ConsumerWidget {
   const CourseSwitcher({super.key});
 
+  static const _manage = '\u0000manage';
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final courses = ref.watch(availableCoursesProvider).value ?? const <CourseMeta>[];
+    final courses = ref.watch(myCoursesProvider).value ?? const <CourseMeta>[];
     final activeId = ref.watch(activeCourseIdProvider).value;
     final lang = ref.watch(sourceLangProvider);
     final active = courses.where((c) => c.id == activeId).firstOrNull;
@@ -85,8 +89,9 @@ class CourseSwitcher extends ConsumerWidget {
           child: PopupMenuButton<String>(
             key: const ValueKey('course-switcher'),
             tooltip: 'Switch course',
-            enabled: courses.length > 1,
-            onSelected: (id) => ref.read(settingsProvider.notifier).change((s) => s.copyWith(courseId: id)),
+            onSelected: (id) => id == _manage
+                ? showCoursePicker(context)
+                : ref.read(settingsProvider.notifier).change((s) => s.copyWith(courseId: id)),
             itemBuilder: (context) => [
               for (final c in courses)
                 CheckedPopupMenuItem<String>(
@@ -100,6 +105,19 @@ class CourseSwitcher extends ConsumerWidget {
                     ],
                   ),
                 ),
+              const PopupMenuDivider(),
+              const PopupMenuItem<String>(
+                key: ValueKey('manage-courses'),
+                value: _manage,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.library_add_outlined),
+                    SizedBox(width: 12),
+                    Flexible(child: Text('Add or remove courses', overflow: TextOverflow.ellipsis)),
+                  ],
+                ),
+              ),
             ],
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
@@ -107,7 +125,7 @@ class CourseSwitcher extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Flexible(child: Text(title, overflow: TextOverflow.ellipsis)),
-                  if (courses.length > 1) const Icon(Icons.arrow_drop_down),
+                  const Icon(Icons.arrow_drop_down),
                 ],
               ),
             ),

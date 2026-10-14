@@ -1,3 +1,4 @@
+import '../../core/models/course.dart';
 import '../../core/models/exercise.dart';
 import '../../core/models/facet.dart';
 import '../../core/models/progress.dart';
@@ -39,14 +40,19 @@ class SpotErrorTemplate extends ExerciseTemplate {
   Set<FacetKind> get kinds => const {FacetKind.form, FacetKind.article};
 
   @override
-  bool canGenerate(SkillFacet facet, GenContext ctx) => supports(facet) && _plans(facet, ctx, shuffle: false, limit: 1).isNotEmpty;
+  bool canGenerate(SkillFacet facet, GenContext ctx) =>
+      supports(facet) &&
+      ctx.memo('spot_error|${facet.facetId}|${ctx.lang}', () => _plans(facet, ctx, shuffle: false, limit: 1).isNotEmpty);
 
   List<_Plan> _plans(SkillFacet facet, GenContext ctx, {bool shuffle = true, int limit = 1 << 30}) {
     final ix = ctx.index;
     final out = <_Plan>[];
+    // Only sentences the learner may meet; when generating, the best first.
+    Iterable<T> order<T>(List<T> occ, Sentence Function(T) sentence) =>
+        shuffle ? ctx.prefer(occ, sentence) : occ.where((o) => ctx.sentenceOk(sentence(o)));
     if (facet.kind == FacetKind.form && facet.tense != null) {
       final occ = ix.formOccurrencesIn(facet.itemId, facet.tense!);
-      for (final o in shuffle ? ctx.shuffled(occ) : occ) {
+      for (final o in order(occ, (o) => o.sentence)) {
         if (out.length >= limit) break;
         // Only other persons of the same tense: a swap to another tense
         // (`De leerlingen mogen` -> `mochten`) usually leaves a grammatical
@@ -68,7 +74,7 @@ class SpotErrorTemplate extends ExerciseTemplate {
       final wrong = wrongArticles(ix, noun);
       if (wrong.isEmpty) return out;
       final occ = ix.articleOccurrences(facet.itemId);
-      for (final o in shuffle ? ctx.shuffled(occ) : occ) {
+      for (final o in order(occ, (o) => o.sentence)) {
         if (out.length >= limit) break;
         final rep = shuffle ? ctx.pick(wrong) : wrong.first;
         final idx = o.withinToken ? o.nounPos : o.articlePos;
@@ -91,6 +97,7 @@ class SpotErrorTemplate extends ExerciseTemplate {
     if (plans.isEmpty) return null;
     final p = plans.first;
     final sentence = ctx.course.sentence(p.sentenceId)!;
+    ctx.useSentence(p.sentenceId);
     return SpotErrorExercise(
       id: ctx.nextId(),
       facetId: facet.facetId,
@@ -103,6 +110,16 @@ class SpotErrorTemplate extends ExerciseTemplate {
       correction: p.correction,
       translation: p.translation,
       sentenceId: p.sentenceId,
+      tokenRefs: [
+        for (var i = 0; i < p.tokens.length; i++)
+          TokenRef(
+            p.tokens[i].$2,
+            pre: p.tokens[i].$1,
+            itemId: i < sentence.tokens.length ? sentence.tokens[i].lex : null,
+            form: i < sentence.tokens.length ? sentence.tokens[i].form : null,
+            isWord: i < sentence.tokens.length ? sentence.tokens[i].isWord : true,
+          ),
+      ],
     );
   }
 

@@ -32,11 +32,15 @@ class ExerciseSelector {
     List<ExerciseTemplate>? templates,
     this.presets = FocusPresets.defaults,
     this.affinity = kStageAffinity,
+    this.recentFactor = 0.6,
   }) : templates = {for (final t in templates ?? defaultTemplates()) t.type: t};
 
   final Map<ExerciseType, ExerciseTemplate> templates;
   final FocusPresets presets;
   final Map<ExerciseType, Map<FacetStage, double>> affinity;
+
+  /// Weight factor per recent use of a type (see [generate]).
+  final double recentFactor;
 
   ExerciseTemplate? template(ExerciseType type) => templates[type];
 
@@ -61,10 +65,15 @@ class ExerciseSelector {
     ];
   }
 
-  /// Generates an exercise for [facet]. Types are drawn by weight
-  /// (stage affinity x focus weight, [avoid] down-weighted); when no type has
-  /// weight under the focus, the focus is ignored (e.g. a vocab-focus lesson
-  /// on a pure grammar skill), and as a last resort every allowed type is tried.
+  /// Generates an exercise for [facet]. Types are drawn by weight (stage
+  /// affinity x focus weight); when no type has weight under the focus, the
+  /// focus is ignored (e.g. a vocab-focus lesson on a pure grammar skill), and
+  /// as a last resort every allowed type is tried.
+  ///
+  /// Variety: within each of those tiers, [avoid] (the previous exercise's
+  /// type, or the type a re-asked mistake was missed with) is only tried after
+  /// every other type of the tier failed, and types among [recent] (the last
+  /// few exercises' types) weigh [recentFactor] less per occurrence.
   Exercise? generate(
     SkillFacet facet,
     GenContext ctx, {
@@ -72,29 +81,46 @@ class ExerciseSelector {
     Set<ExerciseType>? only,
     bool ignoreSkillRestriction = false,
     ExerciseType? avoid,
+    List<ExerciseType> recent = const [],
   }) {
     final types = allowedTypes(facet, ctx, only: only, ignoreSkillRestriction: ignoreSkillRestriction);
     if (types.isEmpty) return null;
     final stage = ctx.stage(facet.facetId);
-    double base(ExerciseType t) => (affinity[t]?[stage] ?? 1) * (t == avoid ? 0.3 : 1);
+    double base(ExerciseType t) {
+      var w = affinity[t]?[stage] ?? 1;
+      for (final r in recent) {
+        if (r == t) w *= recentFactor;
+      }
+      return w;
+    }
+
     final tiers = <Map<ExerciseType, double>>[
       {for (final t in types) t: base(t) * presets.weight(focus, t)},
       {for (final t in types) t: base(t)},
       {for (final t in types) t: 1},
     ];
     final tried = <ExerciseType>{};
+    Exercise? attempt(ExerciseType t) {
+      tried.add(t);
+      final tpl = templates[t]!;
+      if (!tpl.canGenerate(facet, ctx)) return null;
+      return tpl.generate(facet, ctx);
+    }
+
     for (final tier in tiers) {
       final pool = {
         for (final e in tier.entries)
           if (e.value > 0 && !tried.contains(e.key)) e.key: e.value,
       };
+      final deferred = avoid != null && pool.remove(avoid) != null;
       while (pool.isNotEmpty) {
         final t = _draw(pool, ctx);
         pool.remove(t);
-        tried.add(t);
-        final tpl = templates[t]!;
-        if (!tpl.canGenerate(facet, ctx)) continue;
-        final ex = tpl.generate(facet, ctx);
+        final ex = attempt(t);
+        if (ex != null) return ex;
+      }
+      if (deferred) {
+        final ex = attempt(avoid);
         if (ex != null) return ex;
       }
     }

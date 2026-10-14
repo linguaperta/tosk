@@ -10,7 +10,10 @@ requires-python = ">=3.11"
 dependencies = ["pyyaml>=6.0", "jsonschema>=4.20", "requests>=2.31"]
 
 [tool.setuptools]
-packages = ["pipeline"]
+packages = ["pipeline", "pipeline.hns"]
+
+[tool.setuptools.package-data]
+"pipeline.hns" = ["template/*.yaml", "template/grammar/*.md"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

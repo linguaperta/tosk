@@ -42,6 +42,30 @@ enum Direction {
   produce, // prompt in source language, answer in target language
 }
 
+/// One displayed token of a target-language sentence, aligned to a course
+/// item where the pipeline aligned it. The UI makes aligned words tappable for
+/// their gloss (lemma, person and tense for verb forms, article for nouns).
+/// Rendering `pre + text` for every token gives the sentence.
+@immutable
+class TokenRef {
+  const TokenRef(this.text, {this.pre = '', this.itemId, this.form, this.isWord = true});
+
+  final String text;
+
+  /// Whitespace before the token.
+  final String pre;
+
+  /// Aligned item id (`Token.lex`), null for unaligned words and punctuation.
+  final String? itemId;
+
+  /// `'{tense}.{person}'` when the token is a verb form (`Token.form`).
+  final String? form;
+  final bool isWord;
+}
+
+/// Renders tokens back into text.
+String renderTokenRefs(Iterable<TokenRef> tokens) => tokens.map((t) => '${t.pre}${t.text}').join();
+
 @immutable
 class FlashcardExercise extends Exercise {
   const FlashcardExercise({
@@ -75,6 +99,7 @@ class MultipleChoiceExercise extends Exercise {
     required this.direction,
     this.isSentence = false,
     this.hint,
+    this.sentenceTokens,
   });
   final String prompt;
   final List<String> options;
@@ -85,6 +110,10 @@ class MultipleChoiceExercise extends Exercise {
   /// Optional context line, e.g. the meaning of the noun in an article question
   /// (prompt `'___ ragazzo'`, hint `'boy'`).
   final String? hint;
+
+  /// Sentence variant: the target-language sentence's tokens: the [prompt]
+  /// when recognizing, the correct option when producing (tap-for-gloss).
+  final List<TokenRef>? sentenceTokens;
   @override
   ExerciseType get type => ExerciseType.multipleChoice;
 }
@@ -205,6 +234,7 @@ class SentenceBuilderExercise extends Exercise {
     required this.tiles,
     required this.answers,
     this.sentenceId,
+    this.answerTokens,
   });
 
   /// The sentence to translate (source language).
@@ -216,6 +246,9 @@ class SentenceBuilderExercise extends Exercise {
   /// Accepted answers as tile-word sequences; the first is canonical.
   final List<List<String>> answers;
   final String? sentenceId;
+
+  /// Tokens of the canonical target sentence (tap-for-gloss after answering).
+  final List<TokenRef>? answerTokens;
   @override
   ExerciseType get type => ExerciseType.sentenceBuilder;
 }
@@ -236,6 +269,9 @@ class ClozeExercise extends Exercise {
     this.hint,
     this.translation,
     this.sentenceId,
+    this.tokens,
+    this.gapFrom,
+    this.gapTo,
   });
   final String before; // sentence text before the gap
   final String after; // sentence text after the gap
@@ -248,6 +284,13 @@ class ClozeExercise extends Exercise {
   final String? hint; // e.g. "mangiare (noi, presente)"
   final String? translation;
   final String? sentenceId;
+
+  /// Tokens of the whole (correct) sentence, for tap-for-gloss. The gap
+  /// covers tokens [gapFrom]..[gapTo] (inclusive); an elided article gap
+  /// covers only the start of token [gapFrom] (`l'` of `l'acqua`).
+  final List<TokenRef>? tokens;
+  final int? gapFrom;
+  final int? gapTo;
   @override
   ExerciseType get type => ExerciseType.cloze;
 }
@@ -266,6 +309,7 @@ class SpotErrorExercise extends Exercise {
     this.translation,
     this.sentenceId,
     this.tokenPre,
+    this.tokenRefs,
   });
 
   /// Displayed tokens; one of them is wrong.
@@ -279,6 +323,11 @@ class SpotErrorExercise extends Exercise {
   final String correction; // the right form at errorIndex
   final String? translation;
   final String? sentenceId;
+
+  /// Alignment of each displayed token, parallel to [tokens] (the error
+  /// token carries the [correction]'s alignment). For tap-for-gloss, only
+  /// after answering.
+  final List<TokenRef>? tokenRefs;
   @override
   ExerciseType get type => ExerciseType.spotError;
 }
@@ -296,6 +345,7 @@ class TransformExercise extends Exercise {
     required this.answers,
     this.sentenceId,
     this.translation,
+    this.sourceTokens,
   });
   final String source; // original sentence
   final String targetDescription; // e.g. "→ passato prossimo" or "→ noi"
@@ -305,6 +355,9 @@ class TransformExercise extends Exercise {
 
   /// Translation of the source sentence (context only).
   final String? translation;
+
+  /// Tokens of [source] (tap-for-gloss).
+  final List<TokenRef>? sourceTokens;
   @override
   ExerciseType get type => ExerciseType.transform;
 }

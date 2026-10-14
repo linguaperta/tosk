@@ -35,7 +35,7 @@ class ConjGridTemplate extends ExerciseTemplate {
   @override
   bool canGenerate(SkillFacet facet, GenContext ctx) {
     if (!supports(facet) || facet.tense == null) return false;
-    return ctx.index.memo('conj_grid/$distractorCount/$minCells|${facet.facetId}', () {
+    return ctx.memo('conj_grid/$distractorCount/$minCells|${facet.facetId}', () {
       final cells = ctx.index.finiteForms(facet.itemId, facet.tense!);
       return cells.length >= minCells && _distractors(facet, cells, ctx, shuffle: false).isNotEmpty;
     });
@@ -45,7 +45,16 @@ class ConjGridTemplate extends ExerciseTemplate {
     final forbidden = [for (final c in cells) ...c.accepted];
     final picker = OptionPicker(forbidden: forbidden, max: distractorCount);
     // The candidate groups depend only on the course and the facet.
-    final groups = ctx.index.memo('conj_grid.groups|${facet.facetId}', () => _candidateGroups(facet, cells, ctx));
+    var groups = ctx.index.memo('conj_grid.groups|${facet.facetId}', () => _candidateGroups(facet, cells, ctx));
+    if (ctx.gate != null) {
+      // Group d (the verb's other tenses): only tenses the learner has met.
+      final tenseOf = {for (final f in ctx.course.verbForms(facet.itemId).values) f.form: f.tense};
+      groups = [
+        groups[0],
+        [for (final o in groups[1]) if (ctx.tenseShowable(tenseOf[o] ?? '')) o],
+        ...groups.skip(2),
+      ];
+    }
     if (shuffle) {
       picker.addGroups(groups, ctx.random);
     } else {

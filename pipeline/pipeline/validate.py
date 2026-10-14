@@ -13,7 +13,7 @@ Checks:
     stem + ending == form whenever both are set
   * sentences: tokens re-render the text exactly; every token lex exists; a token form exists in
     that verb's table
-  * grammar skills have an English and a Dutch grammar note
+  * grammar skills have an English and a Dutch grammar note (course.yaml `note_langs` overrides)
   * grammar gating (features.py): every feature a sentence uses is introduced by its home skill,
     one of that skill's prerequisites (transitively) or the course's base set; base features and
     feature detectors are well-formed
@@ -98,6 +98,10 @@ def validate(pack: Pack, check_notes: bool = True) -> list[str]:
     persons = list(c["persons"])
     tenses = list(c["tenses"])
     translations = list(c["translations"])
+    for adverb, fits in sorted((c.get("time_adverbs") or {}).items()):
+        for t in fits:
+            if t not in tenses:
+                errors.append(f"{code}: time adverb {adverb!r} lists undeclared tense {t!r}")
 
     # ---- ids
     items: dict[str, dict] = {}
@@ -190,7 +194,7 @@ def validate(pack: Pack, check_notes: bool = True) -> list[str]:
                 errors.append(f"{code}: skill {s['id']} noun {iid} has article {it.get('article')!r} not in meta.articles")
         if check_notes and s["kind"] == "grammar":
             notes = note_texts(pack, s)
-            for lang in NOTE_LANGS:
+            for lang in c.get("note_langs") or NOTE_LANGS:
                 if not (notes.get(lang) or "").strip():
                     errors.append(f"{code}: grammar skill {s['id']} has no '{lang}' grammar note")
     for it in pack.items:

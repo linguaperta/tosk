@@ -348,6 +348,7 @@ CourseData buildDemoItalian() {
       }),
       articles: const ['il', 'lo', 'la', "l'", 'i', 'gli', 'le'],
       attribution: 'Demo data (hand-made)',
+      description: const {'en': 'A small sample course.', 'nl': 'Een kleine voorbeeldcursus.'},
     ),
     units: const [
       Unit(id: 'u1', ord: 1, title: {'en': 'Basics', 'nl': 'Basis'}),
@@ -502,6 +503,7 @@ CourseData buildDemoDutch() {
       articles: const ['de', 'het'],
       unverified: true,
       attribution: 'Demo data (hand-made)',
+      description: const {'en': 'A small sample course.', 'nl': 'Een kleine voorbeeldcursus.'},
     ),
     units: const [
       Unit(id: 'u1', ord: 1, title: {'en': 'Basics'}),

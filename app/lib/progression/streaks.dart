@@ -153,10 +153,11 @@ StreakInfo computeStreak(
   );
 }
 
-/// Review counts per local date.
+/// Review counts per local date (test-out credits are not reviews).
 Map<LocalDate, int> dayCountsOf(Iterable<ReviewEvent> events, LocalCalendar calendar) {
   final m = <LocalDate, int>{};
   for (final e in events) {
+    if (e.isCredit) continue;
     final d = calendar.dateOf(e.at);
     m[d] = (m[d] ?? 0) + 1;
   }

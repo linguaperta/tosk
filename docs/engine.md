@@ -9,12 +9,14 @@
 | `template.dart` | The `ExerciseTemplate` contract, `OptionPicker` (wrong-option filter), shared grading helpers |
 | `templates/*.dart` | The nine templates, plus `alterations.dart` (one-word sentence errors shared by spot-the-error and multiple choice) |
 | `course_index.dart` | Cached derived lookups: verb-form and article occurrences in sentences, auxiliary positions, synonyms (through gloss/spelling indexes), distractor pools, sentences by translation, pro-drop and compound-contiguity statistics, and `memo` for templates' `canGenerate` answers |
-| `gen_context.dart` | `GenContext` (course, options, seeded `Random`, facet states, skill) and `FacetStage` / `StagePolicy` |
+| `gen_context.dart` | `GenContext` (course, options, seeded `Random`, facet states, skill, gate, sentence history) and `FacetStage` / `StagePolicy` |
+| `gating.dart` | `SentenceGate` (grammar gating and the unknown-word cap) and `SentenceHistory` (recently seen sentences) |
 | `selector.dart` | Picks the exercise type for a facet (stage affinity × focus weight × restrictions) and generates it |
 | `focus_presets.dart` | Focus weights, parsed from `assets/config/focus_presets.json`, with identical embedded defaults |
 | `grading/rating.dart` | `RatingPolicy` (result → FSRS rating, fast-answer table) and `GradeOptions` |
 | `text/normalize.dart` | NFC, case, punctuation, apostrophes, accent folding, `matchAnswer` |
-| `session/` | `EngineSession` (serve, grade, record, re-queue, result stream), the builders, and `EngineSessionFactory` |
+| `session/` | `EngineSession` (serve, grade, record, re-queue, result stream), the builders, `assessment.dart` (test out, placement, tough words), and `EngineSessionFactory` |
+| `reference.dart` | Lookups for the UI's reference and word popovers: `glossForToken` (lemma, person, tense label, article, glosses), `CourseReference` (accent-insensitive search, verb tables with irregular forms, skills teaching an item, examples) |
 | `debug/exercise_printer.dart` | `exercisePrompt` (stored with mistakes), `formatExercise`, `sampleExercises` |
 
 ## Using it from the UI
@@ -36,16 +38,17 @@ for (var e = await session.next(); e != null; e = await session.next()) {
 final summary = session.summary();
 ```
 
-`lesson`, `lab`, `nonStop`, `fading` and `review` return `LessonSession`, `LabSession`, `NonStopSession`, `FadingSession` and `MistakeReviewSession`, all `EngineSession`s. Beyond `PracticeSession` they offer `results` (a broadcast stream of `AnswerEvent`), `mistakeContext(exerciseId)`, and on non-stop `unlockedSkills()` and `enqueueBonus(types:, count:)`.
+`lesson`, `lab`, `nonStop`, `fading`, `review`, `testOut`, `placement` and `toughWords` return `LessonSession`, `LabSession`, `NonStopSession`, `FadingSession`, `MistakeReviewSession`, `TestOutSession`, `PlacementSession` and `ToughWordsSession`, all `EngineSession`s. Beyond `PracticeSession` they offer `results` (a broadcast stream of `AnswerEvent`), `mistakeContext(exerciseId)`, and on non-stop `unlockedSkills()` and `enqueueBonus(types:, count:)`. Test out and placement are `AssessmentSession`s with an `outcome` once they end. `lesson(length:)` takes the lesson length (the UI offers `SessionLength` quick 5, normal 12, long 20).
 
 UI notes on the exercise contract:
 
 - **Conjugation pick:** an empty ending (Dutch `ik werk` = `werk` + '') is shown as the option `–` (`kNoEnding`).
 - **Conjugation grid:** `tiles` holds one tile per asked cell, so a form shared by several cells (`werken` for wij, jullie and zij) appears once per cell, plus the distractors. A UI that consumes tiles works, and so does one that reuses them. Tapped tiles are graded with exact diacritics, typed ones by the accent setting. `cellCorrect` gives per-cell feedback.
-- **Cloze:** `options == null` means free text (a `TextAnswer`, which may carry ink `candidates`).
+- **Cloze:** `options == null` means free text (a `TextAnswer`, which may carry ink `candidates`). The hint of a `#prod` or `#article` gap is the gloss that matches the translation (`lo` in "I know it": `it`), or all glosses when none does (`it, the`).
 - **Spot the error:** render with `tokenPre[i] + tokens[i]`, or use `renderSpotError`.
 - **Article multiple choice:** the prompt is `___ ragazzo` and `hint` is the meaning.
 - **Lenient accents:** `Result.accentSlip` means "accepted, but watch the accent".
+- **Token alignment (tap-for-gloss).** Exercises that show a target-language sentence carry its tokens as `TokenRef`s (text, whitespace before, aligned item id and `'{tense}.{person}'` form, from `Token.lex` / `Token.form`; `tokenRefsOf(sentence)`): `ClozeExercise.tokens` with `gapFrom..gapTo` (the whole correct sentence; the gap covers those tokens, or only the start of token `gapFrom` for an elided article), `SpotErrorExercise.tokenRefs` (parallel to `tokens`; the wrong word carries the original token's alignment), `MultipleChoiceExercise.sentenceTokens` (sentence variant: the prompt when recognizing, the correct option when producing), `TransformExercise.sourceTokens` and `SentenceBuilderExercise.answerTokens`. All optional (null from hand-made exercises). `glossForTokenRef(course, ref, lang)` resolves one for the UI. The UI never makes the exercise's own item tappable before the answer is checked.
 
 ## Facets, templates and stages
 
@@ -90,14 +93,38 @@ Every wrong option goes through `OptionPicker`. It rejects an option that is emp
   1. *Same word count:* the words are replaced in place, wherever they stand.
   2. *Compound → single word:* the finite (first) word is replaced and the rest removed. This is valid for V2 and subordinate clauses.
   3. *Single word → compound:* only when the course's own sentences show that tense's compound forms as contiguous (≥ 90 %, so Italian yes and Dutch no) or the verb ends the sentence, and no clitic pronoun precedes the verb.
-  4. *Person changes:* only in pro-drop sentences. The course must usually omit the subject pronoun for both persons (`dropsPronoun`, learned from the data, counting the pronouns of the person key and its labels, `jij/je`: never for Dutch), only adverbs, conjunctions and prepositions may precede the verb, and the sentence may contain no pronoun and no name (`Heeft Tom …`).
-  5. *Tense changes* only when every other verb in the sentence is in the source or the target tense and has a known form (`Wie was de filosoof die ooit geleefd heeft?` would mix tenses); not for an auxiliary verb next to a participle (`als ik nee had gezegd`), not into a compound form next to a participle (passive `gezegd werd`), and not from a form spelled like the infinitive (`vertellen` may be an infinitive after a modal). A form written out of order (`opgestaan ben`) is only rewritten into the same tense.
+  4. *Person changes:* only in pro-drop sentences. The course must usually omit the subject pronoun for both persons (`dropsPronoun`, learned from the data, counting the pronouns of the person key and its labels, `jij/je`: never for Dutch), only adverbs, conjunctions and prepositions may precede the verb, and the sentence may contain no pronoun and no name (`Heeft Tom …`). Also not:
+     - from a form another person shares (`sono`: io and loro, so `Dove sono i vostri nipoti?` may be misaligned);
+     - from a third person when the sentence has a noun (it may be the subject), or from the third person singular when a translation says "it", "there" or "het" (impersonal: `Sembra ieri`, `È ora di …`);
+     - singular ↔ plural when an adjective or participle may agree with the subject (`Dice di essere bravo`) or the verb is "to be" (`Non siamo parenti`).
+  5. *Tense changes* only when every other verb in the sentence is in the source or the target tense and has a known form (`Wie was de filosoof die ooit geleefd heeft?` would mix tenses); not for an auxiliary verb next to a participle (`als ik nee had gezegd`), not into a compound form next to a participle (passive `gezegd werd`), and not from a form spelled like the infinitive (`vertellen` may be an infinitive after a modal). A form written out of order (`opgestaan ben`) is only rewritten into the same tense. A form shared by another person is only rewritten when that person's target form is the same (`werken` → `werkten` yes, `sono` → `ero`/`erano` no).
+  6. *One finite verb:* the transformed verb (with its auxiliary) must be the sentence's only finite verb, or the other one keeps its tense or person (`Il dolore va e viene` → `va e è venuto`).
+  7. *Time adverbs* (course data: `meta.time_adverbs`, from course.yaml `time_adverbs`, adverb → the tenses it fits, matched as whole folded words, multi-word keys allowed): a tense change never produces a tense the sentence's adverbs don't fit (`Adesso mangio` never becomes a past, `Ieri ho mangiato` never the present).
+  8. A changed word after an elided one must start with a vowel or `h` (`l'ha fatto` → `l'faceva` is not built).
 
-  Gendered alternatives (`sono partito;sono partita`) become extra accepted answers.
+  Gendered alternatives (`sono partito;sono partita`) become extra accepted answers. A third-person target form with gendered alternatives is not built when the sentence has a noun or a translation with "it" (`Le cose succedono` → `sono successi`, `Come va?` → `è andato`).
 
-**Occurrences.** `CourseIndex.formOccurrences` matches aligned tokens against the cell's accepted forms, in any order (Dutch subordinate `gegeten heeft`). When only the participle is aligned, it finds the auxiliary nearby. A token whose text is not an accepted form of its aligned cell, such as Dutch inverted `Werk jij?` aligned to `jij: werkt`, is never used.
+**Grammar gating of wrong options.** Under a gate, wrong options and tiles never show a form of a tense the learner has not met (`SentenceGate.tenseShowable`: the tense is known, and so are its irregular forms when the course teaches them as a feature, `irregular:futuro`): cloze options of another tense, conjugation-grid distractors from the verb's other tenses, conjugation-pick endings of other tenses, sentence-builder tiles and multiple-choice sentence alterations swapped into another tense. Wrong target-language sentences in multiple choice use only known grammar features (their words may be new).
+
+**Occurrences.** `CourseIndex.formOccurrences` matches aligned tokens against the cell's accepted forms, in any order (Dutch subordinate `gegeten heeft`). When only the participle is aligned, it finds the auxiliary nearby. A token whose text is not an accepted form of its aligned cell, such as Dutch inverted `Werk jij?` aligned to `jij: werkt`, is never used, and neither is a compound form whose later word follows a determiner (`Hebben dieren een geweten?`: a noun).
 
 **Compound tenses.** The pipeline aligns a compound form on its participle (`mangiato` → `passato_prossimo.io`, the cell's form being `ho mangiato`) and the auxiliary separately to the auxiliary verb's present (`ho` → `avere`, `presente.io`). `CourseIndex.auxiliaryPositions(sentence)` finds those auxiliaries (the nearest token within 6 that reads the form's other word, for the first accepted spelling whose words are all present). They belong to the compound form: they are never an occurrence of the auxiliary verb's own present (`Zijn jullie … geweest?` is no `zijn` present exercise, and `Ho mangiato` no `avere` one), so cloze, spot the error and transform only touch them through the compound form. The validator applies the same convention independently (`_ownerCell`).
+
+## Grammar gating and sentence variety
+
+`gating.dart` implements the contract in docs/ARCHITECTURE.md ("Grammar gating"). Every session calls `prepare()` before its first exercise (`next()` does it):
+
+- **Gate** (`SentenceGate`, only when the course has `meta.base_features`; older packs are not gated):
+  - *Started skills*: every skill with a reviewed facet (`store.allStates(courseId)`), plus the skills of every facet answered during the session (`markStarted`, so non-stop opens a skill's grammar after its first answer).
+  - *Current skills* (`EngineSession.currentSkillIds`): the lesson's skill, the lab's skills; none for non-stop, fading and mistake review.
+  - `knownFeatures` = `base_features` ∪ the features of the started and current skills and of their prerequisites (transitively, like the pipeline's home-skill rule).
+  - `knownItems` = the items of the started and current skills.
+  - A sentence is allowed when its features ⊆ `knownFeatures` and its unknown words ≤ the cap: `SentenceGate.capFor(focus, skill)` = 1 for a grammar focus or a grammar skill, else 2. A word aligned to an unknown item counts 1. An unaligned word counts 0 when it is a name or a number (a capitalized word inside a sentence, a sentence-initial word that also appears capitalized inside one, or digits) and 2 otherwise: in the packs those are rare (125 it / 329 nl sentences) and often an untagged grammar form (passato remoto `Comprai`), so such a sentence never passes the grammar cap.
+  - Cloze, spot the error, transform, the sentence builder and sentence multiple choice only use allowed sentences; transform also needs its target tense and the facet skill's features to be known. `canGenerate` answers are memoized in the gate (`GenContext.memo`), so a template without an eligible sentence returns false and the selector picks another type. A lesson never falls back to ungated sentences: conjugation grids and picks, flashcards, word multiple choice and match pairs fill it.
+- **Variety** (`SentenceHistory`): a bounded LRU of the last 1000 sentence ids per course, stored as a JSON array in the settings key `engine.recent_sentences.{courseId}` (no schema change). `GenContext.prefer` ranks candidate sentences by 0.75 × unknown words + a recency penalty (0 unseen, 1–3 seen, higher when seen more recently) + a random jitter below 1. Sentences already shown in this session come last, so a session repeats a sentence only when the facet has nothing else. Templates record what they show (`GenContext.useSentence`). The session saves its sentences when `next()` runs out and on `stop()`: read, merge (moving re-seen ids to the end), trim, write, serialized per key, so concurrent sessions keep each other's exposures. A mistake re-ask is a new exercise and usually gets another sentence.
+- **Exercise types:** the selector tries the previous exercise's type (or the type a re-asked mistake was missed with) only after every other type of the same weight tier failed, and each of the last three types weighs 0.6× per occurrence.
+
+`test/engine/gated_validity.dart` checks gated exercises against an independent computation of the learner's knowledge. `real_pack_gating_test.dart` runs it on the bundled packs for a fresh learner and for learners who started units 1..k, plays full lessons (every unit-1 skill for a fresh learner, every unit-3 skill after units 1–3) and a non-stop run, and checks variety across lessons. `runTemplateValidity` stays the "everything known" check.
 
 ## Grading and recording
 
@@ -131,6 +158,19 @@ A wrong facet is re-queued 2–4 exercises later, at most twice per session. Re-
   - Order: still weak (predicted recall < 0.9, `kMistakeWeakRecall`) first, then the rest; most recent first within each group.
   - Each facet is asked with the exercise type that was missed when the skill allows it and the template can build it (`only: {type}`); flashcard mistakes (a self-graded Again) and types that can't serve the facet fall back to the normal selector. If the restricted generation still fails, the slot is retried unrestricted.
 
+### Test out, placement and tough words (`session/assessment.dart`)
+
+- **Test out** (`TestOutBuilder`, `factory.testOut(skillId, length: 10, passMark: 0.8)`, mode `testOut`): the skill's facets, production first (`#prod`, `#form`, `#article` shuffled, then `#rec`), cycled to `length`. Each slot asks for production-leaning types (`productionTypes`: sentence builder, cloze or multiple choice for `#prod`; grid, cloze, transform or spot the error for `#form`; …); when none can be built it is retried with any `kAssessmentTypes` type (everything auto-graded on one facet: no self-graded flashcards, no multi-facet match pairs). No re-asks (`maxReasks: 0`), so the score is first answers: `correct / answered`. When the last `next()` returns null the session concludes: at `score >= passMark` it **credits** the skill.
+- **Placement** (`PlacementBuilder`, `factory.placement(perSkill: 2, passMark: 0.8)`, mode `placement`): unit by unit in course order, `perSkill` production-first facets per skill. A unit passes at the pass mark; the session stops as soon as the current unit can no longer reach it (more wrong answers than `slots × (1 − passMark)`), or after the last unit. Every skill of the units passed before the failure is credited. `outcome`: `passedUnits`, `failedUnit`, `creditedSkills`, the score.
+- **Credits** (`kTestOutCreditType`, a core constant): one `ReviewEvent` per facet of the credited skills that is not learned yet (no state, or still in FSRS's learning phase), with `exerciseType: 'test_out'`, `rating: Easy`, `correct: true`, `responseMs: 0`, input `self`, and the session's id and mode, written through `EngineSession.recordExtra`. Easy graduates a new or learning facet straight into review, so the skill meets progression's bronze rule (every facet learned) and the skills requiring it unlock. Because credits are ordinary log events, they sync and replay like answers; progression gives them no XP and doesn't count them as reviews (`docs/progression.md`). A stopped session (Quit) concludes nothing and has no `outcome`. Mistakes made during the quiz are recorded as usual and stay open for mistake review.
+- **Tough words** (`ToughWordsBuilder`, `factory.toughWords(length: 12, minLapses: 4)`, mode `review`): `leechFacets` = facets of the course's skills whose state has at least `minLapses` lapses, most lapses first, then lowest recall (progression's `toughWords` uses the same rule for the UI's count). Each one becomes a recognition → production ladder (`leechLadder`): `#prod` = multiple choice on its `#rec` sibling, multiple choice on `#prod`, then cloze or sentence builder; `#rec` = multiple choice, match pairs or multiple choice, then production on its `#prod` sibling; `#form` = conjugation pick or grid, then cloze, transform, spot the error or grid; `#article` = multiple choice, then cloze or spot the error. Ladders are added whole until `length` is reached; a step that can't be built is retried with any type. Mistakes are re-asked as in any session.
+
+## Reference lookups (`reference.dart`)
+
+- `glossForToken(course, itemId:, form:, word:, lang:)` → `WordGloss`: `headline` is `mangiamo → mangiare · noi · present` for verb forms (person key, tense label in the source language; non-finite forms only the tense), `il pane` for nouns (`CourseIndex.withArticle`), the lemma otherwise (the word is left out when it is the lemma).
+- `CourseReference.of(course)` (cached per course): `items` and `verbs` sorted by folded lemma; `search(query, lang, verbsOnly:)` over lemmas, variants and plurals, every accepted verb form, and glosses in `lang` (a gloss matches by any of its words, so "eat" finds "to eat"), ignoring case and accents (`foldAnswer`), ranked lemma > inflected form > gloss (or a word of it) > lemma prefix > gloss prefix > anywhere, then by frequency; `verbTable(itemId, lang)` (finite tenses in `meta.tenses` order with persons in `meta.persons` order, then infinitive, participle, gerund); `skillsTeaching(itemId)`; `examples(itemId)` (shortest first).
+- **Irregular forms** (`isIrregular`, a highlighting heuristic): only for verbs marked `irregular`. A single-word form is regular when it equals the verb's stem (declared, else its most common form stem) wrapped in a prefix/suffix pattern that at least 10 % of the course's regular verbs of the same class use for that tense and person (all classes when the class has no regular verbs; prefixes cover Dutch `ge…t`). A compound form is irregular when it contains an irregular participle. Without a stem or a pattern nothing is marked.
+
 ## Adding a template
 
 1. Add the type id to `ExerciseType` and an `Exercise` subtype in `core/models/exercise.dart`. This is a contract change, so tell the UI side.
@@ -142,6 +182,10 @@ A wrong facet is re-queued 2–4 exercises later, at most twice per session. Re-
 3. Register it in `defaultTemplates()`, add its kinds to `ExerciseSelectorTypes.templateKinds`, and give it a row in `kStageAffinity`, the focus presets (JSON asset and `kDefaultFocusWeights`) and `RatingPolicy.defaultFastMs`.
 4. Add a `case` to `validateExercise` in `test/engine/template_validity.dart` that checks validity against the course data independently of the generator, and list the skills where it must apply in `template_validity_test.dart`.
 5. Run `dart run tool/sample_exercises.dart it` and `… nl` and read the output.
+
+## Tests of the v0.3 additions
+
+`test/engine/assessment_test.dart`: test out (production first, no flashcards or match pairs, no re-asks, pass → credits → bronze and the next skill unlocked with no XP and no extra reviews, fail and Quit credit nothing, grammar skills), placement (passes in order, stops early at the first failed unit, credits the passed units, every unit when everything is known), tough words (threshold shared with progression, the ladders, the session's order and types, empty without leeches). `test/engine/reference_test.dart`: glosses (verb forms, nouns with articles, unaligned tokens), search (accents, forms, glosses in both languages, verbs only), verb tables (order, labels, irregular marks), entries, and the token alignment of every template that carries it (cloze gap ranges render back to `before`/`after`).
 
 ## Testing against real packs
 
@@ -163,7 +207,7 @@ Generation is synchronous, so everything a template needs repeatedly is cached p
 
 ## Known limitations
 
-- **Transform** can produce a semantically odd sentence when a past-time adverb remains (`Ieri ho mangiato` → `Ieri mangio`). It is grammatical but odd, and it can't be detected without semantic tags. Person changes are rare by design (pro-drop only).
+- **Transform** relies on the course's `time_adverbs` list; an adverb missing from it, or a time implied by context, can still give an odd but grammatical sentence. Person changes are rare by design (pro-drop only). Imperatives aligned as present indicative (`Chiedi a un poliziotto!` → `chiedo a un poliziotto`) give a grammatical statement.
 - **Conjugation pick** needs stem/ending splits. Fully irregular tables (essere, avere, zijn, hebben) and compound tenses never get it; the grid and cloze cover them.
 - **Spot the error and cloze** rely on the translation for pro-drop person swaps.
 - **Person hints** come from the alignment. Where two persons share the form (Dutch `maakt` for jij and hij), a subject far from the verb can be missed; the pipeline then leaves the person open rather than guess, so such sentences are simply not used.

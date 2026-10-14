@@ -16,6 +16,7 @@ import '../feedback/flag_sheet.dart';
 import '../routes.dart';
 import '../slots/progression_slots.dart';
 import 'exercises/exercise_view.dart';
+import 'assessment_result.dart';
 import 'feedback_banner.dart';
 import '../../data/progress/replay.dart' show toStoredTime;
 import '../../engine/engine.dart';
@@ -82,7 +83,11 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     try {
       final factory = await ref.read(sessionFactoryProvider.future);
       final settings = await ref.read(settingsProvider.future);
-      final session = await widget.request.start(factory, defaultFocus: settings.defaultFocus);
+      final session = await widget.request.start(
+        factory,
+        defaultFocus: settings.defaultFocus,
+        defaultLength: settings.defaultLength.exercises,
+      );
       if (!mounted) {
         session.stop();
         return;
@@ -468,7 +473,14 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       case PlayerPhase.summary:
         final summary = _summary;
         if (summary == null) return const SizedBox.shrink();
-        return SessionSummaryView(summary: summary, endless: _endless, onDone: _close);
+        final s = _session;
+        final outcome = s is AssessmentSession ? s.outcome : null;
+        return SessionSummaryView(
+          summary: summary,
+          endless: _endless,
+          onDone: _close,
+          header: outcome == null ? null : AssessmentResultCard(outcome: outcome, mode: summary.mode),
+        );
       case PlayerPhase.playing:
         return _playing(context);
     }

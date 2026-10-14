@@ -18,6 +18,9 @@ class AppSettings {
     this.themeMode = ThemeMode.system,
     this.reduceMotion = false,
     this.display = DisplayMode.color,
+    this.defaultLength = SessionLength.normal,
+    this.leechLapses = 4,
+    this.coursesAdded,
     this.soundEffects = true,
   });
 
@@ -32,12 +35,25 @@ class AppSettings {
   /// Color, or black & white (e-ink).
   final DisplayMode display;
 
+  /// Default lesson length (the lesson start sheet offers the others).
+  final SessionLength defaultLength;
+
+  /// Lapses from which a facet is a "tough word".
+  final int leechLapses;
+
+  /// The user's courses, in the order added; null until the course picker
+  /// was first used (see [myCourseIds]).
+  final List<String>? coursesAdded;
   /// Short sounds on answers, selections and the end of a lesson (on by
   /// default; independent of reduce motion).
   final bool soundEffects;
 
   /// Black & white (e-ink) display.
   bool get bw => display == DisplayMode.bw;
+
+  /// The courses shown in the app: [coursesAdded], or for an install from
+  /// before the course picker the active course. Empty on a fresh install.
+  List<String> get myCourseIds => coursesAdded ?? [?courseId];
 
   AppSettings copyWith({
     String? courseId,
@@ -47,6 +63,9 @@ class AppSettings {
     ThemeMode? themeMode,
     bool? reduceMotion,
     DisplayMode? display,
+    SessionLength? defaultLength,
+    int? leechLapses,
+    List<String>? coursesAdded,
     bool? soundEffects,
   }) => AppSettings(
     courseId: courseId ?? this.courseId,
@@ -56,6 +75,9 @@ class AppSettings {
     themeMode: themeMode ?? this.themeMode,
     reduceMotion: reduceMotion ?? this.reduceMotion,
     display: display ?? this.display,
+    defaultLength: defaultLength ?? this.defaultLength,
+    leechLapses: leechLapses ?? this.leechLapses,
+    coursesAdded: coursesAdded ?? this.coursesAdded,
     soundEffects: soundEffects ?? this.soundEffects,
   );
 
@@ -69,6 +91,9 @@ class AppSettings {
     final theme = await store.getSetting(SettingKeys.themeMode);
     final motion = await store.getSetting(SettingKeys.reduceMotion);
     final display = await store.getSetting(SettingKeys.display);
+    final length = await store.getSetting(SettingKeys.defaultLength);
+    final leech = int.tryParse(await store.getSetting(SettingKeys.leechLapses) ?? '');
+    final added = await store.getSetting(SettingKeys.coursesAdded);
     final sounds = await store.getSetting(SettingKeys.soundEffects);
     return AppSettings(
       courseId: (course == null || course.isEmpty) ? null : course,
@@ -78,6 +103,14 @@ class AppSettings {
       themeMode: _byName(ThemeMode.values, theme) ?? d.themeMode,
       reduceMotion: motion == 'true',
       display: _byName(DisplayMode.values, display) ?? d.display,
+      defaultLength: _byName(SessionLength.values, length) ?? d.defaultLength,
+      leechLapses: leech == null || leech < 1 ? d.leechLapses : leech,
+      coursesAdded: added == null
+          ? null
+          : [
+              for (final id in added.split(','))
+                if (id.trim().isNotEmpty) id.trim(),
+            ],
       soundEffects: sounds != 'false',
     );
   }
@@ -95,6 +128,9 @@ class AppSettings {
     await put(SettingKeys.themeMode, themeMode.name, old?.themeMode.name);
     await put(SettingKeys.reduceMotion, '$reduceMotion', old == null ? null : '${old.reduceMotion}');
     await put(SettingKeys.display, display.name, old?.display.name);
+    await put(SettingKeys.defaultLength, defaultLength.name, old?.defaultLength.name);
+    await put(SettingKeys.leechLapses, '$leechLapses', old == null ? null : '${old.leechLapses}');
+    await put(SettingKeys.coursesAdded, coursesAdded?.join(','), old?.coursesAdded?.join(','));
     await put(SettingKeys.soundEffects, '$soundEffects', old == null ? null : '${old.soundEffects}');
   }
 
@@ -108,11 +144,33 @@ class AppSettings {
       other.themeMode == themeMode &&
       other.reduceMotion == reduceMotion &&
       other.display == display &&
+      other.defaultLength == defaultLength &&
+      other.leechLapses == leechLapses &&
+      other.coursesAdded?.join(',') == coursesAdded?.join(',') &&
       other.soundEffects == soundEffects;
 
   @override
-  int get hashCode => Object.hash(courseId, sourceLang, defaultFocus, accents, themeMode, reduceMotion, display, soundEffects);
+  int get hashCode => Object.hash(
+    courseId,
+    sourceLang,
+    defaultFocus,
+    accents,
+    themeMode,
+    reduceMotion,
+    display,
+    defaultLength,
+    leechLapses,
+    coursesAdded?.join(','),
+    soundEffects,
+  );
 }
+
+/// "Quick (5)", "Normal (12)", "Long (20)".
+String sessionLengthLabel(SessionLength l) => switch (l) {
+  SessionLength.quick => 'Quick',
+  SessionLength.normal => 'Normal',
+  SessionLength.long => 'Long',
+};
 
 T? _byName<T extends Enum>(List<T> values, String? name) {
   if (name == null) return null;

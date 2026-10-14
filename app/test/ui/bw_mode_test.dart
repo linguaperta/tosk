@@ -152,6 +152,13 @@ void main() {
 
   testWidgets('settings: Display switches to black & white and persists', (tester) async {
     final store = await pumpApp(tester, initialLocation: Routes.settings);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('setting-display-Black & white')),
+      200,
+      scrollable: find
+          .descendant(of: find.byKey(const ValueKey('settings-list')), matching: find.byType(Scrollable))
+          .first,
+    );
     await tapKey(tester, 'setting-display-Black & white');
     expect(store.settings[SettingKeys.display], 'bw');
     expect(find.byKey(const ValueKey('setting-theme')), findsNothing); // always light
@@ -177,7 +184,7 @@ void main() {
     await expectGrayscale(tester, 'skill sheet (note)');
     await tester.tapAt(const Offset(10, 10));
     await tester.pumpAndSettle();
-    for (final tab in ['Lab', 'Non-stop', 'Progress', 'Settings']) {
+    for (final tab in ['Lab', 'Non-stop', 'Lookup', 'Grammar', 'Progress', 'Settings']) {
       await goTab(tester, tab);
       await expectGrayscale(tester, tab);
     }
@@ -329,9 +336,9 @@ void overflowGroup() {
           await tester.drag(find.byKey(const ValueKey('map-scroll')), const Offset(0, -500));
           await tester.pumpAndSettle();
         }
-        for (final tab in ['Lab', 'Non-stop', 'Settings', 'Progress']) {
-          await tester.tap(find.text(tab).first);
-          await tester.pumpAndSettle();
+        for (final tab in ['Lab', 'Non-stop', 'Lookup', 'Grammar', 'Settings', 'Progress']) {
+          await goTab(tester, tab);
+          await expectGrayscale(tester, tab);
         }
         await expectGrayscale(tester, 'progress');
         for (var i = 0; i < 6; i++) {

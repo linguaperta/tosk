@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import '../../core/models/course.dart';
 import '../../core/models/exercise.dart';
 import '../../core/models/facet.dart';
@@ -73,7 +71,7 @@ class ClozeTemplate extends ExerciseTemplate {
   @override
   bool canGenerate(SkillFacet facet, GenContext ctx) =>
       supports(facet) &&
-      ctx.index.memo('cloze/$optionCount|${facet.facetId}|${ctx.lang}',
+      ctx.memo('cloze/$optionCount|${facet.facetId}|${ctx.lang}',
           () => _gaps(facet, ctx, shuffle: false, limit: 1).isNotEmpty);
 
   int _minDistractors(SkillFacet f) => f.kind == FacetKind.article ? 1 : 2;
@@ -87,30 +85,35 @@ class ClozeTemplate extends ExerciseTemplate {
       if (g != null && g.distractors.length >= minD) out.add(g);
     }
 
+    // Only sentences the learner may meet (grammar gating); when generating,
+    // the best first (fewer unknown words, unseen sentences).
+    Iterable<T> order<T>(List<T> occ, Sentence Function(T) sentence) =>
+        shuffle ? ctx.prefer(occ, sentence) : occ.where((o) => ctx.sentenceOk(sentence(o)));
+
     switch (facet.kind) {
       case FacetKind.form:
         final occ = ctx.index.formOccurrencesIn(facet.itemId, facet.tense!);
-        for (final o in shuffle ? ctx.shuffled(occ) : occ) {
+        for (final o in order(occ, (o) => o.sentence)) {
           if (out.length >= limit) break;
           add(_formGap(o, item, ctx));
         }
       case FacetKind.prod:
         if (item.isVerb) {
           final occ = ctx.index.formOccurrences(facet.itemId);
-          for (final o in shuffle ? ctx.shuffled(occ) : occ) {
+          for (final o in order(occ, (o) => o.sentence)) {
             if (out.length >= limit) break;
             if (o.contiguous) add(_verbProdGap(o, item, ctx));
           }
         } else {
           final occ = ctx.index.wordOccurrences(facet.itemId);
-          for (final o in shuffle ? ctx.shuffled(occ) : occ) {
+          for (final o in order(occ, (o) => o.sentence)) {
             if (out.length >= limit) break;
             add(_wordGap(o, item, ctx));
           }
         }
       case FacetKind.article:
         final occ = ctx.index.articleOccurrences(facet.itemId);
-        for (final o in shuffle ? ctx.shuffled(occ) : occ) {
+        for (final o in order(occ, (o) => o.sentence)) {
           if (out.length >= limit) break;
           add(_articleGap(o, item, ctx));
         }
@@ -137,6 +140,8 @@ class ClozeTemplate extends ExerciseTemplate {
       for (final f in forms.values) {
         if (f.person == kNoPerson || f.key == o.cell.key) continue;
         if (forbidden.contains(foldAnswer(f.form))) continue;
+        // No form of a tense the learner has not met (grammar gating).
+        if (f.tense != o.tense && !ctx.tenseShowable(f.tense)) continue;
         final opt = matchCase(f.form, expected);
         if (f.tense == o.tense) {
           sameTense.add(opt);
@@ -252,7 +257,7 @@ class ClozeTemplate extends ExerciseTemplate {
       accepted: o.cell.accepted,
       distractors: picker.picked,
       instructionKey: 'cloze',
-      hint: verb.gloss(ctx.lang),
+      hint: contextGloss(verb, o.sentence, ctx.lang),
     );
   }
 
@@ -284,7 +289,7 @@ class ClozeTemplate extends ExerciseTemplate {
       accepted: accepted,
       distractors: picker.picked,
       instructionKey: 'cloze',
-      hint: item.gloss(ctx.lang),
+      hint: contextGloss(item, o.sentence, ctx.lang),
     );
   }
 
@@ -304,16 +309,17 @@ class ClozeTemplate extends ExerciseTemplate {
       accepted: valid,
       distractors: picker.picked,
       instructionKey: 'cloze.article',
-      hint: noun.gloss(ctx.lang),
+      hint: contextGloss(noun, o.sentence, ctx.lang),
     );
   }
 
   @override
   Exercise? generate(SkillFacet facet, GenContext ctx) {
     if (!supports(facet)) return null;
-    final gaps = _gaps(facet, ctx, limit: 3);
+    final gaps = _gaps(facet, ctx, limit: 1);
     if (gaps.isEmpty) return null;
-    final g = gaps[ctx.random.nextInt(min(gaps.length, 3))];
+    final g = gaps.first;
+    ctx.useSentence(g.sentence.id);
     final free = ctx.freeText(facet.facetId);
     List<String>? options;
     int? correctIndex;
@@ -336,6 +342,9 @@ class ClozeTemplate extends ExerciseTemplate {
       hint: g.hint,
       translation: g.sentence.translation(ctx.lang),
       sentenceId: g.sentence.id,
+      tokens: tokenRefsOf(g.sentence),
+      gapFrom: g.from,
+      gapTo: g.to,
     );
   }
 

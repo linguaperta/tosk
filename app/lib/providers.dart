@@ -26,7 +26,7 @@ import 'data/progress/feedback_store.dart';
 import 'data/fsrs/fsrs_scheduler.dart';
 import 'data/progress/in_memory_progress_store.dart';
 import 'data/stats/skill_stats.dart' as data;
-import 'engine/engine.dart' show EngineSessionFactory, FocusPresets, OpenMistake, openMistakes;
+import 'engine/engine.dart' show CourseIndex, EngineSessionFactory, FocusPresets, OpenMistake, openMistakes;
 import 'progression/progression.dart';
 import 'ui/common/fx.dart';
 import 'ui/course_catalog.dart';
@@ -117,12 +117,98 @@ final availableCoursesProvider = FutureProvider<List<CourseMeta>>(
   (ref) => ref.watch(courseCatalogProvider).listCourses(),
 );
 
-/// The course in use: the saved choice when installed, else the first course.
+/// The user's courses ("my courses", added in the course picker) that are
+/// installed, in the order added. The rest of the app only shows these.
+final myCoursesProvider = FutureProvider<List<CourseMeta>>((ref) async {
+  final courses = await ref.watch(availableCoursesProvider.future);
+  final mine = await ref.watch(settingsProvider.selectAsync((s) => s.myCourseIds.join(',')));
+  final byId = {for (final c in courses) c.id: c};
+  return [for (final id in mine.split(',')) ?byId[id]];
+});
+
+/// True on a fresh install (no course added yet): the shell opens the course picker.
+final needsCoursePickerProvider = Provider<bool>((ref) {
+  final settings = ref.watch(settingsProvider).value;
+  final available = ref.watch(availableCoursesProvider).value;
+  final mine = ref.watch(myCoursesProvider).value;
+  return settings != null && available != null && available.isNotEmpty && mine != null && mine.isEmpty;
+});
+
+/// The course in use: the saved choice among the user's courses, else their
+/// first; before any course is added, the first installed course.
 final activeCourseIdProvider = FutureProvider<String>((ref) async {
   final courses = await ref.watch(availableCoursesProvider.future);
+  final mine = await ref.watch(myCoursesProvider.future);
   final wanted = await ref.watch(settingsProvider.selectAsync((s) => s.courseId));
   if (courses.isEmpty) throw StateError('No courses installed');
-  return courses.any((c) => c.id == wanted) ? wanted! : courses.first.id;
+  final pool = mine.isEmpty ? courses : mine;
+  return pool.any((c) => c.id == wanted) ? wanted! : pool.first.id;
+});
+
+/// What the course picker shows about a course before it is added.
+class CoursePreview {
+  const CoursePreview({
+    required this.meta,
+    required this.outline,
+    required this.words,
+    required this.verbs,
+    required this.sentences,
+    required this.sampleWords,
+    this.sampleSentence,
+  });
+
+  final CourseMeta meta;
+
+  /// Units in order with their skills.
+  final List<(Unit, List<Skill>)> outline;
+  final int words;
+  final int verbs;
+  final int sentences;
+
+  /// A few frequent words of the first skills.
+  final List<Item> sampleWords;
+  final Sentence? sampleSentence;
+}
+
+/// Opens [courseId] (without making it active) and summarizes it.
+final coursePreviewProvider = FutureProvider.family<CoursePreview, String>((ref, courseId) async {
+  final course = await ref.watch(courseCatalogProvider).open(courseId);
+  final lang = ref.watch(settingsProvider.select((s) => s.value?.sourceLang ?? 'en'));
+  final items = course.allItems.toList();
+  final sentences = CourseIndex.of(course).allSentences;
+  final samples = <Item>[];
+  for (final s in course.skills) {
+    for (final i in course.skillItems(s.id)) {
+      if (samples.length < 6 && !samples.contains(i) && i.glosses(lang).isNotEmpty) samples.add(i);
+    }
+    if (samples.length >= 6) break;
+  }
+  Sentence? sample;
+  for (final s in sentences) {
+    final words = s.tokens.where((t) => t.isWord).length;
+    if (words >= 3 && words <= 7 && (s.translation(lang) ?? '').isNotEmpty) {
+      sample = s;
+      break;
+    }
+  }
+  return CoursePreview(
+    meta: course.meta,
+    outline: [
+      for (final u in course.units)
+        (
+          u,
+          [
+            for (final s in course.skills)
+              if (s.unitId == u.id) s,
+          ],
+        ),
+    ],
+    words: items.length,
+    verbs: items.where((i) => i.isVerb).length,
+    sentences: sentences.length,
+    sampleWords: samples,
+    sampleSentence: sample,
+  );
 });
 
 final courseDataProvider = FutureProvider<CourseData>((ref) async {
@@ -308,6 +394,16 @@ final openMistakesProvider = FutureProvider<List<OpenMistake>>((ref) async {
     scheduler: ref.watch(schedulerProvider),
     now: ref.watch(clockProvider)().toUtc(),
   );
+});
+
+/// "Tough words" of the active course: facets with at least the configured
+/// number of lapses (Settings), most lapses first.
+final toughWordsProvider = FutureProvider<List<ToughWord>>((ref) async {
+  ref.watch(progressRevisionProvider);
+  final course = await ref.watch(courseDataProvider.future);
+  final minLapses = await ref.watch(settingsProvider.selectAsync((s) => s.leechLapses));
+  final states = await ref.watch(progressStoreProvider).allStates(courseId: course.meta.id);
+  return toughWords(course, states, minLapses: minLapses);
 });
 
 /// Verb tables of the active course with their mastery.

@@ -3,17 +3,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/core.dart';
+import '../providers.dart';
 import 'debug/debug_route.dart';
 import 'feedback/flags_screen.dart';
-import 'lab/lab_screen.dart';
 import 'lesson/player_screen.dart';
 import 'lesson/session_request.dart';
 import 'map/map_screen.dart';
 import 'map/skill_sheet.dart';
 import 'mistakes/mistakes_screen.dart';
-import 'nonstop/nonstop_screen.dart';
+import 'practice/practice_screen.dart';
 import 'progress/progress_screen.dart';
 import 'progress/verb_collection_screen.dart';
+import 'reference/reference_screen.dart';
+import 'reference/word_screen.dart';
 import 'routes.dart';
 import 'settings/settings_screen.dart';
 import 'shell/app_shell.dart';
@@ -41,6 +43,9 @@ GoRouter buildRouter({String initialLocation = Routes.map}) {
     navigatorKey: rootNavigatorKey,
     initialLocation: initialLocation,
     routes: [
+      // The lab and non-stop live in the Practice tab since v0.3.
+      GoRoute(path: '/lab', redirect: (_, _) => Routes.lab),
+      GoRoute(path: '/nonstop', redirect: (_, _) => Routes.nonstop),
       StatefulShellRoute.indexedStack(
         builder: (context, state, shell) => AppShell(shell: shell),
         branches: [
@@ -48,10 +53,21 @@ GoRouter buildRouter({String initialLocation = Routes.map}) {
             routes: [GoRoute(path: Routes.map, builder: (_, _) => const MapScreen())],
           ),
           StatefulShellBranch(
-            routes: [GoRoute(path: Routes.lab, builder: (_, _) => const LabScreen())],
+            routes: [
+              GoRoute(
+                path: Routes.practice,
+                builder: (_, state) => PracticeScreen(tab: state.uri.queryParameters['tab']),
+              ),
+            ],
           ),
           StatefulShellBranch(
-            routes: [GoRoute(path: Routes.nonstop, builder: (_, _) => const NonStopScreen())],
+            routes: [
+              GoRoute(
+                path: Routes.reference,
+                builder: (_, state) =>
+                    ReferenceScreen(query: state.uri.queryParameters['q'], tab: state.uri.queryParameters['tab']),
+              ),
+            ],
           ),
           StatefulShellBranch(
             routes: [
@@ -80,13 +96,38 @@ GoRouter buildRouter({String initialLocation = Routes.map}) {
         parentNavigatorKey: rootNavigatorKey,
         builder: (context, state) {
           final focus = state.uri.queryParameters['focus'];
+          final length = int.tryParse(state.uri.queryParameters['length'] ?? '');
           return PlayerScreen(
             request: LessonRequest(
               state.pathParameters['skillId']!,
               focus: focus == null ? null : LessonFocus.values.asNameMap()[focus],
+              length: length?.clamp(1, 100),
             ),
           );
         },
+      ),
+      GoRoute(
+        path: '/play/testout/:skillId',
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => PlayerScreen(request: TestOutRequest(state.pathParameters['skillId']!)),
+      ),
+      GoRoute(
+        path: Routes.placement,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (_, _) => const PlayerScreen(request: PlacementRequest()),
+      ),
+      GoRoute(
+        path: Routes.tough,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (_, _) => Consumer(
+          builder: (context, ref, _) =>
+              PlayerScreen(request: ToughWordsRequest(minLapses: ref.read(settingsProvider).value?.leechLapses ?? 4)),
+        ),
+      ),
+      GoRoute(
+        path: '/word/:itemId',
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (_, state) => WordScreen(itemId: state.pathParameters['itemId']!),
       ),
       GoRoute(
         path: Routes.fading,
@@ -98,11 +139,7 @@ GoRouter buildRouter({String initialLocation = Routes.map}) {
         parentNavigatorKey: rootNavigatorKey,
         builder: (_, _) => const PlayerScreen(request: ReviewRequest()),
       ),
-      GoRoute(
-        path: Routes.mistakes,
-        parentNavigatorKey: rootNavigatorKey,
-        builder: (_, _) => const MistakesScreen(),
-      ),
+      GoRoute(path: Routes.mistakes, parentNavigatorKey: rootNavigatorKey, builder: (_, _) => const MistakesScreen()),
       GoRoute(
         path: '/play/lab',
         parentNavigatorKey: rootNavigatorKey,
@@ -118,11 +155,7 @@ GoRouter buildRouter({String initialLocation = Routes.map}) {
         parentNavigatorKey: rootNavigatorKey,
         builder: (_, _) => const FlagsScreen(),
       ),
-      GoRoute(
-        path: Routes.debug,
-        parentNavigatorKey: rootNavigatorKey,
-        builder: (_, _) => const DebugRoute(),
-      ),
+      GoRoute(path: Routes.debug, parentNavigatorKey: rootNavigatorKey, builder: (_, _) => const DebugRoute()),
     ],
   );
 }

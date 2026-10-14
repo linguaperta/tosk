@@ -8,6 +8,7 @@ import '../core/interfaces/session.dart';
 import '../core/models/course.dart';
 import '../core/models/progress.dart';
 import 'course_index.dart';
+import 'gating.dart';
 
 /// How well a facet is known; drives the choice of exercise type.
 enum FacetStage {
@@ -39,6 +40,10 @@ class StagePolicy {
   }
 }
 
+/// Score per unknown word in [GenContext.prefer] (a seen sentence scores
+/// 1–3, see [SentenceHistory.penalty], plus a random jitter below 1).
+const double kUnknownWordWeight = 0.75;
+
 class GenContext {
   GenContext({
     required this.course,
@@ -49,6 +54,9 @@ class GenContext {
     DateTime? now,
     this.stagePolicy = const StagePolicy(),
     String Function()? nextId,
+    this.gate,
+    this.history,
+    this.wordCap = SentenceGate.vocabCap,
   })  : now = now ?? DateTime.now().toUtc(),
         _nextId = nextId; // ignore: prefer_initializing_formals
 
@@ -66,6 +74,16 @@ class GenContext {
   final StagePolicy stagePolicy;
   final String Function()? _nextId;
   int _counter = 0;
+
+  /// Grammar gating: the sentences this learner may meet (null: every
+  /// sentence, e.g. the validity suite and the sample printer).
+  final SentenceGate? gate;
+
+  /// Recently seen sentences, for variety (null: no preference).
+  final SentenceHistory? history;
+
+  /// Unknown-word cap for sentences under [gate] ([SentenceGate.capFor]).
+  final int wordCap;
 
   CourseIndex get index => CourseIndex.of(course);
   String get lang => options.sourceLang;
@@ -87,7 +105,7 @@ class GenContext {
     return s != null && s.reps > 0 && s.stability >= stagePolicy.freeTextDays;
   }
 
-  /// A copy for another skill (same random, ids and states).
+  /// A copy for another skill (same random, ids, states, gate and history).
   GenContext forSkill(Skill? skill) => GenContext(
         course: course,
         options: options,
@@ -97,7 +115,63 @@ class GenContext {
         now: now,
         stagePolicy: stagePolicy,
         nextId: nextId,
+        gate: gate,
+        history: history,
+        wordCap: wordCap,
       );
+
+  // ------------------------------------------------------------ sentences
+
+  /// Whether [s] may be shown to this learner (always without a [gate]).
+  bool sentenceOk(Sentence s) => gate?.allows(s, wordCap) ?? true;
+
+  /// Whether a grammar feature is known (always without a [gate]).
+  bool featureKnown(String feature) => gate?.featureKnown(feature) ?? true;
+
+  /// Whether forms of [tense] may be shown, e.g. as a wrong option
+  /// ([SentenceGate.tenseShowable]; always without a [gate]).
+  bool tenseShowable(String tense) => gate?.tenseShowable(tense) ?? true;
+
+  /// Memoizes a template's `canGenerate` answer: in the gate when there is
+  /// one (the answer depends on what the learner knows), else per course.
+  /// [key] must contain everything else the value depends on.
+  T memo<T>(String key, T Function() compute) {
+    final g = gate;
+    return g == null ? index.memo(key, compute) : g.memo('$key|cap$wordCap', compute);
+  }
+
+  /// The candidates whose sentence may be shown, best first, at most [take]:
+  /// fewer unknown words, then sentences never seen (or least recently seen)
+  /// first, with a random jitter so equal candidates come in random order.
+  /// Sentences already used in this session come last (only when nothing
+  /// else is left: a session never repeats a sentence while others remain).
+  List<T> prefer<T>(Iterable<T> candidates, Sentence Function(T) sentenceOf, {int take = 1 << 30}) {
+    final fresh = <(double, T)>[];
+    final reused = <(double, T)>[];
+    final g = gate;
+    final h = history;
+    for (final c in candidates) {
+      final s = sentenceOf(c);
+      if (g != null && !g.allows(s, wordCap)) continue;
+      final score = (g == null ? 0 : g.unknownWords(s) * kUnknownWordWeight) +
+          (h == null ? 0 : h.penalty(s.id)) +
+          random.nextDouble();
+      (h != null && h.usedInSession(s.id) ? reused : fresh).add((score, c));
+    }
+    int by((double, T) a, (double, T) b) => a.$1.compareTo(b.$1);
+    fresh.sort(by);
+    if (fresh.length < take) reused.sort(by);
+    return [
+      for (final e in fresh.take(take)) e.$2,
+      if (fresh.length < take)
+        for (final e in reused.take(take - fresh.length)) e.$2,
+    ];
+  }
+
+  /// Records that an exercise shows sentence [id] (for variety).
+  void useSentence(String? id) {
+    if (id != null) history?.use(id);
+  }
 
   /// Picks a random element.
   T pick<T>(List<T> list) => list[random.nextInt(list.length)];

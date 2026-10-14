@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../progression/progression.dart';
 import '../../providers.dart';
 import '../common/async_view.dart';
+import '../lesson/session_summary_view.dart' show facetLabel;
 import '../progression/progression_widgets.dart';
 import '../routes.dart';
 
@@ -20,8 +21,12 @@ class ProgressScreen extends ConsumerWidget {
     final board = ref.watch(challengeBoardProvider).value;
     final verbs = ref.watch(verbCollectionProvider).value;
     final mistakes = ref.watch(openMistakesProvider).value;
+    final tough = ref.watch(toughWordsProvider).value;
+    final leechLapses = ref.watch(settingsProvider).value?.leechLapses ?? 4;
     final reduce = ref.watch(reduceMotionProvider);
     final theme = Theme.of(context);
+    final course = ref.watch(courseDataProvider).value;
+    final lang = ref.watch(sourceLangProvider);
 
     Widget section(String title, Widget child, {Key? key}) => Padding(
       key: key,
@@ -102,6 +107,25 @@ class ProgressScreen extends ConsumerWidget {
                     ),
                   ),
                 ),
+                if (tough != null && tough.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Card(
+                      margin: EdgeInsets.zero,
+                      child: ListTile(
+                        key: const ValueKey('open-tough'),
+                        leading: const Icon(Icons.fitness_center),
+                        title: Text('Tough words (${tough.length})'),
+                        subtitle: Text(
+                          'Forgotten $leechLapses or more times: '
+                          '${tough.take(3).map((t) => facetLabel(t.facet.facetId, course, lang)).join(', ')}'
+                          '${tough.length > 3 ? ', …' : ''}',
+                        ),
+                        trailing: const Icon(Icons.play_arrow),
+                        onTap: () => context.push(Routes.tough),
+                      ),
+                    ),
+                  ),
                 if (board != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 20),

@@ -56,27 +56,43 @@ class TransformTemplate extends ExerciseTemplate {
   @override
   bool canGenerate(SkillFacet facet, GenContext ctx) =>
       supports(facet) &&
-      ctx.index.memo('transform/$distractorCount|${facet.facetId}|${ctx.lang}',
+      ctx.memo('transform/$distractorCount|${facet.facetId}|${ctx.lang}',
           () => _plans(facet, ctx).any((p) => _distractors(p, ctx, shuffle: false).isNotEmpty));
 
   List<_Plan> _plans(SkillFacet facet, GenContext ctx) {
     final tense = facet.tense;
     if (tense == null) return const [];
+    // Grammar gating: the result shows the target tense (and the facet's
+    // constructs, e.g. `aux:essere` or `irregular:futuro`), so the learner
+    // must know them, like every feature of the source sentence.
+    if (!ctx.featureKnown('tense:$tense')) return const [];
+    if (!ctx.course.skillFeatures(facet.skillId).every(ctx.featureKnown)) return const [];
     final ix = ctx.index;
     final meta = ctx.course.meta;
     final forms = ctx.course.verbForms(facet.itemId);
     final out = <_Plan>[];
     final infinitive = forms['infinitive.$kNoPerson'];
     for (final o in ix.formOccurrences(facet.itemId)) {
+      if (!ctx.sentenceOk(o.sentence)) continue;
+      // Another finite verb would keep its tense or person (`Il dolore va e
+      // viene` -> `va e è venuto`): only sentences with one finite verb.
+      if (!_onlyFiniteVerb(o, ctx)) continue;
       // A finite form spelled like the infinitive (Dutch `vertellen`) may
       // really be an infinitive after a modal (`kan ik dat Tom niet
       // vertellen`): rewriting it is unreliable.
       if (infinitive != null && o.wordCount == 1 && ix.acceptedKeys(infinitive).contains(foldAnswer(o.matched))) {
         continue;
       }
-      if (o.tense != tense && _tenseSwapOk(o, tense, ctx)) {
+      if (o.tense != tense && _tenseSwapOk(o, tense, ctx) && _adverbsAllow(o.sentence, tense, ctx)) {
         final target = forms['$tense.${o.person}'];
-        if (target != null) {
+        // A form shared by another person (`sono`: io and loro) is only
+        // rewritten when that person's target form is the same.
+        final matched = foldAnswer(o.matched);
+        final unsurePerson = ix.finiteForms(o.verbId, o.tense).any((c) =>
+            c.person != o.person &&
+            ix.acceptedKeys(c).contains(matched) &&
+            forms['$tense.${c.person}']?.form != target?.form);
+        if (target != null && !unsurePerson && !_unsureAgreement(o, target, ctx)) {
           final r = _construct(o, target.form, tense, ctx);
           if (r != null) out.add(_Plan(o, target, r, '→ ${meta.tenseLabel(tense, ctx.lang)}', tenseSwap: true));
         }
@@ -85,8 +101,12 @@ class TransformTemplate extends ExerciseTemplate {
         final ambiguous = ix.ambiguousPersons(o.person).toSet();
         for (final p in meta.persons) {
           if (p == o.person || ambiguous.contains(p) || !ix.dropsPronoun(p)) continue;
+          // Singular <-> plural would leave an adjective unagreed (`Dice di
+          // essere bravo` -> `Diciamo di essere bravo`).
+          if (_plural(o.person, meta) != _plural(p, meta) && (_hasAgreeingWord(o, ctx) || _isCopula(o, ctx))) continue;
           final target = forms['$tense.$p'];
-          if (target == null) continue;
+          if (target == null || _unsureAgreement(o, target, ctx)) continue;
+          if (o.tense != tense && !_adverbsAllow(o.sentence, tense, ctx)) continue;
           final r = _construct(o, target.form, tense, ctx);
           if (r == null) continue;
           final desc = o.tense == tense
@@ -97,6 +117,30 @@ class TransformTemplate extends ExerciseTemplate {
       }
     }
     return out;
+  }
+
+  /// Whether [o] is the sentence's only finite verb (its auxiliary belongs to it).
+  bool _onlyFiniteVerb(FormOccurrence o, GenContext ctx) {
+    final s = o.sentence;
+    final aux = ctx.index.auxiliaryPositions(s);
+    for (var i = 0; i < s.tokens.length; i++) {
+      final t = s.tokens[i];
+      if (o.positions.contains(i) || aux.contains(i) || !t.isWord || t.lex == null) continue;
+      // A verb whose person the alignment left open is finite too.
+      if (t.form == null ? ctx.course.verbForms(t.lex!).isNotEmpty : t.person != kNoPerson) return false;
+    }
+    return true;
+  }
+
+  /// No time adverb of the sentence ties it to other tenses than [target]
+  /// (`Adesso mangio` is never rewritten into a past tense, `Ieri ho
+  /// mangiato` never into the present). The adverbs are course data
+  /// ([CourseMeta.timeAdverbs], course.yaml `time_adverbs`).
+  bool _adverbsAllow(Sentence s, String target, GenContext ctx) {
+    for (final tenses in ctx.index.timeAdverbTenses(s)) {
+      if (!tenses.contains(target)) return false;
+    }
+    return true;
   }
 
   /// A tense change keeps the sentence coherent only when every other finite
@@ -132,9 +176,77 @@ class TransformTemplate extends ExerciseTemplate {
     return true;
   }
 
+  static final RegExp _itWords =
+      RegExp(r"(^|[^\p{L}'])(it|it's|its|het|there)($|[^\p{L}'])", unicode: true, caseSensitive: false);
+
+  /// Whether [person] is plural: the second half of a six-person list
+  /// (`noi voi loro`, `wij jullie zij`); false for other person lists.
+  static bool _plural(String person, CourseMeta meta) =>
+      meta.persons.length == 6 && meta.persons.indexOf(person) >= 3;
+
+  /// "to be": a number change would leave its predicate unagreed (`Non siamo
+  /// parenti` -> `Non è parenti`).
+  bool _isCopula(FormOccurrence o, GenContext ctx) =>
+      ctx.course.item(o.verbId)?.tr['en']?.any((g) => g == 'to be' || g == 'be') ?? false;
+
+  /// A target form whose gendered alternatives (`sono successi;sono
+  /// successe`) depend on a third-person subject the sentence may name with a
+  /// noun (`Le cose succedono`) or leave impersonal (`Come va?`: `è andata`).
+  bool _unsureAgreement(FormOccurrence o, VerbForm target, GenContext ctx) {
+    // Gendered: an alternative that differs only in the last letter
+    // (not Dutch `heeft gelopen;is gelopen`).
+    final w = splitWords(target.form);
+    bool gendered(String alt) {
+      final a = splitWords(alt);
+      if (a.length != w.length || a.isEmpty) return false;
+      for (var k = 0; k + 1 < a.length; k++) {
+        if (a[k] != w[k]) return false;
+      }
+      final x = a.last, y = w.last;
+      return x != y && x.length == y.length && x.substring(0, x.length - 1) == y.substring(0, y.length - 1);
+    }
+
+    if (!target.alts.any(gendered)) return false;
+    final meta = ctx.course.meta;
+    if (!(meta.persons.length == 6 && {2, 5}.contains(meta.persons.indexOf(target.person)))) return false;
+    final s = o.sentence;
+    return s.tr.values.any(_itWords.hasMatch) ||
+        s.tokens.any((t) => t.isWord && t.lex != null && ctx.course.item(t.lex!)?.isNoun == true);
+  }
+
+  /// An adjective or participle that may agree with the subject.
+  bool _hasAgreeingWord(FormOccurrence o, GenContext ctx) {
+    for (var i = 0; i < o.sentence.tokens.length; i++) {
+      final t = o.sentence.tokens[i];
+      if (!t.isWord || t.lex == null || o.positions.contains(i)) continue;
+      if (t.person == kNoPerson && t.tense == 'participle') return true;
+      if (ctx.course.item(t.lex!)?.pos == 'adj') return true;
+    }
+    return false;
+  }
+
   bool _personSwapOk(FormOccurrence o, GenContext ctx) {
     final ix = ctx.index;
     if (!ix.dropsPronoun(o.person)) return false;
+    // A third person singular without a subject may be impersonal (`Sembra
+    // ieri`: it seems like yesterday; `È ora di …`): not when a translation
+    // says "it"/"there" (Dutch "het").
+    final meta = ctx.course.meta;
+    // A form shared by two persons (Italian `sono`: io and loro) may be
+    // aligned to the wrong one (`Dove sono i vostri nipoti?`).
+    final matched = foldAnswer(o.matched);
+    for (final c in ix.finiteForms(o.verbId, o.tense)) {
+      if (c.person != o.person && ix.acceptedKeys(c).contains(matched)) return false;
+    }
+    final third = meta.persons.length == 6 && meta.persons.indexOf(o.person) == 2;
+    if (third && o.sentence.tr.values.any(_itWords.hasMatch)) return false;
+    // A third person's subject may be a noun anywhere (`Dove sono i suoi
+    // zii?`): only sentences without nouns.
+    final thirdAny = meta.persons.length == 6 && {2, 5}.contains(meta.persons.indexOf(o.person));
+    if (thirdAny &&
+        o.sentence.tokens.any((t) => t.isWord && t.lex != null && ctx.course.item(t.lex!)?.isNoun == true)) {
+      return false;
+    }
     final s = o.sentence;
     final first = o.firstPos;
     final firstWord = s.tokens.indexWhere((t) => t.isWord);
@@ -200,6 +312,14 @@ class TransformTemplate extends ExerciseTemplate {
       replace[p] = [matchCase(wt[0], tokens[p].t), ...wt.skip(1)].join(' ');
     } else {
       return null;
+    }
+    // An elided word before a changed word must still be followed by a
+    // vowel (`l'ha fatto` -> `l'faceva` would need `lo faceva`).
+    for (final e in replace.entries) {
+      final p = e.key;
+      if (p == 0 || !tokens[p - 1].isWord || !normalizeApostrophes(tokens[p - 1].t).endsWith("'")) continue;
+      final next = foldDiacritics(e.value.toLowerCase());
+      if (next.isEmpty || !'aeiouh'.contains(next[0])) return null;
     }
     final out = <(String, String, bool)>[];
     for (var i = 0; i < tokens.length; i++) {
@@ -275,14 +395,19 @@ class TransformTemplate extends ExerciseTemplate {
     if (plans.isEmpty) return null;
     final tensePlans = [for (final p in plans) if (p.tenseSwap) p];
     final personPlans = [for (final p in plans) if (!p.tenseSwap) p];
+    Sentence sentence(_Plan p) => p.occ.sentence;
     final ordered = <_Plan>[
-      ...ctx.shuffled(tensePlans.isNotEmpty && (personPlans.isEmpty || ctx.random.nextDouble() < 0.7) ? tensePlans : personPlans),
-      ...ctx.shuffled(plans),
+      ...ctx.prefer(
+          tensePlans.isNotEmpty && (personPlans.isEmpty || ctx.random.nextDouble() < 0.7) ? tensePlans : personPlans,
+          sentence,
+          take: 6),
+      ...ctx.prefer(plans, sentence, take: 6),
     ];
     for (final p in ordered.take(6)) {
       final d = _distractors(p, ctx);
       if (d.isEmpty) continue;
       final answers = _answers(p, ctx);
+      ctx.useSentence(p.occ.sentence.id);
       return TransformExercise(
         id: ctx.nextId(),
         facetId: facet.facetId,
@@ -294,6 +419,7 @@ class TransformTemplate extends ExerciseTemplate {
         answers: answers,
         sentenceId: p.occ.sentence.id,
         translation: p.occ.sentence.translation(ctx.lang),
+        sourceTokens: tokenRefsOf(p.occ.sentence),
       );
     }
     return null;

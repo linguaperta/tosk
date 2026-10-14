@@ -8,8 +8,7 @@ import 'package:meta/meta.dart';
 typedef I18n = Map<String, String>;
 
 /// Picks [lang], falling back to English, then to any available value, then ''.
-String pickLang(I18n text, String lang) =>
-    text[lang] ?? text['en'] ?? (text.isEmpty ? '' : text.values.first);
+String pickLang(I18n text, String lang) => text[lang] ?? text['en'] ?? (text.isEmpty ? '' : text.values.first);
 
 @immutable
 class CourseMeta {
@@ -28,6 +27,8 @@ class CourseMeta {
     this.attribution = '',
     this.schemaVersion = 1,
     this.baseFeatures = const [],
+    this.timeAdverbs = const {},
+    this.description = const {},
   });
 
   final String id; // 'it'
@@ -47,6 +48,15 @@ class CourseMeta {
   /// Grammar features allowed from the start (`meta.base_features`, e.g. `tense:presente`).
   /// See [CourseData.sentenceFeatures] and docs/ARCHITECTURE.md, "Grammar gating".
   final List<String> baseFeatures;
+
+  /// Time adverbs that tie a sentence to some tenses (`meta.time_adverbs`):
+  /// adverb (one or more words, e.g. `ieri`, `l'anno scorso`) -> the tenses it
+  /// fits. A transform never rewrites a sentence with such an adverb into
+  /// another tense (`Ieri ho mangiato` never becomes the present).
+  final Map<String, List<String>> timeAdverbs;
+
+  /// Optional one-line course description per source language (meta key `description`).
+  final I18n description;
 
   String tenseLabel(String tense, String lang) =>
       tenseLabels[tense] == null ? tense.replaceAll('_', ' ') : pickLang(tenseLabels[tense]!, lang);
@@ -129,8 +139,7 @@ class Item {
   bool get isNoun => pos == 'noun';
 
   /// All glosses for [lang], falling back to English then any language.
-  List<String> glosses(String lang) =>
-      tr[lang] ?? tr['en'] ?? (tr.isEmpty ? const [] : tr.values.first);
+  List<String> glosses(String lang) => tr[lang] ?? tr['en'] ?? (tr.isEmpty ? const [] : tr.values.first);
 
   /// Primary gloss for [lang] or '' if none.
   String gloss(String lang) {
@@ -144,13 +153,7 @@ class Item {
 
 @immutable
 class Verb {
-  const Verb({
-    required this.itemId,
-    this.verbClass,
-    this.stem,
-    this.irregular = false,
-    this.auxiliary,
-  });
+  const Verb({required this.itemId, this.verbClass, this.stem, this.irregular = false, this.auxiliary});
   final String itemId;
   final String? verbClass;
   final String? stem;
@@ -191,14 +194,7 @@ class VerbForm {
 
 @immutable
 class Token {
-  const Token({
-    required this.idx,
-    required this.t,
-    this.pre = '',
-    this.isWord = true,
-    this.lex,
-    this.form,
-  });
+  const Token({required this.idx, required this.t, this.pre = '', this.isWord = true, this.lex, this.form});
   final int idx;
   final String t;
   final String pre; // whitespace before the token
@@ -217,14 +213,7 @@ class Token {
 
 @immutable
 class Sentence {
-  const Sentence({
-    required this.id,
-    required this.text,
-    required this.tr,
-    required this.tokens,
-    this.src,
-    this.unitId,
-  });
+  const Sentence({required this.id, required this.text, required this.tr, required this.tokens, this.src, this.unitId});
   final String id;
   final String text;
   final Map<String, String> tr; // translation per source language
