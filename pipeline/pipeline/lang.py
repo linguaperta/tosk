@@ -117,6 +117,8 @@ class Lang:
     tense_hints: dict[str, str] = field(default_factory=dict)
     # question words before a noun ('qué hora', 'cuántos años'): that noun is not the verb's subject
     interrogatives: set[str] = field(default_factory=set)
+    # nouns used as time adverbs ("mañana", "hoy"): never the subject of the verb after them
+    adverbial_nouns: set[str] = field(default_factory=set)
     # a spelling shared by several verbs goes to the verb that has a form of the person an
     # adjacent subject pronoun gives, or a third-person form after one of `third_person_clitics`
     person_hint_verbs: bool = False

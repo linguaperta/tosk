@@ -266,6 +266,8 @@ class Aligner:
         if t[:1].isupper() and wi - 1 > 0 and not tok.get("lex"):
             return True
         lex = tok.get("lex")
+        if norm(t) in self.lang.adverbial_nouns:
+            return False                     # "Mañana hablaremos": a time noun is no subject
         if wi >= 2 and norm(toks[words[wi - 2]]["t"]) in self.lang.interrogatives:
             return False                     # '¿A qué hora llegáis?': the noun is no subject
         return bool(lex and self.items.get(lex, {}).get("pos") == "noun")

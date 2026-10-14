@@ -473,6 +473,13 @@ def run_import(code: str, content_root: str | None = None) -> None:
             v = build_verb(lang, lx, aux_tables, aux)
             if v:
                 verbs[iid] = {"id": iid, **v}
+            else:
+                # no complete present table (impersonal 'llover': only 'llueve'): its forms are
+                # inflections, so sentences still link the word to the verb item (without a form)
+                extra = {f.lower() for t in lx.table.values() for f in t.values() if " " not in f}
+                extra -= {lx.lemma.lower()}
+                if extra:
+                    rec["inflections"] = sorted(set(rec.get("inflections") or []) | extra)
 
     # ---- resolve skills -> units
     unit_of: dict[str, str] = {}

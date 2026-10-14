@@ -112,6 +112,7 @@ class Spanish(Lang):
             standalone_phrases={"de nada", "qué tal", "hasta luego", "hasta mañana"},
             tense_hints={w: "preterito_indefinido" for w in ("ayer", "anoche", "anteayer", "pasado", "pasada")},
             interrogatives={"qué", "cuánto", "cuánta", "cuántos", "cuántas", "cuál", "cuáles"},
+            adverbial_nouns={"mañana", "tarde", "noche", "hoy", "ayer", "anoche", "domingo", "lunes", "sábado"},
             person_hint_verbs=True,
             third_person_clitics={"se"},
         )
