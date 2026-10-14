@@ -366,7 +366,15 @@ SkillTier skillTierOf(MapTier t) => switch (t) {
   MapTier.gold => SkillTier.gold,
 };
 
-/// XP, level, streak and today's numbers (whole log, all courses).
+/// What a skill needs for its next tier (the skill sheet).
+final skillNextTierProvider = FutureProvider.family<NextTierNeeds, String>((ref, skillId) async {
+  ref.watch(progressRevisionProvider);
+  final svc = await ref.watch(progressionServiceProvider.future);
+  return svc.nextTier(skillId, ref.watch(clockProvider)());
+});
+
+/// The active course's XP, level and today's numbers; the account-wide
+/// streak, freezes and today's XP for the daily goal.
 final progressProfileProvider = FutureProvider<ProgressProfile>((ref) async {
   ref.watch(progressRevisionProvider);
   final svc = await ref.watch(progressionServiceProvider.future);

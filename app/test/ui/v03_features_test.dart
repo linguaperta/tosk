@@ -335,7 +335,7 @@ void main() {
       await tapKey(tester, 'setting-leech-3');
       expect(store.settings[SettingKeys.leechLapses], '3');
       await goTab(tester, 'Map');
-      await tapKey(tester, 'skill-node-greetings');
+      await startLessonFromMap(tester, 'greetings');
       expect(await playToSummary(tester, cap: 80), 20);
     });
   });

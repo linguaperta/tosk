@@ -34,7 +34,11 @@ abstract final class Routes {
   static const mistakes = '/mistakes';
 
   /// Skill detail bottom sheet (grammar note, items, start with a focus).
-  static String skill(String skillId) => '/skill/${Uri.encodeComponent(skillId)}';
+  /// The skill sheet; [section] `note` or `words` opens that section.
+  static String skill(String skillId, {String? section}) => Uri(
+    path: '/skill/${Uri.encodeComponent(skillId)}',
+    queryParameters: section == null ? null : {'section': section},
+  ).toString();
 
   /// A word's reference page (glosses, article, skills, examples; full
   /// conjugation table for verbs). Opens over anything, the player included.

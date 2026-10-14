@@ -218,6 +218,20 @@ class ProgressionService {
     );
   }
 
+  /// What [skillId] needs for its next tier now (see [nextTierNeeds]).
+  Future<NextTierNeeds> nextTier(String skillId, [DateTime? now]) async {
+    final at = (now ?? clock()).toUtc();
+    final tiers = await skillTiers(at);
+    return nextTierNeeds(
+      tier: tiers[skillId]?.tier ?? SkillTier.available,
+      facets: course.skillFacets(skillId),
+      states: _courseReplay.states,
+      scheduler: scheduler,
+      now: at,
+      rules: config.tiers,
+    );
+  }
+
   /// Heatmap for [from]..[to] (inclusive local dates), every course (it
   /// shows the account-wide streak). Defaults to the 26 weeks ending with the
   /// current week (Monday-aligned).

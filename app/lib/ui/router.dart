@@ -88,7 +88,10 @@ GoRouter buildRouter({String initialLocation = Routes.map}) {
         parentNavigatorKey: rootNavigatorKey,
         pageBuilder: (context, state) => BottomSheetPage<void>(
           key: state.pageKey,
-          child: SkillSheet(skillId: state.pathParameters['skillId']!),
+          child: SkillSheet(
+            skillId: state.pathParameters['skillId']!,
+            section: state.uri.queryParameters['section'],
+          ),
         ),
       ),
       GoRoute(

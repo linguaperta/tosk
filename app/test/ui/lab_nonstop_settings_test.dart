@@ -129,7 +129,7 @@ void main() {
 
     testWidgets('default focus setting is used when tapping a node', (tester) async {
       await pumpApp(tester, store: TestProgressStore(settings: {SettingKeys.defaultFocus: 'vocab'}));
-      await tapKey(tester, 'skill-node-greetings');
+      await startLessonFromMap(tester, 'greetings');
       final req = tester.widget<PlayerScreen>(find.byType(PlayerScreen)).request as LessonRequest;
       expect(req.focus, LessonFocus.vocab);
     });

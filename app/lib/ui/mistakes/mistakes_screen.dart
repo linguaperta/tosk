@@ -277,7 +277,7 @@ class MistakeCard extends ConsumerWidget {
                   if (skill != null && note != null)
                     TextButton.icon(
                       key: ValueKey('mistake-note-${m.facetId}'),
-                      onPressed: () => context.push(Routes.skill(skillId)),
+                      onPressed: () => context.push(Routes.skill(skillId, section: 'note')),
                       icon: const Icon(Icons.open_in_new),
                       label: const Text('Grammar note'),
                     ),

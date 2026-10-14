@@ -45,7 +45,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final lang = ref.watch(sourceLangProvider);
     final skin = ref.watch(skinProvider);
     final reduceMotion = ref.watch(reduceMotionProvider);
-    final defaultFocus = ref.watch(settingsProvider.select((s) => s.value?.defaultFocus));
     final now = ref.watch(clockProvider)();
     final mistakeCount = ref.watch(openMistakesProvider).value?.length ?? 0;
     final scheme = Theme.of(context).colorScheme;
@@ -144,11 +143,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   now: now,
                   zoom: _zoom,
                   reduceMotion: reduceMotion,
-                  // A locked skill opens its sheet first (what to do before
-                  // it, and Start anyway); others start a lesson right away.
-                  onTap: (skill) => stats.value?[skill.id]?.tier == MapTier.locked
-                      ? context.push(Routes.skill(skill.id))
-                      : context.push(Routes.lesson(skill.id, focus: defaultFocus)),
+                  // A tap opens the skill's sheet first: what it is, the
+                  // learner's tier and what the next one needs, then Start
+                  // lesson, Test out, the grammar note and the word list
+                  // (locked skills: what to do before it, and Start anyway).
+                  onTap: (skill) => context.push(Routes.skill(skill.id)),
                   onLongPress: (skill) => context.push(Routes.skill(skill.id)),
                   unitKeys: {for (final u in course.units) u.id: _unitKey(u.id)},
                 ),
