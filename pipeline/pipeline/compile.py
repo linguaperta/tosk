@@ -118,7 +118,7 @@ def compile_pack(pack: Pack, out: Path, built_at: str | None = None) -> dict:
             "articles": _j(c.get("articles") or []),
             "unverified": "1" if c.get("unverified") else "0",
             "built_at": built_at,
-            "attribution": attribution_text(pack),
+            "attribution": c.get("attribution") or attribution_text(pack),
         }
         if c.get("person_labels"):
             meta["person_labels"] = _j(c["person_labels"])

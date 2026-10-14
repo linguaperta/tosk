@@ -89,6 +89,15 @@ class NativePackFileStore implements PackFileStore {
   }
 
   @override
+  Future<List<String>> installedIds() async {
+    if (!dir.existsSync()) return const [];
+    return [
+      for (final f in dir.listSync().whereType<File>())
+        if (p.extension(f.path).toLowerCase() == '.sqlite') p.basenameWithoutExtension(f.path),
+    ]..sort();
+  }
+
+  @override
   Future<String?> readManifest() async =>
       _manifest.existsSync() ? _manifest.readAsString() : null;
 

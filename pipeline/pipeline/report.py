@@ -8,6 +8,8 @@ are the fit ones with at most one word taught after the skill (or never); the pe
 fit sentences too. The summary lists how many sentences use each feature."""
 from __future__ import annotations
 
+import re
+
 from collections import defaultdict
 from statistics import median
 
@@ -90,7 +92,31 @@ def build_report(pack: Pack) -> dict:
         "skills": skills,
         "base_features": sorted(graph.base),
         "features": dict(sorted(feature_counts.items())),
+        "sources": source_counts(pack),
     }
+
+
+def source_counts(pack: Pack) -> dict[str, dict[str, int]]:
+    """Records per source id, from the optional `src` fields (kind -> source -> n). The id is
+    the part before ':' / ' (' of each '; '-separated entry ('[source]:a.html#aan' -> [source])."""
+    out: dict[str, dict[str, int]] = {}
+
+    def add(kind: str, src) -> None:
+        if not src:
+            return
+        for part in str(src).split(";"):
+            sid = re.split(r"[:(\s]", part.strip(), maxsplit=1)[0]
+            if sid:
+                d = out.setdefault(kind, {})
+                d[sid] = d.get(sid, 0) + 1
+
+    for it in pack.items:
+        add("items", it.get("src"))
+    for v in pack.verbs.values():
+        add("verb tables", v.get("src"))
+    for s in pack.sentences:
+        add("sentences", s.get("src"))
+    return out
 
 
 def format_report(r: dict, verbose: bool = True) -> str:
@@ -99,6 +125,8 @@ def format_report(r: dict, verbose: bool = True) -> str:
              f"({100 * r['linked_words'] / max(1, r['words']):.0f}%), {r['form_tokens']} verb-form tokens"]
     lines.append(f"base features {r['base_features']}; sentences per feature: "
                  + ", ".join(f"{k} {v}" for k, v in r["features"].items()))
+    for kind, d in (r.get("sources") or {}).items():
+        lines.append(f"{kind} per source: " + ", ".join(f"{k} {v}" for k, v in sorted(d.items(), key=lambda kv: -kv[1])))
     lines.append(f"{'skill':<24} {'unit':<4} {'kind':<7} {'items':>5} {'facets':>6} {'sents':>5} {'fit':>5} {'easy':>5}  "
                  "introduces / verb-form coverage (fit sentences)")
     for s in r["skills"]:
