@@ -279,7 +279,7 @@ every skill with the features it **introduces**; the compiler writes them to `se
 Units, skills (items; `*` = grammar) and the features each unit introduces. Every unit's skills
 require the previous unit's grammar, so a later skill allows everything taught before it.
 
-**Italian 1.1.0** — 40 skills, 738 taught items, 1541 facets, 16 111 sentences.
+**Italian 1.1.0** — 40 skills, 738 taught items, 1547 facets, 20 314 sentences (2113 generated).
 
 | Unit | Skills (items) | Introduces |
 |---|---|---|
@@ -293,7 +293,7 @@ require the previous unit's grammar, so a later skill allows everything taught b
 | u8 Plans for the future | leisure (23), shopping (20), futuro* (18), futuro-irregular* (16) | `tense:futuro`, `irregular:futuro` |
 | u9 Talking about life | more-verbs (30), ideas (28) | |
 
-**Dutch 1.1.0** — 35 skills, 712 taught items, 1504 facets, 13 222 sentences.
+**Dutch 1.1.0** — 35 skills, 712 taught items, 1511 facets, 14 767 sentences (762 generated).
 
 | Unit | Skills (items) | Introduces |
 |---|---|---|
