@@ -32,6 +32,8 @@ XP is earned per review event (one graded facet outcome). Let `before` be the fa
 
 All constants are in `XpRules`.
 
+**Test-out credits** (`ReviewEvent.isCredit`, `exerciseType == 'test_out'`, written when a test out or placement is passed; see `docs/engine.md`) earn **0 XP** and are not reviews: they are left out of the per-day counts (streaks, freezes, heatmap, today's reviews) and of every challenge metric. They do update facet states like any event, which is what makes a tested-out skill learned (bronze) and unlocks the skills after it. Credits are Easy, so a credited facet starts with FSRS's Easy stability, and a fully credited skill can show as silver until recall decays.
+
 ### Levels
 
 Reaching level `n` takes `floor(100 · (n−1)^1.6)` cumulative XP, and level 1 starts at 0. So level 2 needs 100, level 5 needs 917, level 10 needs 3,373, level 20 needs 11,124 and level 50 needs about 50,600. `LevelCurve.levelFor(xp)` returns `LevelInfo(level, xpIntoLevel, xpForNext, totalXp)`, where `xpForNext` is the size of the current level.
@@ -110,6 +112,10 @@ The collection has one card per verb item and one cell per tense. A cell is incl
 | mastered | the gold criteria: `R ≥ 0.90` and stability ≥ 21 days |
 
 Cards are sorted by frequency rank, then by lemma.
+
+## Tough words (`leeches.dart`)
+
+`toughWords(course, states, minLapses: 4)`: the facets trained by the course's skills whose state has at least `minLapses` lapses (an Again after graduating), most lapses first. The threshold is the setting `lesson.leech_lapses` (default `kToughWordLapses` = 4). Derived from the facet states, so it follows the log. The engine's tough-words session uses the same rule (`leechFacets`).
 
 ## Non-stop extras (`nonstop.dart`)
 

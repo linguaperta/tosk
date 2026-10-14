@@ -14,7 +14,8 @@
 | `focus_presets.dart` | Focus weights, parsed from `assets/config/focus_presets.json`, with identical embedded defaults |
 | `grading/rating.dart` | `RatingPolicy` (result → FSRS rating, fast-answer table) and `GradeOptions` |
 | `text/normalize.dart` | NFC, case, punctuation, apostrophes, accent folding, `matchAnswer` |
-| `session/` | `EngineSession` (serve, grade, record, re-queue, result stream), the builders, and `EngineSessionFactory` |
+| `session/` | `EngineSession` (serve, grade, record, re-queue, result stream), the builders, `assessment.dart` (test out, placement, tough words), and `EngineSessionFactory` |
+| `reference.dart` | Lookups for the UI's reference and word popovers: `glossForToken` (lemma, person, tense label, article, glosses), `CourseReference` (accent-insensitive search, verb tables with irregular forms, skills teaching an item, examples) |
 | `debug/exercise_printer.dart` | `exercisePrompt` (stored with mistakes), `formatExercise`, `sampleExercises` |
 
 ## Using it from the UI
@@ -36,7 +37,7 @@ for (var e = await session.next(); e != null; e = await session.next()) {
 final summary = session.summary();
 ```
 
-`lesson`, `lab`, `nonStop`, `fading` and `review` return `LessonSession`, `LabSession`, `NonStopSession`, `FadingSession` and `MistakeReviewSession`, all `EngineSession`s. Beyond `PracticeSession` they offer `results` (a broadcast stream of `AnswerEvent`), `mistakeContext(exerciseId)`, and on non-stop `unlockedSkills()` and `enqueueBonus(types:, count:)`.
+`lesson`, `lab`, `nonStop`, `fading`, `review`, `testOut`, `placement` and `toughWords` return `LessonSession`, `LabSession`, `NonStopSession`, `FadingSession`, `MistakeReviewSession`, `TestOutSession`, `PlacementSession` and `ToughWordsSession`, all `EngineSession`s. Beyond `PracticeSession` they offer `results` (a broadcast stream of `AnswerEvent`), `mistakeContext(exerciseId)`, and on non-stop `unlockedSkills()` and `enqueueBonus(types:, count:)`. Test out and placement are `AssessmentSession`s with an `outcome` once they end. `lesson(length:)` takes the lesson length (the UI offers `SessionLength` quick 5, normal 12, long 20).
 
 UI notes on the exercise contract:
 
@@ -46,6 +47,7 @@ UI notes on the exercise contract:
 - **Spot the error:** render with `tokenPre[i] + tokens[i]`, or use `renderSpotError`.
 - **Article multiple choice:** the prompt is `___ ragazzo` and `hint` is the meaning.
 - **Lenient accents:** `Result.accentSlip` means "accepted, but watch the accent".
+- **Token alignment (tap-for-gloss).** Exercises that show a target-language sentence carry its tokens as `TokenRef`s (text, whitespace before, aligned item id and `'{tense}.{person}'` form, from `Token.lex` / `Token.form`; `tokenRefsOf(sentence)`): `ClozeExercise.tokens` with `gapFrom..gapTo` (the whole correct sentence; the gap covers those tokens, or only the start of token `gapFrom` for an elided article), `SpotErrorExercise.tokenRefs` (parallel to `tokens`; the wrong word carries the original token's alignment), `MultipleChoiceExercise.sentenceTokens` (sentence variant: the prompt when recognizing, the correct option when producing), `TransformExercise.sourceTokens` and `SentenceBuilderExercise.answerTokens`. All optional (null from hand-made exercises). `glossForTokenRef(course, ref, lang)` resolves one for the UI. The UI never makes the exercise's own item tappable before the answer is checked.
 
 ## Facets, templates and stages
 
@@ -131,6 +133,19 @@ A wrong facet is re-queued 2–4 exercises later, at most twice per session. Re-
   - Order: still weak (predicted recall < 0.9, `kMistakeWeakRecall`) first, then the rest; most recent first within each group.
   - Each facet is asked with the exercise type that was missed when the skill allows it and the template can build it (`only: {type}`); flashcard mistakes (a self-graded Again) and types that can't serve the facet fall back to the normal selector. If the restricted generation still fails, the slot is retried unrestricted.
 
+### Test out, placement and tough words (`session/assessment.dart`)
+
+- **Test out** (`TestOutBuilder`, `factory.testOut(skillId, length: 10, passMark: 0.8)`, mode `testOut`): the skill's facets, production first (`#prod`, `#form`, `#article` shuffled, then `#rec`), cycled to `length`. Each slot asks for production-leaning types (`productionTypes`: sentence builder, cloze or multiple choice for `#prod`; grid, cloze, transform or spot the error for `#form`; …); when none can be built it is retried with any `kAssessmentTypes` type (everything auto-graded on one facet: no self-graded flashcards, no multi-facet match pairs). No re-asks (`maxReasks: 0`), so the score is first answers: `correct / answered`. When the last `next()` returns null the session concludes: at `score >= passMark` it **credits** the skill.
+- **Placement** (`PlacementBuilder`, `factory.placement(perSkill: 2, passMark: 0.8)`, mode `placement`): unit by unit in course order, `perSkill` production-first facets per skill. A unit passes at the pass mark; the session stops as soon as the current unit can no longer reach it (more wrong answers than `slots × (1 − passMark)`), or after the last unit. Every skill of the units passed before the failure is credited. `outcome`: `passedUnits`, `failedUnit`, `creditedSkills`, the score.
+- **Credits** (`kTestOutCreditType`, a core constant): one `ReviewEvent` per facet of the credited skills that is not learned yet (no state, or still in FSRS's learning phase), with `exerciseType: 'test_out'`, `rating: Easy`, `correct: true`, `responseMs: 0`, input `self`, and the session's id and mode, written through `EngineSession.recordExtra`. Easy graduates a new or learning facet straight into review, so the skill meets progression's bronze rule (every facet learned) and the skills requiring it unlock. Because credits are ordinary log events, they sync and replay like answers; progression gives them no XP and doesn't count them as reviews (`docs/progression.md`). A stopped session (Quit) concludes nothing and has no `outcome`. Mistakes made during the quiz are recorded as usual and stay open for mistake review.
+- **Tough words** (`ToughWordsBuilder`, `factory.toughWords(length: 12, minLapses: 4)`, mode `review`): `leechFacets` = facets of the course's skills whose state has at least `minLapses` lapses, most lapses first, then lowest recall (progression's `toughWords` uses the same rule for the UI's count). Each one becomes a recognition → production ladder (`leechLadder`): `#prod` = multiple choice on its `#rec` sibling, multiple choice on `#prod`, then cloze or sentence builder; `#rec` = multiple choice, match pairs or multiple choice, then production on its `#prod` sibling; `#form` = conjugation pick or grid, then cloze, transform, spot the error or grid; `#article` = multiple choice, then cloze or spot the error. Ladders are added whole until `length` is reached; a step that can't be built is retried with any type. Mistakes are re-asked as in any session.
+
+## Reference lookups (`reference.dart`)
+
+- `glossForToken(course, itemId:, form:, word:, lang:)` → `WordGloss`: `headline` is `mangiamo → mangiare · noi · present` for verb forms (person key, tense label in the source language; non-finite forms only the tense), `il pane` for nouns (`CourseIndex.withArticle`), the lemma otherwise (the word is left out when it is the lemma).
+- `CourseReference.of(course)` (cached per course): `items` and `verbs` sorted by folded lemma; `search(query, lang, verbsOnly:)` over lemmas, variants and plurals, every accepted verb form, and glosses in `lang` (a gloss matches by any of its words, so "eat" finds "to eat"), ignoring case and accents (`foldAnswer`), ranked lemma > lemma prefix > inflected form > gloss > gloss prefix > anywhere, then by frequency; `verbTable(itemId, lang)` (finite tenses in `meta.tenses` order with persons in `meta.persons` order, then infinitive, participle, gerund); `skillsTeaching(itemId)`; `examples(itemId)` (shortest first).
+- **Irregular forms** (`isIrregular`, a highlighting heuristic): only for verbs marked `irregular`. A single-word form is regular when it equals the verb's stem (declared, else its most common form stem) wrapped in a prefix/suffix pattern that at least 10 % of the course's regular verbs of the same class use for that tense and person (all classes when the class has no regular verbs; prefixes cover Dutch `ge…t`). A compound form is irregular when it contains an irregular participle. Without a stem or a pattern nothing is marked.
+
 ## Adding a template
 
 1. Add the type id to `ExerciseType` and an `Exercise` subtype in `core/models/exercise.dart`. This is a contract change, so tell the UI side.
@@ -142,6 +157,10 @@ A wrong facet is re-queued 2–4 exercises later, at most twice per session. Re-
 3. Register it in `defaultTemplates()`, add its kinds to `ExerciseSelectorTypes.templateKinds`, and give it a row in `kStageAffinity`, the focus presets (JSON asset and `kDefaultFocusWeights`) and `RatingPolicy.defaultFastMs`.
 4. Add a `case` to `validateExercise` in `test/engine/template_validity.dart` that checks validity against the course data independently of the generator, and list the skills where it must apply in `template_validity_test.dart`.
 5. Run `dart run tool/sample_exercises.dart it` and `… nl` and read the output.
+
+## Tests of the v0.3 additions
+
+`test/engine/assessment_test.dart`: test out (production first, no flashcards or match pairs, no re-asks, pass → credits → bronze and the next skill unlocked with no XP and no extra reviews, fail and Quit credit nothing, grammar skills), placement (passes in order, stops early at the first failed unit, credits the passed units, every unit when everything is known), tough words (threshold shared with progression, the ladders, the session's order and types, empty without leeches). `test/engine/reference_test.dart`: glosses (verb forms, nouns with articles, unaligned tokens), search (accents, forms, glosses in both languages, verbs only), verb tables (order, labels, irregular marks), entries, and the token alignment of every template that carries it (cloze gap ranges render back to `before`/`after`).
 
 ## Testing against real packs
 
