@@ -24,7 +24,7 @@
     "tr_src": {
       "type": "object",
       "propertyNames": {"pattern": "^[a-z]{2,3}$"},
-      "additionalProperties": {"enum": ["wiktionary", "nlwiktionary", "wiktionary-pivot", "claude", "tatoeba", "manual"]},
+      "additionalProperties": {"enum": ["wiktionary", "nlwiktionary", "wiktionary-pivot", "claude", "claude-draft", "tatoeba", "src", "manual"]},
       "description": "provenance of the glosses per language"
     },
     "tags": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-z0-9_-]+$"}},

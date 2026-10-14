@@ -14,6 +14,9 @@
     "target": {"type": "string", "pattern": "^[a-z]{2,3}$"},
     "translations": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-z]{2,3}$"}},
     "unverified": {"type": "boolean"},
+    "note_langs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-z]{2,3}$"},
+                   "description": "languages every grammar skill needs a note in (default [en, nl])"},
+    "attribution": {"type": "string", "minLength": 1, "description": "meta.attribution text; default: generated from the sources used"},
     "persons": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1, "pattern": "^[^.\\s]+$"}},
     "person_labels": {"type": "object", "additionalProperties": {"$ref": "#/$defs/i18n"}},
     "tenses": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/key"}},
@@ -77,6 +80,7 @@
       "properties": {
         "tense": {"$ref": "#/$defs/key"},
         "class": {"$ref": "#/$defs/strOrList"},
+        "tags": {"$ref": "#/$defs/strOrList"},
         "regular": {"type": "boolean"},
         "aux": {"type": "string"},
         "lemmas": {"$ref": "#/$defs/names"},

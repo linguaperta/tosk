@@ -11,6 +11,7 @@
     "class": {"type": ["string", "null"], "description": "'are','ere','ire','isc','other' (it); 'weak','strong','mixed' (nl)"},
     "stem": {"type": ["string", "null"], "description": "citation stem, e.g. 'mang' or 'werk'"},
     "irregular": {"type": "boolean"},
+    "src": {"type": "string", "description": "provenance of the table, e.g. 'claude-draft' (not compiled)"},
     "irregular_in": {"type": "array", "uniqueItems": true, "items": {"type": "string"},
                      "description": "tenses whose forms deviate from the regular pattern (used by skill queries; not compiled)"},
     "auxiliary": {"type": ["string", "null"], "pattern": "^[^|\\s]+(\\|[^|\\s]+)*$",
