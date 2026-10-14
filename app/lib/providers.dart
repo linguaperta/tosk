@@ -111,9 +111,14 @@ final fxProvider = Provider<Fx>(
   (ref) => Fx(enabled: !ref.watch(settingsProvider.select((s) => s.value?.reduceMotion ?? false))),
 );
 
-/// Visual skin (theme + map style): black & white for e-ink, else the default.
-/// A forest skin can come later.
-final skinProvider = Provider<Skin>((ref) => ref.watch(bwProvider) ? const BwSkin() : const DefaultSkin());
+/// Visual skin (theme + map style): black & white for e-ink, else tosk's
+/// storybook look. Another skin can come later.
+final skinProvider = Provider<Skin>((ref) => ref.watch(bwProvider) ? const BwSkin() : const ToskSkin());
+
+/// Whether the map's medal twinkles animate: motion on, and never under
+/// `flutter test` (a repeating animation would never settle; tests that want
+/// it override this).
+final twinkleProvider = Provider<bool>((ref) => !ref.watch(reduceMotionProvider) && !runningInFlutterTest);
 
 // ------------------------------------------------------------------ course
 

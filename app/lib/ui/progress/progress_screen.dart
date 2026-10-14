@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../theme/tosk_palette.dart';
 import '../../core/core.dart';
 import '../../progression/progression.dart';
 import '../../providers.dart';
@@ -216,7 +217,7 @@ class _ProfileCard extends StatelessWidget {
                 children: [
                   if (courseTitle != null)
                     Text(courseTitle!, key: const ValueKey('progress-course'), style: theme.textTheme.labelLarge),
-                  Text('Level ${p.level.level}', style: theme.textTheme.headlineSmall),
+                  Text('Level ${p.level.level}', style: theme.textTheme.serifHeadline),
                   Text(
                     courseTitle == null ? '${p.totalXp} XP in total' : '${p.totalXp} XP in $courseTitle',
                     key: const ValueKey('progress-total-xp'),

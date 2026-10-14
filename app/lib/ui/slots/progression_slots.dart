@@ -12,12 +12,10 @@ import '../../core/core.dart';
 import '../../progression/progression.dart';
 import '../../providers.dart';
 import '../map/skill_sheet.dart' show itemLabel;
-import '../map/skill_stats.dart';
 import '../progression/progression_widgets.dart';
 import '../goal/daily_goal_bar.dart';
 import '../goal/daily_goal_providers.dart';
 import '../routes.dart';
-import '../theme/skin.dart';
 
 /// Top of the skill map: level ring, today's XP and the streak. Tapping it
 /// opens the progress page.
@@ -88,25 +86,6 @@ class MapHeaderSlot extends ConsumerWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-/// Tier badge on a map node: progression's [TierBadge] on a surface disc so it
-/// reads on any node color. Nothing for skills that are merely available.
-class TierBadgeSlot extends StatelessWidget {
-  const TierBadgeSlot({super.key, required this.tier, required this.style, this.size = 22, this.reduceMotion = false});
-  final MapTier tier;
-  final MapStyle style;
-  final double size;
-  final bool reduceMotion;
-
-  @override
-  Widget build(BuildContext context) {
-    if (tier == MapTier.available) return SizedBox(width: size, height: size);
-    return DecoratedBox(
-      decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, shape: BoxShape.circle),
-      child: TierBadge(tier: skillTierOf(tier), size: size, reduceMotion: reduceMotion),
     );
   }
 }

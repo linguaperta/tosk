@@ -104,7 +104,9 @@ device/        device extras (v0.5): DeviceInfo (ONYX detection), EinkScreen (fu
 feedback/      exercise snapshots, answer context, flags JSON Lines export (v0.3)
 audio/         SoundService over audioplayers (v0.3); the sounds come from tool/make_sounds.py
 ui/            Flutter screens and widgets (Phase 4): map, lesson player, lab, non-stop, settings, debug, ai/, feedback/
-  theme/       skins (default skin now, forest later)
+  theme/       skins: ToskSkin (the storybook palette, Gelasio headings), BwSkin (e-ink)
+  brand/       Tosk the mascot (poses, wordmark, lock-up) over assets/brand/ (docs/brand-overhaul.md)
+  map/         the course map: layout, storybook branch and node painters (ink_art, branch_style)
 app.dart, main.dart, providers.dart (Riverpod wiring)
 ```
 

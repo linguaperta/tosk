@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../brand/tosk.dart';
 import '../../core/core.dart';
 import '../../providers.dart';
 import '../common/async_view.dart';
@@ -172,7 +173,14 @@ class _Empty extends StatelessWidget {
   Widget build(BuildContext context) => Center(
     child: Padding(
       padding: const EdgeInsets.all(24),
-      child: Text(text, textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodyLarge),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const ToskImage(pose: ToskPose.thinking, height: 96),
+          const SizedBox(height: 12),
+          Text(text, textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodyLarge),
+        ],
+      ),
     ),
   );
 }
