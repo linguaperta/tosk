@@ -83,6 +83,33 @@ class Lang:
     imperative_exempt: set[str] = field(default_factory=set)
     # words that may precede a clause-initial imperative ('Non parlate!', 'Mi scusi!')
     imperative_lead: set[str] = field(default_factory=set)
+    # read the gerund from the conjugation table ('gerund._': mangiando, hablando)
+    gerund: bool = False
+    # compound tenses: the auxiliary stands before the participle, at most `aux_window` words back,
+    # with only `aux_between` words in between (it: 'ho già mangiato'; es: 'he comido'); 0 = anywhere
+    # in the clause, before or after (Dutch 'dat ik heb gegeten' / 'dat ik gegeten heb')
+    aux_window: int = 0
+    aux_between: set[str] = field(default_factory=set)
+    # a participle without an auxiliary (passive, adjectival) tags the compound tense; Spanish
+    # 'estoy cansado', 'la puerta está cerrada' are adjectival and tag nothing
+    bare_participle_tense: bool = True
+    # spellings whose verb reading needs an adjacent subject pronoun; otherwise the word is read as
+    # its other item (Spanish 'como' = like/as, not 'I eat', unless 'yo como')
+    verb_needs_pronoun: set[str] = field(default_factory=set)
+    # a word that is both a noun and a verb form, directly after a finite verb, is the noun (its
+    # object): Spanish 'Bebo vino' (wine, not 'he came'), 'Busco trabajo'
+    object_noun_after_verb: bool = False
+    # the conjugation table's second template lists enclitic combinations (Spanish hacerlo, dímelo,
+    # levantarse): kept as the verb item's inflections, so such a word links to the verb (no form)
+    clitic_forms: bool = False
+    # infinitive endings of verbs eligible for the pool (it: pronominal verbs like alzarsi are not)
+    infinitive_endings: tuple[str, ...] = ()
+    # first word of the English translation -> person, used when persons share a form and no subject
+    # pronoun decides (Spanish 'hablaba' = yo or él; 'I was talking' -> yo). Also: an English
+    # translation starting with 'Please' marks a clause-initial present form as an imperative.
+    translation_subjects: dict[str, str] = field(default_factory=dict)
+    # multi-word phrase items that only count when they form a clause of their own ('¡De nada!')
+    standalone_phrases: set[str] = field(default_factory=set)
 
     @property
     def tenses(self) -> list[str]:
@@ -98,7 +125,7 @@ class Lang:
             return ("infinitive", "_")
         if {"participle", "past"} <= t:
             return ("participle", "_")
-        if "gerund" in t and self.code == "it":
+        if "gerund" in t and self.gerund:
             return ("gerund", "_")
         if "participle" in t or "gerund" in t:
             return None
@@ -151,6 +178,11 @@ class Lang:
     def compound(self, aux_forms: dict[str, str], participle: str, person: str, aux: str) -> tuple[str, list[str]]:
         raise NotImplementedError
 
+    def verb_stem(self, lemma: str, cls: str | None, complete: dict, irr: list[str]) -> str | None:
+        """The verb record's `stem` (it: mangi(are); nl: the ik-form of a regular present)."""
+        p = complete[self.present]
+        return p[self.persons[0]] if self.present not in irr else None
+
 
 # ------------------------------------------------------------------------------------------ it
 IT_ENDINGS = {
@@ -173,6 +205,18 @@ IT_ENDINGS = {
         "isc": ["irò", "irai", "irà", "iremo", "irete", "iranno"],
     },
 }
+
+
+# Italian words that may stand between an auxiliary and its participle ('ho già mangiato', 'non
+# sono mai stato', 'abbiamo tutti capito'); any other word in between ends the search, so a noun
+# or adjective is never taken for a participle ('Sono sicura del suo successo', 'Non siete
+# coraggiosi come sembrate').
+IT_BETWEEN_AUX_PART = {
+    "già", "mai", "appena", "ancora", "sempre", "più", "anche", "ben", "bene", "molto", "tanto", "poco",
+    "spesso", "davvero", "proprio", "forse", "solo", "soltanto", "subito", "finalmente", "tutto", "tutti",
+    "tutte", "quasi", "veramente", "certo", "certamente", "sicuramente", "probabilmente", "ormai", "pure",
+    "mica", "neanche", "nemmeno", "neppure", "così", "appunto", "completamente", "davvero", "io", "tu",
+    "lui", "lei", "noi", "voi", "loro"}
 
 
 class Italian(Lang):
@@ -208,7 +252,14 @@ class Italian(Lang):
             imperative_exempt={"essere", "avere"},
             imperative_lead={"non", "mi", "ti", "ci", "vi", "si", "lo", "la", "li", "le", "ne", "gli", "me", "te",
                              "ce", "ve", "se", "pure", "ora", "adesso", "allora"},
+            gerund=True,
+            aux_window=4,
+            aux_between=IT_BETWEEN_AUX_PART,
+            infinitive_endings=("are", "ere", "ire", "rre"),
         )
+
+    def verb_stem(self, lemma, cls, complete, irr):
+        return lemma[:-3] if cls in ("are", "ere", "ire", "isc") else None
 
     def verb_class(self, lemma, forms, table_tags):
         pres = forms.get("presente", {})
@@ -489,7 +540,9 @@ class Dutch(Lang):
         return [participle]
 
 
-LANGS: dict[str, Lang] = {"it": Italian(), "nl": Dutch()}
+from .lang_es import Spanish  # noqa: E402  (imports Lang from this module)
+
+LANGS: dict[str, Lang] = {"it": Italian(), "nl": Dutch(), "es": Spanish()}
 
 
 def get_lang(code: str) -> Lang:

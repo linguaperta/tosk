@@ -42,9 +42,21 @@ NL_RE = re.compile(
 )
 
 
+# Languages without elision or clitic apostrophes (es): words with inner hyphens, and every other
+# non-space, non-word character (¿ ¡ ' included) is punctuation.
+PLAIN_RE = re.compile(
+    rf"(?P<ws>\s*)(?:"
+    rf"(?P<word>{_W}+(?:[-‐]{_W}+)*)"
+    rf"|(?P<dots>\.\.+|…)"
+    rf"|(?P<punct>[^\w\s])"
+    rf")"
+)
+REGEX = {"it": IT_RE, "nl": NL_RE, "es": PLAIN_RE}
+
+
 def tokenize(text: str, lang: str) -> list[dict]:
     """Return [{'t': str, 'pre': str, 'is_word': bool}]. Trailing whitespace is dropped."""
-    rx = IT_RE if lang == "it" else NL_RE
+    rx = REGEX.get(lang, NL_RE)
     out: list[dict] = []
     pos = 0
     n = len(text.rstrip())

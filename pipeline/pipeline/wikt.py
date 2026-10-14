@@ -160,7 +160,12 @@ def parse_entry(e: dict, lang: Lang) -> Lexeme | None:
                 templates_seen += 1
                 continue
             if templates_seen > 1:
-                break      # only the first (standard) conjugation table
+                if not lang.clitic_forms:
+                    break      # only the first (standard) conjugation table
+                # Spanish: the second template lists verb + enclitic pronouns (hacerlo, dímelo)
+                if "combined-form" in tags and "with-vos" not in tags and form and form != "-" and " " not in form:
+                    lx.inflections.add(form.lower())
+                continue
             if "table-tags" in tags:
                 lx.table_tags = lx.table_tags or form
                 continue

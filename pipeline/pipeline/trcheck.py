@@ -34,6 +34,13 @@ NUMBERS = {
            "zeventien": 17, "achttien": 18, "negentien": 19, "twintig": 20, "dertig": 30, "veertig": 40,
            "vijftig": 50, "zestig": 60, "zeventig": 70, "tachtig": 80, "negentig": 90, "honderd": 100,
            "duizend": 1000, "miljoen": 10**6, "miljard": 10**9},
+    "es": {"cero": 0, "dos": 2, "tres": 3, "cuatro": 4, "cinco": 5, "seis": 6, "siete": 7, "ocho": 8, "nueve": 9,
+           "diez": 10, "once": 11, "doce": 12, "trece": 13, "catorce": 14, "quince": 15, "dieciséis": 16,
+           "diecisiete": 17, "dieciocho": 18, "diecinueve": 19, "veinte": 20, "veintiuno": 21, "veintidós": 22,
+           "veintitrés": 23, "veinticuatro": 24, "veinticinco": 25, "treinta": 30, "cuarenta": 40,
+           "cincuenta": 50, "sesenta": 60, "setenta": 70, "ochenta": 80, "noventa": 90, "cien": 100,
+           "ciento": 100, "doscientos": 200, "trescientos": 300, "quinientos": 500, "mil": 1000,
+           "millón": 10**6, "millones": 10**6},
 }
 # Italian elided tens before a vowel: quarant'anni
 NUMBERS["it"].update({w[:-1]: v for w, v in list(NUMBERS["it"].items()) if 20 <= v <= 90})
@@ -45,6 +52,9 @@ NUMBERS["en"].update({"third": 3, "fourth": 4, "fifth": 5, "sixth": 6, "seventh"
                       "twentieth": 20, "thirtieth": 30})
 NUMBERS["it"].update({"terzo": 3, "terza": 3, "quinto": 5, "quinta": 5, "sesto": 6, "sesta": 6, "settimo": 7,
                       "settima": 7, "ottavo": 8, "ottava": 8, "nono": 9, "nona": 9, "decimo": 10, "decima": 10})
+NUMBERS["es"].update({"tercero": 3, "tercera": 3, "tercer": 3, "cuarto": 4, "cuarta": 4, "quinto": 5,
+                      "quinta": 5, "sexto": 6, "sexta": 6, "séptimo": 7, "séptima": 7, "octavo": 8, "octava": 8,
+                      "noveno": 9, "novena": 9, "décimo": 10, "décima": 10})
 NUMBERS["nl"].update({"derde": 3, "vierde": 4, "vijfde": 5, "zesde": 6, "zevende": 7, "achtste": 8, "negende": 9,
                       "tiende": 10})
 # idioms with a number word that is no number: 'grazie mille' (thanks a lot)
@@ -52,7 +62,7 @@ IDIOMS = {"it": {("grazie", "mille")}}
 # number words that are mostly something else (Italian 'sei' = you are, Dutch 'vier' = celebrate,
 # 'acht' = attention, 'elf' = elf, 'zeven' = to sieve): their value is not compared when the
 # sentence has one
-AMBIGUOUS = {"it": {"sei"}, "nl": {"vier", "acht", "elf", "zeven"}}
+AMBIGUOUS = {"it": {"sei"}, "nl": {"vier", "acht", "elf", "zeven"}, "es": {"cuarto", "cuarta"}}
 # words that imply or rewrite numbers (times, pairs): no number comparison at all
 NUMBER_WORDS_VAGUE = {
     "en": {"half", "quarter", "fortnight", "fortnights", "dozen", "dozens", "couple", "both", "pair", "twice",
@@ -60,6 +70,8 @@ NUMBER_WORDS_VAGUE = {
     "it": {"mezza", "mezzo", "quarto", "quarta", "entrambi", "entrambe", "paio", "coppia", "doppio", "mezzogiorno",
            "mezzanotte"},
     "nl": {"half", "kwart", "kwartier", "beide", "beiden", "paar", "dubbel", "middag", "middernacht"},
+    "es": {"medio", "media", "cuarto", "ambos", "ambas", "par", "pareja", "doble", "mediodía", "medianoche",
+           "docena", "quincena"},
 }
 VAGUE_EN = re.compile(r"\b(you|we|they|us|them) two\b|\btwo of (you|us|them)\b", re.I)
 # weekdays then months, in the same order per language
@@ -70,6 +82,8 @@ CALENDAR = {
           "luglio agosto settembre ottobre novembre dicembre",
     "nl": "maandag dinsdag woensdag donderdag vrijdag zaterdag zondag januari februari maart april mei juni "
           "juli augustus september oktober november december",
+    "es": "lunes martes miércoles jueves viernes sábado domingo enero febrero marzo abril mayo junio "
+          "julio agosto septiembre octubre noviembre diciembre",
 }
 CALENDAR_IDX = {lang: {w: i for i, w in enumerate(words.split())} for lang, words in CALENDAR.items()}
 CALENDAR_IDX["en"].update({w + "s": i for w, i in list(CALENDAR_IDX["en"].items()) if i < 7})   # 'on Mondays'

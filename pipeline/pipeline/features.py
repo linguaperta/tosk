@@ -27,6 +27,13 @@ the features it introduces:
   ``separable``        ``{particles: [...]}``  a separable verb (one whose present table has
                        two-word forms, ``sta op``) in any form, or a finite verb V with a
                        clause-final particle P such that P+V is a separable verb (``Hij komt terug.``)
+  ``reflexive``        ``{pronouns: {me: yo, se: [él/ella, ellos/ellas], ...}, clitics: [...],
+                       enclitic_any: [se]}``  a pronoun of the verb's own person in the clitic
+                       cluster before a finite verb (``me levanto``, ``nos hemos visto``), or attached
+                       to a verb word that is no table form (``levantarse``; ``levantarme`` only after
+                       a finite verb of that person: ``Quiero levantarme``)
+  ``nonfinite``        ``{form: gerund, pattern: regex}``  a verb token in that form (``comiendo``),
+                       or a word matching the pattern (with attached clitics: ``haciéndolo``)
 
 Skills introduce ``introduces: [...]`` from course.yaml, plus ``tense:{T}`` for a grammar skill
 with ``verbs: {tense: T}``. ``base_features`` (course.yaml) are allowed from the start.
@@ -47,9 +54,10 @@ from types import SimpleNamespace
 from . import query
 from .lang import get_lang
 
-DETECTOR_TYPES = {"compound_aux", "modal_infinitive", "words", "irregular_tense", "separable"}
+DETECTOR_TYPES = {"compound_aux", "modal_infinitive", "words", "irregular_tense", "separable", "reflexive",
+                  "nonfinite"}
 _APOS = str.maketrans({"’": "'", "‘": "'"})
-_CLAUSE_PUNCT = {",", ".", "?", "!", ";", ":", "...", "…", "—", "–", "(", ")", '"', "«", "»", "“", "”"}
+_CLAUSE_PUNCT = {",", ".", "?", "!", ";", ":", "...", "…", "—", "–", "(", ")", '"', "«", "»", "“", "”", "¿", "¡"}
 
 
 def _norm(s: str) -> str:
@@ -104,6 +112,16 @@ class FeatureTagger:
                 spec["_re"] = re.compile(pat) if pat else None
             if kind == "separable":
                 spec["_particles"] = {_norm(p) for p in spec.get("particles") or []}
+            if kind == "nonfinite":
+                pat = spec.get("pattern")
+                spec["_re"] = re.compile(pat) if pat else None
+            if kind == "reflexive":
+                pron = {}
+                for w, ps in (spec.get("pronouns") or {}).items():
+                    pron[_norm(w)] = set(ps if isinstance(ps, list) else [ps])
+                spec["_pron"] = pron
+                spec["_clitics"] = set(pron) | {_norm(w) for w in spec.get("clitics") or []}
+                spec["_any"] = {_norm(w) for w in spec.get("enclitic_any") or []}
             self.detectors.append((name, kind, spec))
 
     # -- helpers ----------------------------------------------------------------------------------
@@ -142,7 +160,8 @@ class FeatureTagger:
         out = set()
         for t in tenses - {"infinitive", "gerund"}:
             if t == "participle":
-                if self.first_compound:
+                # a participle without an auxiliary (passive, adjectival); Spanish 'cansado' is no perfect
+                if self.first_compound and getattr(self.lang, "bare_participle_tense", True):
                     out.add(self.first_compound)
             else:
                 out.add(t)
@@ -185,8 +204,9 @@ class FeatureTagger:
                 inf = ((self.verbs[lex].get("forms") or {}).get("infinitive") or {}).get("_")
                 if inf and _norm(t["t"]) == _norm(_form(inf)):
                     return True
-            if rx and not lex and rx.fullmatch(_norm(t["t"])):
-                return True
+            if rx and (not lex or (lex in self.verbs and not t.get("form"))) and rx.fullmatch(_norm(t["t"])):
+                return True                  # a clitic infinitive: 'posso farlo', 'puedo hacerlo'
+
         return False
 
     def _is_infinitive(self, tok: dict) -> bool:
@@ -226,6 +246,37 @@ class FeatureTagger:
                     prev = None
                 last_word = u["t"]
         return None
+
+    def _reflexive(self, toks: list[dict], spec: dict) -> bool:
+        """A reflexive pronoun of the verb's own person in the clitic cluster before a finite verb
+        ('me levanto', 'se llama', 'nos hemos visto'), or attached to an infinitive/gerund/imperative
+        ('levantarse'; 'levantarme' after a finite verb of the same person: 'Quiero levantarme')."""
+        pron, clitics, any_ = spec["_pron"], spec["_clitics"], spec["_any"]
+        persons_seen: set[str] = set()
+        for i, t in enumerate(toks):
+            if not _is_word(t):
+                if t["t"] in _CLAUSE_PUNCT:
+                    persons_seen = set()
+                continue
+            if t.get("lex") not in self.verbs:
+                continue
+            f = t.get("form") or ""
+            person = f.split(".", 1)[1] if "." in f else "_"
+            if person != "_":
+                persons_seen.add(person)
+                j = i - 1
+                while j >= 0 and _is_word(toks[j]) and _norm(toks[j]["t"]) in clitics:
+                    if person in pron.get(_norm(toks[j]["t"]), ()):
+                        return True
+                    j -= 1
+                continue
+            w = _norm(t["t"])
+            if w in self._spellings(t["lex"]):
+                continue                     # a plain form, no enclitic
+            for suf, ps in pron.items():
+                if len(w) > len(suf) + 2 and w.endswith(suf) and (suf in any_ or ps & persons_seen):
+                    return True
+        return False
 
     def _separable(self, vid: str) -> bool:
         v = self.verbs.get(vid) or {}
@@ -293,6 +344,23 @@ class FeatureTagger:
                         continue
                     if self._infinitive_after(toks, i, spec):
                         return True
+            return False
+        if kind == "reflexive":
+            return self._reflexive(toks, spec)
+        if kind == "nonfinite":
+            # a verb in that non-finite form ('estoy comiendo'), also with attached clitics ('haciéndolo')
+            want, rx = spec.get("form"), spec.get("_re")
+            for t in toks:
+                if not _is_word(t):
+                    continue
+                f, lex = t.get("form") or "", t.get("lex")
+                if f.split(".", 1)[0] == want:
+                    return True
+                if lex in self.verbs and not f:
+                    if want in self._spellings(lex).get(_norm(t["t"]), set()):
+                        return True
+                if rx and (not lex or (lex in self.verbs and not f)) and rx.fullmatch(_norm(t["t"])):
+                    return True
             return False
         if kind == "separable":
             particles = spec["_particles"]

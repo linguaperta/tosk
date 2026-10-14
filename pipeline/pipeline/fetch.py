@@ -5,8 +5,11 @@ touch the disk. Only small filtered JSONL files are kept:
 
   kaikki-it.jsonl     Italian lemma entries (en.wiktionary via kaikki.org), words in the freq list
   kaikki-nl.jsonl     Dutch lemma entries, same filter
-  kaikki-nlwikt-it.jsonl  Italian entries of the Dutch Wiktionary (Dutch glosses)
-  en-trans-it-nl.jsonl    English Wiktionary translation tables that list both it and nl words
+  kaikki-{code}.jsonl     the same for every other course language in SOURCES (es, ...)
+  kaikki-nlwikt-{code}.jsonl  the course language's entries in the Dutch Wiktionary (Dutch glosses)
+  en-trans-it-nl.jsonl    English Wiktionary translation tables that list both it and nl words (Italian)
+  en-trans-nl.jsonl       the same for every PIVOT_CODES language: one pass over the English dump keeps
+                          every sense that lists a Dutch word and a word in any of them
   nlwikt-nl-aux.jsonl     Dutch verbs from the Dutch Wiktionary: perfect auxiliary (hebben/zijn)
   tatoeba/*.tsv.bz2   Tatoeba per-language sentence and link exports (small, kept compressed)
   freq/{it,nl}_50k.txt  hermitdave/FrequencyWords 2018 lists
@@ -23,26 +26,47 @@ import requests
 
 from .paths import cache_dir
 
-KAIKKI = {
-    "it": "https://kaikki.org/dictionary/Italian/kaikki.org-dictionary-Italian.jsonl",
-    "nl": "https://kaikki.org/dictionary/Dutch/kaikki.org-dictionary-Dutch.jsonl",
+# Per course language: kaikki.org (en.wiktionary) language name, Tatoeba ISO 639-3 code,
+# nl.wiktionary language name (Dutch glosses; None for Dutch itself), FrequencyWords code.
+# Adding a language starts with one line here (docs/new-language.md).
+SOURCES: dict[str, dict[str, str | None]] = {
+    "it": {"kaikki": "Italian", "tatoeba": "ita", "nlwikt": "Italiaans", "freq": "it"},
+    "nl": {"kaikki": "Dutch", "tatoeba": "nld", "nlwikt": None, "freq": "nl"},
+    "es": {"kaikki": "Spanish", "tatoeba": "spa", "nlwikt": "Spaans", "freq": "es"},
+    "pt": {"kaikki": "Portuguese", "tatoeba": "por", "nlwikt": "Portugees", "freq": "pt"},
+    "fr": {"kaikki": "French", "tatoeba": "fra", "nlwikt": "Frans", "freq": "fr"},
+    "eo": {"kaikki": "Esperanto", "tatoeba": "epo", "nlwikt": "Esperanto", "freq": "eo"},
+    "sv": {"kaikki": "Swedish", "tatoeba": "swe", "nlwikt": "Zweeds", "freq": "sv"},
+    "nb": {"kaikki": "Norwegian Bokmål", "tatoeba": "nob", "nlwikt": "Noors", "freq": "no"},
+    "da": {"kaikki": "Danish", "tatoeba": "dan", "nlwikt": "Deens", "freq": "da"},
 }
+# translation-table codes kept by the English pivot pass (en-trans-nl.jsonl); 'no' is how
+# en.wiktionary often tags Norwegian without a Bokmål/Nynorsk split
+PIVOT_CODES = ("it", "es", "pt", "fr", "eo", "sv", "nb", "no", "da")
+
+
+def kaikki_url(code: str) -> str:
+    name = SOURCES[code]["kaikki"]
+    return f"https://kaikki.org/dictionary/{name}/kaikki.org-dictionary-{name.replace(' ', '')}.jsonl".replace(" ", "%20")
+
+
+def nlwikt_url(name: str) -> str:
+    return f"https://kaikki.org/nlwiktionary/{name}/kaikki.org-dictionary-{name}.jsonl"
+
+
 KAIKKI_EN = "https://kaikki.org/dictionary/English/kaikki.org-dictionary-English.jsonl"
-NLWIKT_IT = "https://kaikki.org/nlwiktionary/Italiaans/kaikki.org-dictionary-Italiaans.jsonl"
-NLWIKT_NL = "https://kaikki.org/nlwiktionary/Nederlands/kaikki.org-dictionary-Nederlands.jsonl"
-FREQ = {
-    "it": "https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/it/it_50k.txt",
-    "nl": "https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/nl/nl_50k.txt",
-}
+NLWIKT_NL = nlwikt_url("Nederlands")
+FREQ_BASE = "https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/"
 TATOEBA_BASE = "https://downloads.tatoeba.org/exports/per_language/"
-TATOEBA_FILES = [
-    "ita/ita_sentences.tsv.bz2",
-    "nld/nld_sentences.tsv.bz2",
-    "eng/eng_sentences.tsv.bz2",
-    "ita/ita-eng_links.tsv.bz2",
-    "ita/ita-nld_links.tsv.bz2",
-    "nld/nld-eng_links.tsv.bz2",
-]
+
+
+def tatoeba_files(code: str) -> list[str]:
+    """The language's sentences and English links, plus its Dutch links (not for Dutch itself)."""
+    t3 = SOURCES[code]["tatoeba"]
+    out = [f"{t3}/{t3}_sentences.tsv.bz2", f"{t3}/{t3}-eng_links.tsv.bz2", "eng/eng_sentences.tsv.bz2"]
+    if code != "nl":
+        out += [f"{t3}/{t3}-nld_links.tsv.bz2", "nld/nld_sentences.tsv.bz2"]
+    return out
 
 SKIP_POS = {"name", "character", "symbol", "suffix", "prefix", "infix", "interfix", "affix",
             "romanization", "punct", "abbrev", "letter", "proverb", "combining_form"}
@@ -167,9 +191,17 @@ def kaikki_keep(words: set[str], lang_code: str) -> Callable[[dict], dict | None
     return keep
 
 
-def nlwikt_keep(e: dict) -> dict | None:
-    if e.get("lang_code") != "it":
-        return None
+def nlwikt_keep(code: str, words: set[str] | None = None) -> Callable[[dict], dict | None]:
+    """The course language's entries in the Dutch Wiktionary: word, pos, glosses (Dutch); only words
+    in the frequency list when `words` is given (the Spanish dump has ~200k entries)."""
+    def keep(e: dict) -> dict | None:
+        if e.get("lang_code") != code or (words is not None and (e.get("word") or "").lower() not in words):
+            return None
+        return _nlwikt_rec(e)
+    return keep
+
+
+def _nlwikt_rec(e: dict) -> dict | None:
     senses = [{"glosses": s.get("glosses", []), "tags": s.get("tags", [])} for s in e.get("senses", [])
               if s.get("glosses")]
     if not senses:
@@ -202,19 +234,23 @@ def nlwikt_aux_keep(e: dict) -> dict | None:
     return {"word": e.get("word"), "aux": aux, "participle": participle}
 
 
-def en_trans_keep(e: dict) -> dict | None:
+def en_trans_keep(e: dict, codes: tuple[str, ...] = ("it",)) -> dict | None:
+    """Senses of an English entry whose translation table lists a Dutch word and a word in one of
+    `codes` (the Dutch pivot): {"word", "pos", "senses": [{"sense", "nl": [...], "<code>": [...]}]}."""
     trs = list(e.get("translations") or [])
     for s in e.get("senses") or []:
         trs.extend(s.get("translations") or [])
     by_sense: dict[str, dict[str, list[str]]] = {}
+    wanted = set(codes) | {"nl"}
     for t in trs:
         code = t.get("code") or t.get("lang_code")
-        if code not in ("it", "nl") or not t.get("word"):
+        if code not in wanted or not t.get("word"):
             continue
-        d = by_sense.setdefault(t.get("sense") or "", {"it": [], "nl": []})
-        if t["word"] not in d[code]:
-            d[code].append(t["word"])
-    senses = [{"sense": k, **v} for k, v in by_sense.items() if v["it"] and v["nl"]]
+        d = by_sense.setdefault(t.get("sense") or "", {})
+        lst = d.setdefault(code, [])
+        if t["word"] not in lst:
+            lst.append(t["word"])
+    senses = [{"sense": k, **v} for k, v in by_sense.items() if v.get("nl") and len(v) > 1]
     if not senses:
         return None
     return {"word": e.get("word"), "pos": e.get("pos"), "senses": senses}
@@ -224,20 +260,31 @@ def fetch(langs: Iterable[str] = ("it", "nl"), force: bool = False, skip_english
     c = cache_dir()
     log(f"cache: {c}")
     langs = list(langs)
+    unknown = [x for x in langs if x not in SOURCES]
+    if unknown:
+        raise SystemExit(f"no sources configured for {unknown}: add them to fetch.SOURCES")
     freq_words: dict[str, set[str]] = {}
     for lang in langs:
-        p = _download(FREQ[lang], c / "freq" / f"{lang}_50k.txt", force)
+        fc = SOURCES[lang]["freq"]
+        p = _download(f"{FREQ_BASE}{fc}/{fc}_50k.txt", c / "freq" / f"{lang}_50k.txt", force)
         freq_words[lang] = {w.lower() for w, _ in load_freq_words(p)}
-    for f in TATOEBA_FILES:
+    for f in dict.fromkeys(f for lang in langs for f in tatoeba_files(lang)):
         _download(TATOEBA_BASE + f, c / "tatoeba" / f.rsplit("/", 1)[-1], force)
     for lang in langs:
-        _filter_to(KAIKKI[lang], c / f"kaikki-{lang}.jsonl", kaikki_keep(freq_words[lang], lang), force=force)
+        _filter_to(kaikki_url(lang), c / f"kaikki-{lang}.jsonl", kaikki_keep(freq_words[lang], lang), force=force)
     if "nl" in langs:
         _filter_to(NLWIKT_NL, c / "nlwikt-nl-aux.jsonl", nlwikt_aux_keep,
                    prefilter=lambda b: b'"perfect"' in b, force=force)
-    if "it" in langs:
-        _filter_to(NLWIKT_IT, c / "kaikki-nlwikt-it.jsonl", nlwikt_keep, force=force)
-        if not skip_english:
-            _filter_to(KAIKKI_EN, c / "en-trans-it-nl.jsonl", en_trans_keep,
-                       prefilter=lambda b: b'"code": "it"' in b and b'"code": "nl"' in b, force=force)
+    for lang in langs:
+        if SOURCES[lang]["nlwikt"]:
+            _filter_to(nlwikt_url(SOURCES[lang]["nlwikt"]), c / f"kaikki-nlwikt-{lang}.jsonl", nlwikt_keep(lang, freq_words[lang]),
+                       force=force)
+    if not skip_english and "it" in langs:
+        _filter_to(KAIKKI_EN, c / "en-trans-it-nl.jsonl", en_trans_keep,
+                   prefilter=lambda b: b'"code": "it"' in b and b'"code": "nl"' in b, force=force)
+    if not skip_english and any(x not in ("it", "nl") for x in langs):
+        # one pass for every v0.6 language: the 3+ GB dump is streamed once, not once per course
+        codes = tuple(f'"code": "{x}"'.encode() for x in PIVOT_CODES)
+        _filter_to(KAIKKI_EN, c / "en-trans-nl.jsonl", lambda e: en_trans_keep(e, PIVOT_CODES),
+                   prefilter=lambda b: b'"code": "nl"' in b and any(x in b for x in codes), force=force)
     log("fetch done")

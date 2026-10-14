@@ -22,14 +22,14 @@ import yaml
 from . import features, query, trcheck
 from .align import Aligner
 from .content import load_course_yaml, read_jsonl, write_jsonl
-from .fetch import load_freq_words
+from .fetch import SOURCES, load_freq_words
 from .ids import IdRegistry
 from .lang import Lang, get_lang
 from .paths import cache_dir, content_dir
 from .tokens import tokenize
 from .wikt import Lexeme, load_lexemes
 
-POOL_SIZE = {"it": 3000, "nl": 3000}
+POOL_SIZE = {"it": 3000, "nl": 3000}       # default 3000
 POS_PRIORITY = ["verb", "pron", "det", "prep", "conj", "num", "adv", "adj", "noun", "intj", "phrase", "particle"]
 FUNCTION_POS = {"pron", "det", "prep", "conj"}
 SINGLE_LETTER_OK ={"prep", "conj", "pron", "det", "intj", "adv", "verb"}
@@ -147,15 +147,16 @@ def _clean_nl(g: str) -> list[str]:
 
 
 class NlGlosser:
-    """Dutch glosses for Italian words: nl.wiktionary first, then the English translation-table pivot."""
+    """Dutch glosses for words of another course language (it, es, ...): nl.wiktionary first, then the
+    English translation-table pivot (en-trans-it-nl.jsonl for Italian, en-trans-nl.jsonl otherwise)."""
 
     POS_EQ = {"noun": {"noun"}, "verb": {"verb"}, "adj": {"adj"}, "adv": {"adv"}, "pron": {"pron"},
               "det": {"det", "article", "pron"}, "prep": {"prep"}, "conj": {"conj"}, "num": {"num"},
               "intj": {"intj", "phrase"}, "phrase": {"phrase", "intj", "adv"}}
 
-    def __init__(self, cache: Path):
+    def __init__(self, cache: Path, code: str = "it"):
         self.nlw: dict[tuple[str, str], list[str]] = defaultdict(list)
-        p = cache / "kaikki-nlwikt-it.jsonl"
+        p = cache / f"kaikki-nlwikt-{code}.jsonl"
         if p.exists():
             for line in open(p, encoding="utf-8"):
                 e = json.loads(line)
@@ -167,11 +168,13 @@ class NlGlosser:
                                 self.nlw[(e["word"], pos)].append(c)
         self.pivot: dict[str, list[tuple[str, str, list[str]]]] = defaultdict(list)
         p = cache / "en-trans-it-nl.jsonl"
+        if code != "it" or not p.exists():
+            p = cache / "en-trans-nl.jsonl"
         if p.exists():
             for line in open(p, encoding="utf-8"):
                 e = json.loads(line)
                 for s in e["senses"]:
-                    for w in s["it"]:
+                    for w in s.get(code) or []:
                         self.pivot[w].append((e["word"], e["pos"], s["nl"]))
 
     def gloss(self, lemma: str, pos: str, en: list[str]) -> tuple[list[str], str | None]:
@@ -250,11 +253,7 @@ def build_verb(lang: Lang, lx: Lexeme, aux_tables: dict[str, dict[str, str]], au
                 tab[p] = rec
             forms[ctense] = tab
     irregular = bool(set(irr) & set(lang.tenses)) or "irregular" in (lx.table_tags or "")
-    if lang.code == "it":
-        stem = lx.lemma[:-3] if cls in ("are", "ere", "ire", "isc") else None
-    else:
-        p = complete[lang.present]
-        stem = p["ik"] if lang.present not in irr else None
+    stem = lang.verb_stem(lx.lemma, cls, complete, irr)
     out = {"class": cls, "stem": stem, "irregular": irregular, "irregular_in": irr,
            "auxiliary": "|".join(aux) if aux else None, "forms": forms}
     return out
@@ -269,7 +268,7 @@ def _read_tsv_bz2(path: Path):
 
 def load_tatoeba(code: str, cache: Path) -> tuple[dict[int, str], dict[int, dict[str, tuple[int, str]]]]:
     tdir = cache / "tatoeba"
-    t3 = {"it": "ita", "nl": "nld"}[code]
+    t3 = SOURCES[code]["tatoeba"]
     target: dict[int, str] = {}
     for parts in _read_tsv_bz2(tdir / f"{t3}_sentences.tsv.bz2"):
         if len(parts) < 3:
@@ -280,8 +279,8 @@ def load_tatoeba(code: str, cache: Path) -> tuple[dict[int, str], dict[int, dict
             target[int(parts[0])] = text
     links: dict[str, dict[int, list[int]]] = {}
     pairs = [("en", f"{t3}-eng_links.tsv.bz2", "eng")]
-    if code == "it":
-        pairs.append(("nl", "ita-nld_links.tsv.bz2", "nld"))
+    if code != "nl":
+        pairs.append(("nl", f"{t3}-nld_links.tsv.bz2", "nld"))
     for lang, fname, _ in pairs:
         d: dict[int, list[int]] = defaultdict(list)
         for parts in _read_tsv_bz2(tdir / fname):
@@ -393,14 +392,14 @@ def run_import(code: str, content_root: str | None = None) -> None:
             return False
         if len(lx.lemma) == 1 and lx.pos not in SINGLE_LETTER_OK:
             return False
-        if lx.pos == "verb" and code == "it" and not lx.lemma.endswith(("are", "ere", "ire", "rre")):
-            return False   # pronominal verbs (alzarsi, farcela, andarsene) have clitic-laden tables
+        if lx.pos == "verb" and lang.infinitive_endings and not lx.lemma.endswith(lang.infinitive_endings):
+            return False   # pronominal verbs (alzarsi, farcela, levantarse) have clitic-laden tables
         if lx.lemma in excluded or f"{lx.lemma}/{lx.pos}" in excluded:
             return False
         return scores.get(key, 0) > 0
 
     ranked = sorted(lexemes, key=lambda k: (-scores.get(k, 0), k))
-    pool = [k for k in ranked if eligible(k, lexemes[k])][: POOL_SIZE[code]]
+    pool = [k for k in ranked if eligible(k, lexemes[k])][: POOL_SIZE.get(code, 3000)]
     selected = list(dict.fromkeys(pool + list(chosen)))
     rank_of = {k: i + 1 for i, k in enumerate(k for k in ranked if scores.get(k, 0) > 0)}
 
@@ -418,7 +417,7 @@ def run_import(code: str, content_root: str | None = None) -> None:
         if lx and lx.table.get(lang.present):
             aux_tables[a] = lx.table[lang.present]
 
-    glosser = NlGlosser(cache) if code == "it" else None
+    glosser = NlGlosser(cache, code) if code != "nl" else None
 
     # ---- build records (ids assigned in score order so the most frequent homograph gets the base id)
     items: list[dict] = []
@@ -467,7 +466,10 @@ def run_import(code: str, content_root: str | None = None) -> None:
             rec["inflections"] = infl
         items.append(rec)
         if lx.pos == "verb" and lx.table:
-            aux = lx.aux if code == "it" else aux_of.get(lx.lemma, [])
+            if code == "nl":
+                aux = aux_of.get(lx.lemma, [])
+            else:   # Italian tables name the auxiliary; a language with one auxiliary uses it for all verbs
+                aux = lx.aux or (list(lang.auxiliaries) if len(lang.auxiliaries) == 1 else [])
             v = build_verb(lang, lx, aux_tables, aux)
             if v:
                 verbs[iid] = {"id": iid, **v}
