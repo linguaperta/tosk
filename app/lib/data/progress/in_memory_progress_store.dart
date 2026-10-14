@@ -5,10 +5,11 @@ library;
 
 import '../../core/core.dart';
 import '../fsrs/fsrs_scheduler.dart';
+import '../sync/progress_backup.dart' show SettingsLister;
 import 'event_importer.dart';
 import 'replay.dart';
 
-class InMemoryProgressStore implements ProgressStore, EventImporter {
+class InMemoryProgressStore implements ProgressStore, EventImporter, SettingsLister {
   InMemoryProgressStore({Scheduler? scheduler}) : scheduler = scheduler ?? FsrsScheduler();
 
   final Scheduler scheduler;
@@ -30,7 +31,8 @@ class InMemoryProgressStore implements ProgressStore, EventImporter {
     _events[e.id] = e;
     final list = _byFacet[e.facetId] ??= [];
     final isLatest = list.isEmpty || compareEvents(e, list.last) > 0;
-    if (isLatest && (list.isEmpty || _states.containsKey(e.facetId))) {
+    // An override rewrites an earlier event: always replay the facet.
+    if (isLatest && !e.isOverride && (list.isEmpty || _states.containsKey(e.facetId))) {
       list.add(e);
       return _states[e.facetId] = scheduler.review(e.facetId, _states[e.facetId], e.rating, e.at);
     }
@@ -134,6 +136,9 @@ class InMemoryProgressStore implements ProgressStore, EventImporter {
         note: mistake.note,
         explanation: mistake.explanation,
       );
+
+  @override
+  Future<Map<String, String>> allSettings() async => Map.of(_settings);
 
   @override
   Future<String?> getSetting(String key) async => _settings[key];

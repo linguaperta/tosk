@@ -35,6 +35,7 @@ import 'ui/lesson/answer_input.dart';
 import 'ui/map/map_layout.dart';
 import 'ui/map/skill_stats.dart';
 import 'ui/settings/app_settings.dart';
+import 'ui/settings/learner_settings.dart';
 import 'ui/theme/bw_skin.dart';
 import 'ui/theme/skin.dart';
 
@@ -241,6 +242,9 @@ final sessionOptionsProvider = Provider<SessionOptions>(
   (ref) => SessionOptions(
     sourceLang: ref.watch(sourceLangProvider),
     accents: ref.watch(settingsProvider.select((s) => s.value?.accents ?? AccentStrictness.lenient)),
+    // Typing ("challenge") mode: cloze takes free text (other production
+    // types switch to typed input in the UI).
+    preferredInput: ref.watch(typingModeProvider) ? InputMode.keyboard : InputMode.tap,
   ),
 );
 
@@ -261,6 +265,7 @@ final focusPresetsProvider = FutureProvider<FocusPresets>((ref) async {
 final sessionFactoryProvider = FutureProvider<SessionFactory>((ref) async {
   final course = await ref.watch(courseDataProvider.future);
   await ref.watch(settingsProvider.future);
+  await ref.watch(learnerSettingsProvider.future);
   final presets = await ref.watch(focusPresetsProvider.future);
   return EngineSessionFactory(
     course: course,

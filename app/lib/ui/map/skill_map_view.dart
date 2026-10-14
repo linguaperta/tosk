@@ -65,7 +65,11 @@ class SkillMapView extends StatelessWidget {
     this.reduceMotion = false,
     this.onTap,
     this.onLongPress,
+    this.unitKeys = const {},
   });
+
+  /// Keys put on each unit band (by unit id), so the map can scroll to one.
+  final Map<String, GlobalKey> unitKeys;
 
   final CourseData course;
   final MapLayout layout;
@@ -98,6 +102,7 @@ class SkillMapView extends StatelessWidget {
                   top: g.bandTop[b.index],
                   height: MapGeometry.bandHeader + b.rowCount * g.rowHeight,
                   child: DecoratedBox(
+                    key: unitKeys[b.unitId],
                     decoration: BoxDecoration(
                       color: style.bandColor(b.index),
                       borderRadius: BorderRadius.circular(16),

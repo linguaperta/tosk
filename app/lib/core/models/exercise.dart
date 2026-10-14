@@ -166,6 +166,7 @@ class ConjPickExercise extends Exercise {
     required this.endings,
     required this.correctIndex,
     required this.fullForm,
+    this.accepted = const [],
   });
   final String lemma;
   final String gloss;
@@ -177,6 +178,11 @@ class ConjPickExercise extends Exercise {
   final List<String> endings; // options
   final int correctIndex;
   final String fullForm; // shown in feedback
+
+  /// Every accepted spelling of the full form (empty: just [fullForm]). A
+  /// typed ending (`TextAnswer`, typing mode) is graded as `stem + ending`
+  /// against these, with the accent setting.
+  final List<String> accepted;
   @override
   ExerciseType get type => ExerciseType.conjPick;
 }

@@ -106,13 +106,13 @@ Each item says what "done" means. Add newly discovered work at the bottom of its
 - [x] Flag an exercise (reason and comment); Submit saves locally with a `.jsonl` export; "Confer with AI" checks the complaint
 - [x] Sounds: correct, wrong, lesson complete, muted select tick; toggle in Settings
 - [x] Tap a word in any exercise sentence for its gloss; verbs show lemma, person and tense
-- [ ] Progress backup: export and import the review log (Settings), until Drive sync in v0.4
+- [x] Progress backup: export and import the review log (Settings), until Drive sync in v0.4
 - [x] Test out of a skill (short quiz marks it learned and unlocks what follows) + optional placement at course start
 - [x] Conjugation and word lookup: searchable reference of all pack verbs (full tables) and words; extends the verb collection
-- [ ] Daily goal (lessons or XP) + local reminder notification at a chosen time; goal line on the heatmap
-- [ ] Typing mode toggle ("challenge mode": production exercises take typed answers)
-- [ ] "I was right" override after a wrong verdict: re-rates as correct and auto-creates a flag
-- [ ] Accent keyboard bar for typing mode (letters from course data)
+- [x] Daily goal (lessons or XP) + local reminder notification at a chosen time; goal line on the heatmap
+- [x] Typing mode toggle ("challenge mode": production exercises take typed answers)
+- [x] "I was right" override after a wrong verdict: re-rates as correct and auto-creates a flag
+- [x] Accent keyboard bar for typing mode (letters from course data)
 - [x] Grammar library tab: all notes browsable, each with "practice this"
 - [x] Leech handling: facets with ≥4 lapses → "tough words" drill and mistake review (+ AI mnemonic when configured)
 - [x] Session length options: quick (5) / normal (12) / long (20)
@@ -121,7 +121,7 @@ Each item says what "done" means. Add newly discovered work at the bottom of its
 - [x] Sentence floor: generation tops up every verb×person×tense slot and every vocab topic to ≥8–10 distinct sentences
 - [x] Course picker as a pop-up menu: +/- to add or remove each course, a preview per course (description, units/skills, sample words and sentences, unverified badge); the app only shows courses you've added
 - [x] Black & white (e-ink) mode for the Boox: pure B/W skin, nothing conveyed by color (icons, labels, patterns, inverted fills), reduce motion forced on. Tested: grayscale-only assertions on every screen and exercise type, goldens, overflow at Boox and phone sizes
-- [ ] QA leftovers: `ciao` MC offers "hello" as a distractor (synonym data); instruction can slide under the app bar on tall exercises; a "jump to current unit" button on long maps
+- [x] QA leftovers: `ciao` MC offers "hello" as a distractor (synonym data); instruction can slide under the app bar on tall exercises; a "jump to current unit" button on long maps
 - [ ] Exercises for the item-only grammar skills (plurals, adjective agreement, split separable verbs): needs `#plural`/declension facets (see the declension extension) and alignment of split separable verbs
 - [ ] Italian reflexive/pronominal verbs (excluded by the pipeline today)
 - [x] B/W bug: some TextButton labels render as black blocks (course picker "Preview")
@@ -130,6 +130,7 @@ Each item says what "done" means. Add newly discovered work at the bottom of its
 - [~] Remaining sentence gaps: nl verleden-tijd (~140 slots < 8) and perfectum (~150 slots < 8); it 61 slots at 4–7
 - [ ] Lexicon gaps from the writers: quel/quella/questa/molti/buon, "thuis"; "zeven" (number) loses to the verb "zeven" (to sift); nevicare has no verb table
 - [ ] Italian "noun before a non-3rd-person verb" alignment rule is too strict ("Cosa dici?"); apply it only to the present tense
+- [ ] Test on real devices: notifications and permissions, the boot receiver, save/pick dialogs (Android), Boox B/W mode
 - [ ] Preview 3 APK
 
 

@@ -1,0 +1,25 @@
+name: flutter_local_notifications_windows
+description: tosk override of flutter_local_notifications_windows 3.1.1 without its native (ATL) part; the app has no reminders on Windows.
+publish_to: none
+version: 3.1.1
+
+environment:
+  sdk: ^3.10.0
+  flutter: ">=3.38.1"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  ffi: ^2.1.2
+  flutter_local_notifications_platform_interface: ^12.0.0
+  meta: ^1.11.0
+  timezone: ^0.11.0
+  xml: ">=6.5.0 <8.0.0"
+
+
+flutter:
+  plugin:
+    implements: flutter_local_notifications
+    platforms:
+      windows:
+        dartPluginClass: FlutterLocalNotificationsWindows

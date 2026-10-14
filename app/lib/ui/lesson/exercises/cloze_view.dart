@@ -20,9 +20,13 @@ class ClozeView extends ExerciseWidget<ClozeExercise> {
     super.keys,
     super.reduceMotion,
     this.inputBuilder = keyboardAnswerInputBuilder,
+    this.typed = false,
   });
 
   final AnswerInputBuilder inputBuilder;
+
+  /// Typing mode: free text even when the engine sent options.
+  final bool typed;
 
   @override
   State<ClozeView> createState() => _ClozeViewState();
@@ -40,7 +44,7 @@ class _ClozeViewState extends State<ClozeView> with ExerciseKeysMixin<ClozeView>
 
   @override
   void onDigit(int n) {
-    final options = widget.exercise.options;
+    final options = widget.typed ? null : widget.exercise.options;
     if (options != null && n >= 1 && n <= options.length) _select(n - 1);
   }
 
@@ -138,7 +142,7 @@ class _ClozeViewState extends State<ClozeView> with ExerciseKeysMixin<ClozeView>
     final e = widget.exercise;
     final theme = Theme.of(context);
     final fb = FeedbackColors.of(context);
-    final options = e.options;
+    final options = widget.typed ? null : e.options;
     final result = widget.result;
 
     final String gapText;

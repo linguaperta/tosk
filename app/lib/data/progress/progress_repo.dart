@@ -12,11 +12,12 @@ import 'package:drift/drift.dart';
 
 import '../../core/core.dart';
 import '../fsrs/fsrs_scheduler.dart';
+import '../sync/progress_backup.dart' show SettingsLister;
 import 'event_importer.dart';
 import 'progress_db.dart';
 import 'replay.dart';
 
-class ProgressRepo implements ProgressStore, EventImporter {
+class ProgressRepo implements ProgressStore, EventImporter, SettingsLister {
   ProgressRepo(this.db, {Scheduler? scheduler}) : scheduler = scheduler ?? FsrsScheduler();
 
   final ProgressDb db;
@@ -48,7 +49,8 @@ class ProgressRepo implements ProgressStore, EventImporter {
       final previous = latest == null ? null : await state(e.facetId);
       final inOrder = latest == null ||
           compareEventKeys(e.at.millisecondsSinceEpoch, e.id, latest.at, latest.id) > 0;
-      if (inOrder && (latest == null || previous != null)) {
+      // An override rewrites an earlier event: always replay the facet.
+      if (inOrder && !e.isOverride && (latest == null || previous != null)) {
         final next = scheduler.review(e.facetId, previous, e.rating, e.at);
         await db.into(db.facetStates).insertOnConflictUpdate(stateToRow(next));
         return next;
@@ -107,8 +109,7 @@ class ProgressRepo implements ProgressStore, EventImporter {
               ..orderBy([(t) => OrderingTerm.asc(t.at), (t) => OrderingTerm.asc(t.id)]))
             .get();
         final states = <String, FacetState>{};
-        for (final r in rows) {
-          final e = rowToEvent(r);
+        for (final e in applyOverrides(rows.map(rowToEvent).toList())) {
           states[e.facetId] = scheduler.review(e.facetId, states[e.facetId], e.rating, e.at);
         }
         await db.delete(db.facetStates).go();
@@ -235,6 +236,11 @@ class ProgressRepo implements ProgressStore, EventImporter {
         await (db.select(db.settings)..where((t) => t.key.equals(key))).getSingleOrNull();
     return row?.value;
   }
+
+  @override
+  Future<Map<String, String>> allSettings() async => {
+        for (final r in await db.select(db.settings).get()) r.key: r.value,
+      };
 
   @override
   Future<void> setSetting(String key, String? value) async {

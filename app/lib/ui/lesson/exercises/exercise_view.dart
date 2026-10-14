@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/core.dart';
 import '../../../providers.dart';
+import '../../settings/learner_settings.dart' show typingModeProvider;
+import '../typing.dart';
 import 'cloze_view.dart';
 import 'common.dart';
 import 'conj_grid_view.dart';
@@ -45,15 +47,21 @@ class ExerciseView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final reduce = ref.watch(reduceMotionProvider);
+    // Typing ("challenge") mode: production types take typed answers.
+    final typed = ref.watch(typingModeProvider);
     final tick = onSelect;
     // Draft changes from taps (choices, tiles, tokens, grid cells) tick;
     // typed text doesn't.
     final ValueChanged<Answer?> onChanged = tick == null
         ? this.onChanged
         : (a) {
-            if (a is! TextAnswer) tick();
+            if (a is! TextAnswer && !typed) tick();
             this.onChanged(a);
           };
+    return AccentLetters(letters: ref.watch(accentLettersProvider), child: _view(ref, reduce, typed, onChanged));
+  }
+
+  Widget _view(WidgetRef ref, bool reduce, bool typed, ValueChanged<Answer?> onChanged) {
     return switch (exercise) {
       FlashcardExercise e => FlashcardView(
         exercise: e,
@@ -85,6 +93,8 @@ class ExerciseView extends ConsumerWidget {
         result: result,
         keys: keys,
         reduceMotion: reduce,
+        onCheck: onCheck,
+        typed: typed,
       ),
       ConjGridExercise e => ConjGridView(
         exercise: e,
@@ -92,6 +102,8 @@ class ExerciseView extends ConsumerWidget {
         result: result,
         keys: keys,
         reduceMotion: reduce,
+        onCheck: onCheck,
+        typed: typed,
       ),
       SentenceBuilderExercise e => SentenceBuilderView(
         exercise: e,
@@ -99,6 +111,8 @@ class ExerciseView extends ConsumerWidget {
         result: result,
         keys: keys,
         reduceMotion: reduce,
+        onCheck: onCheck,
+        typed: typed,
       ),
       ClozeExercise e => ClozeView(
         exercise: e,
@@ -108,6 +122,7 @@ class ExerciseView extends ConsumerWidget {
         keys: keys,
         reduceMotion: reduce,
         inputBuilder: ref.watch(answerInputBuilderProvider),
+        typed: typed,
       ),
       SpotErrorExercise e => SpotErrorView(
         exercise: e,
@@ -122,6 +137,8 @@ class ExerciseView extends ConsumerWidget {
         result: result,
         keys: keys,
         reduceMotion: reduce,
+        onCheck: onCheck,
+        typed: typed,
       ),
     };
   }

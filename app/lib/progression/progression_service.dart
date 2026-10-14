@@ -146,6 +146,12 @@ class ProgressionService {
     );
   }
 
+  /// XP earned per local date (whole log), for the daily goal.
+  Future<Map<LocalDate, int>> xpByDay() async {
+    await refresh();
+    return Map.unmodifiable(_xpByDay);
+  }
+
   /// Tier, strength and fading of every skill of [course], in course order.
   Future<Map<String, SkillProgress>> skillTiers([DateTime? now]) async {
     await refresh();

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/core.dart';
 import '../../theme/bw_skin.dart';
+import '../typing.dart';
 import 'common.dart';
 
 /// Fill a whole tense table: tap a cell, then a form from the bank. Prefilled
@@ -14,7 +15,12 @@ class ConjGridView extends ExerciseWidget<ConjGridExercise> {
     super.result,
     super.keys,
     super.reduceMotion,
+    super.onCheck,
+    this.typed = false,
   });
+
+  /// Typing mode: every asked cell is a text field (no tile bank).
+  final bool typed;
 
   @override
   State<ConjGridView> createState() => _ConjGridViewState();
@@ -25,10 +31,66 @@ class _ConjGridViewState extends State<ConjGridView> with ExerciseKeysMixin<Conj
   final Map<int, int> _filled = {};
   int? _selectedCell;
 
+  /// Typing mode: one controller and focus node per asked cell.
+  final Map<int, TextEditingController> _inputs = {};
+  final Map<int, FocusNode> _focus = {};
+
+  /// The cell the accent bar types into (the focused one, or the last one).
+  int? _activeInput;
+
   @override
   void initState() {
     super.initState();
     _selectedCell = _nextEmpty(-1);
+    if (widget.typed) {
+      for (var i = 0; i < _cells.length; i++) {
+        if (_cells[i].prefilled) continue;
+        _inputs[i] = TextEditingController()..addListener(_reportTyped);
+        _focus[i] = FocusNode(debugLabel: 'grid-input-$i')
+          ..addListener(() {
+            if (_focus[i]!.hasFocus) _activeInput = i;
+          });
+      }
+      _activeInput = _inputs.keys.firstOrNull;
+    }
+  }
+
+  @override
+  void dispose() {
+    for (final c in _inputs.values) {
+      c.dispose();
+    }
+    for (final f in _focus.values) {
+      f.dispose();
+    }
+    super.dispose();
+  }
+
+  String _typedText(int i) => _inputs[i]?.text.trim() ?? '';
+
+  void _reportTyped() {
+    if (widget.locked) return;
+    final complete = _inputs.keys.every((i) => _typedText(i).isNotEmpty);
+    widget.onChanged(
+      complete
+          ? GridAnswer([
+              for (var i = 0; i < _cells.length; i++) _cells[i].prefilled ? '' : _typedText(i),
+            ], inputMode: InputMode.keyboard)
+          : null,
+    );
+    setState(() {});
+  }
+
+  /// Enter in a cell: the next empty cell, or Check when all are filled.
+  void _submitTyped(int i) {
+    final keys = _inputs.keys.toList()..sort();
+    for (final k in [...keys.where((k) => k > i), ...keys.where((k) => k <= i)]) {
+      if (_typedText(k).isEmpty) {
+        _focus[k]!.requestFocus();
+        return;
+      }
+    }
+    widget.onCheck?.call();
   }
 
   List<GridCell> get _cells => widget.exercise.cells;
@@ -75,6 +137,7 @@ class _ConjGridViewState extends State<ConjGridView> with ExerciseKeysMixin<Conj
 
   @override
   void onDigit(int n) {
+    if (widget.typed) return;
     if (n >= 1 && n <= widget.exercise.tiles.length) _tapTile(n - 1);
   }
 
@@ -139,21 +202,37 @@ class _ConjGridViewState extends State<ConjGridView> with ExerciseKeysMixin<Conj
                 ),
             ],
           ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            alignment: WrapAlignment.center,
-            children: [
-              for (var t = 0; t < e.tiles.length; t++)
-                WordTile(
-                  key: ValueKey('grid-tile-$t'),
-                  label: e.tiles[t],
-                  hidden: _filled.containsValue(t),
-                  onTap: widget.locked ? null : () => _tapTile(t),
+          if (widget.typed) ...[
+            if (!widget.locked)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: AccentBar(
+                  letters: AccentLetters.of(context),
+                  onInsert: (l) {
+                    final i = _activeInput;
+                    if (i == null) return;
+                    insertAtCursor(_inputs[i]!, l);
+                    _focus[i]!.requestFocus();
+                  },
                 ),
-            ],
-          ),
+              ),
+          ] else ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              alignment: WrapAlignment.center,
+              children: [
+                for (var t = 0; t < e.tiles.length; t++)
+                  WordTile(
+                    key: ValueKey('grid-tile-$t'),
+                    label: e.tiles[t],
+                    hidden: _filled.containsValue(t),
+                    onTap: widget.locked ? null : () => _tapTile(t),
+                  ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -165,14 +244,15 @@ class _ConjGridViewState extends State<ConjGridView> with ExerciseKeysMixin<Conj
     final fb = FeedbackColors.of(context);
     final c = _cells[i];
     final tile = _filled[i];
-    final selected = !widget.locked && _selectedCell == i;
+    if (widget.typed && !widget.locked && !c.prefilled) return _typedCell(context, i);
+    final selected = !widget.locked && _selectedCell == i && !widget.typed;
     final String text;
     final TextStyle? style;
     if (c.prefilled) {
       text = c.expected;
       style = theme.textTheme.bodyLarge?.copyWith(color: scheme.outline, fontStyle: FontStyle.italic);
     } else {
-      text = tile == null ? '' : widget.exercise.tiles[tile];
+      text = widget.typed ? _typedText(i) : (tile == null ? '' : widget.exercise.tiles[tile]);
       // Black & white: a wrong form is struck through, a right one bold.
       style = theme.textTheme.bodyLarge?.copyWith(
         decoration: fb.mono && mark == false ? TextDecoration.lineThrough : null,
@@ -235,6 +315,31 @@ class _ConjGridViewState extends State<ConjGridView> with ExerciseKeysMixin<Conj
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  /// Typing mode: an asked cell as a text field (48 px tall).
+  Widget _typedCell(BuildContext context, int i) {
+    final keys = _inputs.keys.toList()..sort();
+    return Semantics(
+      label: _cells[i].personLabel,
+      child: TextField(
+        key: ValueKey('grid-input-$i'),
+        controller: _inputs[i],
+        focusNode: _focus[i],
+        autofocus: keys.isNotEmpty && keys.first == i,
+        autocorrect: false,
+        enableSuggestions: false,
+        textInputAction: i == keys.last ? TextInputAction.done : TextInputAction.next,
+        style: Theme.of(context).textTheme.bodyLarge,
+        decoration: InputDecoration(
+          isDense: true,
+          constraints: const BoxConstraints(minHeight: 48),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+        onSubmitted: (_) => _submitTyped(i),
       ),
     );
   }

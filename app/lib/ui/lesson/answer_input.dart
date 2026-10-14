@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/core.dart';
+import 'typing.dart';
 
 /// Free-text answer input for production exercises (cloze without options now,
 /// grids in free-input mode later).
@@ -50,27 +51,16 @@ class KeyboardAnswerField extends AnswerInputWidget {
 }
 
 class _KeyboardAnswerFieldState extends State<KeyboardAnswerField> {
-  final _controller = TextEditingController();
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
-    return TextField(
-      key: const ValueKey('answer-input'),
-      controller: _controller,
+    // The accent bar (course letters, from `AccentLetters`) sits above the field.
+    return TypedAnswerField(
       enabled: widget.enabled,
-      autocorrect: false,
-      enableSuggestions: false,
-      textInputAction: TextInputAction.done,
-      decoration: InputDecoration(border: const OutlineInputBorder(), hintText: widget.hintText ?? 'Type your answer'),
+      hintText: widget.hintText,
+      autofocus: widget.enabled,
       onChanged: (text) =>
           widget.onChanged(text.trim().isEmpty ? null : TextAnswer(text, inputMode: InputMode.keyboard)),
-      onSubmitted: (_) => widget.onSubmitted?.call(),
+      onSubmitted: widget.onSubmitted,
     );
   }
 }
