@@ -191,6 +191,12 @@ class SentenceHistory {
 
   bool seen(String id) => _seq.containsKey(id);
 
+  /// Whether [id] is among the last [n] sentences shown (this session or before).
+  bool seenWithin(String id, int n) {
+    final q = _seq[id];
+    return q != null && _next - 1 - q < n;
+  }
+
   /// 0 for a sentence never seen; for one seen before, 1 (seen [capacity]
   /// sentences ago or longer) up to 3 (seen last).
   double penalty(String id) {

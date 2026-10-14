@@ -10,7 +10,7 @@ import shutil
 import sys
 from pathlib import Path
 
-from .compile import COURSE_DB_SCHEMA_VERSION, compile_pack
+from .compile import COURSE_DB_SCHEMA_MINOR, COURSE_DB_SCHEMA_VERSION, compile_pack
 from .content import load_pack
 from .paths import APP_COURSES_DIR, content_dir
 from .report import build_report, format_report
@@ -113,6 +113,7 @@ def build(langs, content_root=None, install: bool = False, quiet: bool = False, 
             "sha256": sha256(out),
             "size": out.stat().st_size,
             "schema_version": COURSE_DB_SCHEMA_VERSION,
+            "schema_minor": COURSE_DB_SCHEMA_MINOR,   # 1: inflection tables (facet kind infl)
             "url": f"{code}.sqlite",
         }
         if install:

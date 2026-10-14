@@ -10,6 +10,12 @@ items query (vocab skills, and grammar skills with `facet: article`):
     exclude: [..]       lemmas or ids to leave out
     top: N              keep the N most frequent
   With `facet: article` only items with a non-null article qualify.
+  With `facet: infl` only items whose inflection tables (`inflections: {table: T}`, one or a list)
+  are all present and have at least two different forms qualify (no invariable 'città', 'blu').
+
+inflections (any items skill): `{table: T}` or `{table: [T1, T2]}`: the skill trains
+`#infl:{T}` of its items that have the table (inflecting); with `facet: infl` only those facets,
+otherwise in addition to `#rec`/`#prod`.
 
 verbs query (grammar skills):
     tense: T            required; the verb must have a complete table for T (all persons)
@@ -55,6 +61,21 @@ def complete_tense(verb: dict | None, tense: str, persons: list[str]) -> bool:
     return True
 
 
+def infl_tables(skill: dict) -> list[str]:
+    """Inflection tables a skill trains (course.yaml `inflections: {table: T | [T, ...]}`)."""
+    if "verbs" in skill:
+        return []
+    return [str(t) for t in _as_list((skill.get("inflections") or {}).get("table"))]
+
+
+def inflects(item: dict, table: str) -> bool:
+    """The item has the table with at least two different forms (something to learn)."""
+    t = (item.get("infl") or {}).get(table)
+    if not t:
+        return False
+    return len({(c.get("form") if isinstance(c, dict) else c).lower() for c in t.values()}) > 1
+
+
 def skill_query(skill: dict) -> tuple[str, dict]:
     if "verbs" in skill:
         return "verbs", dict(skill["verbs"] or {})
@@ -80,6 +101,8 @@ def resolve(skill: dict, items: list[dict], verbs: dict[str, dict], persons: lis
             continue
         if kind == "items":
             if skill.get("facet") == "article" and not it.get("article"):
+                continue
+            if skill.get("facet") == "infl" and not all(inflects(it, t) for t in infl_tables(skill)):
                 continue
         else:
             if it["pos"] != "verb":

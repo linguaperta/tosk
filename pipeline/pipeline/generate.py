@@ -109,7 +109,7 @@ class Generator:
         self.lang = get_lang(self.code)
         self.mat = gaps.Material(self.pack)
         self.graph = self.mat.graph
-        self.aligner = Aligner(self.lang, self.pack.items, self.pack.verbs)
+        self.aligner = Aligner(self.lang, self.pack.items, self.pack.verbs, self.pack.course.get("inflection_tables"))
         self.items = {it["id"]: it for it in self.pack.items}
         self.by_lemma: dict[str, list[str]] = defaultdict(list)
         for it in sorted(self.pack.items, key=lambda i: (i.get("freq") is None, i.get("freq") or 0, i["id"])):

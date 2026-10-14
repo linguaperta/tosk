@@ -60,6 +60,7 @@ UI notes on the exercise contract:
 | `#prod` | flashcard, multiple choice (meaning → word, translation → sentence), sentence builder, cloze |
 | `#form:{tense}` | conjugation pick, conjugation grid, cloze, spot the error, transform |
 | `#article` | multiple choice (`___ noun` over `meta.articles`), cloze (the article token), spot the error |
+| `#infl:{table}` | conjugation pick (the ending of a non-base cell), conjugation grid (tables of 3+ cells), cloze, spot the error |
 
 `Skill.exercises` restricts the types for a skill. Lessons respect it; the lab overrides it, because choosing types is the point of the lab.
 
@@ -111,6 +112,15 @@ Every wrong option goes through `OptionPicker`. It rejects an option that is emp
 **Occurrences.** `CourseIndex.formOccurrences` matches aligned tokens against the cell's accepted forms, in any order (Dutch subordinate `gegeten heeft`). When only the participle is aligned, it finds the auxiliary nearby. A token whose text is not an accepted form of its aligned cell, such as Dutch inverted `Werk jij?` aligned to `jij: werkt`, is never used, and neither is a compound form whose later word follows a determiner (`Hebben dieren een geweten?`: a noun).
 
 **Compound tenses.** The pipeline aligns a compound form on its participle (`mangiato` → `passato_prossimo.io`, the cell's form being `ho mangiato`) and the auxiliary separately to the auxiliary verb's present (`ho` → `avere`, `presente.io`). `CourseIndex.auxiliaryPositions(sentence)` finds those auxiliaries (the nearest token within 6 that reads the form's other word, for the first accepted spelling whose words are all present). They belong to the compound form: they are never an occurrence of the auxiliary verb's own present (`Zijn jullie … geweest?` is no `zijn` present exercise, and `Ho mangiato` no `avere` one), so cloze, spot the error and transform only touch them through the compound form. The validator applies the same convention independently (`_ownerCell`).
+
+## Inflection tables (`templates/inflection.dart`)
+
+`#infl:{table}` facets (docs/ARCHITECTURE.md, "Inflection tables") reuse four templates; the exercises are the same classes, with `inflection: true` on `ConjPickExercise` and `ConjGridExercise` (`tense` = the table, `person` = the cell, labels from `meta.inflection_tables`). Grading is unchanged.
+
+- **Pick the ending** (`ragazz___` · plural, `bell___` · feminine plural, `wit___` · with -e, `boom___` · diminutive): only non-base cells with a stem/ending split. Wrong endings: the item's other cells, the cell's `wrong` forms, then the same cell of other items whose stem ends in the same letter. An ending is never offered when stem + ending is an accepted form of the cell (`grande` is m.sg and f.sg). The UI shows one chip (the cell) instead of person + tense.
+- **Grid:** tables with at least 3 cells (Italian agreement); the base cell is always given, of the others about half (fresh) or a third (learning) are prefilled. Distractor tiles: the cells' `wrong` forms, then other items' forms of the same table.
+- **Cloze and spot the error:** tokens aligned to `infl:{table}.{cell}` whose text is an accepted form (for agreement tables the canonical form only, so `bel` before a noun is left alone); non-agreement tables never ask the base cell. Wrong options / the replaced word: the item's other cells for an agreement table (`La casa è ___`: bello, belli, belle), and the cell's `wrong` forms for every table (`Ho due ___`: gatti vs `gattoi`). Never a real word of another lemma (`gatte`), never a singular for a plural: both can be right against the sentence. The cloze hint is the lemma, plus the cell for meaning tables (`gatto (plural)`). These facets can always fall back to the picker, so their sentence templates skip sentences shown in this session or among the last 100 (`GenContext.shownRecently`): few sentences show a given plural or diminutive.
+- `test/engine/template_validity.dart` checks them independently: the gap or error token is aligned to the item and cell, every wrong option is another cell of an agreement table or no word of the course at all (`_courseWords`), the base cell is never picked and always given in the grid. Fixtures: `test/engine/fixtures/inflection_course.dart`; `test/engine/inflection_test.dart`.
 
 ## Grammar gating and sentence variety
 
@@ -175,7 +185,7 @@ A wrong facet is re-queued 2–4 exercises later, at most twice per session. Re-
 
 ## Reference lookups (`reference.dart`)
 
-- `glossForToken(course, itemId:, form:, word:, lang:)` → `WordGloss`: `headline` is `mangiamo → mangiare · noi · present` for verb forms (person key, tense label in the source language; non-finite forms only the tense), `il pane` for nouns (`CourseIndex.withArticle`), the lemma otherwise (the word is left out when it is the lemma).
+- `glossForToken(course, itemId:, form:, word:, lang:)` → `WordGloss`: `headline` is `mangiamo → mangiare · noi · present` for verb forms (person key, tense label in the source language; non-finite forms only the tense), `case → la casa · plural` / `piccola → piccolo · feminine singular` for inflection cells (no label for the base cell), `il pane` for nouns (`CourseIndex.withArticle`), the lemma otherwise (the word is left out when it is the lemma).
 - `CourseReference.of(course)` (cached per course): `items` and `verbs` sorted by folded lemma; `search(query, lang, verbsOnly:)` over lemmas, variants and plurals, every accepted verb form, and glosses in `lang` (a gloss matches by any of its words, so "eat" finds "to eat"), ignoring case and accents (`foldAnswer`), ranked lemma > inflected form > gloss (or a word of it) > lemma prefix > gloss prefix > anywhere, then by frequency; `verbTable(itemId, lang)` (finite tenses in `meta.tenses` order with persons in `meta.persons` order, then infinitive, participle, gerund); `skillsTeaching(itemId)`; `examples(itemId)` (shortest first).
 - **Irregular forms** (`isIrregular`, a highlighting heuristic): only for verbs marked `irregular`. A single-word form is regular when it equals the verb's stem (declared, else its most common form stem) wrapped in a prefix/suffix pattern that at least 10 % of the course's regular verbs of the same class use for that tense and person (all classes when the class has no regular verbs; prefixes cover Dutch `ge…t`). A compound form is irregular when it contains an irregular participle. Without a stem or a pattern nothing is marked.
 

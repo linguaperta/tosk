@@ -89,8 +89,14 @@ class _ConjPickViewState extends State<ConjPickView> with ExerciseKeysMixin<Conj
             spacing: 8,
             runSpacing: 4,
             children: [
-              Chip(avatar: const Icon(Icons.person_outline, size: 16), label: Text(e.personLabel)),
-              Chip(avatar: const Icon(Icons.schedule, size: 16), label: Text(e.tenseLabel)),
+              // An inflection table (plural, feminine plural, diminutive) names
+              // just the cell; a conjugation names the person and the tense.
+              if (e.inflection)
+                Chip(avatar: const Icon(Icons.label_outline, size: 16), label: Text(e.personLabel))
+              else ...[
+                Chip(avatar: const Icon(Icons.person_outline, size: 16), label: Text(e.personLabel)),
+                Chip(avatar: const Icon(Icons.schedule, size: 16), label: Text(e.tenseLabel)),
+              ],
             ],
           ),
           const SizedBox(height: 20),

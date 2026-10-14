@@ -65,6 +65,37 @@ class DemoBadge extends StatelessWidget {
   }
 }
 
+/// Small dot: a course (or one of my courses) has an update. Shown in
+/// Settings (the course rows and "Add or remove courses"). A shape (filled
+/// black in black & white), with a tooltip and semantics.
+class UpdateDot extends StatelessWidget {
+  const UpdateDot({super.key, this.dotKey = const ValueKey('course-update-dot')});
+
+  /// Key of the dot itself (one per course row in Settings).
+  final Key dotKey;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Tooltip(
+      message: 'Course updates available',
+      child: Semantics(
+        label: 'Course updates available',
+        child: Container(
+          key: dotKey,
+          width: 9,
+          height: 9,
+          margin: const EdgeInsets.only(left: 6),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: isMonochrome(scheme) ? kBwBlack : scheme.primary,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// The active course's title on the map (with the Demo / Unverified
 /// badges). Not interactive: courses are switched, added and removed in
 /// Settings (the course section and "Add or remove courses").
