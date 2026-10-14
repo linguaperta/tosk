@@ -19,11 +19,14 @@ abstract final class SettingKeys {
   /// `light`, `dark` or `system`.
   static const themeMode = 'ui.theme_mode';
 
-  /// `'true'` disables animations, haptics and sounds (the future e-ink mode builds on it).
+  /// `'true'` disables animations and haptics (black & white mode forces it).
   static const reduceMotion = 'ui.reduce_motion';
 
   /// [DisplayMode] name: `color` or `bw` (black & white for e-ink; forces reduced motion).
   static const display = 'ui.display';
 
-  static const all = [course, sourceLang, defaultFocus, accents, themeMode, reduceMotion, display];
+  /// `'false'` mutes sound effects (on by default; separate from reduce motion).
+  static const soundEffects = 'ui.sound_effects';
+
+  static const all = [course, sourceLang, defaultFocus, accents, themeMode, reduceMotion, display, soundEffects];
 }

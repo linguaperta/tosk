@@ -18,6 +18,7 @@ class AppSettings {
     this.themeMode = ThemeMode.system,
     this.reduceMotion = false,
     this.display = DisplayMode.color,
+    this.soundEffects = true,
   });
 
   /// Null until the user picks a course; the first available course is used then.
@@ -31,6 +32,10 @@ class AppSettings {
   /// Color, or black & white (e-ink).
   final DisplayMode display;
 
+  /// Short sounds on answers, selections and the end of a lesson (on by
+  /// default; independent of reduce motion).
+  final bool soundEffects;
+
   /// Black & white (e-ink) display.
   bool get bw => display == DisplayMode.bw;
 
@@ -42,6 +47,7 @@ class AppSettings {
     ThemeMode? themeMode,
     bool? reduceMotion,
     DisplayMode? display,
+    bool? soundEffects,
   }) => AppSettings(
     courseId: courseId ?? this.courseId,
     sourceLang: sourceLang ?? this.sourceLang,
@@ -50,6 +56,7 @@ class AppSettings {
     themeMode: themeMode ?? this.themeMode,
     reduceMotion: reduceMotion ?? this.reduceMotion,
     display: display ?? this.display,
+    soundEffects: soundEffects ?? this.soundEffects,
   );
 
   /// Reads every setting from [store], falling back to defaults for missing or unknown values.
@@ -62,6 +69,7 @@ class AppSettings {
     final theme = await store.getSetting(SettingKeys.themeMode);
     final motion = await store.getSetting(SettingKeys.reduceMotion);
     final display = await store.getSetting(SettingKeys.display);
+    final sounds = await store.getSetting(SettingKeys.soundEffects);
     return AppSettings(
       courseId: (course == null || course.isEmpty) ? null : course,
       sourceLang: (lang == null || lang.isEmpty) ? d.sourceLang : lang,
@@ -70,6 +78,7 @@ class AppSettings {
       themeMode: _byName(ThemeMode.values, theme) ?? d.themeMode,
       reduceMotion: motion == 'true',
       display: _byName(DisplayMode.values, display) ?? d.display,
+      soundEffects: sounds != 'false',
     );
   }
 
@@ -86,6 +95,7 @@ class AppSettings {
     await put(SettingKeys.themeMode, themeMode.name, old?.themeMode.name);
     await put(SettingKeys.reduceMotion, '$reduceMotion', old == null ? null : '${old.reduceMotion}');
     await put(SettingKeys.display, display.name, old?.display.name);
+    await put(SettingKeys.soundEffects, '$soundEffects', old == null ? null : '${old.soundEffects}');
   }
 
   @override
@@ -97,10 +107,11 @@ class AppSettings {
       other.accents == accents &&
       other.themeMode == themeMode &&
       other.reduceMotion == reduceMotion &&
-      other.display == display;
+      other.display == display &&
+      other.soundEffects == soundEffects;
 
   @override
-  int get hashCode => Object.hash(courseId, sourceLang, defaultFocus, accents, themeMode, reduceMotion, display);
+  int get hashCode => Object.hash(courseId, sourceLang, defaultFocus, accents, themeMode, reduceMotion, display, soundEffects);
 }
 
 T? _byName<T extends Enum>(List<T> values, String? name) {
