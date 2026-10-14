@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/core.dart';
+import '../../../engine/reference.dart';
+import '../../../providers.dart';
+import '../../common/word_popover.dart';
 import '../answer_input.dart';
 import 'common.dart';
 
@@ -40,6 +44,95 @@ class _ClozeViewState extends State<ClozeView> with ExerciseKeysMixin<ClozeView>
     if (options != null && n >= 1 && n <= options.length) _select(n - 1);
   }
 
+  /// The sentence with its gap. Words aligned to course items are tappable
+  /// for their translation, except (before checking) those of the asked item;
+  /// once checked the filled gap is tappable too.
+  Widget _sentence(BuildContext context, WidgetRef ref, String gapText, Color gapColor) {
+    final e = widget.exercise;
+    final result = widget.result;
+    final course = ref.watch(courseDataProvider).value;
+    final lang = ref.watch(sourceLangProvider);
+    final style = Theme.of(context).textTheme.headlineSmall;
+    Widget gap = Container(
+      key: const ValueKey('cloze-gap'),
+      constraints: const BoxConstraints(minWidth: 56),
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: gapColor, width: 2)),
+      ),
+      child: Text(
+        gapText.isEmpty ? ' ' : gapText,
+        textAlign: TextAlign.center,
+        style: style?.copyWith(color: gapColor),
+      ),
+    );
+    var before = <InlineSpan>[TextSpan(text: e.before)];
+    var after = <InlineSpan>[TextSpan(text: e.after)];
+    final tokens = e.tokens, from = e.gapFrom, to = e.gapTo;
+    if (tokens != null && from != null && to != null && from >= 0 && from <= to && to < tokens.length) {
+      final head = renderTokenRefs(tokens.take(from));
+      final tail = renderTokenRefs(tokens.skip(to + 1));
+      if (e.before.startsWith(head) && e.after.endsWith(tail)) {
+        final enabled = hideItemUntilAnswered(e, answered: result != null);
+        before = [
+          ...tokenSpans(context, tokens: tokens, course: course, lang: lang, style: style, end: from, enabled: enabled),
+          TextSpan(text: e.before.substring(head.length)),
+        ];
+        after = [
+          TextSpan(text: e.after.substring(0, e.after.length - tail.length)),
+          ...tokenSpans(
+            context,
+            tokens: tokens,
+            course: course,
+            lang: lang,
+            style: style,
+            start: to + 1,
+            enabled: enabled,
+          ),
+        ];
+        final hash = e.facetId.lastIndexOf('#');
+        final item = hash < 0 ? e.facetId : e.facetId.substring(0, hash);
+        final inGap = [
+          for (final t in tokens.sublist(from, to + 1))
+            if (t.itemId != null) t,
+        ];
+        final gapToken = inGap.where((t) => t.itemId == item).firstOrNull ?? inGap.firstOrNull;
+        final gloss = result == null || course == null || gapToken == null
+            ? null
+            : glossForTokenRef(course, gapToken, lang, word: e.expected);
+        if (gloss != null) {
+          final box = gap;
+          gap = Builder(
+            builder: (context) => Semantics(
+              button: true,
+              hint: 'show translation',
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  final r = context.findRenderObject() as RenderBox?;
+                  final rect = r == null ? Rect.zero : r.localToGlobal(Offset.zero) & r.size;
+                  showWordPopover(context, gloss: gloss, anchor: rect);
+                },
+                child: box,
+              ),
+            ),
+          );
+        }
+      }
+    }
+    return Text.rich(
+      key: const ValueKey('cloze-sentence'),
+      TextSpan(
+        children: [
+          ...before,
+          WidgetSpan(alignment: PlaceholderAlignment.baseline, baseline: TextBaseline.alphabetic, child: gap),
+          ...after,
+        ],
+      ),
+      style: style,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final e = widget.exercise;
@@ -61,32 +154,7 @@ class _ClozeViewState extends State<ClozeView> with ExerciseKeysMixin<ClozeView>
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           InstructionText(e.instruction),
-          Text.rich(
-            key: const ValueKey('cloze-sentence'),
-            TextSpan(
-              children: [
-                TextSpan(text: e.before),
-                WidgetSpan(
-                  alignment: PlaceholderAlignment.baseline,
-                  baseline: TextBaseline.alphabetic,
-                  child: Container(
-                    constraints: const BoxConstraints(minWidth: 56),
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    decoration: BoxDecoration(
-                      border: Border(bottom: BorderSide(color: gapColor, width: 2)),
-                    ),
-                    child: Text(
-                      gapText.isEmpty ? ' ' : gapText,
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.headlineSmall?.copyWith(color: gapColor),
-                    ),
-                  ),
-                ),
-                TextSpan(text: e.after),
-              ],
-            ),
-            style: theme.textTheme.headlineSmall,
-          ),
+          Consumer(builder: (context, ref, _) => _sentence(context, ref, gapText, gapColor)),
           if (e.hint != null) ...[const SizedBox(height: 12), SubtleText(e.hint!, icon: Icons.lightbulb_outline)],
           if (e.translation != null) ...[
             const SizedBox(height: 8),

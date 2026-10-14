@@ -55,13 +55,11 @@ void main() {
         await tester.tapAt(const Offset(10, 10)); // dismiss
         await tester.pumpAndSettle();
 
-        for (final tab in ['Lab', 'Non-stop', 'Settings']) {
-          await tester.tap(find.text(tab).first);
-          await tester.pumpAndSettle();
+        for (final tab in ['Lab', 'Non-stop', 'Lookup', 'Grammar', 'Settings']) {
+          await goTab(tester, tab);
         }
         await scrollThrough(tester, find.byKey(const ValueKey('settings-list')));
-        await tester.tap(find.text('Lab').first);
-        await tester.pumpAndSettle();
+        await goTab(tester, 'Lab');
         await tapKey(tester, 'lab-unit-u1');
         await tapKey(tester, 'lab-unit-u2');
         await scrollThrough(tester, find.byKey(const ValueKey('lab-list')));

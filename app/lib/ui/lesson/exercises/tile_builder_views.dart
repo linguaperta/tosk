@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/core.dart';
+import '../../common/word_popover.dart';
 import '../../theme/bw_skin.dart';
 import 'common.dart';
 
@@ -147,6 +148,23 @@ class _SentenceBuilderViewState extends State<SentenceBuilderView> {
         children: [
           InstructionText(e.instruction),
           _SpeechBubble(text: e.prompt),
+          // After checking: the answer sentence, with tappable words.
+          if (widget.locked && e.answerTokens != null) ...[
+            const SizedBox(height: 10),
+            Row(
+              key: const ValueKey('answer-sentence'),
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 4, right: 8),
+                  child: Icon(Icons.translate, size: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                ),
+                Expanded(
+                  child: TappableSentence(tokens: e.answerTokens!, style: Theme.of(context).textTheme.titleMedium),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
       controls: TileAnswerArea(
@@ -185,7 +203,11 @@ class _TransformViewState extends State<TransformView> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           InstructionText(e.instruction),
-          _SpeechBubble(text: e.source),
+          _SpeechBubble(
+            text: e.source,
+            tokens: e.sourceTokens,
+            enabled: hideItemUntilAnswered(e, answered: widget.locked),
+          ),
           if (e.translation != null) ...[
             const SizedBox(height: 6),
             SubtleText(
@@ -219,8 +241,12 @@ class _TransformViewState extends State<TransformView> {
 }
 
 class _SpeechBubble extends StatelessWidget {
-  const _SpeechBubble({required this.text});
+  const _SpeechBubble({required this.text, this.tokens, this.enabled});
   final String text;
+
+  /// Target-language tokens of [text]: words become tappable for their gloss.
+  final List<TokenRef>? tokens;
+  final bool Function(int, TokenRef)? enabled;
 
   @override
   Widget build(BuildContext context) {
@@ -232,7 +258,14 @@ class _SpeechBubble extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         border: isMonochrome(scheme) ? Border.all(color: kBwBlack, width: kBwBorder) : null,
       ),
-      child: Text(text, style: Theme.of(context).textTheme.titleLarge),
+      child: tokens != null && renderTokenRefs(tokens!) == text
+          ? TappableSentence(
+              key: const ValueKey('source-sentence'),
+              tokens: tokens!,
+              enabled: enabled,
+              style: Theme.of(context).textTheme.titleLarge,
+            )
+          : Text(text, style: Theme.of(context).textTheme.titleLarge),
     );
   }
 }

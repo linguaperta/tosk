@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/core.dart';
+import '../../../engine/reference.dart';
+import '../../../providers.dart';
+import '../../common/word_popover.dart';
 import 'common.dart';
 
 /// Tap the wrong word in a sentence.
@@ -89,27 +93,52 @@ class _SpotErrorViewState extends State<SpotErrorView> {
       controls: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Wrap(
-            spacing: 6,
-            runSpacing: 10,
-            children: [
-              for (final g in groups)
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    for (final i in g)
-                      if (i < e.tokenIsWord.length && !e.tokenIsWord[i])
-                        Text(e.tokens[i], style: theme.textTheme.titleLarge)
-                      else
-                        WordTile(
-                          key: ValueKey('token-$i'),
-                          label: e.tokens[i],
-                          state: _state(i),
-                          onTap: widget.locked ? null : () => _tap(i),
-                        ),
-                  ],
-                ),
-            ],
+          Consumer(
+            builder: (context, ref, _) {
+              // Once checked, a tap on a word shows its translation (on the
+              // wrong word: the correct one's). Before, a tap is the answer.
+              final course = widget.locked ? ref.watch(courseDataProvider).value : null;
+              final lang = ref.watch(sourceLangProvider);
+              final refs = e.tokenRefs;
+              WordGloss? glossAt(int i) => course == null || refs == null || i >= refs.length
+                  ? null
+                  : glossForTokenRef(course, refs[i], lang, word: i == e.errorIndex ? e.correction : e.tokens[i]);
+              return Wrap(
+                spacing: 6,
+                runSpacing: 10,
+                children: [
+                  for (final g in groups)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        for (final i in g)
+                          if (i < e.tokenIsWord.length && !e.tokenIsWord[i])
+                            Text(e.tokens[i], style: theme.textTheme.titleLarge)
+                          else
+                            Builder(
+                              builder: (context) {
+                                final gloss = glossAt(i);
+                                return WordTile(
+                                  key: ValueKey('token-$i'),
+                                  label: e.tokens[i],
+                                  state: _state(i),
+                                  onTap: !widget.locked
+                                      ? () => _tap(i)
+                                      : gloss == null
+                                      ? null
+                                      : () {
+                                          final r = context.findRenderObject() as RenderBox?;
+                                          final rect = r == null ? Rect.zero : r.localToGlobal(Offset.zero) & r.size;
+                                          showWordPopover(context, gloss: gloss, anchor: rect);
+                                        },
+                                );
+                              },
+                            ),
+                      ],
+                    ),
+                ],
+              );
+            },
           ),
           if (widget.result != null) ...[
             const SizedBox(height: 16),

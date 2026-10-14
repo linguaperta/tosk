@@ -33,7 +33,11 @@ class SessionSummaryView extends ConsumerWidget {
     required this.onDone,
     this.endless = false,
     this.onAgain,
+    this.header,
   });
+
+  /// Shown under the title (the verdict of a test out or placement).
+  final Widget? header;
 
   final SessionSummary summary;
   final VoidCallback onDone;
@@ -76,6 +80,7 @@ class SessionSummaryView extends ConsumerWidget {
                       style: theme.textTheme.headlineSmall,
                     ),
                     const SizedBox(height: 20),
+                    ?header,
                     Row(
                       children: [
                         Expanded(

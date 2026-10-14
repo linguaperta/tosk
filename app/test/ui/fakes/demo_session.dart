@@ -98,7 +98,11 @@ class DemoSessionFactory implements SessionFactory {
   @override
   Future<AssessmentSession> placement({int perSkill = 2, double passMark = 0.8}) async {
     final units = [
-      for (final u in course.units) [for (final s in course.skills) if (s.unitId == u.id) s.id],
+      for (final u in course.units)
+        [
+          for (final s in course.skills)
+            if (s.unitId == u.id) s.id,
+        ],
     ];
     final source = [
       for (final u in units)

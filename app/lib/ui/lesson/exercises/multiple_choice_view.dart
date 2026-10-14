@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/core.dart';
+import '../../common/word_popover.dart';
 import 'common.dart';
 
 /// Pick the translation of a word or sentence.
@@ -36,6 +37,18 @@ class _MultipleChoiceViewState extends State<MultipleChoiceView> with ExerciseKe
   Widget build(BuildContext context) {
     final e = widget.exercise;
     final theme = Theme.of(context);
+    final tokens = e.sentenceTokens;
+    // Recognizing a sentence: its words are tappable. Producing one: the
+    // correct option becomes tappable once checked (never before: that
+    // would point at the answer).
+    final tappablePrompt =
+        e.isSentence && e.direction == Direction.recognize && tokens != null && renderTokenRefs(tokens) == e.prompt;
+    final tappableAnswer =
+        widget.locked &&
+        e.isSentence &&
+        e.direction == Direction.produce &&
+        tokens != null &&
+        renderTokenRefs(tokens) == e.options[e.correctIndex];
     return ExerciseLayout(
       prompt: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -43,11 +56,19 @@ class _MultipleChoiceViewState extends State<MultipleChoiceView> with ExerciseKe
           InstructionText(e.instruction),
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 12),
-            child: Text(
-              e.prompt,
-              textAlign: TextAlign.center,
-              style: e.isSentence ? theme.textTheme.titleLarge : theme.textTheme.headlineMedium,
-            ),
+            child: tappablePrompt
+                ? TappableSentence(
+                    key: const ValueKey('mc-prompt-sentence'),
+                    tokens: e.sentenceTokens!,
+                    textAlign: TextAlign.center,
+                    enabled: hideItemUntilAnswered(e, answered: widget.locked),
+                    style: theme.textTheme.titleLarge,
+                  )
+                : Text(
+                    e.prompt,
+                    textAlign: TextAlign.center,
+                    style: e.isSentence ? theme.textTheme.titleLarge : theme.textTheme.headlineMedium,
+                  ),
           ),
           if (e.hint != null)
             Center(
@@ -76,6 +97,13 @@ class _MultipleChoiceViewState extends State<MultipleChoiceView> with ExerciseKe
                 key: ValueKey('option-$i'),
                 number: i + 1,
                 label: e.options[i],
+                labelWidget: tappableAnswer && i == e.correctIndex
+                    ? TappableSentence(
+                        key: const ValueKey('mc-answer-sentence'),
+                        tokens: tokens,
+                        style: optionLook(context, OptionState.correct, base: theme.textTheme.titleMedium).style,
+                      )
+                    : null,
                 large: true,
                 state: choiceState(index: i, selected: _selected, correctIndex: e.correctIndex, result: widget.result),
                 onTap: widget.locked ? null : () => _select(i),

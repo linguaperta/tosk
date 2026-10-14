@@ -206,9 +206,14 @@ class OptionButton extends StatelessWidget {
     this.onTap,
     this.large = false,
     this.center = false,
+    this.labelWidget,
   });
 
   final String label;
+
+  /// Replaces the label text (e.g. a sentence with tappable words); [label]
+  /// still names the option for semantics.
+  final Widget? labelWidget;
   final int? number;
   final OptionState state;
   final VoidCallback? onTap;
@@ -258,7 +263,9 @@ class OptionButton extends StatelessWidget {
                   const SizedBox(width: 10),
                 ],
                 Expanded(
-                  child: Text(label, textAlign: center ? TextAlign.center : TextAlign.start, style: look.style),
+                  child:
+                      labelWidget ??
+                      Text(label, textAlign: center ? TextAlign.center : TextAlign.start, style: look.style),
                 ),
                 if (mark != null) ...[const SizedBox(width: 6), Icon(mark, size: 22, color: fg)],
               ],
