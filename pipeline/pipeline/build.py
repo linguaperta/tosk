@@ -10,7 +10,7 @@ import shutil
 import sys
 from pathlib import Path
 
-from .compile import COURSE_DB_SCHEMA_VERSION, compile_pack
+from .compile import COURSE_DB_SCHEMA_MINOR, COURSE_DB_SCHEMA_VERSION, compile_pack
 from .content import load_pack
 from .paths import APP_COURSES_DIR, content_dir
 from .report import build_report, format_report
@@ -104,7 +104,8 @@ def build(langs, content_root=None, install: bool = False, quiet: bool = False, 
         stats = compile_pack(pack, out)
         print(f"[{code}] compiled {out} ({out.stat().st_size // 1024} KB): {stats['items']} items, "
               f"{stats['verbs']} verbs, {stats['verb_forms']} forms, {stats['sentences']} sentences, "
-              f"{stats['tokens']} tokens, {stats['facets']} skill facets", file=sys.stderr)
+              f"{stats['tokens']} tokens, {stats['facets']} skill facets, {stats['stories']} stories "
+              f"({stats['story_sentences']} sentences, {stats['story_questions']} questions)", file=sys.stderr)
         print(format_report(build_report(pack), verbose=not quiet))
         entries[code] = {
             "id": code,
@@ -113,6 +114,7 @@ def build(langs, content_root=None, install: bool = False, quiet: bool = False, 
             "sha256": sha256(out),
             "size": out.stat().st_size,
             "schema_version": COURSE_DB_SCHEMA_VERSION,
+            "schema_minor": COURSE_DB_SCHEMA_MINOR,   # 1: inflection tables (facet kind infl)
             "url": f"{code}.sqlite",
         }
         if install:

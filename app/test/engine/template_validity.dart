@@ -271,6 +271,48 @@ List<Sentence> _sentencesByText(CourseData c, String text) {
   return cell == null ? null : (t.lex!, cell);
 }
 
+final Expando<Set<String>> _wordSets = Expando();
+
+/// Every word the course knows (folded): lemmas, variants, plurals, inflection
+/// and verb forms, sentence tokens. A wrong form offered in a sentence for a
+/// non-agreement table must be none of them.
+Set<String> _courseWords(CourseData c) => _wordSets[c] ??= {
+      for (final i in c.allItems) ...[
+        _k(i.lemma),
+        for (final v in i.variants) _k(v),
+        if (i.plural != null) _k(i.plural!),
+        for (final f in c.inflections(i.id).values) ...f.accepted.map(_k),
+        for (final f in c.verbForms(i.id).values) ...f.accepted.expand(splitWords).map(_k),
+      ],
+      for (final s in CourseIndex.of(c).allSentences)
+        for (final t in s.tokens)
+          if (t.isWord) _k(t.t),
+    };
+
+/// Checks a wrong option [w] for an inflection cell in a sentence: not an
+/// accepted form of the cell; another cell of the same item only for an
+/// agreement table; otherwise no word of the course.
+String? _inflWrongProblem(CourseData c, InflectionForm cell, String w) {
+  if (cell.accepted.any((a) => _k(a) == _k(w))) return '"$w" is an accepted form of ${cell.key}';
+  final spec = c.meta.inflectionTables[cell.table];
+  final ownCells = {for (final f in c.inflectionTable(cell.itemId, cell.table)) _k(f.form)};
+  if (spec?.agreement == true && ownCells.contains(_k(w))) return null;
+  if (_courseWords(c).contains(_k(w))) return '"$w" is a word of the course (may be right in the sentence)';
+  return null;
+}
+
+/// The inflection cell of token [idx] of [s] for [item] and [table], checked
+/// independently: aligned to the item, an `infl:` form of that table, and the
+/// token text an accepted form of the cell.
+InflectionForm? _inflCellAt(CourseData c, Sentence s, int idx, String itemId, String table) {
+  if (idx < 0 || idx >= s.tokens.length) return null;
+  final t = s.tokens[idx];
+  if (t.lex != itemId || t.inflTable != table) return null;
+  final cell = c.inflections(itemId)['$table.${t.inflCell}'];
+  if (cell == null || !cell.accepted.any((a) => _k(a) == _k(t.t))) return null;
+  return cell;
+}
+
 /// Indices of the tokens of [s] overlapping the characters [from, to).
 List<int> _tokensInRange(Sentence s, int from, int to) {
   final out = <int>[];
@@ -412,6 +454,23 @@ List<String> validateExercise(Exercise e, ExerciseTemplate t, CourseData c, Stri
       final bad = g(MatchAnswer(swapped));
       check(!bad.correct && bad.outcomes.where((o) => !o.correct).length == 2, 'grading a swap');
 
+    case ConjPickExercise() when e.inflection:
+      check(facet.kind == FacetKind.infl && facet.table == e.tense, 'inflection pick on a ${facet.kind} facet');
+      final cell = c.inflections(item.id)['${e.tense}.${e.person}'];
+      check(cell != null, 'no inflection cell');
+      check(cell?.cell != c.meta.inflectionTables[e.tense]?.base, 'asks the base cell');
+      if (cell != null) {
+        final acc = {for (final a in cell.accepted) _k(a)};
+        String full(String ending) => e.stem + (ending == kNoEnding ? '' : ending);
+        check(e.fullForm == cell.form, 'fullForm');
+        final keys = [for (final o in e.endings) foldDiacritics(o.toLowerCase())];
+        check(keys.toSet().length == keys.length, 'duplicate endings ${e.endings}');
+        choiceChecks(e.endings, e.correctIndex, (o) => acc.contains(_k(full(o))));
+        final typed = g(TextAnswer(cell.ending!.isEmpty ? '-' : cell.ending!));
+        check(typed.correct, 'typed ending rejected');
+      }
+      check(e.stem.isNotEmpty && e.lemma.isNotEmpty && e.personLabel.isNotEmpty && e.tenseLabel.isNotEmpty, 'labels');
+
     case ConjPickExercise():
       final cell = c.verbForms(item.id)['${e.tense}.${e.person}'];
       check(cell != null, 'no cell');
@@ -430,9 +489,14 @@ List<String> validateExercise(Exercise e, ExerciseTemplate t, CourseData c, Stri
       final asked = [for (final cell in e.cells) if (!cell.prefilled) cell];
       check(asked.length >= 2, 'fewer than 2 asked cells');
       final forms = c.verbForms(item.id);
+      final inflForms = c.inflections(item.id);
+      check(e.inflection == (facet.kind == FacetKind.infl), 'inflection flag');
       for (final cell in e.cells) {
-        final f = forms['${e.tense}.${cell.person}'];
-        check(f != null && f.form == cell.expected, 'cell ${cell.person} expected');
+        final expected = e.inflection ? inflForms['${e.tense}.${cell.person}']?.form : forms['${e.tense}.${cell.person}']?.form;
+        check(expected != null && expected == cell.expected, 'cell ${cell.person} expected');
+        if (e.inflection && cell.person == c.meta.inflectionTables[e.tense]?.base) {
+          check(cell.prefilled, 'base cell ${cell.person} is asked');
+        }
         check(cell.accepted.contains(cell.expected), 'cell accepted lacks expected');
       }
       check(_subBag(_bag([for (final cell in asked) cell.expected]), _bag(e.tiles)), 'tiles miss a correct form');
@@ -500,11 +564,26 @@ List<String> validateExercise(Exercise e, ExerciseTemplate t, CourseData c, Stri
           }
         }
       }
+      if (facet.kind == FacetKind.infl && s != null) {
+        final gap = _tokensInRange(s, e.before.length, e.before.length + e.expected.length);
+        final cell = gap.length == 1 ? _inflCellAt(c, s, gap.single, item.id, facet.table!) : null;
+        check(cell != null, 'gap is not an inflected form of the item');
+        if (cell != null) {
+          final spec = c.meta.inflectionTables[facet.table!];
+          check(spec == null || spec.agreement || cell.cell != spec.base, 'gap on the base cell of ${facet.table}');
+          final opts = e.options ?? const <String>[];
+          for (var i = 0; i < opts.length; i++) {
+            if (i == e.correctIndex) continue;
+            final problem = _inflWrongProblem(c, cell, opts[i]);
+            check(problem == null, 'option: $problem');
+          }
+        }
+      }
       if (e.options != null) {
         check(e.correctIndex != null, 'choice without correctIndex');
         check(e.options![e.correctIndex!] == e.expected, 'correct option is not expected');
         choiceChecks(e.options!, e.correctIndex!, (o) => acc.contains(_k(o)),
-            minOptions: facet.kind == FacetKind.article ? 2 : 3);
+            minOptions: facet.kind == FacetKind.article || facet.kind == FacetKind.infl ? 2 : 3);
         if (facet.kind == FacetKind.article) {
           final valid = {for (final a in CourseIndex.of(c).articlesOf(item)) _k(a)};
           for (var i = 0; i < e.options!.length; i++) {
@@ -562,6 +641,13 @@ List<String> validateExercise(Exercise e, ExerciseTemplate t, CourseData c, Stri
             final changed = (List.of(w)..[i] = e.tokens[ei]).join(' ');
             check(!_contextForms(c, item.id, cell).contains(_k(changed)), 'swap "$changed" is still correct');
           }
+        }
+      } else if (facet.kind == FacetKind.infl) {
+        final cell = _inflCellAt(c, s, ei, item.id, facet.table!);
+        check(cell != null, 'error is not on an inflected form of the item');
+        if (cell != null) {
+          final problem = _inflWrongProblem(c, cell, e.tokens[ei]);
+          check(problem == null, 'replacement: $problem');
         }
       } else if (facet.kind == FacetKind.article) {
         final valid = {for (final a in CourseIndex.of(c).articlesOf(item)) _k(a)};

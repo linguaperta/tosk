@@ -29,6 +29,8 @@ python -m pipeline gen context it --skill present-are          # what a sentence
 python -m pipeline gen check it drafts.jsonl                   # check Claude-written drafts (dry run)
 python -m pipeline gen add it drafts.jsonl                     # ... and add the accepted ones
 python -m pipeline gen refresh it [--drop]                     # re-align generated sentences after an import
+python -m pipeline stories it [--show u3|all]                  # check the graded stories (+ print their alignment)
+python -m pipeline publish it nl [--tag packs-YYYYMMDD] [--dry-run]   # dist/index.json + GitHub Release (gh; never hns)
 python -m pytest pipeline/tests                                # offline tests
 
 python -m pipeline fetch hns                 # Sarnami: scrape the [source] dictionary (1 req/s) + extra sources
@@ -47,6 +49,13 @@ checkout; the pipeline refuses to write it anywhere else (`pipeline/hns/safeguar
 * `build --install` copies the packs to `app/assets/courses/{id}.sqlite` (bundled with the app).
 * `build` needs only the committed JSONL/YAML/markdown, so it works offline and is deterministic apart from
   `meta.built_at`.
+* `publish` (`pipeline/publish.py`) rewrites `dist/index.json` for a release (absolute asset URLs,
+  `index_version`, `generated_at`, `tag`, and per course id, version, title, description, target,
+  sources, unverified, schema_version, min_app_version, sha256, size, url) and runs
+  `gh release create <tag> dist/<id>.sqlite... dist/index.json --repo timoverlaan/tosk-data --latest`.
+  The app reads `https://github.com/timoverlaan/tosk-data/releases/latest/download/index.json`.
+  `--dry-run` writes the index and prints the commands. Restricted courses (`hns`) are refused.
+  Steps and `gh auth login`: docs/release.md, "Publishing course packs".
 
 ## Sources (fetch)
 
@@ -70,6 +79,7 @@ checkout; the pipeline refuses to write it anywhere else (`pipeline/hns/safeguar
 | `sentences/{unit}.jsonl` | importer | `schema/sentences.schema.json` |
 | `sentences/gen-{unit}.jsonl` | `gen add` (Claude-written, kept by the importer) | `schema/sentences.schema.json` |
 | `sentence_ids.tsv` | `gen add` (append-only) | `id, key` (generated sentence id, normalized text) |
+| `stories/u{n}.yaml` | Claude (graded stories, see [Stories](#graded-stories-pipelinestoriespy)) | checked by `stories.py` |
 | `grammar/{skill}.md` (en), `grammar/{skill}.nl.md` (nl) | hand | — |
 | `ids.tsv` | importer (append-only) | `id, lemma, pos, sense_key` |
 
@@ -85,6 +95,8 @@ Examples:
 ```
 
 Sentence records use `text` + `tr` (like the database) instead of the spec sketch's `it`/`en` keys.
+Token `form` is `'{tense}.{person}'` for verb forms and `'infl:{table}.{cell}'` for inflected
+non-verbs (`infl:number.pl`, `infl:agreement.f.sg`).
 
 ### course.yaml queries
 
@@ -97,6 +109,75 @@ Skills select items with queries (resolved identically by importer and compiler,
   `irregular_in`; `aux` = the primary perfect auxiliary.
 * Order = frequency rank (an explicit `lemmas` list without `top` keeps its own order).
 * Minimum (validator): `min`, else for verb queries `len(lemmas)` or `min(15, top)`, else 5 items.
+* `inflections: {table: T}` (or `table: [T1, T2]`) on an `items` skill trains the inflection table T
+  (facet `#infl:T`) of its items, see [Inflection tables](#inflection-tables-pipelineinflectpy).
+  With `facet: infl` the skill trains only those facets and selects only items whose table T has
+  at least two different forms; without `facet` they come on top of `#rec`/`#prod`.
+
+### Inflection tables (`pipeline/inflect.py`)
+
+Non-verbs can have inflection tables (docs/ARCHITECTURE.md, "Inflection tables"). A course
+declares them; the importer fills them per item from Wiktionary with the language's builders
+(`inflect.BUILDERS[code][table]`); skills train them:
+
+```yaml
+inflection_tables:
+  number:                                    # table name (a key: [a-z][a-z0-9_]*)
+    title: {en: singular and plural, nl: enkelvoud en meervoud}
+    pos: [noun]                              # parts of speech that can have it
+    cells: [sg, pl]                          # cell keys in display order ([a-z0-9_] with dots: m.sg)
+    base: sg                                 # the cell equal to the lemma: given, never asked
+    labels: {sg: {en: singular, nl: enkelvoud}, pl: {en: plural, nl: meervoud}}
+  agreement:
+    title: {en: gender and number, nl: geslacht en getal}
+    pos: [adj, det]
+    cells: [m.sg, f.sg, m.pl, f.pl]
+    base: m.sg
+    agreement: true                          # the cell follows from the sentence (the noun):
+    labels: {...}                            #   other cells are wrong options in sentences
+units:
+  - skills:
+      - id: plurals
+        kind: grammar
+        facet: infl                          # only #infl facets ...
+        inflections: {table: number}         # ... of this table
+        items: {pos: noun, tags: [people, food], top: 30}
+      - id: adjectives
+        kind: grammar
+        items: {tags: [adjectives]}
+        inflections: {table: agreement}      # #rec + #prod + #infl:agreement
+```
+
+* **Lexicon records** get `"infl": {table: {cell: {form, stem?, ending?, alts?, wrong?}}}` (and
+  `"uncountable": true` for mass nouns: Wiktionary `-` or seed `uncountable`, no number table).
+  `stem`+`ending` = the longest common prefix of the table's forms (`gatt`+`o`/`i`, `wit`+``/`te`;
+  Italian invariable nouns split off the final vowel: `citt`+`à`). `wrong` = plausible learner
+  errors that are **no word**: not in the 50k frequency list nor any Wiktionary form (`gatte` is a
+  word and never offered; `gattoi`, `katen`, `huisen`, `wite`, `huistje` are).
+* **Builders** (it): `number` (plural from the entry's plural forms, `invariable` → same form; no
+  table for uncountable or plural-only nouns), `agreement` (tagged feminine / plural forms, alts
+  such as `bel`/`bei`/`begli`; adjectives also by rule: -o → a/i/e, -e → e/i/i). (nl): `number`
+  (other plurals as alts: `appels`/`appelen`; a plural spelled like the singular is dropped),
+  `agreement` (`base`/`infl`), `comparison` (`base`/`comparative`/`superlative`, imported, not
+  trained yet), `diminutive` (`sg`/`dim`). A new language adds builders to `BUILDERS` and, for
+  agreement tables, a rule to `AGREEMENT` (which word controls the agreement).
+* **Alignment** (`InflectionAligner`, run at the end of `Aligner.align`): a token aligned to an
+  item with tables gets `form = 'infl:{table}.{cell}'`. Spelling decides for tables without
+  agreement (a noun's `sg`/`pl`; a form shared by two cells, `città`, gets none; an adjective's
+  base form is left to the agreement rule). Diminutive tokens are linked to their noun when they
+  are unaligned or aligned to an untaught item spelled the same (`huisje`). Agreement cells are set
+  only where the language rule finds the controlling word and the attested form agrees: Italian,
+  the adjacent noun or the noun before a copula (`una casa bella`, `la pizza è buona`, `mia madre`)
+  with a fixed gender (not `m|f`) and a known number; Dutch, attributive (`het grote huis`, `een
+  groot huis`, `een grote man`: -e unless a singular het-word after een/geen/no article; fixed
+  expressions like `het openbaar vervoer` contradict the rule and get no form) or predicative at
+  the clause end without a determiner before it (`Het huis is groot.`).
+* **Feature tagging** is unaffected (tenses come only from verb tokens).
+* **Sentence selection:** an inflection skill gets up to 6 sentences per (item, table, asked cell)
+  (`INFL_QUOTA`), counted for the skill like a verb tense for its grammar skill.
+* **Validator:** tables declared, cells complete, pos allowed, stem+ending = form, `wrong` never a
+  form of the table, token forms `infl:...` exist for the token's item and its text is an accepted
+  form of the cell, every inflection skill has at least one inflecting item.
 
 Grammar gating keys (see [Grammar gating](#grammar-gating-pipelinefeaturespy)):
 
@@ -241,6 +322,17 @@ conjugation tables. Rules:
   A clause-initial noun or a noun after an inflected adjective is not a verb (`Leven is …`, `het
   eeuwige leven`).
 * Unmatched tokens stay unlinked.
+* **Split separable verbs** (Dutch): a finite verb whose cell (tense, person) together with the
+  last word of its clause is a two-word form of a separable verb (`sta … op` = `opstaan`, ik)
+  links both words to the separable verb with that cell, like the two words of a compound form:
+  *Ik sta morgen vroeg op*, *Hij komt morgen terug*, *Nooit belt er iemand me op*. The clause
+  ends at punctuation, a coordinator or a clause starter (`Ik sta op en ga …`); not when the finite
+  verb has no person (inversion `Sta je op?`, imperatives) and not when the clause has `hier`,
+  `daar` or `waar` (a stranded preposition: `Hier komt nooit een eind aan`). The engine then finds
+  the split form like `heb … gegeten` (cloze gaps the finite word, spot the error swaps it).
+  Subordinate-clause forms written as one word (`dat ik opsta`) are not in the tables and stay
+  unlinked.
+* Inflected non-verbs get `infl:{table}.{cell}` forms, see [Inflection tables](#inflection-tables-pipelineinflectpy).
 
 ### Grammar gating (`pipeline/features.py`)
 
@@ -279,36 +371,39 @@ every skill with the features it **introduces**; the compiler writes them to `se
 Units, skills (items; `*` = grammar) and the features each unit introduces. Every unit's skills
 require the previous unit's grammar, so a later skill allows everything taught before it.
 
-**Italian 1.1.0** — 40 skills, 738 taught items, 1547 facets, 20 414 sentences (2213 generated).
+**Italian 1.2.0** — 41 skills, 738 taught items, 1613 facets, 20 805 sentences (2213 generated).
 
 | Unit | Skills (items) | Introduces |
 |---|---|---|
 | u1 Basics | greetings (19), little-words (31), people (33), essere-avere* (2) | |
 | u2 The present tense | food (30), numbers (23), present-are* (20), articles* (55), present-ere* (18), present-ire* (18) | |
-| u3 Everyday life | time (30), home (29), family (16), everyday-verbs (28), irregular-present* (14), pronouns* (9), modal-verbs* (4) | `modal` |
-| u4 Describing things | adjectives* (31), body (28), adverbs (18), colours (13), possessives* (5) | |
+| u3 Everyday life | time (30), home (29), family (16), everyday-verbs (28), irregular-present* (14), pronouns* (9), modal-verbs* (4), plurals* (30, `#infl:number`) | `modal` |
+| u4 Describing things | adjectives* (31, + `#infl:agreement`), body (28), adverbs (18), colours (13), possessives* (5, + `#infl:agreement`) | |
 | u5 Around town | city (28), travel (23), kitchen (29), prepositions* (19) | `prep:articulated` |
 | u6 The past | work (28), feelings (23), passato-prossimo* (20), passato-prossimo-essere* (16) | `tense:passato_prossimo`, `aux:essere` |
 | u7 Memories | weather (26), animals (21), clothes (22), imperfetto* (20) | `tense:imperfetto` |
 | u8 Plans for the future | leisure (23), shopping (20), futuro* (18), futuro-irregular* (16) | `tense:futuro`, `irregular:futuro` |
 | u9 Talking about life | more-verbs (30), ideas (28) | |
 
-**Dutch 1.1.0** — 35 skills, 712 taught items, 1511 facets, 16 343 sentences (2338 generated).
+**Dutch 1.2.0** — 37 skills, 712 taught items, 1597 facets, 16 539 sentences (2338 generated).
 
 | Unit | Skills (items) | Introduces |
 |---|---|---|
 | u1 Basics | greetings (20), little-words (39), people (29), present-regular* (20) | |
 | u2 Daily life | food (23), numbers (25), present-irregular* (15), home (28), de-het* (69) | `modal` |
-| u3 Everyday life | time (32), family (17), everyday-verbs (30), pronouns* (12), separable* (21) | `separable` |
+| u3 Everyday life | time (32), family (17), everyday-verbs (30), pronouns* (12), separable* (21), plurals* (30, `#infl:number`) | `separable` |
 | u4 The perfect tense | work (27), feelings (22), perfectum-hebben* (20), perfectum-zijn* (16) | `tense:perfectum`, `aux:zijn` |
-| u5 Describing things | adjectives* (31), body (27), adverbs (21), colours (12), possessives* (7) | |
+| u5 Describing things | adjectives* (31, + `#infl:agreement`), body (27), adverbs (21), colours (12), possessives* (7), diminutives* (25, `#infl:diminutive`) | |
 | u6 Around town | city (26), travel (22), kitchen (29), shopping (18) | |
 | u7 The simple past | weather (25), animals (21), clothes (22), verleden-tijd-weak* (20), verleden-tijd-strong* (20) | `tense:verleden_tijd`, `irregular:verleden_tijd` |
 | u8 Free time and ideas | leisure (22), more-verbs (31), ideas (27) | |
 
-Notes: item-based grammar skills (pronouns, adjectives, possessives, prepositions, separable) train
-`#rec`/`#prod` of their words and come with a grammar note; no template drills adjective agreement,
-plurals or the split position of separable verbs yet (split forms like *sta ... op* are not aligned).
+Notes: item-based grammar skills (pronouns, prepositions, separable; Dutch possessives, where
+only *ons/onze* inflects) train `#rec`/`#prod` of their words and come with a grammar note.
+Adjectives and Italian possessives add `#infl:agreement`; plurals and diminutives train only
+`#infl`. Dutch diminutives have few sentences (median 1 per noun with an asked cell; the picker
+carries the skill), and the Dutch `comparison` table is imported but no skill trains it yet. Split
+separable verbs are aligned (*sta … op*), but the separable skill still trains only `#rec`/`#prod`.
 Italian reflexive (pronominal) verbs are still excluded from the pool.
 
 **Sarnami 0.2.0 (local only, unverified)** — 35 skills, 394 taught items, 990 facets, 3004 sentences
@@ -352,6 +447,49 @@ sentences with their translations (`src: "claude-gen (skill: target)"`, `tr_src:
 * The app ranks a generated sentence after unseen Tatoeba sentences with as many unknown words
   (`kGeneratedSentenceWeight`, docs/engine.md).
 
+## Graded stories (`pipeline/stories.py`)
+
+2–3 short stories per unit (5–10 sentences, 3–5 comprehension questions), written by Claude
+(`src: claude-gen`), using only the vocabulary taught up to the unit and only the grammar allowed
+there (docs/ARCHITECTURE.md, "Stories"). One YAML list per unit:
+
+```yaml
+- id: u3-chiavi                       # permanent, unique in the course
+  unit: u3                            # whose words and grammar it uses; the app unlocks it there
+  new_words: [ritardo]                # at most one lemma taught later (or never), glossed in the reader
+  names: [Rex]                        # extra names besides generate.NAMES
+  title: {it: "Dove sono le chiavi?", en: "Where are the keys?", nl: "Waar zijn de sleutels?"}
+  sentences:
+    - {it: "È lunedì mattina e Paolo è in ritardo.", en: "It's Monday morning and Paolo is late.", nl: "..."}
+  questions:
+    - q: {en: "Where are the keys?", nl: "Waar liggen de sleutels?"}   # source language (required)
+      prompt: "Dove sono le chiavi?"          # optional target-language question (checked like a sentence)
+      options: ["in giardino", "in cucina", "in bagno"]   # target-language strings (checked) ...
+      # options: [{en: "The keys", nl: "De sleutels"}, ...]   # ... or source-language i18n
+      answer: 0                               # the correct index (the app shuffles the options)
+      why: {en: "Sentence 5.", nl: "Zin 5."}  # optional explanation
+```
+
+* **Checks** (part of `validate`, so `build` fails on them; `python -m pipeline stories it` runs only
+  these): every title, sentence, target prompt and target option tokenizes and aligns like the
+  importer; every word is aligned to an item or is a name (`generate.NAMES` + `names`, anywhere in
+  the sentence, even when it is also an item: *Roma*) or a number; every item is taught in the
+  story's unit or earlier (the unit of the first skill selecting it), except at most one distinct
+  lemma per story, which must be declared in `new_words`; the features (`features.py`) are allowed at
+  the unit (base ∪ everything introduced by this or an earlier unit); 5–10 sentences of at most 14
+  words with every course translation, passing `trcheck.py`; 3–5 questions with 3–4 options,
+  non-empty and distinct after folding case, punctuation and accents (like the engine's
+  `OptionPicker`), not mixing target and translated options, `answer` in range, i18n complete.
+* `--show u3` (or `all`) prints each story's tokens as `word/lemma[tense.person]`, for reviewing the
+  alignment the reader's word popovers will show (the aligner's limits apply: *sono* without a
+  subject reads as *io*, a noun right after *e* may read as a verb (*sale* → *salire*): rephrase).
+* **Compiled** into `stories`, `story_sentences` and `story_questions`; the sentences go into
+  `sentences` + `tokens` + `sentence_features` with ids `st:{storyId}.{n}` and src
+  `claude-gen (story: {storyId})` (the app keeps them out of the exercise pool). Tokens are aligned at
+  build time (nothing is stored in the YAML), so an import that changes the lexicon re-aligns them,
+  and a story that no longer passes fails the build.
+* 2026-10: it 18 stories (132 sentences, 61 questions), nl 16 (117 sentences, 51 questions), 2 per unit.
+
 ## IDs
 
 `{course}:{lemma}` (spaces → `_`), homographs `{course}:{lemma}.{n}`; the most frequent homograph
@@ -362,14 +500,17 @@ by every import, so ids never change or get reused. Sentence ids: `s:{tatoebaId}
 
 * `compile.py` executes `schema/course_db.sql` verbatim, fills meta (incl. `attribution`,
   `built_at`, `schema_version`, `unverified`), resolves skills into `skill_items` and `skill_facets`
-  (vocab → `#rec` + `#prod`; verb grammar → `#form:{tense}`; `facet: article` → `#article`) and VACUUMs.
-  `COURSE_DB_SCHEMA_VERSION = 1`.
+  (vocab → `#rec` + `#prod`; verb grammar → `#form:{tense}`; `facet: article` → `#article`;
+  `inflections: {table: T}` → `#infl:T`, see above), writes `inflections` and
+  `meta.inflection_tables`, and VACUUMs. `COURSE_DB_SCHEMA_VERSION = 1`, `COURSE_DB_SCHEMA_MINOR = 1`
+  (`meta.schema_minor`, also in `dist/index.json` per course); a pack with `#infl` facets gets
+  `meta.min_app_version = 0.4.0` (`MIN_APP_VERSION_INFL`; course.yaml `min_app_version` overrides).
 * `validate.py` fails the build on: schema errors, duplicate ids, ids.tsv mismatches, unknown or
   cyclic prerequisites, too few items / verbs with complete tables, missing translations on skill
   items, articles outside `meta.articles`, stem+ending ≠ form, undeclared tenses/persons, tokens that
   don't re-render the text, unknown token lex, token forms missing from the verb table, missing
   en/nl grammar notes, base features/`introduces` that are no tense and have no detector, and
-  sentences whose features their home skill does not allow.
+  sentences whose features their home skill does not allow, and stories that fail the story checks.
 * `report.py` prints per skill: items, facets, sentences touching the skill (`sents`), the ones whose
   features the skill allows (`fit`) and of those the ones with at most one word taught later
   (`easy`), the features it introduces, and for verb skills the number of complete tables and fit

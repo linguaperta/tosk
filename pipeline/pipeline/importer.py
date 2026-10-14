@@ -19,7 +19,7 @@ from pathlib import Path
 
 import yaml
 
-from . import features, query, trcheck
+from . import features, inflect, query, trcheck
 from .align import Aligner
 from .content import load_course_yaml, read_jsonl, write_jsonl
 from .fetch import load_freq_words
@@ -39,6 +39,7 @@ ITEM_QUOTA = 25          # sentences per skill item
 VT_QUOTA = 48            # sentences per (grammar verb, tense)
 VTP_QUOTA = 8            # sentences per (grammar verb, tense, person): gaps.SLOT_TARGET
 VTP_MIN = 2              # ... always accepted up to this many, even when the verb+tense quota is full
+INFL_QUOTA = 6           # sentences per (item, inflection table, cell) of an inflection skill
 # Grammar gating: words a learner at the item's skill does not know yet (later skills, pool words,
 # unlinked words; names and numbers don't count). The engine caps them at runtime (2 for vocabulary
 # focus, 1 for grammar focus); pool and unlinked words never become known, so at most one of those.
@@ -420,6 +421,17 @@ def run_import(code: str, content_root: str | None = None) -> None:
 
     glosser = NlGlosser(cache) if code == "it" else None
 
+    # ---- inflection tables (inflect.py): wrong forms must be no word of the language
+    infl_spec = course.get("inflection_tables") or {}
+    known_words: set[str] = set(counts)
+    for (lemma, _pos), lx in lexemes.items():
+        known_words.add(lemma.lower())
+        known_words |= {f.lower() for f in lx.inflections}
+        for forms in lx.entry_forms:
+            known_words |= {f.lower() for f, _ in forms}
+        for t in lx.table.values():
+            known_words |= {f.lower() for f in t.values()}
+
     # ---- build records (ids assigned in score order so the most frequent homograph gets the base id)
     items: list[dict] = []
     verbs: dict[str, dict] = {}
@@ -454,6 +466,8 @@ def run_import(code: str, content_root: str | None = None) -> None:
                 rec["gender"] = gender
             if (s.get("plural") or lx.plural) and lx.lemma not in uncountable:
                 rec["plural"] = s.get("plural") or lx.plural
+            if lx.lemma in uncountable or lx.uncountable:
+                rec["uncountable"] = True
         rec["freq"] = rank_of.get(key)
         rec["tr"] = tr
         rec["tr_src"] = tr_src
@@ -465,6 +479,19 @@ def run_import(code: str, content_root: str | None = None) -> None:
         infl = sorted(lx.inflections - {lx.lemma.lower()})
         if infl:
             rec["inflections"] = infl
+        tables = inflect.build_tables(code, lx, infl_spec, known_words)
+        if "number" in tables:
+            pl = tables["number"].get("pl", {})
+            if rec.get("uncountable") or not rec.get("plural"):
+                del tables["number"]          # mass nouns: no plural, no number exercises
+            elif pl.get("form") != rec["plural"]:
+                # a seed plural wins over Wiktionary's
+                tables["number"]["pl"] = {"form": rec["plural"]}
+                for c in tables["number"].values():
+                    c.pop("stem", None), c.pop("ending", None)
+                inflect.split_table(tables["number"], lx.lemma, vowel_stem=code == "it")
+        if tables:
+            rec["infl"] = tables
         items.append(rec)
         if lx.pos == "verb" and lx.table:
             aux = lx.aux if code == "it" else aux_of.get(lx.lemma, [])
@@ -489,16 +516,21 @@ def run_import(code: str, content_root: str | None = None) -> None:
     # ---- sentences
     log(f"[{code}] loading tatoeba")
     target, trs = load_tatoeba(code, cache)
-    aligner = Aligner(lang, items, verbs)
+    aligner = Aligner(lang, items, verbs, infl_spec)
     item_by_id = {r["id"]: r for r in items}
     skill_items = {iid for iid in unit_of}
     grammar_targets: set[tuple[str, str]] = set()
+    infl_targets: set[tuple[str, str]] = set()     # (item, table) of inflection skills
     for unit in course["units"]:
         for skill in unit.get("skills") or []:
             if "verbs" in skill:
                 t = skill["verbs"]["tense"]
                 for iid in query.resolve(skill, items, verbs, course["persons"]):
                     grammar_targets.add((iid, t))
+            for table in query.infl_tables(skill):
+                for iid in query.resolve(skill, items, verbs, course["persons"]):
+                    if table in (item_by_id[iid].get("infl") or {}):
+                        infl_targets.add((iid, table))
     # grammar gating (features.py): a sentence is only selected when its grammar features are
     # allowed at its home skill, and it only counts for an item (verb tense) whose introducing
     # (grammar) skill allows them and knows nearly all its words
@@ -561,8 +593,14 @@ def run_import(code: str, content_root: str | None = None) -> None:
         if graph.enforced and known_at.count(NEVER) > MAX_NEVER_KNOWN:
             continue
         vts = set()
+        infls = set()
         for t in al:
-            if t["lex"] and t["form"] and "." in t["form"]:
+            ik = inflect.parse_infl_key(t["form"])
+            if ik:
+                spec = infl_spec.get(ik[0]) or {}
+                if (t["lex"], ik[0]) in infl_targets and (spec.get("agreement") or ik[1] != spec.get("base")):
+                    infls.add((t["lex"], ik[0], ik[1]))
+            elif t["lex"] and t["form"] and "." in t["form"]:
                 tense, person = t["form"].split(".", 1)
                 if (t["lex"], tense) in grammar_targets:
                     vts.add((t["lex"], tense, person))
@@ -581,21 +619,29 @@ def run_import(code: str, content_root: str | None = None) -> None:
             u = usable(graph.grammar_skill(v, t), MAX_UNKNOWN_GRAMMAR)
             if u is not None:
                 ok_vts[(v, t, p)] = u
-        if not ok_items and not ok_vts:
+        ok_infl = {}
+        for v, tb, c in infls:
+            u = usable(graph.infl_skill(v, tb), MAX_UNKNOWN_GRAMMAR)
+            if u is not None:
+                ok_infl[(v, tb, c)] = u
+        if not ok_items and not ok_vts and not ok_infl:
             continue
-        best = min([*ok_items.values(), *ok_vts.values()])
-        cands.append((best, unlinked, len(words), sid, al, touched, ok_items, ok_vts))
+        best = min([*ok_items.values(), *ok_vts.values(), *ok_infl.values()])
+        cands.append((best, unlinked, len(words), sid, al, touched, ok_items, ok_vts, ok_infl))
     cands.sort(key=lambda c: (c[0], c[1], abs(c[2] - 6), c[3]))
     item_count: Counter = Counter()
     vt_count: Counter = Counter()
     vtp_count: Counter = Counter()
     sentences = []
-    for _best, unlinked, nw, sid, al, touched, ok_items, ok_vts in cands:
+    infl_count: Counter = Counter()
+    for _best, unlinked, nw, sid, al, touched, ok_items, ok_vts, ok_infl in cands:
         useful = any(item_count[i] < ITEM_QUOTA for i in ok_items) or any(
             vtp_count[(v, t, p)] < VTP_QUOTA and (vt_count[(v, t)] < VT_QUOTA or vtp_count[(v, t, p)] < VTP_MIN)
-            for v, t, p in ok_vts)
+            for v, t, p in ok_vts) or any(infl_count[k] < INFL_QUOTA for k in ok_infl)
         if not useful:
             continue
+        for k in ok_infl:
+            infl_count[k] += 1
         for i in ok_items:
             item_count[i] += 1
         for v, t, p in ok_vts:

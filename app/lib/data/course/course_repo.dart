@@ -102,6 +102,12 @@ class CourseRepo implements CourseData {
   Verb? verb(String itemId) => data.verb(itemId);
   @override
   Map<String, VerbForm> verbForms(String itemId) => data.verbForms(itemId);
+
+  @override
+  Map<String, InflectionForm> inflections(String itemId) => data.inflections(itemId);
+
+  @override
+  List<InflectionForm> inflectionTable(String itemId, String table) => data.inflectionTable(itemId, table);
   @override
   List<VerbForm> verbFormsInTense(String itemId, String tense) =>
       data.verbFormsInTense(itemId, tense);
@@ -116,4 +122,8 @@ class CourseRepo implements CourseData {
   Set<String> sentenceFeatures(String sentenceId) => data.sentenceFeatures(sentenceId);
   @override
   Set<String> skillFeatures(String skillId) => data.skillFeatures(skillId);
+  @override
+  List<Story> get stories => data.stories;
+  @override
+  Story? story(String id) => data.story(id);
 }

@@ -57,6 +57,7 @@ from __future__ import annotations
 import re
 from collections import defaultdict
 
+from .inflect import InflectionAligner
 from .lang import Lang
 
 ELISION_IT = {
@@ -95,8 +96,13 @@ def _form(val) -> str:
 
 
 class Aligner:
-    def __init__(self, lang: Lang, items: list[dict], verbs: dict[str, dict]):
+    def __init__(self, lang: Lang, items: list[dict], verbs: dict[str, dict], infl_tables: dict | None = None):
         self.lang = lang
+        # inflected non-verb forms ('gatti' -> infl:number.pl), see inflect.py
+        self.infl = InflectionAligner(lang.code, {it["id"]: it for it in items}, infl_tables) if infl_tables else None
+        # split separable verbs ('Ik sta morgen vroeg op'): (finite word, clause-final particle) ->
+        # [(separable verb, tense, person)] from the two-word simple-tense forms ('sta op')
+        self.separable: dict[tuple[str, str], list[tuple[str, str, str]]] = defaultdict(list)
         self.items = {it["id"]: it for it in items}
         self.rank = {it["id"]: (it.get("freq") is None, it.get("freq") or 0, it["id"]) for it in items}
         self.verb_index: dict[str, list[tuple[str, str, str]]] = defaultdict(list)
@@ -139,6 +145,9 @@ class Aligner:
                     alts = val.get("alts", []) if isinstance(val, dict) else []
                     for f in [_form(val), *alts]:
                         if " " in f:
+                            w = norm(f).split()
+                            if lang.clause_starters and len(w) == 2 and tense in lang.simple_tenses and person != "_":
+                                self.separable[(w[0], w[1])].append((vid, tense, person))
                             continue
                         if tense == "participle":
                             for aux in auxes:
@@ -703,7 +712,11 @@ class Aligner:
             if pc:
                 vid = min((e[0] for e in pc), key=lambda v: self.rank.get(v, (True, 0, v)))
                 out[ti]["lex"], out[ti]["form"] = vid, "participle._"
-        # pass 3: multi-word phrases ('per favore', 'tot ziens'): every word links to the phrase
+        # pass 3: split separable verbs: a finite verb and the clause-final particle that together
+        # make a two-word form of a separable verb ('Ik sta morgen vroeg op' -> opstaan, ik)
+        if self.separable:
+            self._align_separable(out, words)
+        # pass 4: multi-word phrases ('per favore', 'tot ziens'): every word links to the phrase
         for seq, iid in self.phrases.items():
             n = len(seq)
             for wi in range(len(words) - n + 1):
@@ -712,4 +725,39 @@ class Aligner:
                         and not any(self._punct_between(out, a, b) for a, b in zip(span, span[1:])):
                     for x in span:
                         out[x]["lex"], out[x]["form"] = iid, None
+        if self.infl:
+            self.infl.align(out)
         return out
+
+    def _align_separable(self, out: list[dict], words: list[int]) -> None:
+        """Both words of a split separable verb get the separable verb and the finite word's cell,
+        like the two words of a compound form. Only when the finite word has a person (not after
+        inversion: 'Sta je op?') and the particle is the last word of its clause (no punctuation in
+        between is needed: 'Ik sta op, en ...' ends the clause at the comma)."""
+        for ti in words:
+            t = out[ti]
+            form = t.get("form") or ""
+            if not t.get("lex") or "." not in form or form.startswith("infl:") or t["lex"] not in self.verb_ids:
+                continue
+            tense, person = form.split(".", 1)
+            if person == "_":
+                continue
+            lo, hi = self._clause_range(out, ti)
+            for x in words:
+                if ti < x <= hi and norm(out[x]["t"]) in (self.lang.coordinators | self.lang.clause_starters):
+                    hi = x - 1          # 'Ik sta op en ga ...', 'Ik bel je op als ...'
+                    break
+            last = max((x for x in words if lo <= x <= hi), default=None)
+            if last is None or last <= ti:
+                continue
+            p = out[last]
+            if p.get("form"):
+                continue
+            if any(norm(out[x]["t"]) in ("hier", "daar", "waar") for x in words if lo <= x <= hi):
+                continue        # a stranded preposition ('Hier komt nooit een eind aan'): no particle
+            hits = [e for e in self.separable.get((norm(t["t"]), norm(p["t"])), []) if e[1] == tense and e[2] == person]
+            if not hits:
+                continue
+            vid = min({e[0] for e in hits}, key=lambda v: self.rank.get(v, (True, 0, v)))
+            for x in (ti, last):
+                out[x]["lex"], out[x]["form"] = vid, f"{tense}.{person}"

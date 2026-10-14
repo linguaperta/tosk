@@ -66,6 +66,13 @@ class SettingsScreen extends ConsumerWidget {
                     title: const Text('Add or remove courses'),
                     onTap: () => showCoursePicker(context),
                   ),
+                  SwitchListTile(
+                    key: const ValueKey('auto-check-course-updates'),
+                    title: const Text('Check for course updates automatically'),
+                    subtitle: const Text('Once a day, when online. Downloads only start when you tap them.'),
+                    value: s.autoCheckCourseUpdates,
+                    onChanged: (v) => ctl.change((s) => s.copyWith(autoCheckCourseUpdates: v)),
+                  ),
                   const _Section('Learning'),
                   _Choice<String>(
                     keyName: 'source-lang',

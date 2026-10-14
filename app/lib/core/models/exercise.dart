@@ -58,7 +58,8 @@ class TokenRef {
   /// Aligned item id (`Token.lex`), null for unaligned words and punctuation.
   final String? itemId;
 
-  /// `'{tense}.{person}'` when the token is a verb form (`Token.form`).
+  /// `'{tense}.{person}'` when the token is a verb form, `'infl:{table}.{cell}'`
+  /// when it is an inflected non-verb (`Token.form`).
   final String? form;
   final bool isWord;
 }
@@ -167,13 +168,23 @@ class ConjPickExercise extends Exercise {
     required this.correctIndex,
     required this.fullForm,
     this.accepted = const [],
+    this.inflection = false,
   });
   final String lemma;
   final String gloss;
+
+  /// The tense (for an inflection table: the table name, `number`).
   final String tense;
   final String tenseLabel;
+
+  /// The person (for an inflection table: the cell, `pl`, `f.sg`).
   final String person;
   final String personLabel;
+
+  /// An inflection table of a non-verb (`#infl` facet), not a conjugation:
+  /// [tense]/[tenseLabel] are the table and [person]/[personLabel] the cell
+  /// (`ragazzo` · plural: `ragazz___`).
+  final bool inflection;
   final String stem; // shown as `mang___`
   final List<String> endings; // options
   final int correctIndex;
@@ -216,12 +227,18 @@ class ConjGridExercise extends Exercise {
     required this.tenseLabel,
     required this.cells,
     required this.tiles,
+    this.inflection = false,
   });
   final String lemma;
   final String gloss;
+
+  /// The tense (for an inflection table: the table name; its cells are [GridCell.person]).
   final String tense;
   final String tenseLabel;
   final List<GridCell> cells;
+
+  /// An inflection table of a non-verb (`bello`: m.sg, f.sg, m.pl, f.pl), not a conjugation.
+  final bool inflection;
 
   /// Tap mode: a bank of forms (correct ones plus distractors), shuffled.
   final List<String> tiles;

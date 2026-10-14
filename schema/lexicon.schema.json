@@ -32,6 +32,27 @@
     "variants": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
     "inflections": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1},
                     "description": "inflected forms (plural, feminine, ...) used for sentence alignment; not compiled"},
-    "class": {"type": "string", "description": "verb class (also in the verbs record)"}
+    "class": {"type": "string", "description": "verb class (also in the verbs record)"},
+    "uncountable": {"type": "boolean", "description": "mass noun: no plural, no number table"},
+    "infl": {
+      "type": "object",
+      "description": "inflection tables (pipeline/pipeline/inflect.py): {table: {cell: {form, stem?, ending?, alts?, wrong?}}}; tables and cells declared in course.yaml inflection_tables; compiled into `inflections`",
+      "propertyNames": {"pattern": "^[a-z][a-z0-9_]*$"},
+      "additionalProperties": {
+        "type": "object", "minProperties": 1,
+        "propertyNames": {"pattern": "^[a-z0-9_]+([.][a-z0-9_]+)*$"},
+        "additionalProperties": {
+          "type": "object", "required": ["form"], "additionalProperties": false,
+          "properties": {
+            "form": {"type": "string", "minLength": 1},
+            "stem": {"type": "string"},
+            "ending": {"type": "string"},
+            "alts": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+            "wrong": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1},
+                      "description": "plausible wrong forms that are no word of the language (distractors)"}
+          }
+        }
+      }
+    }
   }
 }

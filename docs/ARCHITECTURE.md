@@ -38,6 +38,7 @@ The DDL in `schema/course_db.sql` is the authoritative definition. The key point
   - `{itemId}#prod`: produce, from meaning to target
   - `{itemId}#form:{tense}`: one verb's forms in one tense, for example `it:mangiare#form:presente`
   - `{itemId}#article`: a noun's article or gender (extends the spec for the de/het and article skills)
+  - `{itemId}#infl:{table}`: one inflection table of a non-verb, for example `it:gatto#infl:number` (plural), `it:bello#infl:agreement` (m.sg/f.sg/m.pl/f.pl), `nl:huis#infl:diminutive` (schema minor 1; see "Inflection tables")
 - **Skill id and unit id:** unique within a course. In the progress DB, skill-level records are keyed `{course}/{skillId}`.
 
 Which facets a skill trains is decided by the pipeline:
@@ -47,6 +48,24 @@ Which facets a skill trains is decided by the pipeline:
 | vocab | `#rec` and `#prod` for each item |
 | grammar with `verbs: {tense: T}` | `#form:T` for each verb (and `#rec` for verbs not yet seen elsewhere is NOT added; recognition belongs to vocab skills) |
 | grammar with `items:` and `facet: article` | `#article` for each noun |
+| grammar with `items:`, `facet: infl` and `inflections: {table: T}` | `#infl:T` for each item whose table T has at least two different forms (the query keeps only those) |
+| any `items:` skill with `inflections: {table: T}` and no `facet` | `#rec` and `#prod` for each item, plus `#infl:T` for each item that inflects |
+
+## Inflection tables (schema minor 1)
+
+Verbs have conjugation tables (`verb_forms`). Every other part of speech can have **inflection tables**, generic over the language (additive to `schema/course_db.sql`; `meta.schema_minor = 1`, the major version stays 1):
+
+```sql
+CREATE TABLE inflections (item_id, tbl, cell, form, stem, ending, alts, wrong, PRIMARY KEY (item_id, tbl, cell));
+-- meta 'inflection_tables': {table: {pos, cells (display order), base, agreement, title, labels}}
+```
+
+- **Tables are course data.** `course.yaml` declares them (`inflection_tables`), the pipeline fills them per item (`pipeline/pipeline/inflect.py`, one builder per language and table), the app reads the cells and labels from meta. Italian: `number` (`sg`/`pl`) and `agreement` (`m.sg`/`f.sg`/`m.pl`/`f.pl`, adjectives and determiners such as the possessives). Dutch: `number`, `agreement` (`base`/`infl`: *groot*/*grote*), `comparison` (`base`/`comparative`/`superlative`, imported but not trained yet) and `diminutive` (`sg`/`dim`). German and Slavic cases are the same shape (`nom.sg` … `gen.pl`).
+- **`base`** is the cell equal to the lemma: given, never asked by the ending picker.
+- **`agreement: true`** means the cell follows from the sentence (the adjective agrees with its noun), so in an aligned sentence every other cell of the item is a wrong option. Otherwise the cells differ in meaning (singular vs plural, a diminutive), and sentence exercises only offer the cell's **`wrong`** forms: plausible learner errors that the pipeline checked are no word of the language (`katen`, `huisen`, `wite`, `huistje`), so they can never be right against the translation.
+- **Token forms:** an aligned inflected non-verb has `Token.form = 'infl:{table}.{cell}'` (`infl:number.pl`, `infl:agreement.f.sg`). The `infl:` prefix keeps these apart from verb keys `'{tense}.{person}'` (tense keys never contain a colon); the cell is everything after the first dot. `Token.tense`/`person` are null for them. The pipeline sets an agreement cell only where its language rules found the controlling noun (Italian: the adjacent noun or the noun before a copula with a fixed gender and a known number; Dutch: the attributive rule de/het + (in)definite, or predicative at the clause end) and the attested form matches, so `Sono stanca` (the speaker's gender is unknown) gets no form.
+- **Verbs** stay in `verb_forms`; conceptually a verb table is the special case table = tense, cell = person.
+- **Old apps:** apps before 0.4.0 failed on `kind = 'infl'` (`FacetKind.parse`); from this version on the loader skips facet kinds it doesn't know. The compiler therefore writes `meta.min_app_version = 0.4.0` into packs that train inflection tables, and `publish` copies it into the pack index, so older apps are offered an app update instead of the pack.
 
 ## Exercise type ids
 
@@ -57,6 +76,8 @@ These ids appear in `course.yaml` (`exercises:`), in `skills.exercises`, in `rev
 `review_log.exercise_type` may also hold `test_out` (`kTestOutCreditType`): a **test-out credit**, not an answer. Passing a test out or a placement writes one per not-yet-learned facet of the credited skills (rating Easy, correct, mode `testOut` or `placement`). Credits graduate the facets (the skill is learned and what follows unlocks) and sync like any event; progression gives them no XP and doesn't count them as reviews. See `docs/engine.md`.
 
 It may also hold `override` (`kOverrideType`): an **answer override** ("I was right"). The learner says an answer graded wrong was right; the app appends an event on the same facet, later in time, with rating Good, `correct`, input `self`, `responseMs` 0 and the overridden event's id in `answer`. **Replay rule** (`applyOverrides` in `core/models/progress.dart`, applied by every replay: `ProgressRepo.record`/`importEvents`/`rebuildStates`, `InMemoryProgressStore`, progression's `LogReplay`): the override rewrites its target's rating and verdict in place, at the target's time, and is itself skipped. So the facet's state, XP and challenges are exactly those of a right answer, `rebuildStates()` stays exact, the override earns no XP and is no review, and the log stays append-only (it syncs like any event). An override whose target isn't in the log yet does nothing until it arrives; of several overrides of one event the last in `(at, id)` order wins. `openMistakes` treats an overridden mistake as resolved.
+
+It may also hold `story` (`kStoryReadType`): a **story read**, see "Stories" below.
 
 ## FSRS ratings
 
@@ -120,3 +141,13 @@ CREATE TABLE skill_features (skill_id TEXT NOT NULL, feature TEXT NOT NULL, PRIM
   - A template that finds no eligible sentence returns `canGenerate == false`, and another template is used. Packs without `base_features` are not gated.
   - Variety: real (Tatoeba) sentences come before generated ones (`src: claude-gen`, written by the pipeline where real ones are scarce) while unseen; sentences not seen recently are preferred (a 1000-id LRU per course in the settings key `engine.recent_sentences.{course}`), a session never repeats a sentence while the facet has others, and the previous exercise type is avoided when another type can serve the facet.
 - **Time adverbs** (`meta.time_adverbs`, optional JSON `{adverb: [tense, ...]}` from course.yaml `time_adverbs`): the tenses a time adverb fits. The transform exercise never rewrites a sentence with one into another tense.
+
+## Stories: graded reading per unit (added 14 Oct 2026)
+
+Each unit has 2–3 short stories (5–10 sentences) written by Claude (`src: claude-gen`) that use only what the learner has met by the end of that unit, with 3–5 multiple-choice comprehension questions.
+
+- **Source** (`content/{course}/stories/u{n}.yaml`, `pipeline/stories.py`; format and checks in `pipeline/README.md`): title, sentences with `tr.en` (+ `tr.nl` for Italian), questions, and at most one `new_words` lemma. The build aligns every text with the importer's tokenizer and aligner and fails when a word is neither aligned nor a name or number, an item is taught after the story's unit (except the one declared new word), a grammar feature is not allowed at the unit (base ∪ everything introduced by this or an earlier unit), a translation fails `trcheck.py`, or a question is malformed (3–4 options, distinct after folding case, punctuation and accents, the answer index in range, i18n complete). `python -m pipeline stories it [--show u3]` checks only the stories.
+- **Contract** (additive to `schema/course_db.sql`, schema version stays 1): `stories(id, unit_id, ord, title, title_tr, src, new_words)`, `story_sentences(story_id, idx, sentence_id)`, `story_questions(story_id, idx, prompt, prompt_tr, options, correct, explanation_tr)`. Story sentences are ordinary `sentences` + `tokens` + `sentence_features` rows with ids `st:{storyId}.{n}` (tap-for-translation works unchanged). `options` is a JSON array of target-language strings or source-language i18n objects; `prompt` is the optional target-language question. Packs without the tables load with no stories.
+- **App data**: `CourseData.stories` / `story(id)` (`core/models/story.dart`). The loader keeps story sentences **out of the exercise pool** (`sentencesFor`, `sentence`): their vocabulary rule (one new word per story) is looser than gating's and they depend on their context.
+- **Unlock**: a unit's stories open once every skill of the unit that trains facets is started (practiced or tested out), i.e. the learner has met the unit's words and grammar (`storyUnitsUnlocked`). A locked story can still be read as a preview (a note says so), like starting a locked skill anyway.
+- **Log convention**: finishing a story's questions appends one `ReviewEvent` with `exerciseType: 'story'` (`kStoryReadType`) on the story's own pseudo-facet `{course}:story:{storyId}#story` (`storyFacetId`): rating Good, `correct` true, input `tap`, mode `story`, `responseMs` the reading time, `answer` the score `'{correct}/{total}'`. The pseudo-facet is in no skill, so no lesson, map statistic, gating or real facet's FSRS state ever sees it (reading is no graded recall of any word, so it must not move word schedules). Replays fold it like any facet, so `rebuildStates()` stays exact without special cases, and it syncs and backs up like any event. Progression: light fixed XP (5 + 1 per correct answer on the first read, 2 per reread; docs/progression.md), so stories count toward the daily goal and streak; challenges count them only as practice days and XP. Which stories were read, and the best score, are derived from these events (`storyRecordsOf`).

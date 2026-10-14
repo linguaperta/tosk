@@ -19,6 +19,7 @@ class Pack:
     # (file, line number) per record, for error messages
     origins: dict[str, str] = field(default_factory=dict)
     raw_lines: list[tuple[str, str, int, dict]] = field(default_factory=list)  # (kind, file, lineno, record)
+    stories: list[dict] = field(default_factory=list)   # stories/*.yaml (stories.py)
 
     @property
     def code(self) -> str:
@@ -76,6 +77,8 @@ def load_pack(root: Path) -> Pack:
                         pack.verbs[rec.get("id")] = rec
                 else:
                     pack.sentences.append(rec)
+    from .stories import load_stories
+    pack.stories = load_stories(root)
     gdir = root / "grammar"
     if gdir.exists():
         for p in sorted(gdir.glob("*.md")):

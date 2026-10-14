@@ -1,4 +1,4 @@
-"""CLI: python -m pipeline {fetch,import,build,validate,flags} ..."""
+"""CLI: python -m pipeline {fetch,import,build,validate,gen,flags,publish} ..."""
 from __future__ import annotations
 
 import argparse
@@ -41,6 +41,19 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--out", help="context: write to this file")
     p.add_argument("--drop", action="store_true", help="refresh: drop sentences that no longer pass")
     p.add_argument("--quiet", action="store_true", help="gaps: summary lines only")
+    p.add_argument("--content-root")
+
+    p = sub.add_parser("stories", help="check the graded stories of it/nl (content/{course}/stories/*.yaml)")
+    p.add_argument("lang")
+    p.add_argument("--content-root")
+    p.add_argument("--show", help="print the alignment of the stories of this unit ('all' for every unit)")
+
+    p = sub.add_parser("publish", help="dist/index.json + a GitHub Release of the built packs (never hns)")
+    p.add_argument("langs", nargs="+")
+    p.add_argument("--tag", help="release tag (default packs-YYYYMMDD, UTC)")
+    p.add_argument("--dry-run", action="store_true", help="write dist/index.json and print the gh commands only")
+    p.add_argument("--min-app-version", help="oldest app version that can use these packs (default 0.3.0)")
+    p.add_argument("--repo", help="GitHub repository (default timoverlaan/tosk-data)")
     p.add_argument("--content-root")
 
     p = sub.add_parser("flags", help="triage exercise flags exported from the app")
@@ -87,9 +100,17 @@ def _run(a) -> int:
     if a.cmd == "gen":
         from .generate import run
         return run(a.action, a.lang, a.content_root, a)
+    if a.cmd == "stories":
+        from .stories import run_check
+        return run_check(a.lang, a.content_root, a.show)
     if a.cmd == "validate":
         from .build import validate_only
         return validate_only(a.langs, a.content_root, local=a.local)
+    if a.cmd == "publish":
+        from . import publish as pub
+        return pub.publish(a.langs, tag=a.tag, dry_run=a.dry_run, content_root=a.content_root,
+                           repo=a.repo or pub.DATA_REPO_SLUG,
+                           min_app_version=a.min_app_version or pub.DEFAULT_MIN_APP_VERSION)
     if a.cmd == "flags":
         from .flags import main_summarize
         return main_summarize(a.files, a.course, a.verdict, a.json)

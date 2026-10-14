@@ -51,6 +51,7 @@ Set<ExerciseType> productionTypes(FacetKind kind) => switch (kind) {
           ExerciseType.spotError,
         },
       FacetKind.article => const {ExerciseType.cloze, ExerciseType.spotError, ExerciseType.multipleChoice},
+      FacetKind.infl => const {ExerciseType.conjGrid, ExerciseType.cloze, ExerciseType.spotError, ExerciseType.conjPick},
     };
 
 /// Facets of [skillId], production first (prod, form, article), then
@@ -403,6 +404,11 @@ List<SessionSlot> leechLadder(CourseData course, SkillFacet f) {
       return [
         SessionSlot(f, only: mc),
         SessionSlot(f, only: const {ExerciseType.cloze, ExerciseType.spotError}),
+      ];
+    case FacetKind.infl:
+      return [
+        SessionSlot(f, only: const {ExerciseType.conjPick, ExerciseType.conjGrid}),
+        SessionSlot(f, only: const {ExerciseType.cloze, ExerciseType.spotError, ExerciseType.conjGrid}),
       ];
   }
 }

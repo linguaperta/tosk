@@ -71,6 +71,21 @@ class AppData {
     return info;
   }
 
+  /// Online packs (`GitHubPackSource`), or null when [packs] is local only.
+  RemotePackSource? get remote => switch (packs) {
+    final RemotePackSource r => r,
+    _ => null,
+  };
+
+  /// Downloads and installs [pack] (see [RemotePackSource.download]) and
+  /// evicts the cached course, so the next [openCourse] loads the new version.
+  Future<PackInfo> downloadPack(RemotePack pack, {DownloadProgress? onProgress, DownloadCancel? cancel}) async {
+    final r = remote ?? (throw StateError('Downloads are not available'));
+    final info = await r.download(pack, onProgress: onProgress, cancel: cancel);
+    evictCourse(info.id);
+    return info;
+  }
+
   /// Pull + merge + push the review log with [sync].
   Future<SyncReport> syncNow() =>
       syncReviewLog(backend: sync, store: progress, importer: progress);

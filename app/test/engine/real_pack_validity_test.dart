@@ -4,9 +4,11 @@
 library;
 
 import 'dart:io';
+import 'dart:math';
 
 import 'package:tosk/core/core.dart';
 import 'package:tosk/data/course/course_file.dart';
+import 'package:tosk/engine/engine.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'template_validity.dart';
@@ -37,6 +39,43 @@ void main() {
 
       test('every template is used somewhere in the course', () {
         expect(report.unusedLabels(_templates), isEmpty, reason: report.toString());
+      });
+
+      test('inflection skills get the inflection templates', () {
+        // skill -> templates that must serve its #infl facets
+        final expected = {
+          'it': {
+            'plurals': ['conj_pick', 'cloze', 'spot_error'],
+            'adjectives': ['conj_pick', 'conj_grid', 'cloze', 'spot_error'],
+            'possessives': ['conj_pick', 'conj_grid', 'cloze', 'spot_error'],
+          },
+          'nl': {
+            'plurals': ['conj_pick', 'cloze', 'spot_error'],
+            'adjectives': ['conj_pick', 'cloze', 'spot_error'],
+            'diminutives': ['conj_pick', 'cloze'],
+          },
+        }[id]!;
+        final tpls = validityTemplates();
+        final missing = <String>[];
+        for (final e in expected.entries) {
+          final skill = course.skill(e.key)!;
+          final facets = [for (final f in course.skillFacets(skill.id)) if (f.kind == FacetKind.infl) f];
+          expect(facets, isNotEmpty, reason: '${e.key} has no #infl facets');
+          for (final label in e.value) {
+            final t = tpls[label]!;
+            final ok = facets.any((f) => t.canGenerate(
+                  f,
+                  GenContext(
+                    course: course,
+                    options: const SessionOptions(sourceLang: 'en'),
+                    random: Random(1),
+                    skill: skill,
+                  ),
+                ));
+            if (!ok) missing.add('${e.key} × $label');
+          }
+        }
+        expect(missing, isEmpty);
       });
 
       test('every skill has at least 3 applicable templates', () {

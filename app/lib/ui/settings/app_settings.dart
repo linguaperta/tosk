@@ -22,6 +22,7 @@ class AppSettings {
     this.leechLapses = 4,
     this.coursesAdded,
     this.soundEffects = true,
+    this.autoCheckCourseUpdates = true,
   });
 
   /// Null until the user picks a course; the first available course is used then.
@@ -48,6 +49,9 @@ class AppSettings {
   /// default; independent of reduce motion).
   final bool soundEffects;
 
+  /// Check for course updates once a day on start (on by default). Never downloads by itself.
+  final bool autoCheckCourseUpdates;
+
   /// Black & white (e-ink) display.
   bool get bw => display == DisplayMode.bw;
 
@@ -67,6 +71,7 @@ class AppSettings {
     int? leechLapses,
     List<String>? coursesAdded,
     bool? soundEffects,
+    bool? autoCheckCourseUpdates,
   }) => AppSettings(
     courseId: courseId ?? this.courseId,
     sourceLang: sourceLang ?? this.sourceLang,
@@ -79,6 +84,7 @@ class AppSettings {
     leechLapses: leechLapses ?? this.leechLapses,
     coursesAdded: coursesAdded ?? this.coursesAdded,
     soundEffects: soundEffects ?? this.soundEffects,
+    autoCheckCourseUpdates: autoCheckCourseUpdates ?? this.autoCheckCourseUpdates,
   );
 
   /// Reads every setting from [store], falling back to defaults for missing or unknown values.
@@ -95,6 +101,7 @@ class AppSettings {
     final leech = int.tryParse(await store.getSetting(SettingKeys.leechLapses) ?? '');
     final added = await store.getSetting(SettingKeys.coursesAdded);
     final sounds = await store.getSetting(SettingKeys.soundEffects);
+    final autoCheck = await store.getSetting(SettingKeys.autoCheckCourseUpdates);
     return AppSettings(
       courseId: (course == null || course.isEmpty) ? null : course,
       sourceLang: (lang == null || lang.isEmpty) ? d.sourceLang : lang,
@@ -112,6 +119,7 @@ class AppSettings {
                 if (id.trim().isNotEmpty) id.trim(),
             ],
       soundEffects: sounds != 'false',
+      autoCheckCourseUpdates: autoCheck != 'false',
     );
   }
 
@@ -132,6 +140,11 @@ class AppSettings {
     await put(SettingKeys.leechLapses, '$leechLapses', old == null ? null : '${old.leechLapses}');
     await put(SettingKeys.coursesAdded, coursesAdded?.join(','), old?.coursesAdded?.join(','));
     await put(SettingKeys.soundEffects, '$soundEffects', old == null ? null : '${old.soundEffects}');
+    await put(
+      SettingKeys.autoCheckCourseUpdates,
+      '$autoCheckCourseUpdates',
+      old == null ? null : '${old.autoCheckCourseUpdates}',
+    );
   }
 
   @override
@@ -147,7 +160,8 @@ class AppSettings {
       other.defaultLength == defaultLength &&
       other.leechLapses == leechLapses &&
       other.coursesAdded?.join(',') == coursesAdded?.join(',') &&
-      other.soundEffects == soundEffects;
+      other.soundEffects == soundEffects &&
+      other.autoCheckCourseUpdates == autoCheckCourseUpdates;
 
   @override
   int get hashCode => Object.hash(
@@ -162,6 +176,7 @@ class AppSettings {
     leechLapses,
     coursesAdded?.join(','),
     soundEffects,
+    autoCheckCourseUpdates,
   );
 }
 

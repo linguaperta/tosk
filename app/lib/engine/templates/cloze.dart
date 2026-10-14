@@ -9,6 +9,7 @@ import '../strings.dart';
 import '../template.dart';
 import '../text/normalize.dart';
 import 'alterations.dart';
+import 'inflection.dart';
 
 /// A gap in a real sentence at an aligned token.
 class _Gap {
@@ -66,7 +67,7 @@ class ClozeTemplate extends ExerciseTemplate {
   ExerciseType get type => ExerciseType.cloze;
 
   @override
-  Set<FacetKind> get kinds => const {FacetKind.form, FacetKind.prod, FacetKind.article};
+  Set<FacetKind> get kinds => const {FacetKind.form, FacetKind.prod, FacetKind.article, FacetKind.infl};
 
   @override
   bool canGenerate(SkillFacet facet, GenContext ctx) =>
@@ -74,7 +75,7 @@ class ClozeTemplate extends ExerciseTemplate {
       ctx.memo('cloze/$optionCount|${facet.facetId}|${ctx.lang}',
           () => _gaps(facet, ctx, shuffle: false, limit: 1).isNotEmpty);
 
-  int _minDistractors(SkillFacet f) => f.kind == FacetKind.article ? 1 : 2;
+  int _minDistractors(SkillFacet f) => f.kind == FacetKind.article || f.kind == FacetKind.infl ? 1 : 2;
 
   List<_Gap> _gaps(SkillFacet facet, GenContext ctx, {bool shuffle = true, int limit = 1 << 30}) {
     final item = ctx.course.item(facet.itemId);
@@ -117,10 +118,46 @@ class ClozeTemplate extends ExerciseTemplate {
           if (out.length >= limit) break;
           add(_articleGap(o, item, ctx));
         }
+      case FacetKind.infl:
+        final spec = inflTableOf(ctx, facet);
+        // Inflection facets often have few sentences, and the ending picker
+        // can always serve them: no sentence repeated in a session or soon after.
+        final occ = [
+          for (final o in inflOccurrences(ctx.index, facet.itemId, facet.table!))
+            if (inflAskable(spec, o.cell) && !(shuffle && ctx.shownRecently(o.sentence.id))) o,
+        ];
+        for (final o in order(occ, (o) => o.sentence)) {
+          if (out.length >= limit) break;
+          add(_inflGap(o, item, spec, ctx));
+        }
       case FacetKind.rec:
         break;
     }
     return out;
+  }
+
+  /// Gap over an inflected noun or adjective (`#infl`): wrong options from
+  /// [inflSentenceWrongs]. The hint is the lemma, plus the cell for a table
+  /// whose cells differ in meaning (`gatto (plural)`): agreement follows from
+  /// the sentence, the plural or the diminutive does not.
+  _Gap? _inflGap(InflOccurrence o, Item item, InflectionTable? spec, GenContext ctx) {
+    final picker = OptionPicker(forbidden: [...o.cell.accepted, o.text], max: optionCount - 1);
+    for (final w in inflSentenceWrongs(ctx.course, o)) {
+      picker.add(w);
+    }
+    final hint = spec == null || spec.agreement
+        ? item.lemma
+        : '${item.lemma} (${spec.cellLabel(o.cell.cell, ctx.lang)})';
+    return _Gap(
+      sentence: o.sentence,
+      from: o.pos,
+      to: o.pos,
+      expected: o.text,
+      accepted: o.cell.accepted,
+      distractors: picker.picked,
+      instructionKey: 'cloze.form',
+      hint: hint,
+    );
   }
 
   /// Gap over a verb form occurrence for a `#form` facet.

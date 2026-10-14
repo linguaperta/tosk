@@ -25,7 +25,7 @@ from functools import lru_cache
 
 from jsonschema import Draft202012Validator
 
-from . import features, query
+from . import features, inflect, query
 from .compile import note_texts
 from .content import Pack
 from .paths import SCHEMA_DIR
@@ -227,6 +227,52 @@ def validate(pack: Pack, check_notes: bool = True) -> list[str]:
                 keys.add(f"{tense}.{person}")
         table_keys[vid] = keys
 
+    # ---- inflection tables (inflect.py)
+    spec = c.get("inflection_tables") or {}
+    for name, t in sorted(spec.items()):
+        if t.get("base") and t["base"] not in t["cells"]:
+            errors.append(f"{code}: inflection table {name}: base {t['base']!r} is not one of its cells")
+        for k in t.get("labels") or {}:
+            if k not in t["cells"]:
+                errors.append(f"{code}: inflection table {name}: label for unknown cell {k!r}")
+    infl_accept: dict[tuple[str, str], set[str]] = {}     # (item, 'infl:table.cell') -> accepted forms
+    for it in pack.items:
+        for table, cells in (it.get("infl") or {}).items():
+            ts = spec.get(table)
+            where = f"{code}: item {it['id']} table {table}"
+            if ts is None:
+                errors.append(f"{where}: table not declared in course.yaml inflection_tables")
+                continue
+            if it["pos"] not in ts["pos"]:
+                errors.append(f"{where}: a {it['pos']} cannot have this table (pos {ts['pos']})")
+            if set(cells) != set(ts["cells"]):
+                errors.append(f"{where}: cells {sorted(cells)} != declared {ts['cells']}")
+            every = {f.lower() for v in cells.values() for f in [v["form"], *(v.get("alts") or [])]}
+            for cell, v in cells.items():
+                stem, ending = v.get("stem"), v.get("ending")
+                if (stem is None) != (ending is None):
+                    errors.append(f"{where}.{cell}: stem and ending must both be set or both absent")
+                elif stem is not None and stem + ending != v["form"]:
+                    errors.append(f"{where}.{cell}: stem+ending {stem!r}+{ending!r} != form {v['form']!r}")
+                if v["form"] in (v.get("alts") or []):
+                    errors.append(f"{where}.{cell}: alts repeat the form")
+                bad = sorted(w for w in v.get("wrong") or [] if w.lower() in every)
+                if bad:
+                    errors.append(f"{where}.{cell}: wrong forms {bad} are forms of the table")
+                infl_accept[(it["id"], inflect.infl_key(table, cell))] = {
+                    inflect._norm(f) for f in [v["form"], *(v.get("alts") or [])]}
+    for ui, unit, si, s in pack.skills():
+        tables = query.infl_tables(s)
+        if s.get("facet") == "infl" and not tables:
+            errors.append(f"{code}: skill {s['id']} has facet infl but no inflections table")
+        for t in tables:
+            if t not in spec:
+                errors.append(f"{code}: skill {s['id']} trains undeclared inflection table {t!r}")
+        if tables and s.get("facet") != "infl":
+            ids = query.resolve(s, pack.items, pack.verbs, persons)
+            if not any(query.inflects(items[i], t) for i in ids for t in tables):
+                errors.append(f"{code}: skill {s['id']}: no item has an inflecting {tables} table")
+
     # ---- sentences
     for s in pack.sentences:
         toks = s["tokens"]
@@ -238,7 +284,13 @@ def validate(pack: Pack, check_notes: bool = True) -> list[str]:
             if lex and lex not in items:
                 errors.append(f"{code}: sentence {s['id']} token {i} {t['t']!r}: unknown lex {lex}")
             form = t.get("form")
-            if form and lex in items:
+            if form and lex in items and form.startswith(inflect.INFL_PREFIX):
+                acc = infl_accept.get((lex, form))
+                if acc is None:
+                    errors.append(f"{code}: sentence {s['id']} token {i} {t['t']!r}: {lex} has no form {form}")
+                elif inflect._norm(t["t"]) not in acc:
+                    errors.append(f"{code}: sentence {s['id']} token {i} {t['t']!r} is no form of {lex} {form}")
+            elif form and lex in items:
                 if form not in table_keys.get(lex, set()):
                     errors.append(f"{code}: sentence {s['id']} token {i} {t['t']!r}: {lex} has no form {form}")
         if s.get("unit") and s["unit"] not in unit_ids:
@@ -260,4 +312,8 @@ def validate(pack: Pack, check_notes: bool = True) -> list[str]:
         feats = tagger.tag(s["tokens"])
         for p in graph.problems(s["tokens"], feats):
             errors.append(f"{code}: sentence {s['id']} {s['text']!r}: {p}")
+
+    # ---- graded stories (stories.py)
+    from .stories import validate_stories
+    errors += validate_stories(pack)
     return errors

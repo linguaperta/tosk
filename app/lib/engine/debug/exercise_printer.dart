@@ -19,7 +19,9 @@ String exercisePrompt(Exercise e) {
     FlashcardExercise() => e.front,
     MultipleChoiceExercise() => '${e.prompt}${e.hint == null ? '' : ' (${e.hint})'} — ${e.options.join(' / ')}',
     MatchPairsExercise() => '${e.left.join(', ')} ↔ ${e.right.join(', ')}',
-    ConjPickExercise() => '${e.lemma} (${e.personLabel}, ${e.tenseLabel}): ${e.stem}___ — ${e.endings.join(' / ')}',
+    ConjPickExercise() => e.inflection
+        ? '${e.lemma} (${e.personLabel}): ${e.stem}___ — ${e.endings.join(' / ')}'
+        : '${e.lemma} (${e.personLabel}, ${e.tenseLabel}): ${e.stem}___ — ${e.endings.join(' / ')}',
     ConjGridExercise() => '${e.lemma} (${e.tenseLabel}): ${[
         for (final c in e.cells) '${c.personLabel} ${c.prefilled ? c.expected : '___'}',
       ].join(', ')}',
@@ -52,7 +54,9 @@ String formatExercise(Exercise e) {
         b.writeln('  ${e.left[i]}  =  ${e.right[e.solution[i]!]}');
       }
     case ConjPickExercise():
-      b.writeln('  ${e.lemma} (${e.gloss}) — ${e.personLabel}, ${e.tenseLabel}');
+      b.writeln(e.inflection
+          ? '  ${e.lemma} (${e.gloss}) — ${e.personLabel}'
+          : '  ${e.lemma} (${e.gloss}) — ${e.personLabel}, ${e.tenseLabel}');
       b.writeln('  ${e.stem}___   ${opts(e.endings, e.correctIndex)}   => ${e.fullForm}');
     case ConjGridExercise():
       b.writeln('  ${e.lemma} (${e.gloss}) — ${e.tenseLabel}');

@@ -44,3 +44,36 @@ adb install -r build/app/outputs/flutter-apk/app-release.apk
 ```
 
 `adb` is in `C:\Users\timo\dev\android\platform-tools`. On the Boox, enable USB debugging in developer options, or copy the APK over and open it.
+
+## Publishing course packs
+
+Course packs ship to the app without an app update: they are GitHub Release assets of the public content repo [`timoverlaan/tosk-data`](https://github.com/timoverlaan/tosk-data) (CC BY-SA 4.0). The app reads the release index from a **stable URL**:
+
+```
+https://github.com/timoverlaan/tosk-data/releases/latest/download/index.json
+```
+
+GitHub redirects `releases/latest/download/<asset>` to that asset of the newest release (not a draft, not a pre-release), so publishing a new release is all it takes. Each course in `index.json` points at its own asset, `https://github.com/timoverlaan/tosk-data/releases/download/<tag>/<id>.sqlite`, so an older index keeps working.
+
+Once per machine, log the GitHub CLI in (the user does this; the pipeline never stores a token):
+
+```bash
+gh auth login        # GitHub.com, HTTPS, log in with a browser; needs write access to tosk-data
+gh auth status
+```
+
+Then, from the repo root with the pipeline venv active:
+
+```bash
+python -m pipeline build it nl --install          # packs -> tosk-data/dist (and app/assets/courses)
+python -m pipeline publish it nl --dry-run        # writes dist/index.json, prints the gh commands
+python -m pipeline publish it nl                  # gh auth status + gh release create packs-YYYYMMDD ... --latest
+cd ../tosk-data && git add dist && git commit -m "Packs packs-YYYYMMDD" && git push
+```
+
+- `publish` reads every pack's own `meta` (id, version, title, description, target and source languages, schema version, unverified), computes size and sha256, and writes `dist/index.json` with `index_version`, `generated_at`, `tag` and one entry per course. The default tag is `packs-YYYYMMDD` (UTC); pass `--tag packs-20261014-2` for a second release on one day (tags must be new).
+- `min_app_version` defaults to `0.3.0`, the oldest app that understands today's packs. A pack that needs newer app code gets `--min-app-version X.Y.Z` (or a `min_app_version` key in its meta); older apps then show "needs a newer version of the app" instead of a download.
+- A pack built with a new course-DB schema **major** version is never offered to older apps (they compare the major with `kCourseDbSchemaVersion`). Minor bumps (`1.1`) are additive and download fine.
+- **Sarnami (`hns`) is refused, always** (`RestrictedContentError`, exit code 2): it is all rights reserved and stays local (docs/sarnami.md). The release asset list is built from the course ids you pass, never from a glob over `dist/`.
+- `--repo owner/name` publishes elsewhere (a fork, for testing); the app's index URL can be changed in the debug screen (Settings → Debug → cloud icon, setting `packs.index_url`).
+- To withdraw a broken release, delete it (`gh release delete <tag> --repo timoverlaan/tosk-data`); `latest` then points at the previous one. Apps that already installed the broken pack keep it until a newer version is published, so prefer publishing a fixed version with a higher `version`.

@@ -17,7 +17,7 @@ CREATE TABLE meta (
   value TEXT NOT NULL
 );
 -- Required keys (values are text; JSON where noted):
---   schema_version   '1'
+--   schema_version   '1'  (major: an app refuses packs whose major version it doesn't know)
 --   course_id        'it' | 'nl' | 'hns'
 --   version          semver of the pack, e.g. '1.0.0'
 --   title            i18n JSON, e.g. {"en":"Italian","nl":"Italiaans"}
@@ -31,6 +31,22 @@ CREATE TABLE meta (
 --   built_at         ISO-8601 UTC timestamp
 --   attribution      text/markdown attribution for the content sources
 -- Optional keys:
+--   schema_minor     '1'  additive revision within the major version (absent = 0). 1 = inflection
+--                    tables: the `inflections` table, meta.inflection_tables, facet kind 'infl' and
+--                    token forms 'infl:{table}.{cell}'. Apps skip facet kinds they don't know.
+--   min_app_version  semver of the oldest app that can use the pack (publish.py copies it into the
+--                    index); set by the compiler to '0.4.0' when the pack trains inflection tables
+--                    (older apps failed on facet kind 'infl'), or from course.yaml min_app_version
+--   inflection_tables JSON {table: {"pos": [...], "cells": [...], "base": cell?, "agreement": bool,
+--                    "title": i18n?, "labels": {cell: i18n}?}}: the non-verb inflection tables of
+--                    the course, cells in display order (see `inflections`). `base` is the cell
+--                    that equals the lemma (shown as the given, never asked by the ending picker).
+--                    `agreement`: the cell is chosen by grammatical agreement (adjective with its
+--                    noun), so in an aligned sentence every other cell of the table is wrong;
+--                    otherwise the cells differ in meaning (singular/plural) and sentence
+--                    exercises only offer `wrong` forms.
+--                    e.g. {"number":{"pos":["noun"],"cells":["sg","pl"],"base":"sg","agreement":false,
+--                    "labels":{"pl":{"en":"plural","nl":"meervoud"}}}}
 --   person_labels    JSON {person: i18n} when the person key isn't self-explanatory
 --   description      i18n JSON
 --   base_features    JSON array of grammar features allowed from the start, e.g. ["tense:presente"]
@@ -119,6 +135,24 @@ CREATE TABLE verb_forms (
 );
 CREATE INDEX verb_forms_form ON verb_forms(form);
 
+-- Inflection tables of non-verbs (schema_minor 1; docs/ARCHITECTURE.md, "Inflection tables"):
+-- a noun's number (sg/pl), an adjective's agreement (m.sg/f.sg/m.pl/f.pl; nl base/infl), a Dutch
+-- diminutive, later cases (nom.sg, gen.pl, ...). Verbs keep `verb_forms` (a verb table is the
+-- special case table = tense, cell = person). Cells and their order: meta.inflection_tables.
+CREATE TABLE inflections (
+  item_id  TEXT NOT NULL REFERENCES items(id),
+  tbl      TEXT NOT NULL,            -- table name, a key of meta.inflection_tables ('number','agreement')
+  cell     TEXT NOT NULL,            -- cell key of that table ('sg','pl','m.sg','f.pl','infl', ...)
+  form     TEXT NOT NULL,            -- the canonical form ('gatti')
+  stem     TEXT,                     -- stem for the ending picker ('gatt'); NULL if not meaningful
+  ending   TEXT,                     -- ending ('i'); stem||ending == form when both non-NULL
+  alts     TEXT NOT NULL DEFAULT '[]', -- JSON array of accepted alternative forms ('kinders')
+  wrong    TEXT NOT NULL DEFAULT '[]', -- JSON array of plausible WRONG forms that are no word of the
+                                       -- language ('katen', 'wite'): distractors for sentence exercises
+  PRIMARY KEY (item_id, tbl, cell)
+);
+CREATE INDEX inflections_form ON inflections(form);
+
 CREATE TABLE sentences (
   id      TEXT PRIMARY KEY,          -- 's:{tatoebaId}' or another stable id
   text    TEXT NOT NULL,             -- target-language sentence
@@ -135,7 +169,10 @@ CREATE TABLE tokens (
   pre         TEXT NOT NULL DEFAULT '', -- whitespace before this token (usually ' ' or '')
   is_word     INTEGER NOT NULL DEFAULT 1, -- 0 for punctuation
   lex         TEXT,                  -- item id, if aligned
-  form        TEXT,                  -- '{tense}.{person}' for verb forms, e.g. 'presente.noi'; NULL otherwise
+  form        TEXT,                  -- '{tense}.{person}' for verb forms, e.g. 'presente.noi';
+                                     -- 'infl:{table}.{cell}' for inflected non-verbs, e.g. 'infl:number.pl',
+                                     -- 'infl:agreement.f.sg' (the prefix keeps them apart from tense keys;
+                                     -- the cell is everything after the first '.'); NULL otherwise
   PRIMARY KEY (sentence_id, idx)
 );
 CREATE INDEX tokens_lex ON tokens(lex, form);
@@ -154,13 +191,14 @@ CREATE INDEX skill_items_item ON skill_items(item_id);
 --   '{itemId}#prod'         produce (meaning -> target)
 --   '{itemId}#form:{tense}' a verb's forms in one tense
 --   '{itemId}#article'      a noun's article/gender
+--   '{itemId}#infl:{table}' a non-verb's inflection table (schema_minor 1), e.g. 'it:gatto#infl:number'
 -- A facet may belong to several skills; progress is per facet, so practice counts everywhere.
 CREATE TABLE skill_facets (
   skill_id TEXT NOT NULL REFERENCES skills(id),
   facet_id TEXT NOT NULL,
   item_id  TEXT NOT NULL REFERENCES items(id),
-  kind     TEXT NOT NULL CHECK (kind IN ('rec','prod','form','article')),
-  tense    TEXT,                     -- for kind = 'form'
+  kind     TEXT NOT NULL CHECK (kind IN ('rec','prod','form','article','infl')),
+  tense    TEXT,                     -- kind 'form': the tense; kind 'infl': the table name
   ord      INTEGER NOT NULL,         -- introduction order (matches skill_items.ord of the item)
   PRIMARY KEY (skill_id, facet_id)
 );
@@ -180,4 +218,38 @@ CREATE TABLE skill_features (
   skill_id TEXT NOT NULL REFERENCES skills(id),
   feature  TEXT NOT NULL,
   PRIMARY KEY (skill_id, feature)
+);
+
+-- Graded mini-stories (docs/ARCHITECTURE.md, "Stories"; additive, schema version stays 1).
+-- A story uses only the vocabulary taught up to its unit (at most one later word, listed in
+-- new_words) and only the grammar features allowed there; the app unlocks it once its unit is
+-- worked through. Packs without stories have empty tables (packs built before them have none).
+CREATE TABLE stories (
+  id        TEXT PRIMARY KEY,          -- 'u1-bar', permanent within the course
+  unit_id   TEXT NOT NULL REFERENCES units(id),
+  ord       INTEGER NOT NULL,          -- order within the unit
+  title     TEXT NOT NULL,             -- target-language title
+  title_tr  TEXT NOT NULL,             -- i18n JSON
+  src       TEXT,                      -- 'claude-gen (story)'
+  new_words TEXT NOT NULL DEFAULT '[]' -- JSON array of item ids taught after the unit (glossed in the reader)
+);
+-- The story's sentences in reading order. They live in sentences + tokens (ids 'st:{storyId}.{n}',
+-- src 'claude-gen (story: {storyId})', tagged in sentence_features), so every word is tappable;
+-- the app keeps them out of the exercise pool.
+CREATE TABLE story_sentences (
+  story_id    TEXT NOT NULL REFERENCES stories(id),
+  idx         INTEGER NOT NULL,        -- 0-based
+  sentence_id TEXT NOT NULL REFERENCES sentences(id),
+  PRIMARY KEY (story_id, idx)
+);
+-- Comprehension questions (multiple choice, exactly one correct option).
+CREATE TABLE story_questions (
+  story_id       TEXT NOT NULL REFERENCES stories(id),
+  idx            INTEGER NOT NULL,     -- 0-based
+  prompt         TEXT,                 -- the question in the target language, or NULL
+  prompt_tr      TEXT NOT NULL,        -- i18n JSON: the question in the source language
+  options        TEXT NOT NULL,        -- JSON array: target-language strings or i18n objects (source language)
+  correct        INTEGER NOT NULL,     -- index into options
+  explanation_tr TEXT NOT NULL DEFAULT '{}', -- i18n JSON: optional explanation shown after answering
+  PRIMARY KEY (story_id, idx)
 );
