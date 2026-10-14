@@ -43,6 +43,11 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--quiet", action="store_true", help="gaps: summary lines only")
     p.add_argument("--content-root")
 
+    p = sub.add_parser("stories", help="check the graded stories of it/nl (content/{course}/stories/*.yaml)")
+    p.add_argument("lang")
+    p.add_argument("--content-root")
+    p.add_argument("--show", help="print the alignment of the stories of this unit ('all' for every unit)")
+
     p = sub.add_parser("publish", help="dist/index.json + a GitHub Release of the built packs (never hns)")
     p.add_argument("langs", nargs="+")
     p.add_argument("--tag", help="release tag (default packs-YYYYMMDD, UTC)")
@@ -95,6 +100,9 @@ def _run(a) -> int:
     if a.cmd == "gen":
         from .generate import run
         return run(a.action, a.lang, a.content_root, a)
+    if a.cmd == "stories":
+        from .stories import run_check
+        return run_check(a.lang, a.content_root, a.show)
     if a.cmd == "validate":
         from .build import validate_only
         return validate_only(a.langs, a.content_root, local=a.local)

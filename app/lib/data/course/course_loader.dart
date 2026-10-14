@@ -158,7 +158,8 @@ CourseRepo loadCourseRepoFromSqlite(CommonDatabase db) {
   // Grammar gating tables (additive in schema 1; packs built before them have none).
   final tables = {
     for (final r in db.select(
-      "SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('sentence_features', 'skill_features', 'inflections')",
+      "SELECT name FROM sqlite_master WHERE type = 'table' "
+      "AND name IN ('sentence_features', 'skill_features', 'inflections', 'stories', 'story_sentences', 'story_questions')",
     ).rows)
       r[0] as String,
   };
@@ -190,6 +191,11 @@ CourseRepo loadCourseRepoFromSqlite(CommonDatabase db) {
           wrong: _stringList(r[7]),
         ),
   ];
+  // Graded stories (additive in schema 1; packs built before them have no tables).
+  // Their sentences live in `sentences` but stay out of the exercise pool.
+  final hasStories = tables.containsAll(const ['stories', 'story_sentences', 'story_questions']);
+  final stories = hasStories ? _loadStories(db, {for (final s in sentences) s.id: s}) : const <Story>[];
+  final storySentenceIds = {for (final st in stories) for (final s in st.sentences) s.id};
 
   final data = InMemoryCourseData(
     meta: meta,
@@ -200,7 +206,10 @@ CourseRepo loadCourseRepoFromSqlite(CommonDatabase db) {
     skillFacets: skillFacets,
     verbs: verbs,
     verbForms: verbForms,
-    sentences: sentences,
+    sentences: storySentenceIds.isEmpty
+        ? sentences
+        : [for (final s in sentences) if (!storySentenceIds.contains(s.id)) s],
+    stories: stories,
     notes: notes,
     sentenceFeatures: sentenceFeatures,
     skillFeatures: skillFeatures,
@@ -215,7 +224,7 @@ CourseRepo loadCourseRepoFromSqlite(CommonDatabase db) {
       items: items.length,
       verbs: verbs.length,
       verbForms: verbForms.length,
-      sentences: sentences.length,
+      sentences: sentences.length - storySentenceIds.length,
       tokens: tokenCount,
       skillFacets: skillFacets.length,
       notes: noteCount,
@@ -279,6 +288,52 @@ CourseMeta parseCourseMeta(Map<String, String> raw) {
   } on TypeError catch (e) {
     throw CourseFormatException('Malformed meta JSON: $e');
   }
+}
+
+/// Stories with their sentences (from [sentencesById]) and questions.
+List<Story> _loadStories(CommonDatabase db, Map<String, Sentence> sentencesById) {
+  final sentenceIds = <String, List<String>>{};
+  for (final r in db.select('SELECT story_id, sentence_id FROM story_sentences ORDER BY story_id, idx').rows) {
+    (sentenceIds[r[0] as String] ??= []).add(r[1] as String);
+  }
+  final questions = <String, List<StoryQuestion>>{};
+  for (final r in db.select(
+    'SELECT story_id, prompt, prompt_tr, options, correct, explanation_tr FROM story_questions ORDER BY story_id, idx',
+  ).rows) {
+    final raw = _json(r[3]);
+    final options = [
+      if (raw is List)
+        for (final o in raw)
+          if (o is Map) StoryOption.translated({for (final e in o.entries) '${e.key}': '${e.value}'})
+          else StoryOption.target('$o'),
+    ];
+    final correct = r[4] as int;
+    if (correct < 0 || correct >= options.length) continue; // malformed: skip the question
+    (questions[r[0] as String] ??= []).add(StoryQuestion(
+      prompt: r[1] as String?,
+      promptTr: _i18n(r[2]),
+      options: options,
+      correct: correct,
+      explanationTr: _i18n(r[5]),
+    ));
+  }
+  return [
+    for (final r in db.select('SELECT id, unit_id, ord, title, title_tr, src, new_words FROM stories').rows)
+      Story(
+        id: r[0] as String,
+        unitId: r[1] as String,
+        ord: r[2] as int,
+        title: r[3] as String,
+        titleTr: _i18n(r[4]),
+        src: r[5] as String?,
+        newWords: _stringList(r[6]),
+        sentences: [
+          for (final id in sentenceIds[r[0] as String] ?? const <String>[])
+            ?sentencesById[id],
+        ],
+        questions: questions[r[0] as String] ?? const [],
+      ),
+  ];
 }
 
 // ------------------------------------------------------------------- JSON helpers

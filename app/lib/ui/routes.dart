@@ -22,6 +22,15 @@ abstract final class Routes {
   /// Lookup with a prefilled search.
   static String lookup(String query) => Uri(path: reference, queryParameters: {'q': query}).toString();
 
+  /// Stories inside the practice tab.
+  static const stories = '/practice?tab=stories';
+
+  /// The story reader (opens over anything, full screen).
+  static String story(String storyId) => '/story/${Uri.encodeComponent(storyId)}';
+
+  /// A unit's stories, as a bottom sheet over the map.
+  static String unitStories(String unitId) => '/stories/unit/${Uri.encodeComponent(unitId)}';
+
   static const settings = '/settings';
   static const progress = '/progress';
   static const verbs = '/progress/verbs';

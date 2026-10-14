@@ -107,6 +107,9 @@ class ReviewEvent {
   /// An answer override rather than an answer (see [kOverrideType]).
   bool get isOverride => exerciseType == kOverrideType;
 
+  /// A story read rather than an answer (see `kStoryReadType` in story.dart).
+  bool get isStory => exerciseType == 'story';
+
   /// For an override, the id of the event it corrects.
   String? get overriddenId => isOverride ? answer : null;
 
