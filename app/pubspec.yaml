@@ -74,6 +74,11 @@ dev_dependencies:
 dependency_overrides:
   flutter_secure_storage_windows:
     path: packages/secure_storage_windows_dart
+  # flutter_local_notifications' Windows part builds a C++ plugin that needs
+  # ATL (missing on this toolchain); reminders are Android/iOS/macOS only, so
+  # a copy without the native part (registerWith is a no-op) stands in.
+  flutter_local_notifications_windows:
+    path: packages/local_notifications_windows_noop
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
