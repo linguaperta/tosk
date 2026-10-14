@@ -63,7 +63,8 @@ These ids appear in `course.yaml` (`exercises:`), in `skills.exercises`, in `rev
 ```
 core/          domain models + interfaces shared by every layer (no Flutter imports, no drift)
   models/      Course, Unit, Skill, Item, Verb, VerbForm, Sentence, Token, FacetId, ...
-  interfaces/  PackSource, SyncBackend, AnswerInput, Explainer (+ MistakeContext)
+  interfaces/  PackSource, SyncBackend, AnswerInput, Explainer (+ ExplainContext, MistakeContext),
+               ExplanationCache, FlagStore (feedback.dart)
 data/          drift databases + repositories (Phase 2)
   course/      CourseDb (read-only), CourseRepo
   progress/    ProgressDb, ProgressRepo, settings
@@ -71,12 +72,15 @@ data/          drift databases + repositories (Phase 2)
   packs/       LocalPackSource (+ asset bootstrap)
 engine/        exercise engine, pure Dart (Phase 3): templates, distractors, normalization, sessions, grading
 progression/   XP, levels, tiers, streaks, challenges, combos, pure functions over the review log (Phase 5)
-ui/            Flutter screens and widgets (Phase 4): map, lesson player, lab, non-stop, settings, debug
+ai/            AI explanations (v0.3): ClaudeExplainer, OpenAiExplainer, CachingExplainer, prompts, AiConfig, SecretStore
+feedback/      exercise snapshots, answer context, flags JSON Lines export (v0.3)
+audio/         SoundService over audioplayers (v0.3); the sounds come from tool/make_sounds.py
+ui/            Flutter screens and widgets (Phase 4): map, lesson player, lab, non-stop, settings, debug, ai/, feedback/
   theme/       skins (default skin now, forest later)
 app.dart, main.dart, providers.dart (Riverpod wiring)
 ```
 
-Dependency direction: `ui → engine, progression, data → core`. `engine` and `progression` depend only on `core`, with data access through small interfaces such as `CourseData` and `ProgressReader`. That keeps them pure Dart and testable with in-memory fixtures. `data` implements those interfaces.
+Dependency direction: `ui → engine, progression, data → core`. `ai`, `feedback` and `audio` sit beside `data`: they use `core`, and `feedback` also uses the engine's `exercisePrompt`. `docs/feedback.md` describes AI explanations, flags and sounds. `engine` and `progression` depend only on `core`, with data access through small interfaces such as `CourseData` and `ProgressReader`. That keeps them pure Dart and testable with in-memory fixtures. `data` implements those interfaces.
 
 ## Testing
 

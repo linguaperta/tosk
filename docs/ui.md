@@ -29,15 +29,16 @@ go_router, in `ui/router.dart`. Path builders are in `ui/routes.dart`.
 | `/lab` | `LabScreen` (`ui/lab/`) | Skills multi-select grouped by unit, with a tri-state checkbox per unit. Exercise types multi-select (9). Length chips 5/10/20/30/50. |
 | `/nonstop` | `NonStopScreen` (`ui/nonstop/`) | Start screen with a slot for the best run. |
 | `/progress` | `ProgressScreen` (`ui/progress/`) | Level and XP, streak with freezes, the 26-week heatmap, the verb collection entry, the mistakes entry ("Review mistakes (N)"), weekly and monthly challenges, badges. |
-| `/mistakes` | `MistakesScreen` (`ui/mistakes/`) | Open mistakes (`openMistakesProvider`), one card each: facet label, skill · missed type · when · count, the stored prompt, "You answered" / "Correct", an excerpt of the skill's grammar note (`noteExcerpt`) with a "Grammar note" link to the skill sheet, and the "Why?" slot (shown only when the explainer is available, or a cached explanation exists). A pinned "Review N mistakes" button starts `/play/review`. Empty state when nothing is open. |
+| `/mistakes` | `MistakesScreen` (`ui/mistakes/`) | Open mistakes (`openMistakesProvider`), one card each: facet label, skill · missed type · when · count, the stored prompt, "You answered" / "Correct", an excerpt of the skill's grammar note (`noteExcerpt`) with a "Grammar note" link to the skill sheet, and "Explain with AI" (only when AI is configured) or "Explanation" (a cached AI reply, shown even offline or without a key; see `docs/feedback.md`). A pinned "Review N mistakes" button starts `/play/review`. Empty state when nothing is open. |
 | `/progress/verbs` | `VerbCollectionScreen` (`ui/progress/`) | `VerbCollectionView`: one card per verb, tense pills light up with mastery. |
-| `/settings` | `SettingsScreen` (`ui/settings/`) | Course, source language, default focus, accents, display (color or black & white), theme (color only), reduce motion, and a link to the debug screen. |
+| `/settings` | `SettingsScreen` (`ui/settings/`) | Course, source language, default focus, accents, display (color or black & white), theme (color only), reduce motion, sound effects, AI explanations (`AiSettingsSection`: provider, API key, model, base URL, reply language, test connection), Feedback & flags (opens `/flags`), and a link to the debug screen. |
 | `/skill/:id` | `SkillSheet` as a modal bottom sheet (`BottomSheetPage`) | Opened by long-press or right-click on a node. Shows a focus chooser and Start, the grammar note (markdown, in the source language), and the item list (article + lemma, gloss, and the forms in the skill's tense for verbs). |
 | `/play/lesson/:skillId?focus=` | `PlayerScreen(LessonRequest)` | Tapping a node starts a lesson with the default focus. |
 | `/play/fading` | `PlayerScreen(FadingRequest)` | |
 | `/play/review` | `PlayerScreen(ReviewRequest)` | Mistake review (`SessionFactory.review`, see `docs/engine.md`); "No mistakes to review" when nothing is open. |
 | `/play/lab?skills=&types=&length=` | `PlayerScreen(LabRequest)` | |
 | `/play/nonstop` | `PlayerScreen(NonStopRequest)` | Endless. The title shows a running count, and Stop leads to the summary. |
+| `/flags` | `FlagsScreen` (`ui/feedback/`) | Settings → Feedback & flags: every flag on the device (delete with confirmation) and a pinned "Export N flags" (JSON Lines through `flagsSaverProvider`, by default file_picker's save flow). Empty state without flags. |
 | `/debug` | `DebugRoute` (`ui/debug/debug_route.dart`) | The data layer's `DebugScreen` over `appDataProvider` (packs, add a pack, rebuild states, per-skill stats). Leaving it re-lists the courses and bumps `progressRevisionProvider`. Without a data layer it shows `DemoDebugScreen`. |
 
 The five top-level screens (Map, Lab, Non-stop, Progress, Settings) sit in a `StatefulShellRoute` (`ui/shell/app_shell.dart`). Below 600 px wide that shell uses a bottom `NavigationBar`. At 600 px and wider it uses a `NavigationRail`, extended with labels from 1100 px. The player, the sheet and the debug screen open on the root navigator, full screen.
@@ -51,7 +52,17 @@ The five top-level screens (Map, Lab, Non-stop, Progress, Settings) sit in a `St
   - After a session (finished or quit) the player bumps `progressRevisionProvider`, which refreshes the map stats, the header and the progress pages.
   - **Non-stop scoring.** The player keeps a progression `NonStopRun` and feeds it one graded exercise at a time from the engine's `EngineSession.results` stream: `run = run.applyResult(event.exercise, event.result, at: toStoredTime(event.events.first.at))`. When a run starts a bonus round (`NonStopSignal.bonusRoundStarted`) it calls `NonStopSession.enqueueBonus(types: run.preferredTypes, count: round.targetAnswers)`; `_advance` waits for the result event of the last submit before drawing the next exercise, so the bonus applies to the very next one. The HUD (`NonStopHudSlot`) shows the run.
   - **Contract (engine ↔ progression ↔ UI).** The engine records every facet outcome of one exercise with the same `at` (`env.now()`), the session id and mode `nonstop`; the UI feeds `NonStopRun` with that recorded `at` (UTC, whole milliseconds, as stored). The best run replayed from the log (`bestNonStopRunProvider`) then equals the live score. One known gap: a wrong *re-ask* after a mistake records no event, so the live run breaks the combo while the replay doesn't see that answer.
-  - **"Why?"** uses the core `Explainer` (`explainerProvider`, `NullExplainer` in v1, so the button is hidden). The context is `EngineSession.mistakeContext(exercise.id)`, or one built from the exercise for other sessions.
+  - **"Explain answer with AI"** (right and wrong answers) uses the core `Explainer` (`explainerProvider`).
+    - It is the cached AI explainer when a provider and key are configured. Otherwise it is `NullExplainer` and the button doesn't exist.
+    - The context is `buildExplainContext(...)`, with the engine's `mistakeContext(exercise.id)` when there is one.
+    - The reply streams into `AiExplanationSheet` (`ui/ai/`).
+  - **"Report"** (always shown) opens `FlagSheet` (`ui/feedback/`). After Submit it reads "Reported" and is disabled. Details are in `docs/feedback.md`.
+  - **Sounds:**
+    - `soundServiceProvider` warms up at session start.
+    - The select tick (plus a selection haptic) plays through `ExerciseView.onSelect` on every tap that changes the draft (not typing) and on match-pairs cards.
+    - Correct or wrong plays on Check.
+    - At the end, complete plays, or level up when the session gained a level.
+    - Bonus plays when a non-stop bonus round starts.
 - **Thumb zone.** Every exercise widget returns an `ExerciseLayout(prompt:, controls:)` (`exercises/exercise_layout.dart`, a small render object). The player gives the exercise at least the visible height of its scroll view, so the prompt sits at the top and the interactive part (options, endings, tiles and answer line, the grid and its tile bank, the match columns, the flashcard buttons, the spot-the-error sentence) at the bottom, just above Check / the feedback panel. Taller content stacks and scrolls. The column is centered and at most 640 px wide. Options, tiles and grid cells are at least 48 px tall (tiles also 48 px wide). `test/ui/thumb_zone_test.dart` checks every type at 400×800 and 1280×800.
 - `exercises/`: one widget per type, all subclasses of `ExerciseWidget<E>`.
   - Each widget reports a draft `Answer?` through `onChanged`.
@@ -72,8 +83,13 @@ The five top-level screens (Map, Lab, Non-stop, Progress, Settings) sit in a `St
 
 - `answer_input.dart`: `AnswerInputWidget` is the free-text input abstraction. `KeyboardAnswerField` ships now (renamed from `KeyboardAnswerInput`, which is now the core hook in `core/interfaces/hooks.dart`). A handwriting widget (Phase 8) implements the same class, reports `TextAnswer(inputMode: ink, candidates: [...])`, and plugs in through `answerInputBuilderProvider`.
 - `feedback_banner.dart`: right or wrong, `result.expected`, "Watch the accent: …" when `result.accentSlip`, an **actions row**, and Continue (full width, last). It slides up unless motion is reduced. It takes at most 60 % of the screen height; the details scroll above a pinned Continue (long answers at large text sizes).
-  - The actions row (`feedback-actions`, a `Wrap` of outlined `FeedbackAction` buttons, 48 px tall) holds "Why?" (only when `explainerAvailableProvider` and the answer was wrong) and then `extraActions`. That is the slot for later answer-panel actions such as "Explain with AI" or "Flag exercise": pass them as `FeedbackBanner(extraActions: [...])` from the player.
-  - `why_sheet.dart`: `showWhySheet(context, stream)`, shared by the player and the mistakes list.
+  - The actions row (`feedback-actions`, a `Wrap` of outlined `FeedbackAction` buttons, 48 px tall) holds "Why?" (`onWhy`, unused by the player since v0.3) and then `extraActions`.
+    - The player passes "Explain answer with AI" (`ai-explain-button`, only when AI is configured) and "Report" (`flag-button`).
+    - A `FeedbackAction` with a null `onPressed` shows as disabled.
+  - `ui/ai/ai_explanation_sheet.dart`: `showAiExplanationSheet(context, request:, note:)`, shared by the player and the mistakes list.
+    - The reply streams in as markdown.
+    - Offline, it shows the grammar note instead.
+    - Key errors point to Settings, and other errors offer "Try again".
 - `session_summary_view.dart`: answered, accuracy and time, a mistakes list (facet ids rendered as "il pane · produce") and the `SummaryProgressSlot`, scrolling above a pinned Done button.
 
 ### Skill map (`ui/map/`)
@@ -128,7 +144,7 @@ For e-ink readers (the user's Boox is black and white only). **Settings → Disp
 
 `ui/common/fx.dart` handles feedback:
 
-- `Fx` plays haptics (`HapticFeedback`) and system sounds (`SystemSound`): click on correct, alert on wrong.
+- `Fx` plays haptics (`HapticFeedback`): selection on taps, light on correct, heavy on wrong, medium at the end. Sounds come from `audio/sound_service.dart` (`soundServiceProvider`, behind the "Sound effects" setting); see `docs/feedback.md`.
 - `Motion` holds the durations, which collapse to zero when motion is reduced.
 - `motionProvider` derives from `reduceMotionProvider` (the setting, forced on in black & white); `fxProvider` from the setting only.
 - With reduced motion, no `AnimatedSize` is used at all (a zero-duration `AnimatedSize` re-dirties itself during layout and asserts; the flashcard back hit that).
@@ -170,8 +186,18 @@ I chose this over `flutter_markdown_plus` and `gpt_markdown` because grammar not
 | `sessionOptionsProvider` | `SessionOptions` | Source language + accent strictness (preferred input: tap) |
 | `focusPresetsProvider` | `Future<FocusPresets>` | `assets/config/focus_presets.json`, else the engine's defaults |
 | `sessionFactoryProvider` | `Future<SessionFactory>` | `EngineSessionFactory(course, progress store, scheduler, options, presets, clock)`; rebuilt when the course or settings change. Works on packs and on the demo course |
-| `explainerProvider` | `Explainer` (core hook) | `NullExplainer` |
-| `explainerAvailableProvider` | `bool` | `explainer.isAvailable` (false: "Why?" hidden) |
+| `explainerProvider` | `Explainer` (core hook) | `aiExplainerProvider` when AI is configured, else `NullExplainer` |
+| `explainerAvailableProvider` | `bool` | `explainer.isAvailable` (false: no AI buttons anywhere) |
+| `aiConfigProvider` | `AsyncNotifier<AiConfig>` | The AI settings plus the key from `secretStoreProvider`; `change(edit)` persists them |
+| `secretStoreProvider` | `SecretStore` | `SecureSecretStore` (flutter_secure_storage); in memory under `flutter test` |
+| `httpClientProvider` | `http.Client` | Tests override it with `MockClient` |
+| `llmExplainerProvider`, `aiExplainerProvider` | `LlmExplainer?`, `CachingExplainer?` | `ClaudeExplainer` or `OpenAiExplainer` for the config, and the same behind the explanation cache |
+| `explainLangProvider` | `String` | The AI reply language (the setting, or the source language) |
+| `cachedExplanationProvider(fingerprint, given, lang)` | `Future<String?>` | A cached reply, for the mistakes list |
+| `flagReviewerProvider` | `FlagReviewer?` | "Confer with AI"; null without AI |
+| `feedbackStoreProvider` | `FeedbackStore` | `AppData.feedback` (progress DB tables), else in memory |
+| `flagsProvider`, `flagsRevisionProvider` | `Future<List<FlagRecord>>`, `int` | All flags; the revision is bumped on save and delete |
+| `audioBackendProvider`, `soundEffectsProvider`, `soundServiceProvider` | `AudioBackend`, `bool`, `SoundService` | The audioplayers pools (silent under `flutter test`), the setting, and the service |
 | `answerInputBuilderProvider` | `AnswerInputBuilder` | Keyboard (`KeyboardAnswerField`); ink in Phase 8 |
 | `openMistakesProvider` | `Future<List<OpenMistake>>` | The engine's `openMistakes` for the active course (map button count, progress entry, mistakes list); watches `progressRevisionProvider` |
 | `progressRevisionProvider` | `int` (Notifier, `bump()`) | Bumped after every session and when leaving the debug screen; every progress-derived provider watches it |
@@ -202,7 +228,9 @@ Every setting is stored through `ProgressStore.getSetting/setSetting`, as a stri
 | `lesson.default_focus` | `mixed`, `vocab` or `grammar` |
 | `lesson.accent_strictness` | `strict` or `lenient` |
 | `ui.theme_mode` | `light`, `dark` or `system` |
-| `ui.reduce_motion` | `true` or `false` (also silences haptics and sounds) |
+| `ui.reduce_motion` | `true` or `false` (also silences haptics, but not sounds) |
+| `ui.sound_effects` | `true` (default) or `false` |
+| `ai.provider`, `ai.model`, `ai.base_url`, `ai.explain_lang` | AI explanation settings (`ai/ai_config.dart`). The API key is in secure storage, not here |
 | `ui.display` | `color` or `bw` (black & white for e-ink; forces reduced motion and the light black & white theme) |
 
 Unknown or missing values fall back to the defaults. They live in the progress database, so they survive a restart (in demo mode, in `progress-demo.sqlite`).
@@ -226,8 +254,9 @@ Unknown or missing values fall back to the defaults. They live in the progress d
 | `app/debug_route_test` | `/debug` opens the data layer's `DebugScreen`; leaving it refreshes progress |
 | `progression/fsrs_determinism_test` | Progression on `FsrsScheduler`: identical results across stores and insertion orders, incremental = fresh replay, replay states = stored states, late sync merges |
 | `ui/map_screen_test` | Nodes, tap → lesson, long-press → sheet (note, table, items, forms, focus), fading, course switch + unverified badge, zoom, node stats |
-| `ui/lesson_flow_test` | Full lesson → summary → map with refreshed stats, wrong answers and re-queue, progress bar, exit confirmation (button and system back), keyboard shortcuts, the "Why?" hook, reduce motion, empty and error states |
+| `ui/lesson_flow_test` | Full lesson → summary → map with refreshed stats, wrong answers and re-queue, progress bar, exit confirmation (button and system back), keyboard shortcuts, the AI explain button with an explainer, reduce motion, empty and error states |
 | `ui/lab_nonstop_settings_test` | Lab selection → session, non-stop count/stop, settings persistence and read-back, default focus, source-language restriction, navigation rail, debug route, default providers |
 | `ui/mistake_review_test` | Map "Review mistakes (N)" after a mistake → review session → resolved; progress → mistakes list (prompt, answers, note excerpt, note link, review button, empty list); "Why?" on a mistake with an explainer; empty review session; the feedback actions row with an extra action |
 | `ui/thumb_zone_test` | Controls of every exercise type in the lower part of the screen (phone and desktop, centered column), 48 px targets, `ExerciseLayout` geometry |
+| `ui/ai_flags_sounds_test` | AI explain: absent without a key; wrong and right answers; the cache; the offline note fallback; 401. Flags: Report → Submit with the full snapshot; Confer with AI with the verdict stored; Discard; the Settings → flags list; export; delete; the empty state. AI settings: provider, the key in secure storage only, test connection ok and rejected. Mistakes list: a cached explanation without AI; explain with AI. Sounds: select ticks (including match cards), correct, wrong and complete; the setting off; reduce motion keeps sounds. Every new widget at 320×568, 360×640 and 1280×800 in color and black & white (no overflow, no colored pixels) |
 | `ui/overflow_test` | Every screen (including progress and verb pages) and every exercise type (wrong → retry → summary) at 360×640, 320×568, 768×1024 and 1280×800, in dark mode, and with text scale 1.3; every exercise type at text scale 1.5 on the two phone sizes; the mistakes list and the map with its mistakes button. Any layout overflow fails the test |

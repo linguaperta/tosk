@@ -189,7 +189,7 @@ Wrong answer options are chosen to be plausible: other persons of the same tense
 - E-ink mode: no animations or fades, high contrast, and a full screen refresh after each lesson.
 - ML Kit covers Android and iOS. On desktop and web, typing is the fallback.
 
-**AI explanations (later; the hook ships in v1).**
+**AI explanations (later; the hook ships in v1).** Built in v0.3 with Anthropic Claude, OpenAI or any OpenAI-compatible server, for right and wrong answers, alongside flagging exercises; see `docs/feedback.md`.
 
 - An optional Claude API key goes in Settings and is kept in the device's secure storage.
 - A "Why?" button on a wrong answer sends the exercise, the expected answer, your answer and the relevant grammar note. It uses a small, fast model and streams the reply.
