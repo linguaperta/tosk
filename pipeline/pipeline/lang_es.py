@@ -58,8 +58,8 @@ DETERMINERS = {
     "esos", "esas", "aquel", "aquella", "aquellos", "aquellas", "mi", "tu", "su", "mis", "tus", "sus",
     "nuestro", "nuestra", "nuestros", "nuestras", "vuestro", "vuestra", "vuestros", "vuestras", "cada",
     "algún", "alguna", "algunos", "algunas", "ningún", "ninguna", "otro", "otra", "otros", "otras",
-    "mucho", "mucha", "muchos", "muchas", "poco", "poca", "pocos", "pocas", "varios", "varias", "qué",
-    "cuánto", "cuánta", "cuántos", "cuántas", "tanto", "tanta", "tantos", "tantas", "todo", "toda",
+    "mucho", "mucha", "muchos", "muchas", "poco", "poca", "pocos", "pocas", "varios", "varias",
+    "tanto", "tanta", "tantos", "tantas", "todo", "toda",
     "todos", "todas", "dos", "tres", "cuatro", "cinco",
 } | PREPOSITIONS
 CLITICS = {"me", "te", "se", "nos", "os", "lo", "la", "los", "las", "le", "les"}
@@ -103,12 +103,17 @@ class Spanish(Lang):
             verb_needs_pronoun={"como", "para", "bajo", "nada", "cerca", "junto", "salvo", "medio", "entre",
                                 "sobre", "vale", "mira", "claro", "pase"},
             object_noun_after_verb=True,
+            noun_coordinators={"y", "e", "o", "u", "ni"},
             clitic_forms=True,
             infinitive_endings=("ar", "er", "ir", "ír"),
             translation_subjects={"i": "yo", "i'm": "yo", "i've": "yo", "i'd": "yo", "i'll": "yo",
                                   "he": "él/ella", "she": "él/ella", "he's": "él/ella", "she's": "él/ella",
                                   "he'd": "él/ella", "she'd": "él/ella"},
             standalone_phrases={"de nada", "qué tal", "hasta luego", "hasta mañana"},
+            tense_hints={w: "preterito_indefinido" for w in ("ayer", "anoche", "anteayer", "pasado", "pasada")},
+            interrogatives={"qué", "cuánto", "cuánta", "cuántos", "cuántas", "cuál", "cuáles"},
+            person_hint_verbs=True,
+            third_person_clitics={"se"},
         )
 
     # -- conjugation-table reading ------------------------------------------------------------

@@ -166,7 +166,9 @@ class Aligner:
         # interjections that share their spelling with another word ('Prego', 'Dag', 'Bedankt')
         self.intj: dict[str, str] = {}
         for it in items:
-            if it["pos"] == "verb":
+            if it["pos"] == "verb":   # verbs: only their inflections (Spanish enclitic forms: hacerlo)
+                for s in it.get("inflections") or []:
+                    self.infl_index[norm(s)].append(it["id"])
                 continue
             for s in [it["lemma"], *(it.get("variants") or [])]:
                 if " " not in s:
@@ -249,7 +251,8 @@ class Aligner:
         lang = self.lang
         tenses = lang.tenses + ["infinitive", "gerund", "participle"]
         persons = lang.persons + ["_"]
-        return sorted(cands, key=lambda c: (tenses.index(c[0]) if c[0] in tenses else 99,
+        hint = getattr(self, "_tense_hint", None)
+        return sorted(cands, key=lambda c: (c[0] != hint, tenses.index(c[0]) if c[0] in tenses else 99,
                                             persons.index(c[1]) if c[1] in persons else 99))
 
     def _subject_before(self, words, toks, wi) -> bool:
@@ -263,6 +266,8 @@ class Aligner:
         if t[:1].isupper() and wi - 1 > 0 and not tok.get("lex"):
             return True
         lex = tok.get("lex")
+        if wi >= 2 and norm(toks[words[wi - 2]]["t"]) in self.lang.interrogatives:
+            return False                     # '¿A qué hora llegáis?': the noun is no subject
         return bool(lex and self.items.get(lex, {}).get("pos") == "noun")
 
     def _choose(self, cands, words, toks, wi, finite_before: bool):
@@ -515,6 +520,15 @@ class Aligner:
         """Aligned copies of the tokens. `translation` (English) helps to recognize imperatives."""
         lang = self.lang
         self._tr_person = None
+        # a form shared by two tenses ('hablamos': presente / indefinido) takes the tense of a time
+        # word in the sentence ('Ayer hablamos con Ana')
+        self._tense_hint = None
+        if lang.tense_hints:
+            for t in toks:
+                h = lang.tense_hints.get(norm(t["t"]))
+                if h:
+                    self._tense_hint = h
+                    break
         if lang.translation_subjects and translation:
             m = re.match(r"^[\"'“‘«¿¡\s]*([a-z]+)", translation.lower().replace("’", "'"))
             if m:
@@ -638,9 +652,11 @@ class Aligner:
             if use_verb and lex and s in lang.verb_needs_pronoun and not any(self._pronoun_persons(words, out, wi)):
                 use_verb = False             # Spanish 'como' (like, as) unless 'yo como'
             if use_verb and lex and lang.object_noun_after_verb and wi > 0 and self.items[lex]["pos"] == "noun" \
-                    and out[words[wi - 1]].get("lex") in self.verb_ids \
-                    and not self._punct_between(out, words[wi - 1], ti):
-                use_verb = False             # 'Bebo vino': the object noun (wine), not 'vino' (came)
+                    and not self._punct_between(out, words[wi - 1], ti) \
+                    and (out[words[wi - 1]].get("lex") in self.verb_ids
+                         or (prev in lang.noun_coordinators and wi > 1
+                             and self.items.get(out[words[wi - 2]].get("lex") or "", {}).get("pos") == "noun")):
+                use_verb = False             # 'Bebo vino', 'agua o vino': the noun (wine), not 'vino' (came)
             if vc and not use_verb and prev in lang.demonstratives and self.items[lex]["pos"] != "noun" \
                     and self._clause_initial(words, out, wi - 1):
                 use_verb = True              # 'Dat moest je ...': a demonstrative subject, not 'dat moest(e)'
@@ -680,7 +696,21 @@ class Aligner:
                 by_verb: dict[str, list[tuple[str, str]]] = defaultdict(list)
                 for vid, tense, person in vc:
                     by_verb[vid].append((tense, person))
-                vid = min(by_verb, key=lambda v: self.rank.get(v, (True, 0, v)))
+                pool = list(by_verb)
+                if len(pool) > 1 and lang.person_hint_verbs:
+                    # one spelling, several verbs ('viste': vestir él / ver tú; 'vengo': venir / vengar):
+                    # keep the verbs with a form of the person an adjacent subject pronoun or a
+                    # third-person clitic ('se viste') points to
+                    b_, a_ = self._pronoun_persons(words, out, wi)
+                    want = set(b_ or a_)
+                    if not want and wi > 0 and prev in lang.third_person_clitics:
+                        want = {lang.third_sg, lang.third_pl}
+                    fit = [v for v in pool if any(p in want for _, p in by_verb[v])]
+                    if want and fit:
+                        pool = fit
+                vid = min(pool, key=lambda v: self.rank.get(v, (True, 0, v)))
+                if len(pool) < len(by_verb):
+                    by_verb = {v: by_verb[v] for v in pool}
                 choice = self._choose(by_verb[vid], words, out, wi, finite_seen)
                 out[ti]["lex"] = vid
                 if choice and (self.items.get(vid, {}).get("lemma"), choice[0]) in lang.unlinked_forms:

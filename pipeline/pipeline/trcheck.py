@@ -87,6 +87,7 @@ CALENDAR = {
 }
 CALENDAR_IDX = {lang: {w: i for i, w in enumerate(words.split())} for lang, words in CALENDAR.items()}
 CALENDAR_IDX["en"].update({w + "s": i for w, i in list(CALENDAR_IDX["en"].items()) if i < 7})   # 'on Mondays'
+CALENDAR_IDX["es"].update({"sábados": 5, "domingos": 6})   # 'los domingos' = on Sundays
 CALENDAR_IDX["nl"].update({w + sfx: i for w, i in list(CALENDAR_IDX["nl"].items()) if i < 7
                            for sfx in ("s", "en", "ochtend", "middag", "avond", "nacht", "morgen")})
 # "'s zondags", 'op maandagen', 'zaterdagavond'

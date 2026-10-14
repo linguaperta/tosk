@@ -99,6 +99,8 @@ class Lang:
     # a word that is both a noun and a verb form, directly after a finite verb, is the noun (its
     # object): Spanish 'Bebo vino' (wine, not 'he came'), 'Busco trabajo'
     object_noun_after_verb: bool = False
+    # ... and after one of these between two nouns ('agua o vino')
+    noun_coordinators: set[str] = field(default_factory=set)
     # the conjugation table's second template lists enclitic combinations (Spanish hacerlo, dímelo,
     # levantarse): kept as the verb item's inflections, so such a word links to the verb (no form)
     clitic_forms: bool = False
@@ -110,6 +112,15 @@ class Lang:
     translation_subjects: dict[str, str] = field(default_factory=dict)
     # multi-word phrase items that only count when they form a clause of their own ('¡De nada!')
     standalone_phrases: set[str] = field(default_factory=set)
+    # words that mark a tense: a form shared by several tenses takes this one (es 'ayer' ->
+    # preterito_indefinido: 'Ayer hablamos' is not the present 'hablamos')
+    tense_hints: dict[str, str] = field(default_factory=dict)
+    # question words before a noun ('qué hora', 'cuántos años'): that noun is not the verb's subject
+    interrogatives: set[str] = field(default_factory=set)
+    # a spelling shared by several verbs goes to the verb that has a form of the person an
+    # adjacent subject pronoun gives, or a third-person form after one of `third_person_clitics`
+    person_hint_verbs: bool = False
+    third_person_clitics: set[str] = field(default_factory=set)
 
     @property
     def tenses(self) -> list[str]:
