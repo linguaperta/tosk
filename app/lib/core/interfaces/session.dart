@@ -70,6 +70,21 @@ abstract interface class PracticeSession {
   SessionSummary summary();
 }
 
+/// A session whose wrong verdicts the learner may override ("I was right").
+/// Engine sessions implement it; the player offers the action only then.
+abstract interface class OverridableSession {
+  /// Whether the answer to [exerciseId] was graded wrong and not overridden yet.
+  bool canOverride(String exerciseId);
+
+  /// Counts the wrong answer to [exerciseId] as right: one override event
+  /// (`kOverrideType`, rating Good) per wrong facet outcome the answer
+  /// recorded, so replay rates those facets Good instead of Again; the
+  /// session counts the answer as correct and drops its re-asks and its
+  /// mistake. Returns the events written (none for an answer that recorded
+  /// nothing, such as a wrong re-ask; the session still counts it right).
+  Future<List<ReviewEvent>> overrideAnswer(String exerciseId);
+}
+
 class SessionSummary {
   const SessionSummary({
     required this.sessionId,

@@ -21,6 +21,42 @@ class ExerciseLayout extends SlottedMultiChildRenderObjectWidget<ExerciseLayoutS
   final Widget controls;
   final double gap;
 
+  /// Keeps the instruction from sitting under the app bar: when the
+  /// exercise inside [controller]'s scroll view is scrolled so the top of
+  /// its prompt is hidden (a tall grid after Check, a text field scrolled
+  /// into view above the keyboard), scrolls back just enough to show the
+  /// whole prompt, plus [margin]. The controls' marks stay reachable by
+  /// scrolling. The player calls it after every Check.
+  static void revealPrompt(ScrollController controller, {double margin = 12, Duration duration = Duration.zero}) {
+    if (!controller.hasClients) return;
+    final pos = controller.position;
+    final root = pos.context.notificationContext?.findRenderObject();
+    if (root == null) return;
+    RenderExerciseLayout? layout;
+    void visit(RenderObject r) {
+      if (layout != null) return;
+      if (r is RenderExerciseLayout) {
+        layout = r;
+        return;
+      }
+      r.visitChildren(visit);
+    }
+
+    root.visitChildren(visit);
+    final prompt = layout?._prompt;
+    if (prompt == null || !prompt.attached || !prompt.hasSize) return;
+    final viewport = RenderAbstractViewport.maybeOf(prompt);
+    if (viewport == null) return;
+    final top = viewport.getOffsetToReveal(prompt, 0).offset;
+    if (pos.pixels <= top + 0.5) return; // the prompt's top is visible
+    final target = math.max(pos.minScrollExtent, top - margin);
+    if (duration == Duration.zero) {
+      pos.jumpTo(target);
+    } else {
+      pos.animateTo(target, duration: duration, curve: Curves.easeOutCubic);
+    }
+  }
+
   @override
   Iterable<ExerciseLayoutSlot> get slots => ExerciseLayoutSlot.values;
 

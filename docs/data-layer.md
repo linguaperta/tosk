@@ -154,6 +154,12 @@ v1 has two backends:
 
 A Google Drive `appDataFolder` backend comes later.
 
+### Progress backup (`sync/progress_backup.dart`, Settings → Backup)
+
+One JSON-lines file, format `tosk-backup/1`: a header line (`format`, `exported_at`, `app`, counts), the review log exactly as `encodeReviewLogJsonl` writes it, then `{"kind":"mistake",…}` per mistake and `{"kind":"setting","key","value"}` per setting (stores that implement `SettingsLister`, `ProgressRepo` and `InMemoryProgressStore`, list every setting). Flags have their own export (docs/feedback.md). A plain review-log file imports too, and unknown `kind`s are skipped.
+
+**Import merges, never deletes:** events are a union by id (`importEvents`, idempotent), then `rebuildStates()`; mistakes are added when their id is new; settings only fill keys this device lacks, except "my courses" (`courses.added`), which is a union; the reminder keys are device-only and never imported. `importBackup` returns the counts the UI shows. Tests: `test/data/progress_backup_test.dart` (round trip between two on-disk databases, a duplicate import, the layout, bad files).
+
 ## Web assets
 
 `app/web/sqlite3.wasm` comes from the `sqlite3-3.7.1` release of simolus3/sqlite3.dart, matching the resolved `sqlite3` package. `app/web/drift_worker.js` comes from the `drift-2.35.2` release of simolus3/drift.

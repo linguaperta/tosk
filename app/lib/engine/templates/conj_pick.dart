@@ -90,6 +90,37 @@ class ConjPickTemplate extends ExerciseTemplate {
 
   static String _endingKey(String e) => foldDiacritics(e.toLowerCase());
 
+  /// A typed ending (typing mode): `stem + ending` must be an accepted form
+  /// (with the accent setting). `-` or `–` alone means the empty ending, a
+  /// leading hyphen is ignored, and typing the whole form is accepted too.
+  Result _gradeTyped(ConjPickExercise e, TextAnswer a, {required Duration elapsed, required GradeOptions options}) {
+    String ending(String t) {
+      var x = t.trim();
+      if (x == kNoEnding || x == '-') return '';
+      if (x.startsWith('-') || x.startsWith(kNoEnding)) x = x.substring(1).trim();
+      return x;
+    }
+
+    final forms = e.accepted.isEmpty ? [e.fullForm] : e.accepted;
+    final typed = [a.text, ...a.candidates].map(ending).toList();
+    final given = e.stem + typed.first;
+    final m = matchAnswer(
+      given,
+      forms,
+      options.accents,
+      candidates: [for (final t in typed.skip(1)) e.stem + t, ...typed],
+    );
+    return Result(
+      correct: m.correct,
+      expected: e.fullForm,
+      given: given,
+      accentSlip: m.accentSlip,
+      outcomes: [
+        rateOutcome(e.type, e.facetId, correct: m.correct, elapsed: elapsed, options: options, accentSlip: m.accentSlip),
+      ],
+    );
+  }
+
   @override
   bool canGenerate(SkillFacet facet, GenContext ctx) {
     if (!supports(facet)) return false;
@@ -124,6 +155,7 @@ class ConjPickTemplate extends ExerciseTemplate {
         endings: options,
         correctIndex: idx,
         fullForm: cell.form,
+        accepted: {cell.form, ...cell.accepted}.toList(),
       );
     }
     return null;
@@ -132,6 +164,7 @@ class ConjPickTemplate extends ExerciseTemplate {
   @override
   Result grade(Exercise exercise, Answer answer, {required Duration elapsed, GradeOptions options = const GradeOptions()}) {
     final e = exercise as ConjPickExercise;
+    if (answer is TextAnswer) return _gradeTyped(e, answer, elapsed: elapsed, options: options);
     final r = gradeChoice(e, answer, e.endings, e.correctIndex, elapsed: elapsed, grade: options);
     String full(String ending) => e.stem + (ending == kNoEnding ? '' : ending);
     final idx = answer is ChoiceAnswer ? answer.index : -1;

@@ -104,6 +104,11 @@ class _Served {
   final Exercise exercise;
   final SessionSlot slot;
   bool answered = false;
+  Result? result;
+
+  /// Events this answer recorded.
+  List<ReviewEvent> events = const [];
+  bool overridden = false;
 }
 
 /// Base class of every engine session. Subclasses decide what comes next
@@ -115,7 +120,7 @@ class _Served {
 /// answer after the mistake writes one `Good` (never `Easy`) as the
 /// relearning step; later answers on that facet write nothing. Facets never
 /// answered wrong in the session write an event for every answer.
-abstract class EngineSession implements PracticeSession {
+abstract class EngineSession implements PracticeSession, OverridableSession {
   EngineSession(this.env, {required this.mode, required Map<String, FacetState> states, this.maxReasks = 2})
       : id = const Uuid().v4(),
         _states = Map.of(states) {
@@ -393,6 +398,8 @@ abstract class EngineSession implements PracticeSession {
       mistake = _mistakeContext(exercise, result, exercise.facetId, served?.slot, now);
     }
     if (mistake != null) _mistakes[exercise.id] = mistake;
+    served?.result = result;
+    served?.events = events;
 
     if (!_events.isClosed) {
       _events.add(AnswerEvent(
@@ -460,6 +467,52 @@ abstract class EngineSession implements PracticeSession {
       sentenceId: sentenceId,
       at: at,
     );
+  }
+
+  @override
+  bool canOverride(String exerciseId) {
+    final s = _served[exerciseId];
+    return s != null && s.answered && !s.overridden && s.result != null && !s.result!.correct;
+  }
+
+  @override
+  Future<List<ReviewEvent>> overrideAnswer(String exerciseId) async {
+    if (!canOverride(exerciseId)) return const [];
+    final served = _served[exerciseId]!;
+    served.overridden = true;
+    _correct++;
+    final now = env.now();
+    final written = <ReviewEvent>[];
+    for (final e in served.events) {
+      if (e.correct) continue;
+      final ev = ReviewEvent(
+        id: const Uuid().v4(),
+        facetId: e.facetId,
+        // Never before the event it corrects (a clock that went backwards).
+        at: now.isAfter(e.at) ? now : e.at.add(const Duration(milliseconds: 1)),
+        rating: Rating.good,
+        exerciseType: kOverrideType,
+        inputMode: InputMode.self,
+        responseMs: 0,
+        correct: true,
+        answer: e.id,
+        sessionId: id,
+        mode: mode.name,
+      );
+      written.add(ev);
+      _states[e.facetId] = await env.store.record(ev);
+      // The facet's mistake is void: no re-asks, and later answers in this
+      // session record as usual.
+      _mistaken.remove(e.facetId);
+      _recovered.remove(e.facetId);
+      _mistakeOrder.remove(e.facetId);
+      _reaskCount.remove(e.facetId);
+      final before = _requeue.length;
+      _requeue.removeWhere((r) => r.$2.reask && r.$2.facet.facetId == e.facetId);
+      _requeuedTotal -= before - _requeue.length;
+    }
+    _mistakes.remove(exerciseId);
+    return written;
   }
 
   /// Records [event] outside of [submit] (test-out credits) and updates [states].

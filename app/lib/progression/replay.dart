@@ -51,11 +51,13 @@ int compareEvents(ReviewEvent a, ReviewEvent b) {
   return c != 0 ? c : a.id.compareTo(b.id);
 }
 
-/// De-duplicates [events] by id and sorts them canonically.
+/// De-duplicates [events] by id, sorts them canonically and applies answer
+/// overrides ([applyOverrides]: an overridden answer counts as right, the
+/// override events themselves are not steps).
 List<ReviewEvent> canonicalOrder(Iterable<ReviewEvent> events) {
   final sorted = List<ReviewEvent>.of(events)..sort(compareEvents);
   final seen = <String>{};
-  return [for (final e in sorted) if (seen.add(e.id)) e];
+  return applyOverrides([for (final e in sorted) if (seen.add(e.id)) e]);
 }
 
 /// What [LogReplay.update] had to do.
@@ -97,7 +99,9 @@ class LogReplay {
     var prefixOk = canon.length >= _steps.length;
     if (prefixOk) {
       for (var i = 0; i < _steps.length; i++) {
-        if (canon[i].id != _steps[i].event.id) {
+        final a = canon[i], b = _steps[i].event;
+        // An override changes an earlier event's verdict, not its id.
+        if (a.id != b.id || a.rating != b.rating || a.correct != b.correct) {
           prefixOk = false;
           break;
         }
@@ -121,6 +125,7 @@ class LogReplay {
   /// the whole log is rebuilt. Duplicates (same id) are ignored.
   ReplayUpdate add(ReviewEvent event) {
     if (_ids.contains(event.id)) return ReplayUpdate.unchanged;
+    if (event.isOverride) return update([for (final s in _steps) s.event, event]);
     if (_steps.isEmpty || compareEvents(_steps.last.event, event) < 0) {
       _apply(event);
       _version++;

@@ -54,6 +54,24 @@ enum ExerciseType {
 /// reviews (see docs/progression.md).
 const String kTestOutCreditType = 'test_out';
 
+/// [ReviewEvent.exerciseType] of an *answer override* ("I was right"): the
+/// learner says an answer graded wrong was right. The override is its own
+/// event (the log stays append-only), on the same facet as the event it
+/// corrects, later in time, with `correct` true, the corrected [Rating]
+/// (Good), `responseMs` 0, input `self`, and the overridden event's id in
+/// [ReviewEvent.answer].
+///
+/// **Replay convention** ([applyOverrides]): before folding a facet's events,
+/// an override replaces the overridden event's rating and verdict in place
+/// (at the original time) and is itself skipped. So the facet's state is
+/// exactly what it would have been had the answer been graded right, every
+/// replay (incremental, `rebuildStates()`, progression) gives the same
+/// result, and an override never earns XP or counts as a review. An override
+/// whose target is not in the log yet (sync order) has no effect until the
+/// target arrives; of several overrides of one event the last in `(at, id)`
+/// order wins. See docs/engine.md.
+const String kOverrideType = 'override';
+
 /// One graded answer. Append-only; never edited. Facet ids embed the course id.
 @immutable
 class ReviewEvent {
@@ -85,6 +103,45 @@ class ReviewEvent {
 
   /// A test-out credit rather than an answer (see [kTestOutCreditType]).
   bool get isCredit => exerciseType == kTestOutCreditType;
+
+  /// An answer override rather than an answer (see [kOverrideType]).
+  bool get isOverride => exerciseType == kOverrideType;
+
+  /// For an override, the id of the event it corrects.
+  String? get overriddenId => isOverride ? answer : null;
+
+  ReviewEvent copyWith({DateTime? at, Rating? rating, bool? correct}) => ReviewEvent(
+        id: id,
+        facetId: facetId,
+        at: at ?? this.at,
+        rating: rating ?? this.rating,
+        exerciseType: exerciseType,
+        inputMode: inputMode,
+        responseMs: responseMs,
+        correct: correct ?? this.correct,
+        answer: answer,
+        sessionId: sessionId,
+        mode: mode,
+      );
+}
+
+/// Applies answer overrides ([kOverrideType]) to [events], which must already
+/// be in canonical `(at, id)` order: every overridden event gets the
+/// override's rating and `correct`, and the override events themselves are
+/// dropped. Returns [events] itself when it holds no override. Pure and
+/// order-preserving, so every replay of the log agrees.
+List<ReviewEvent> applyOverrides(List<ReviewEvent> events) {
+  Map<String, ReviewEvent>? overrides;
+  for (final e in events) {
+    final target = e.overriddenId;
+    if (target != null) (overrides ??= {})[target] = e; // later ones win
+  }
+  if (overrides == null) return events;
+  return [
+    for (final e in events)
+      if (!e.isOverride)
+        if (overrides[e.id] case final o?) e.copyWith(rating: o.rating, correct: o.correct) else e,
+  ];
 }
 
 /// FSRS learning phase.

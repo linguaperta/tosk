@@ -14,6 +14,8 @@ import '../../providers.dart';
 import '../map/skill_sheet.dart' show itemLabel;
 import '../map/skill_stats.dart';
 import '../progression/progression_widgets.dart';
+import '../goal/daily_goal_bar.dart';
+import '../goal/daily_goal_providers.dart';
 import '../routes.dart';
 import '../theme/skin.dart';
 
@@ -29,6 +31,7 @@ class MapHeaderSlot extends ConsumerWidget {
     final reduce = ref.watch(reduceMotionProvider);
     final theme = Theme.of(context);
     final level = profile.level;
+    final goal = ref.watch(dailyGoalStatusProvider);
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 640),
@@ -42,7 +45,10 @@ class MapHeaderSlot extends ConsumerWidget {
               onTap: () => context.go(Routes.progress),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                child: Row(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
                   children: [
                     LevelBadge(level: level, size: 44, showXp: false, reduceMotion: reduce),
                     const SizedBox(width: 12),
@@ -68,6 +74,13 @@ class MapHeaderSlot extends ConsumerWidget {
                     ),
                     const SizedBox(width: 8),
                     StreakCounter(streak: profile.streak, reduceMotion: reduce),
+                  ],
+                ),
+                    // Today's progress toward the daily goal (none when the goal is off).
+                    if (goal != null && goal.enabled) ...[
+                      const SizedBox(height: 6),
+                      DailyGoalBar(status: goal),
+                    ],
                   ],
                 ),
               ),
