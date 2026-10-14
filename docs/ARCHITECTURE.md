@@ -50,7 +50,7 @@ Which facets a skill trains is decided by the pipeline:
 
 ## Exercise type ids
 
-`flashcard`, `multiple_choice`, `match_pairs`, `conj_pick`, `conj_grid`, `sentence_builder`, `cloze`, `spot_error`, `transform`. `listen_pick` is reserved for later and not in v1.
+`flashcard`, `multiple_choice`, `match_pairs`, `conj_pick`, `conj_grid`, `sentence_builder`, `cloze`, `spot_error`, `transform`, and since v0.5 `listen_pick` (on-device text-to-speech; generated only when the device has a voice for the course language, `SessionOptions.listening`).
 
 These ids appear in `course.yaml` (`exercises:`), in `skills.exercises`, in `review_log.exercise_type`, and in the focus-preset config (`app/assets/config/focus_presets.json`).
 
@@ -77,6 +77,9 @@ data/          drift databases + repositories (Phase 2)
 engine/        exercise engine, pure Dart (Phase 3): templates, distractors, normalization, sessions, grading
 progression/   XP, levels, tiers, streaks, challenges, combos, pure functions over the review log (Phase 5)
 ai/            AI explanations (v0.3): ClaudeExplainer, OpenAiExplainer, CachingExplainer, prompts, AiConfig, SecretStore
+ink/           handwriting recognition (v0.5): InkRecognizer (+ ML Kit Digital Ink), model language tags
+speech/        text-to-speech (v0.5): Speaker (+ flutter_tts), voice locale choice, providers
+device/        device extras (v0.5): DeviceInfo (ONYX detection), EinkScreen (full refresh), PenSurface (Onyx pen raw drawing), providers
 feedback/      exercise snapshots, answer context, flags JSON Lines export (v0.3)
 audio/         SoundService over audioplayers (v0.3); the sounds come from tool/make_sounds.py
 ui/            Flutter screens and widgets (Phase 4): map, lesson player, lab, non-stop, settings, debug, ai/, feedback/
@@ -84,7 +87,7 @@ ui/            Flutter screens and widgets (Phase 4): map, lesson player, lab, n
 app.dart, main.dart, providers.dart (Riverpod wiring)
 ```
 
-Dependency direction: `ui → engine, progression, data → core`. `ai`, `feedback` and `audio` sit beside `data`: they use `core`, and `feedback` also uses the engine's `exercisePrompt`. `docs/feedback.md` describes AI explanations, flags and sounds. `engine` and `progression` depend only on `core`, with data access through small interfaces such as `CourseData` and `ProgressReader`. That keeps them pure Dart and testable with in-memory fixtures. `data` implements those interfaces.
+Dependency direction: `ui → engine, progression, data → core`. `ai`, `feedback`, `audio`, `ink`, `speech` and `device` sit beside `data`: they use `core`, and `feedback` also uses the engine's `exercisePrompt`. `docs/feedback.md` describes AI explanations, flags and sounds. `engine` and `progression` depend only on `core`, with data access through small interfaces such as `CourseData` and `ProgressReader`. That keeps them pure Dart and testable with in-memory fixtures. `data` implements those interfaces.
 
 ## Testing
 

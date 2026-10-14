@@ -134,6 +134,9 @@ class InkPadState extends ConsumerState<InkPad> {
   final List<List<String>> _parts = [];
   List<String> _reading = const [];
   bool _recognizing = false;
+
+  /// The strokes changed since the last recognition.
+  bool _dirty = false;
   int _seq = 0;
   Timer? _debounce;
   bool _keyboard = false;
@@ -168,6 +171,7 @@ class InkPadState extends ConsumerState<InkPad> {
   }
 
   void _scheduleRecognition({Duration delay = const Duration(milliseconds: 450)}) {
+    _dirty = true;
     _debounce?.cancel();
     _debounce = Timer(delay, () => unawaited(_recognize()));
   }
@@ -186,14 +190,21 @@ class InkPadState extends ConsumerState<InkPad> {
       return;
     }
     setState(() => _recognizing = true);
+    _dirty = false;
     final box = _padBox.currentContext?.size;
-    final pre = [widget.preContext ?? '', ..._parts.map((p) => p.first)].join(' ').trimLeft();
+    // The text before the writing: the exercise's context, then the parts
+    // already written, each followed by a space (the next part is a new word).
+    final pre = StringBuffer(widget.preContext ?? '');
+    for (final p in _parts) {
+      if (pre.isNotEmpty && !pre.toString().endsWith(' ')) pre.write(' ');
+      pre.write('${p.first} ');
+    }
     List<String> out;
     try {
       out = await ref.read(inkRecognizerProvider).recognize(
             List.of(_strokes),
             tag,
-            preContext: pre.isEmpty ? null : pre,
+            preContext: pre.isEmpty ? null : pre.toString(),
             area: box,
           );
     } catch (e) {
@@ -223,9 +234,15 @@ class InkPadState extends ConsumerState<InkPad> {
     _strokes.isEmpty ? unawaited(_recognize()) : _scheduleRecognition(delay: Duration.zero);
   }
 
-  /// Clears the pad (and, segmented, every part).
+  /// Clears the pad (and, segmented, every part) and reports no answer.
   void clear() {
+    _wipe();
+    widget.onChanged(null);
+  }
+
+  void _wipe() {
     _debounce?.cancel();
+    _dirty = false;
     _seq++;
     setState(() {
       _strokes.clear();
@@ -235,12 +252,11 @@ class InkPadState extends ConsumerState<InkPad> {
       _recognizing = false;
     });
     _syncPenOverlay(force: true);
-    widget.onChanged(null);
   }
 
   /// Segmented: commits the current part and starts a fresh pad.
   Future<void> _space() async {
-    if (_strokes.isNotEmpty) await _recognize();
+    if (_dirty) await _recognize();
     if (!mounted || _reading.isEmpty) return;
     setState(() {
       _parts.add(_reading);
@@ -252,13 +268,14 @@ class InkPadState extends ConsumerState<InkPad> {
   }
 
   Future<void> _runAction() async {
-    if (_strokes.isNotEmpty && (_debounce?.isActive ?? false)) await _recognize();
+    if (_dirty) await _recognize();
     if (!mounted) return;
     widget.onAction?.call();
   }
 
-  /// Starts empty again (the grid moved to another cell).
-  void reset() => clear();
+  /// Starts empty again without reporting (the grid moved to another cell;
+  /// what was read stays with the cell it was written for).
+  void reset() => _wipe();
 
   // ------------------------------------------------------------ pointer input
 

@@ -84,7 +84,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   EinkScreen _eink = const NoEinkScreen();
 
   void _fullRefresh() {
-    if (!ref.read(fullRefreshAfterLessonsProvider)) return;
+    if (!_refreshOnLeave) return;
     final eink = _eink;
     // After the next screen has been drawn.
     unawaited(Future<void>.delayed(const Duration(milliseconds: 350), eink.fullRefresh));
@@ -95,8 +95,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   @override
   void initState() {
     super.initState();
-    _eink = ref.read(einkScreenProvider);
-    _refreshOnLeave = ref.read(fullRefreshAfterLessonsProvider);
+    // Kept current (the device and settings may still be loading).
+    ref.listenManual(einkScreenProvider, (_, v) => _eink = v, fireImmediately: true);
+    ref.listenManual(fullRefreshAfterLessonsProvider, (_, v) => _refreshOnLeave = v, fireImmediately: true);
     unawaited(_start());
   }
 
