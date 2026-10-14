@@ -30,7 +30,14 @@ import 'review_log_sync.dart';
 const String kBackupFormat = 'tosk-backup/1';
 
 /// Settings that belong to one device and are never imported.
-const Set<String> kDeviceOnlySettings = {'reminder.enabled', 'reminder.time'};
+const Set<String> kDeviceOnlySettings = {
+  'reminder.enabled',
+  'reminder.time',
+  // Course downloads: index URL override, cached index, time of the last check.
+  'packs.index_url',
+  'packs.index_cache',
+  'packs.last_check',
+};
 
 /// The setting "my courses" (comma-separated ids), merged as a union.
 const String kCoursesAddedKey = 'courses.added';

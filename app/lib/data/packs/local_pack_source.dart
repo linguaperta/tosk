@@ -19,6 +19,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import '../../core/core.dart';
+import '../course/course_schema.dart';
 import 'pack_file_store.dart';
 
 /// Read-only access to the packs shipped with the app.
@@ -152,6 +153,48 @@ class LocalPackSource implements PackSource {
     return _info(e);
   }
 
+  /// Installs a staged download ([PackStaging.finish] already called):
+  /// validates it as course [courseId] (and [version], when given), swaps it
+  /// in, then opens it with [verify]. If that fails, the previous version is
+  /// restored and the error rethrown; otherwise the backup is dropped and
+  /// `packs.json` records the pack with [origin]. The manifest is written last,
+  /// so after a crash at any point the folder and the manifest still agree
+  /// (see `NativePackFileStore` recovery).
+  Future<PackInfo> installStaged(
+    String courseId,
+    PackStaging staged,
+    PackData data, {
+    PackOrigin origin = PackOrigin.remote,
+    String? version,
+    Future<void> Function(PackData data)? verify,
+  }) async {
+    final CourseMeta meta;
+    try {
+      meta = await readMeta(data); // throws CourseFormatException if invalid
+      if (meta.id != courseId) {
+        throw CourseFormatException('The file holds course "${meta.id}", not "$courseId"');
+      }
+      if (version != null && meta.version != version) {
+        throw CourseFormatException('The file holds version ${meta.version}, not $version');
+      }
+    } on Object {
+      await staged.discard();
+      rethrow;
+    }
+    final m = await _sync();
+    await staged.commit();
+    try {
+      await verify?.call(await store.data(courseId));
+    } on Object {
+      await staged.rollback();
+      rethrow;
+    }
+    await staged.dropBackup();
+    final e = m[courseId] = _Entry.fromMeta(meta, origin);
+    await _writeManifest(m);
+    return _info(e);
+  }
+
   @override
   Future<bool> remove(String courseId) async {
     final m = await _sync();
@@ -248,42 +291,4 @@ class _Entry {
         'schemaVersion': schemaVersion,
         'unverified': unverified,
       };
-}
-
-/// Compares semantic versions (`1.2.3`, `1.2.3-beta.1`); a pre-release sorts
-/// before its release, build metadata (`+…`) is ignored. Non-numeric parts
-/// compare as strings.
-int compareVersions(String a, String b) {
-  (List<String>, List<String>?) split(String v) {
-    final core = v.split('+').first;
-    final dash = core.indexOf('-');
-    final main = (dash < 0 ? core : core.substring(0, dash)).split('.');
-    final pre = dash < 0 ? null : core.substring(dash + 1).split('.');
-    return (main, pre);
-  }
-
-  int cmpParts(List<String> x, List<String> y, {bool padZero = true}) {
-    final n = x.length > y.length ? x.length : y.length;
-    for (var i = 0; i < n; i++) {
-      if (!padZero && (i >= x.length || i >= y.length)) return x.length.compareTo(y.length);
-      final xs = i < x.length ? x[i] : '0';
-      final ys = i < y.length ? y[i] : '0';
-      final xi = int.tryParse(xs);
-      final yi = int.tryParse(ys);
-      final c = (xi != null && yi != null)
-          ? xi.compareTo(yi)
-          : (xi != null ? -1 : (yi != null ? 1 : xs.compareTo(ys)));
-      if (c != 0) return c;
-    }
-    return 0;
-  }
-
-  final (am, ap) = split(a.trim());
-  final (bm, bp) = split(b.trim());
-  final c = cmpParts(am, bm);
-  if (c != 0) return c;
-  if (ap == null && bp == null) return 0;
-  if (ap == null) return 1;
-  if (bp == null) return -1;
-  return cmpParts(ap, bp, padZero: false);
 }

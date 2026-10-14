@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/core.dart';
 import '../../providers.dart';
 import '../courses/course_picker.dart';
+import '../courses/course_updates.dart';
 import '../theme/bw_skin.dart';
 
 /// Small chip warning that a course hasn't been checked by a speaker.
@@ -66,6 +67,33 @@ class DemoBadge extends StatelessWidget {
   }
 }
 
+/// Small dot next to the course title: one of my courses has an update.
+/// A shape (filled black in black & white), with a tooltip and semantics.
+class UpdateDot extends StatelessWidget {
+  const UpdateDot({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Tooltip(
+      message: 'Course updates available',
+      child: Semantics(
+        label: 'Course updates available',
+        child: Container(
+          key: const ValueKey('course-update-dot'),
+          width: 9,
+          height: 9,
+          margin: const EdgeInsets.only(left: 6),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: isMonochrome(scheme) ? kBwBlack : scheme.primary,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Course title with a menu to switch between the user's courses, and
 /// "Add or remove courses" (the course picker).
 class CourseSwitcher extends ConsumerWidget {
@@ -81,6 +109,7 @@ class CourseSwitcher extends ConsumerWidget {
     final active = courses.where((c) => c.id == activeId).firstOrNull;
     final title = active == null ? 'tosk' : pickLang(active.title, lang);
     final demo = ref.watch(activeCourseIsDemoProvider);
+    final update = ref.watch(courseUpdateAvailableProvider);
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -106,15 +135,20 @@ class CourseSwitcher extends ConsumerWidget {
                   ),
                 ),
               const PopupMenuDivider(),
-              const PopupMenuItem<String>(
-                key: ValueKey('manage-courses'),
+              PopupMenuItem<String>(
+                key: const ValueKey('manage-courses'),
                 value: _manage,
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.library_add_outlined),
-                    SizedBox(width: 12),
-                    Flexible(child: Text('Add or remove courses', overflow: TextOverflow.ellipsis)),
+                    const Icon(Icons.library_add_outlined),
+                    const SizedBox(width: 12),
+                    Flexible(
+                      child: Text(
+                        update ? 'Courses (updates available)' : 'Add or remove courses',
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -125,6 +159,7 @@ class CourseSwitcher extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Flexible(child: Text(title, overflow: TextOverflow.ellipsis)),
+                  if (update) const UpdateDot(),
                   const Icon(Icons.arrow_drop_down),
                 ],
               ),

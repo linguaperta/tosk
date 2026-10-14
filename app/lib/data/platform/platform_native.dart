@@ -91,6 +91,7 @@ class NativePackFileStore implements PackFileStore {
   @override
   Future<List<String>> installedIds() async {
     if (!dir.existsSync()) return const [];
+    _recover();
     return [
       for (final f in dir.listSync().whereType<File>())
         if (p.extension(f.path).toLowerCase() == '.sqlite') p.basenameWithoutExtension(f.path),
@@ -111,4 +112,98 @@ class NativePackFileStore implements PackFileStore {
 
   @override
   String location(String courseId) => _file(courseId).path;
+
+  @override
+  Future<PackStaging> stage(String courseId) async {
+    await dir.create(recursive: true);
+    final download = File('${_file(courseId).path}.download');
+    _recovered = true; // never clean up under a running download
+    return _NativeStaging(_file(courseId), download, download.openWrite());
+  }
+
+  bool _recovered = false;
+
+  /// Cleans up after a crash during a download or swap, once per store:
+  /// `{id}.sqlite.download` files are deleted, and a `{id}.sqlite.bak` (the
+  /// previous version, kept while a new one was being opened) is restored, so
+  /// the folder matches `packs.json` again.
+  void _recover() {
+    if (_recovered || !dir.existsSync()) return;
+    _recovered = true;
+    for (final f in dir.listSync().whereType<File>()) {
+      try {
+        if (f.path.endsWith('.sqlite.download')) {
+          f.deleteSync();
+        } else if (f.path.endsWith('.sqlite.bak')) {
+          final target = File(f.path.substring(0, f.path.length - '.bak'.length));
+          if (target.existsSync()) target.deleteSync();
+          f.renameSync(target.path);
+        }
+      } on FileSystemException {
+        // Leave it; the next start tries again.
+        _recovered = false;
+      }
+    }
+  }
+}
+
+class _NativeStaging implements PackStaging {
+  _NativeStaging(this.target, this.download, this._sink);
+  final File target;
+  final File download;
+  IOSink? _sink;
+  File get backup => File('${target.path}.bak');
+  bool _hadPrevious = false;
+
+  @override
+  Future<void> add(List<int> chunk) async => _sink!.add(chunk);
+
+  @override
+  Future<PackData> finish() async {
+    final s = _sink;
+    _sink = null;
+    if (s != null) {
+      await s.flush();
+      await s.close();
+    }
+    return PackFile(download.path);
+  }
+
+  @override
+  Future<void> discard() async {
+    final s = _sink;
+    _sink = null;
+    if (s != null) {
+      try {
+        await s.close();
+      } on Object {
+        // already failed
+      }
+    }
+    if (download.existsSync()) await download.delete();
+  }
+
+  @override
+  Future<void> commit() async {
+    if (backup.existsSync()) await backup.delete();
+    _hadPrevious = target.existsSync();
+    if (_hadPrevious) await target.rename(backup.path);
+    try {
+      await download.rename(target.path);
+    } on FileSystemException {
+      if (_hadPrevious) await backup.rename(target.path);
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> rollback() async {
+    if (target.existsSync()) await target.delete();
+    if (_hadPrevious && backup.existsSync()) await backup.rename(target.path);
+  }
+
+  @override
+  Future<void> dropBackup() async {
+    if (backup.existsSync()) await backup.delete();
+  }
 }

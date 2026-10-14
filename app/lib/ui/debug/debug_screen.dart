@@ -11,6 +11,7 @@ import 'package:uuid/uuid.dart';
 import '../../core/core.dart';
 import '../../data/bootstrap.dart';
 import '../../data/course/course_repo.dart';
+import '../../data/packs/github_pack_source.dart' show kDefaultPackIndexUrl;
 import '../../data/stats/skill_stats.dart';
 
 class DebugScreen extends StatefulWidget {
@@ -56,6 +57,34 @@ class _DebugScreenState extends State<DebugScreen> {
     }
   }
 
+  /// Debug setting: where the release index (`index.json`) is fetched from
+  /// (`packs.index_url`; empty = the stable GitHub URL).
+  Future<void> _editIndexUrl() async {
+    const key = 'packs.index_url';
+    final current = await widget.app.progress.getSetting(key) ?? '';
+    if (!mounted) return;
+    final field = TextEditingController(text: current);
+    final value = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Course index URL'),
+        content: TextField(
+          key: const ValueKey('debug-index-url'),
+          controller: field,
+          decoration: const InputDecoration(hintText: kDefaultPackIndexUrl, helperText: 'Empty: the default'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.of(context).pop(field.text.trim()), child: const Text('Save')),
+        ],
+      ),
+    );
+    field.dispose();
+    if (value == null) return;
+    await widget.app.progress.setSetting(key, value.isEmpty ? null : value);
+    _toast(value.isEmpty ? 'Using the default course index' : 'Course index: $value');
+  }
+
   Future<void> _rebuild() async {
     final sw = Stopwatch()..start();
     await widget.app.progress.rebuildStates();
@@ -72,6 +101,7 @@ class _DebugScreenState extends State<DebugScreen> {
         actions: [
           IconButton(tooltip: 'Reload', icon: const Icon(Icons.refresh), onPressed: _reload),
           IconButton(tooltip: 'Add pack from file', icon: const Icon(Icons.add), onPressed: _addPack),
+          IconButton(tooltip: 'Course index URL', icon: const Icon(Icons.cloud_outlined), onPressed: _editIndexUrl),
           IconButton(
             tooltip: 'Rebuild states from the log',
             icon: const Icon(Icons.restart_alt),

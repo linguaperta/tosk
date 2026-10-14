@@ -1,7 +1,7 @@
-/// Course pack sources. v1 implements only `LocalPackSource` (bundled assets,
-/// the app's data folder, packs added from a file); a `GitHubPackSource`
-/// (Releases + index.json, checksums, atomic swap) comes later behind the same
-/// interface. Pure Dart.
+/// Course pack sources: `LocalPackSource` (bundled assets, the app's data
+/// folder, packs added from a file) and, since v0.4, `GitHubPackSource`
+/// (Releases + index.json, checksums, atomic swap; see `remote_packs.dart`) behind
+/// the same interface. Pure Dart.
 library;
 
 import 'dart:typed_data';
@@ -14,7 +14,7 @@ import '../models/course.dart';
 enum PackOrigin {
   bundled, // shipped in the app's assets
   local, // added by the user from a file
-  remote, // downloaded (later)
+  remote, // downloaded from the published packs (GitHubPackSource)
 }
 
 /// A pack that can be opened, as listed by a [PackSource].

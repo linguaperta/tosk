@@ -29,6 +29,7 @@ python -m pipeline gen context it --skill present-are          # what a sentence
 python -m pipeline gen check it drafts.jsonl                   # check Claude-written drafts (dry run)
 python -m pipeline gen add it drafts.jsonl                     # ... and add the accepted ones
 python -m pipeline gen refresh it [--drop]                     # re-align generated sentences after an import
+python -m pipeline publish it nl [--tag packs-YYYYMMDD] [--dry-run]   # dist/index.json + GitHub Release (gh; never hns)
 python -m pytest pipeline/tests                                # offline tests
 
 python -m pipeline fetch hns                 # Sarnami: scrape the [source] dictionary (1 req/s) + extra sources
@@ -47,6 +48,13 @@ checkout; the pipeline refuses to write it anywhere else (`pipeline/hns/safeguar
 * `build --install` copies the packs to `app/assets/courses/{id}.sqlite` (bundled with the app).
 * `build` needs only the committed JSONL/YAML/markdown, so it works offline and is deterministic apart from
   `meta.built_at`.
+* `publish` (`pipeline/publish.py`) rewrites `dist/index.json` for a release (absolute asset URLs,
+  `index_version`, `generated_at`, `tag`, and per course id, version, title, description, target,
+  sources, unverified, schema_version, min_app_version, sha256, size, url) and runs
+  `gh release create <tag> dist/<id>.sqlite... dist/index.json --repo timoverlaan/tosk-data --latest`.
+  The app reads `https://github.com/timoverlaan/tosk-data/releases/latest/download/index.json`.
+  `--dry-run` writes the index and prints the commands. Restricted courses (`hns`) are refused.
+  Steps and `gh auth login`: docs/release.md, "Publishing course packs".
 
 ## Sources (fetch)
 
