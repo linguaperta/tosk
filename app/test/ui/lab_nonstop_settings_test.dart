@@ -154,7 +154,10 @@ void main() {
     });
 
     test('AppSettings load falls back to defaults for unknown values', () async {
-      final store = TestProgressStore(settings: {SettingKeys.themeMode: 'neon', SettingKeys.defaultFocus: ''});
+      final store = TestProgressStore(
+        fresh: true,
+        settings: {SettingKeys.themeMode: 'neon', SettingKeys.defaultFocus: '', SettingKeys.leechLapses: 'x'},
+      );
       final s = await AppSettings.load(store);
       expect(s, const AppSettings());
     });

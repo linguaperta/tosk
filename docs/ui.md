@@ -25,22 +25,60 @@ go_router, in `ui/router.dart`. Path builders are in `ui/routes.dart`.
 
 | Route | Screen | Notes |
 | --- | --- | --- |
-| `/` | `MapScreen` (`ui/map/`) | Home. Course switcher in the app bar, with the demo and unverified badges. Level/streak header (tap: progress page). Zoom in and out. "What's fading" button, with "Review mistakes (N)" above it while mistakes are open (starts a mistake review). |
-| `/lab` | `LabScreen` (`ui/lab/`) | Skills multi-select grouped by unit, with a tri-state checkbox per unit. Exercise types multi-select (9). Length chips 5/10/20/30/50. |
-| `/nonstop` | `NonStopScreen` (`ui/nonstop/`) | Start screen with a slot for the best run. |
-| `/progress` | `ProgressScreen` (`ui/progress/`) | Level and XP, streak with freezes, the 26-week heatmap, the verb collection entry, the mistakes entry ("Review mistakes (N)"), weekly and monthly challenges, badges. |
-| `/mistakes` | `MistakesScreen` (`ui/mistakes/`) | Open mistakes (`openMistakesProvider`), one card each: facet label, skill · missed type · when · count, the stored prompt, "You answered" / "Correct", an excerpt of the skill's grammar note (`noteExcerpt`) with a "Grammar note" link to the skill sheet, and the "Why?" slot (shown only when the explainer is available, or a cached explanation exists). A pinned "Review N mistakes" button starts `/play/review`. Empty state when nothing is open. |
-| `/progress/verbs` | `VerbCollectionScreen` (`ui/progress/`) | `VerbCollectionView`: one card per verb, tense pills light up with mastery. |
-| `/settings` | `SettingsScreen` (`ui/settings/`) | Course, source language, default focus, accents, display (color or black & white), theme (color only), reduce motion, and a link to the debug screen. |
-| `/skill/:id` | `SkillSheet` as a modal bottom sheet (`BottomSheetPage`) | Opened by long-press or right-click on a node. Shows a focus chooser and Start, the grammar note (markdown, in the source language), and the item list (article + lemma, gloss, and the forms in the skill's tense for verbs). |
-| `/play/lesson/:skillId?focus=` | `PlayerScreen(LessonRequest)` | Tapping a node starts a lesson with the default focus. |
+| `/` | `MapScreen` (`ui/map/`) | Home. Course switcher in the app bar (the user's courses, then "Add or remove courses"), with the demo and unverified badges. Level/streak header (tap: progress page). Zoom in and out. "What's fading" button, with "Review mistakes (N)" above it while mistakes are open (starts a mistake review). |
+| `/practice?tab=nonstop\|lab` | `PracticeScreen` (`ui/practice/`) | Two tabs. **Non-stop** (`NonStopScreen(embedded: true)`, `ui/nonstop/`): description and best run, Start pinned at the bottom. **Lab** (`LabScreen(embedded: true)`, `ui/lab/`): skills multi-select grouped by unit (tri-state checkbox per unit), exercise types (9), length chips 5/10/20/30/50, Start pinned at the bottom. `/lab` and `/nonstop` redirect here. |
+| `/reference?tab=lookup\|grammar&q=` | `ReferenceScreen` (`ui/reference/`) | Two tabs. **Lookup**: results above, the search field and an "All words / Verbs" filter pinned at the bottom (thumb zone); a hit opens `/word/:itemId`. **Grammar** (`GrammarLibraryView`): every grammar note of the course, grouped by unit, in the source language; each expands to the note and "Practice this skill" (a lesson, grammar focus for grammar skills). |
+| `/word/:itemId` | `WordScreen` (`ui/reference/word_screen.dart`) | Root route, so it opens over anything (the player too, from a word popover). Glosses, part of speech, gender, plural, variants, auxiliary, tags, "Taught in" (skill chips open the skill sheet), the full conjugation table for verbs (`VerbTenseCard` per tense: persons in course order, tense labels in the source language, irregular forms **bold and underlined** with a legend, alternatives in parentheses; infinitive, participle and gerund under "Other forms"), and example sentences (tappable words, translation). |
+| `/progress` | `ProgressScreen` (`ui/progress/`) | Level and XP, streak with freezes, the 26-week heatmap, the verb collection entry, the mistakes entry ("Review mistakes (N)"), "Tough words (N)" when there are any (starts `/play/tough`), weekly and monthly challenges, badges. |
+| `/mistakes` | `MistakesScreen` (`ui/mistakes/`) | Open mistakes (`openMistakesProvider`), one card each: facet label, skill · missed type · when · count, the stored prompt, "You answered" / "Correct", an excerpt of the skill's grammar note (`noteExcerpt`) with a "Grammar note" link to the skill sheet, and the "Why?" slot (shown only when the explainer is available, or a cached explanation exists). Pinned at the bottom: "Tough words (N)" (when any) and "Review N mistakes" (`/play/review`). Empty state when nothing is open. |
+| `/progress/verbs` | `VerbCollectionScreen` (`ui/progress/`) | `VerbCollectionView`: one card per verb, tense pills light up with mastery. A card opens the verb's reference page; the app bar's search icon opens Lookup. |
+| `/settings` | `SettingsScreen` (`ui/settings/`) | My courses (switch) and "Add or remove courses", source language, default focus, accents, display (color or black & white), theme (color only), reduce motion, the debug link, and at the end **Practice**: default lesson length (Quick 5 / Normal 12 / Long 20) and the tough-word threshold (3–6 lapses). |
+| `/skill/:id` | `SkillSheet` as a modal bottom sheet (`BottomSheetPage`) | Opened by long-press or right-click on a node. Focus chooser and **length chooser** (5 / 12 / 20, default from Settings; side by side from 520 px, stacked below), Start lesson, **Test out** (while the skill is below bronze), the grammar note (markdown, in the source language), and the item list (article + lemma, gloss, and the forms in the skill's tense for verbs). |
+| `/play/lesson/:skillId?focus=&length=` | `PlayerScreen(LessonRequest)` | Tapping a node starts a lesson with the default focus and length. |
+| `/play/testout/:skillId` | `PlayerScreen(TestOutRequest)` | `SessionFactory.testOut`. The summary shows `AssessmentResultCard`: "Tested out!" (score, pass mark, what is now learned and unlocked) or "Not yet". |
+| `/play/placement` | `PlayerScreen(PlacementRequest)` | `SessionFactory.placement`. The summary card says how many units are done and where to continue. |
+| `/play/tough` | `PlayerScreen(ToughWordsRequest)` | `SessionFactory.toughWords` with the threshold from Settings; "No tough words right now" when empty. |
 | `/play/fading` | `PlayerScreen(FadingRequest)` | |
 | `/play/review` | `PlayerScreen(ReviewRequest)` | Mistake review (`SessionFactory.review`, see `docs/engine.md`); "No mistakes to review" when nothing is open. |
 | `/play/lab?skills=&types=&length=` | `PlayerScreen(LabRequest)` | |
 | `/play/nonstop` | `PlayerScreen(NonStopRequest)` | Endless. The title shows a running count, and Stop leads to the summary. |
 | `/debug` | `DebugRoute` (`ui/debug/debug_route.dart`) | The data layer's `DebugScreen` over `appDataProvider` (packs, add a pack, rebuild states, per-skill stats). Leaving it re-lists the courses and bumps `progressRevisionProvider`. Without a data layer it shows `DemoDebugScreen`. |
 
-The five top-level screens (Map, Lab, Non-stop, Progress, Settings) sit in a `StatefulShellRoute` (`ui/shell/app_shell.dart`). Below 600 px wide that shell uses a bottom `NavigationBar`. At 600 px and wider it uses a `NavigationRail`, extended with labels from 1100 px. The player, the sheet and the debug screen open on the root navigator, full screen.
+The five top-level screens (**Map, Practice, Reference, Progress, Settings**; until v0.3 the second and third were Lab and Non-stop, now the two tabs of Practice) sit in a `StatefulShellRoute` (`ui/shell/app_shell.dart`). Below 600 px wide that shell uses a bottom `NavigationBar` (labels clamp their text scale on narrow phones, so "Reference" fits at 320 px). At 600 px and wider it uses a `NavigationRail`, extended with labels from 1100 px. The player, the sheets, the word page and the debug screen open on the root navigator, full screen. The tabs inside Practice and Reference switch an `IndexedStack` through a `TabController` (no swipeable page view: nothing slides on e-ink, no accidental swipes, both pages keep their state).
+
+### Course picker (`ui/courses/course_picker.dart`)
+
+`showCoursePicker(context, firstRun:)` opens a bottom sheet listing **every available course** (`availableCoursesProvider`: bundled and installed packs, a local Sarnami pack included, or the demo courses), each as a card with:
+
+- the title, Demo / Unverified badges, source languages and version, "Added" in the subtitle and a 3 px border when added (never color alone);
+- **+** (`IconButton.filled`, "Add to my courses") or **−** (`IconButton.outlined`, "Remove from my courses"; disabled for the last course: the app keeps at least one);
+- **Preview** (expands in place, `coursePreviewProvider(id)` opens the course without making it active): the description (meta key `description`, now `CourseMeta.description`), "Learn Italian (it) · translations in English, Nederlands", counts (words, verbs, sentences, units, skills), the unit and skill outline, six sample words with glosses, and a sample sentence with its translation.
+
+Done is pinned at the bottom. "My courses" is the setting `courses.added` (comma-separated, in the order added). **The rest of the app only shows those**: the course switcher, Settings and `activeCourseIdProvider` (the saved course among mine, else my first) go through `myCoursesProvider`. Removing a course only removes it from the list; its progress stays in the log, and adding it back finds it again. Installs from before the picker (no `courses.added`) count their active course as added (`AppSettings.myCourseIds`).
+
+**First run:** with no course added (`needsCoursePickerProvider`), the shell opens the picker once ("Choose your course"). Closing it without adding anything adds the course shown underneath, so the app always has one. **Placement offer:** adding a course with no events in the log asks "Start from scratch" or "Find my level"; the latter makes it active, closes the picker and opens `/play/placement`.
+
+### Word popovers: tap a word for its translation (`ui/common/word_popover.dart`)
+
+Target-language sentences show their aligned words (the engine's `TokenRef`s, see `docs/engine.md`) with a dotted underline; tapping one opens a small popover anchored under (or above) the word, kept on screen: the headline from `glossForToken` (`mangiamo → mangiare · noi · present`, nouns with their article: `il pane`), the glosses in the source language, and "Open in reference" (`/word/:itemId`). It is a `PopupRoute` on the root navigator: no barrier color, no transition, dismissed by a tap outside or Back; in black & white a white card with a 3 px black border and no shadow. Unaligned words and punctuation stay plain text.
+
+| Exercise | Where |
+| --- | --- |
+| cloze | the words before and after the gap (`tokenSpans` around the gap widget); after checking, the filled gap too |
+| spot the error | **after checking only** (before, a tap is the answer): the word tiles; the wrong word shows the correct word's gloss |
+| multiple choice, sentence → meaning | the prompt sentence |
+| multiple choice, meaning → sentence | after checking, the correct option's sentence |
+| transform | the source sentence |
+| sentence builder | after checking, the answer sentence ("answer-sentence" row under the prompt) |
+| reference | example sentences on the word page |
+
+**Never the answer:** before checking, no word aligned to the exercise's own item is tappable (`hideItemUntilAnswered`): not the gapped verb's other words (`heb … gegeten`), not the noun of an article question, not the asked word in a sentence. Options and tiles are never tappable. The feedback panel itself is unchanged (it belongs to the AI-explanation work); the correct sentence is tappable in the exercise area instead (cloze gap, MC option, sentence builder row).
+
+### Test out, placement and tough words (UI)
+
+- The skill sheet's **Test out** runs `/play/testout/:skillId` (about 10 exercises, no re-asks). The summary's `AssessmentResultCard` (`ui/lesson/assessment_result.dart`, shown through `SessionSummaryView(header:)` for any `AssessmentSession` with an `outcome`) shows the verdict with an icon and words (✓ "Tested out!" / ↻ "Not yet"), the score and the pass mark. Passing credits the skill (see `docs/engine.md`), so the map shows it learned and the next skills unlocked after the session's progress bump.
+- **Placement** comes from the course picker's "Find my level" (see above).
+- **Tough words** (`toughWordsProvider`, progression's `toughWords` over the facet states with the Settings threshold): "Tough words (N)" on the Progress page (with the first three words) and in the mistakes screen's bottom bar, both starting `/play/tough`.
 
 ### Lesson player (`ui/lesson/`)
 
@@ -162,7 +200,10 @@ I chose this over `flutter_markdown_plus` and `gpt_markdown` because grammar not
 | `bwProvider`, `themeModeProvider`, `reduceMotionProvider`, `motionProvider`, `fxProvider` | Derived from settings | Black & white forces light and reduced motion; fx follow only "Reduce motion" |
 | `skinProvider` | `Skin` | `BwSkin` in black & white, else `DefaultSkin`; forest skin later |
 | `availableCoursesProvider` | `Future<List<CourseMeta>>` | From the catalog (pack listings carry id, version, title, unverified; the opened course has the full meta) |
-| `activeCourseIdProvider` | `Future<String>` | The saved course if installed, else the first |
+| `myCoursesProvider` | `Future<List<CourseMeta>>` | The installed courses among `courses.added`, in the order added |
+| `needsCoursePickerProvider` | `bool` | No course added yet (a fresh install): the shell opens the picker |
+| `coursePreviewProvider(id)` | `Future<CoursePreview>` | The picker's preview (meta, outline, counts, samples) of a course that need not be active |
+| `activeCourseIdProvider` | `Future<String>` | The saved course among mine, else my first; before any is added, the first installed |
 | `activeCourseIsDemoProvider` | `bool` | Whether the active course is demo content (the Demo chip) |
 | `courseDataProvider` | `Future<CourseData>` | `catalog.open(activeId)` |
 | `sourceLangProvider` | `String` | The setting, restricted to `meta.translations` |
@@ -174,6 +215,7 @@ I chose this over `flutter_markdown_plus` and `gpt_markdown` because grammar not
 | `explainerAvailableProvider` | `bool` | `explainer.isAvailable` (false: "Why?" hidden) |
 | `answerInputBuilderProvider` | `AnswerInputBuilder` | Keyboard (`KeyboardAnswerField`); ink in Phase 8 |
 | `openMistakesProvider` | `Future<List<OpenMistake>>` | The engine's `openMistakes` for the active course (map button count, progress entry, mistakes list); watches `progressRevisionProvider` |
+| `toughWordsProvider` | `Future<List<ToughWord>>` | Progression's `toughWords` for the active course with the `lesson.leech_lapses` threshold; watches `progressRevisionProvider` |
 | `progressRevisionProvider` | `int` (Notifier, `bump()`) | Bumped after every session and when leaving the debug screen; every progress-derived provider watches it |
 | `progressionServiceProvider` | `Future<ProgressionService>` | For the active course (store, scheduler, clock, calendar); caches its log replay |
 | `skillStatsProvider` | `Future<Map<String, SkillStats>>` | Strength and last practice from the data layer's `SkillStatsService.forCourse`, tier and fading from `ProgressionService.skillTiers` (`mapSkillStats`) |
@@ -204,6 +246,9 @@ Every setting is stored through `ProgressStore.getSetting/setSetting`, as a stri
 | `ui.theme_mode` | `light`, `dark` or `system` |
 | `ui.reduce_motion` | `true` or `false` (also silences haptics and sounds) |
 | `ui.display` | `color` or `bw` (black & white for e-ink; forces reduced motion and the light black & white theme) |
+| `lesson.default_length` | `quick` (5), `normal` (12) or `long` (20): `SessionLength` |
+| `lesson.leech_lapses` | Lapses from which a facet is a "tough word" (integer, default 4) |
+| `courses.added` | "My courses": comma-separated course ids, in the order added (absent until first used) |
 
 Unknown or missing values fall back to the defaults. They live in the progress database, so they survive a restart (in demo mode, in `progress-demo.sqlite`).
 
@@ -230,4 +275,6 @@ Unknown or missing values fall back to the defaults. They live in the progress d
 | `ui/lab_nonstop_settings_test` | Lab selection → session, non-stop count/stop, settings persistence and read-back, default focus, source-language restriction, navigation rail, debug route, default providers |
 | `ui/mistake_review_test` | Map "Review mistakes (N)" after a mistake → review session → resolved; progress → mistakes list (prompt, answers, note excerpt, note link, review button, empty list); "Why?" on a mistake with an explainer; empty review session; the feedback actions row with an extra action |
 | `ui/thumb_zone_test` | Controls of every exercise type in the lower part of the screen (phone and desktop, centered column), 48 px targets, `ExerciseLayout` geometry |
-| `ui/overflow_test` | Every screen (including progress and verb pages) and every exercise type (wrong → retry → summary) at 360×640, 320×568, 768×1024 and 1280×800, in dark mode, and with text scale 1.3; every exercise type at text scale 1.5 on the two phone sizes; the mistakes list and the map with its mistakes button. Any layout overflow fails the test |
+| `ui/overflow_test` | Every screen (including progress and verb pages, both Practice tabs and both Reference tabs) and every exercise type (wrong → retry → summary) at 360×640, 320×568, 768×1024 and 1280×800, in dark mode, and with text scale 1.3; every exercise type at text scale 1.5 on the two phone sizes; the mistakes list and the map with its mistakes button. Any layout overflow fails the test |
+| `ui/v03_features_test` | Word popovers (cloze before/after checking, the gap, "Open in reference" over the player; spot the error after checking only; sentence MC without the asked word; the sentence builder's answer row), the course picker (first run, preview, add with the placement question, remove, the last course kept, progress kept, "Find my level" → placement → units learned), the five tabs at 320 px and the `/lab` redirect, lookup (form, gloss, verbs only, word page tables), the grammar library and "Practice this skill", the verb collection link, session length (sheet and setting), test out (pass → learned, fail, no test out once learned), tough words (progress and mistakes entries, the drill, the threshold) |
+| `ui/v03_bw_test` | The new screens (lookup, word page, grammar library, both Practice tabs, progress with tough words, course picker with preview, skill sheet with length and test out), word popovers and the test-out verdict, pixel-scanned in black & white and checked for overflow at every e-ink harness size; the same walk in color, dark, text 1.3 at 320×568, 360×640 and 1280×800 |

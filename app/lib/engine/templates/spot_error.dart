@@ -110,6 +110,16 @@ class SpotErrorTemplate extends ExerciseTemplate {
       correction: p.correction,
       translation: p.translation,
       sentenceId: p.sentenceId,
+      tokenRefs: [
+        for (var i = 0; i < p.tokens.length; i++)
+          TokenRef(
+            p.tokens[i].$2,
+            pre: p.tokens[i].$1,
+            itemId: i < sentence.tokens.length ? sentence.tokens[i].lex : null,
+            form: i < sentence.tokens.length ? sentence.tokens[i].form : null,
+            isWord: i < sentence.tokens.length ? sentence.tokens[i].isWord : true,
+          ),
+      ],
     );
   }
 

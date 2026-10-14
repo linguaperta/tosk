@@ -22,6 +22,7 @@ class SkillSheet extends ConsumerStatefulWidget {
 
 class _SkillSheetState extends ConsumerState<SkillSheet> {
   LessonFocus? _focus;
+  SessionLength? _length;
 
   @override
   Widget build(BuildContext context) {
@@ -33,6 +34,7 @@ class _SkillSheetState extends ConsumerState<SkillSheet> {
     final lang = ref.watch(sourceLangProvider);
     final stats = ref.watch(skillStatsProvider).value?[skill.id] ?? SkillStats.empty;
     final focus = _focus ?? ref.watch(settingsProvider).value?.defaultFocus ?? LessonFocus.mixed;
+    final length = _length ?? ref.watch(settingsProvider).value?.defaultLength ?? SessionLength.normal;
     final note = course.note(skill.id, lang);
     final items = course.skillItems(skill.id);
     final unit = course.units.where((u) => u.id == skill.unitId).firstOrNull;
@@ -101,22 +103,86 @@ class _SkillSheetState extends ConsumerState<SkillSheet> {
             ),
           ],
           const SizedBox(height: 16),
-          Text('Lesson focus', style: theme.textTheme.labelLarge),
-          const SizedBox(height: 6),
-          SegmentedButton<LessonFocus>(
-            key: const ValueKey('focus-chooser'),
-            showSelectedIcon: false,
-            segments: [for (final f in LessonFocus.values) ButtonSegment(value: f, label: Text(focusShortLabel(f)))],
-            selected: {focus},
-            onSelectionChanged: (s) => setState(() => _focus = s.first),
+          LayoutBuilder(
+            builder: (context, box) {
+              final focusChooser = Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text('Lesson focus', style: theme.textTheme.labelLarge),
+                  const SizedBox(height: 6),
+                  SegmentedButton<LessonFocus>(
+                    key: const ValueKey('focus-chooser'),
+                    showSelectedIcon: false,
+                    segments: [
+                      for (final f in LessonFocus.values) ButtonSegment(value: f, label: Text(focusShortLabel(f))),
+                    ],
+                    selected: {focus},
+                    onSelectionChanged: (s) => setState(() => _focus = s.first),
+                  ),
+                ],
+              );
+              final lengthChooser = Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text('Length', style: theme.textTheme.labelLarge),
+                  const SizedBox(height: 6),
+                  SegmentedButton<SessionLength>(
+                    key: const ValueKey('length-chooser'),
+                    showSelectedIcon: false,
+                    segments: [
+                      for (final l in SessionLength.values)
+                        ButtonSegment(
+                          value: l,
+                          label: Text('${l.exercises}', key: ValueKey('length-${l.name}')),
+                          tooltip: '${sessionLengthLabel(l)}: ${l.exercises} exercises',
+                        ),
+                    ],
+                    selected: {length},
+                    onSelectionChanged: (s) => setState(() => _length = s.first),
+                  ),
+                ],
+              );
+              // Side by side when there is room, else stacked.
+              if (box.maxWidth >= 520) {
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(flex: 3, child: focusChooser),
+                    const SizedBox(width: 12),
+                    Expanded(flex: 2, child: lengthChooser),
+                  ],
+                );
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [focusChooser, const SizedBox(height: 10), lengthChooser],
+              );
+            },
           ),
           const SizedBox(height: 12),
           FilledButton.icon(
             key: const ValueKey('start-lesson'),
-            onPressed: () => context.pushReplacement(Routes.lesson(skill.id, focus: focus)),
+            onPressed: () => context.pushReplacement(Routes.lesson(skill.id, focus: focus, length: length.exercises)),
             icon: const Icon(Icons.play_arrow),
             label: const Text('Start lesson'),
           ),
+          if (course.skillFacets(skill.id).isNotEmpty && stats.tier.index < MapTier.bronze.index) ...[
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              key: const ValueKey('test-out'),
+              onPressed: () => context.pushReplacement(Routes.testOut(skill.id)),
+              icon: const Icon(Icons.fast_forward),
+              label: const Text('Test out'),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                'Already know this? A short quiz; pass it to mark the skill as learned.',
+                style: theme.textTheme.bodySmall,
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ],
           if (note != null) ...[
             const SizedBox(height: 24),
             Text('Grammar note', style: theme.textTheme.titleMedium),

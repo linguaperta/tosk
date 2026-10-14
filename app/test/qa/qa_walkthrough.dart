@@ -38,7 +38,7 @@ import 'package:sqlite3/sqlite3.dart';
 
 import '../app/app_fixture.dart' show MapBundledPacks;
 import '../fixtures/big_map_course.dart';
-import '../ui/helpers.dart' show answerCurrent, currentExercise, setSurface, tapKey, testNow;
+import '../ui/helpers.dart' show answerCurrent, currentExercise, goTab, setSurface, tapKey, testNow;
 
 final _out = Directory(Platform.environment['QA_OUT'] ?? 'build/qa');
 const _root = ValueKey('qa-root');
@@ -104,7 +104,8 @@ Future<ProgressRepo> pumpReal(
     await tester.pumpWidget(const SizedBox());
     await tester.runAsync(repo.close);
   });
-  for (final e in settings.entries) {
+  // Both courses added (the course picker opens on a fresh profile otherwise).
+  for (final e in {'courses.added': 'it,nl', ...settings}.entries) {
     await repo.setSetting(e.key, e.value);
   }
   final app = _realPacks(repo);
@@ -343,17 +344,29 @@ void main() {
       await shot(tester, '$p-35-verbs');
       await tester.pageBack();
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Settings').first);
-      await tester.pumpAndSettle();
+      await goTab(tester, 'Settings');
       await shot(tester, '$p-36-settings');
-      await tester.tap(find.text('Lab').first);
-      await tester.pumpAndSettle();
+      await goTab(tester, 'Lab');
       await shot(tester, '$p-37-lab');
-      await tester.tap(find.text('Non-stop').first);
-      await tester.pumpAndSettle();
+      await goTab(tester, 'Non-stop');
       await shot(tester, '$p-38-nonstop-start');
-      await tester.tap(find.text('Map').first);
+      await goTab(tester, 'Lookup');
+      await tester.enterText(find.byKey(const ValueKey('lookup-field')), c.meta.id == 'it' ? 'mangiamo' : 'gegeten');
       await tester.pumpAndSettle();
+      await shot(tester, '$p-40-lookup');
+      await tester.tap(find.byType(ListTile).first);
+      await tester.pumpAndSettle();
+      await shot(tester, '$p-41-word');
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      await goTab(tester, 'Grammar');
+      await shot(tester, '$p-42-grammar');
+      await goTab(tester, 'Map');
+      await tapKey(tester, 'course-switcher');
+      await tapKey(tester, 'manage-courses');
+      await tapKey(tester, 'course-preview-${c.meta.id}');
+      await shot(tester, '$p-43-course-picker');
+      await tapKey(tester, 'course-picker-done');
       final grammar = c.skills.where((s) => s.kind == SkillKind.grammar).first;
       await tester.longPress(find.byKey(ValueKey('skill-node-${grammar.id}')));
       await tester.pumpAndSettle();

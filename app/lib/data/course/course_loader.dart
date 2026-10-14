@@ -251,6 +251,7 @@ CourseMeta parseCourseMeta(Map<String, String> raw) {
       schemaVersion: major,
       baseFeatures: _stringList(raw['base_features']),
       timeAdverbs: _glosses(raw['time_adverbs']),
+      description: _i18n(raw['description']),
     );
   } on FormatException catch (e) {
     throw CourseFormatException('Malformed meta JSON: ${e.message}');

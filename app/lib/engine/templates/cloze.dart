@@ -342,6 +342,9 @@ class ClozeTemplate extends ExerciseTemplate {
       hint: g.hint,
       translation: g.sentence.translation(ctx.lang),
       sentenceId: g.sentence.id,
+      tokens: tokenRefsOf(g.sentence),
+      gapFrom: g.from,
+      gapTo: g.to,
     );
   }
 

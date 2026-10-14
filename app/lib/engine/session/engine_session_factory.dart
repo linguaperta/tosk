@@ -12,6 +12,7 @@ import '../gen_context.dart';
 import '../grading/rating.dart';
 import '../selector.dart';
 import '../template.dart';
+import 'assessment.dart';
 import 'builders.dart';
 import 'engine_session.dart';
 import 'mistake_review.dart';
@@ -88,4 +89,19 @@ class EngineSessionFactory implements SessionFactory {
 
   @override
   Future<MistakeReviewSession> review({int length = 12}) => ReviewBuilder(length: length).start(_env());
+
+  @override
+  Future<TestOutSession> testOut(String skillId, {int length = 10, double passMark = 0.8}) async {
+    final skill = course.skill(skillId);
+    if (skill == null) throw ArgumentError.value(skillId, 'skillId', 'Unknown skill');
+    return TestOutBuilder(skill, length: length, passMark: passMark).start(_env());
+  }
+
+  @override
+  Future<PlacementSession> placement({int perSkill = 2, double passMark = 0.8}) =>
+      PlacementBuilder(perSkill: perSkill, passMark: passMark).start(_env());
+
+  @override
+  Future<ToughWordsSession> toughWords({int length = 12, int minLapses = kDefaultLeechLapses}) =>
+      ToughWordsBuilder(length: length, minLapses: minLapses).start(_env());
 }

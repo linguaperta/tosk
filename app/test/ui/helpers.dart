@@ -5,6 +5,7 @@ import 'package:tosk/data/progress/in_memory_progress_store.dart';
 import 'package:tosk/progression/calendar.dart';
 import 'package:tosk/ui/lesson/exercises/exercise_view.dart';
 import 'package:tosk/ui/router.dart';
+import 'package:tosk/ui/settings/setting_keys.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
@@ -19,8 +20,12 @@ const appRootKey = ValueKey('app-root');
 
 /// The data layer's in-memory FSRS store with preset settings and a readable
 /// settings map (what `progressStoreProvider` defaults to, minus the presets).
+///
+/// Both demo courses count as added ("my courses") unless [fresh] is true
+/// (a first run, which opens the course picker).
 class TestProgressStore extends InMemoryProgressStore {
-  TestProgressStore({Map<String, String>? settings}) : _settings = {...?settings};
+  TestProgressStore({Map<String, String>? settings, bool fresh = false})
+    : _settings = {if (!fresh) SettingKeys.coursesAdded: 'it,nl', ...?settings};
 
   final Map<String, String> _settings;
 
@@ -89,10 +94,26 @@ Future<TestProgressStore> pumpApp(
   return s;
 }
 
-/// Taps a destination in the bottom navigation bar.
+/// Taps a destination in the bottom navigation bar. 'Lab' and 'Non-stop'
+/// are tabs inside Practice, 'Lookup' and 'Grammar' inside Reference.
 Future<void> goTab(WidgetTester tester, String label) async {
-  await tester.tap(find.descendant(of: find.byKey(const ValueKey('bottom-nav')), matching: find.text(label)));
+  const inner = {
+    'Lab': ('Practice', 'practice-tab-lab'),
+    'Non-stop': ('Practice', 'practice-tab-nonstop'),
+    'Lookup': ('Reference', 'reference-tab-lookup'),
+    'Grammar': ('Reference', 'reference-tab-grammar'),
+  };
+  final dest = inner[label]?.$1 ?? label;
+  final nav = find.byKey(const ValueKey('bottom-nav'));
+  final rail = find.byKey(const ValueKey('nav-rail'));
+  final bar = nav.evaluate().isNotEmpty ? nav : rail;
+  await tester.tap(find.descendant(of: bar, matching: find.text(dest)).first);
   await tester.pumpAndSettle();
+  final tab = inner[label]?.$2;
+  if (tab != null) {
+    await tester.tap(find.byKey(ValueKey(tab)));
+    await tester.pumpAndSettle();
+  }
 }
 
 /// Scrolls [finder] into view, taps it and settles.

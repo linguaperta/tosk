@@ -72,6 +72,11 @@ class OptionPicker {
 }
 
 /// Shuffles [correct] into [distractors]; returns the options and the correct index.
+/// The sentence's tokens with their alignment, for tap-for-gloss in the UI.
+List<TokenRef> tokenRefsOf(Sentence s) => [
+      for (final t in s.tokens) TokenRef(t.t, pre: t.pre, itemId: t.lex, form: t.form, isWord: t.isWord),
+    ];
+
 (List<String>, int) placeOptions(String correct, List<String> distractors, Random random) {
   final options = [correct, ...distractors]..shuffle(random);
   return (options, options.indexOf(correct));

@@ -54,6 +54,8 @@ Which facets a skill trains is decided by the pipeline:
 
 These ids appear in `course.yaml` (`exercises:`), in `skills.exercises`, in `review_log.exercise_type`, and in the focus-preset config (`app/assets/config/focus_presets.json`).
 
+`review_log.exercise_type` may also hold `test_out` (`kTestOutCreditType`): a **test-out credit**, not an answer. Passing a test out or a placement writes one per not-yet-learned facet of the credited skills (rating Easy, correct, mode `testOut` or `placement`). Credits graduate the facets (the skill is learned and what follows unlocks) and sync like any event; progression gives them no XP and doesn't count them as reviews. See `docs/engine.md`.
+
 ## FSRS ratings
 
 `1 = Again`, `2 = Hard`, `3 = Good`, `4 = Easy`. Auto-graded results: a wrong answer is Again, a right answer is Good, and a right answer faster than the type's fast-answer threshold is Easy. Flashcards use self-grade buttons (Again, Hard, Good, Easy).

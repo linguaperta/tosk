@@ -44,6 +44,10 @@ void main() {
     await tester.longPress(node);
     await tester.pumpAndSettle();
     expect(find.byType(SkillSheet), findsOneWidget);
+    // Focus and length choosers, Start lesson and Test out come first.
+    expect(find.byKey(const ValueKey('length-chooser')), findsOneWidget);
+    expect(find.byKey(const ValueKey('test-out')), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Present tense of -are verbs'), 200, scrollable: sheetScrollable);
     expect(find.text('Present tense of -are verbs'), findsOneWidget); // markdown heading
     expect(find.byType(Table), findsOneWidget); // markdown table
     await tester.scrollUntilVisible(find.text('comprare'), 200, scrollable: sheetScrollable);

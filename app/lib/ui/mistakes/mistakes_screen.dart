@@ -25,6 +25,7 @@ class MistakesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final mistakes = ref.watch(openMistakesProvider);
     final n = mistakes.value?.length ?? 0;
+    final tough = ref.watch(toughWordsProvider).value?.length ?? 0;
     return Scaffold(
       appBar: AppBar(
         // Also reachable as a deep link (no back stack): back then goes to the map.
@@ -36,7 +37,7 @@ class MistakesScreen extends ConsumerWidget {
         onRetry: () => ref.invalidate(openMistakesProvider),
         builder: (list) => list.isEmpty ? const _Empty() : _MistakeList(mistakes: list),
       ),
-      bottomNavigationBar: n == 0
+      bottomNavigationBar: n == 0 && tough == 0
           ? null
           : SafeArea(
               child: Center(
@@ -45,17 +46,33 @@ class MistakesScreen extends ConsumerWidget {
                   constraints: const BoxConstraints(maxWidth: 680),
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: FilledButton.icon(
-                        key: const ValueKey('mistakes-review'),
-                        onPressed: () => context.push(Routes.review),
-                        icon: const Icon(Icons.replay),
-                        label: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          child: Text(n > 12 ? 'Review 12 of $n mistakes' : 'Review ${_count(n)}'),
-                        ),
-                      ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Words forgotten again and again: their own drill.
+                        if (tough > 0)
+                          OutlinedButton.icon(
+                            key: const ValueKey('mistakes-tough'),
+                            onPressed: () => context.push(Routes.tough),
+                            icon: const Icon(Icons.fitness_center),
+                            label: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              child: Text('Tough words ($tough)'),
+                            ),
+                          ),
+                        if (tough > 0 && n > 0) const SizedBox(height: 8),
+                        if (n > 0)
+                          FilledButton.icon(
+                            key: const ValueKey('mistakes-review'),
+                            onPressed: () => context.push(Routes.review),
+                            icon: const Icon(Icons.replay),
+                            label: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              child: Text(n > 12 ? 'Review 12 of $n mistakes' : 'Review ${_count(n)}'),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ),
