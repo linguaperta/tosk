@@ -21,7 +21,8 @@ the features it introduces:
   ``modal_infinitive`` ``{verbs: [...], infinitive_pattern: regex}``  a finite form of one of the
                        verbs plus a later infinitive (an aligned ``infinitive._`` token, a verb token
                        spelled like its infinitive, or an unaligned word matching the pattern)
-  ``words``            ``{words: [...]}``  any of these spellings (lower case)
+  ``words``            ``{words: [...]}``  any of these spellings (lower case), except tokens aligned
+                       to a verb form (``tu dai`` = dare, not the articulated preposition)
   ``irregular_tense``  ``{tense: T}``  a form of tense T of a verb with T in its ``irregular_in``
   ``separable``        ``{particles: [...]}``  a separable verb (one whose present table has
                        two-word forms, ``sta op``) in any form, or a finite verb V with a
@@ -259,7 +260,8 @@ class FeatureTagger:
 
     def _detect(self, kind, spec, toks, parts, part_aux, aux_pos, tenses_at, ipp=None) -> bool:
         if kind == "words":
-            return any(_is_word(t) and _norm(t["t"]) in spec["_words"] for t in toks)
+            # a token aligned to a verb form is that verb, not the listed word (``tu dai`` is dare, not da+i)
+            return any(_is_word(t) and not t.get("form") and _norm(t["t"]) in spec["_words"] for t in toks)
         if kind == "compound_aux":
             want = spec.get("aux")
             if ipp and self.aux_ids.get(toks[ipp[0]].get("lex")) == want:
