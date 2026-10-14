@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../core/core.dart';
 import 'debug/debug_route.dart';
+import 'feedback/flags_screen.dart';
 import 'lab/lab_screen.dart';
 import 'lesson/player_screen.dart';
 import 'lesson/session_request.dart';
@@ -111,6 +112,11 @@ GoRouter buildRouter({String initialLocation = Routes.map}) {
         path: Routes.nonstopPlay,
         parentNavigatorKey: rootNavigatorKey,
         builder: (_, _) => const PlayerScreen(request: NonStopRequest()),
+      ),
+      GoRoute(
+        path: Routes.flags,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (_, _) => const FlagsScreen(),
       ),
       GoRoute(
         path: Routes.debug,

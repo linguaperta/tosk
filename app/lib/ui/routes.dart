@@ -10,6 +10,9 @@ abstract final class Routes {
   static const verbs = '/progress/verbs';
   static const debug = '/debug';
 
+  /// Settings → Feedback & flags: flagged exercises and their export.
+  static const flags = '/flags';
+
   /// Open mistakes of the active course, with "Review mistakes".
   static const mistakes = '/mistakes';
 

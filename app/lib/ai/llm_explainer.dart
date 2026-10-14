@@ -85,7 +85,7 @@ abstract class LlmExplainer implements Explainer {
     );
   }
 
-  /// SSE events of [res], failing when the stream stalls.
+  /// SSE events of [res], failing when the stream stalls for [idleTimeout].
   Stream<SseEvent> events(http.StreamedResponse res) => parseSse(
     res.stream.timeout(
       idleTimeout,
@@ -168,8 +168,8 @@ class ClaudeExplainer extends LlmExplainer {
             AiException.kindFor(type == 'overloaded_error' ? 529 : 500, type: type),
             err['message']?.toString() ?? 'Stream error',
           );
-        case 'message_stop':
-          return;
+        // 'message_stop': the server closes the stream right after; reading
+        // to the end (instead of cancelling) keeps the connection clean.
       }
     }
   }
@@ -205,7 +205,7 @@ class OpenAiExplainer extends LlmExplainer {
       });
     final res = await send(req);
     await for (final e in events(res)) {
-      if (e.data.trim() == '[DONE]') return;
+      if (e.data.trim() == '[DONE]') continue; // the server closes the stream next
       final Object? j;
       try {
         j = jsonDecode(e.data);

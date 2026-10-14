@@ -390,6 +390,13 @@ final aiExplainerProvider = Provider<CachingExplainer?>((ref) {
   );
 });
 
+/// A cached AI explanation by (fingerprint, given answer, reply language),
+/// or null. Works offline and without a configured provider.
+final cachedExplanationProvider = FutureProvider.autoDispose.family<String?, (String, String, String)>((ref, key) async {
+  final (fingerprint, given, lang) = key;
+  return (await ref.watch(feedbackStoreProvider).explanation(fingerprint, given, lang))?.text;
+});
+
 /// The language AI replies are written in (the setting, or the source language).
 final explainLangProvider = Provider<String>((ref) {
   final config = ref.watch(aiConfigProvider).value;
