@@ -87,6 +87,9 @@ Future<void> walkScreens(
   }
   await tapKey(tester, 'backup-export');
   await check('backup saved');
+  // The "Saved" message would cover the next tile.
+  tester.state<ScaffoldMessengerState>(find.byType(ScaffoldMessenger).first).removeCurrentSnackBar();
+  await tester.pumpAndSettle();
   files.next = (name: 'b.jsonl', bytes: files.saved.values.first);
   await tapKey(tester, 'backup-import');
   await check('backup confirm');
