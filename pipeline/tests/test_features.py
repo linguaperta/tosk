@@ -296,3 +296,10 @@ def test_italian_irregular_imperfetto_and_futuro():
     fare = forms("faccio fai fa facciamo fate fanno", "facevo facevi faceva facevamo facevate facevano",
                  "farò farai farà faremo farete faranno", "fatto")
     assert it.irregular_in("fare", "are", fare) == ["presente", "imperfetto", "futuro", "passato_prossimo"]
+
+
+def test_words_detector_skips_verb_forms():
+    t, _, _ = it_tagger()
+    # "nella" aligned as a verb form (a homograph) is not the preposition
+    assert "prep:articulated" in t.tag([tok("nella", "it:nel", None, "")])
+    assert "prep:articulated" not in t.tag([tok("nella", "it:parlare", "presente.tu", "")])
