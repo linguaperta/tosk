@@ -42,6 +42,8 @@ class XpRules {
 
   /// XP for [event] given the facet's [before] state (null = never reviewed).
   int xpFor(ReviewEvent event, FacetState? before, Scheduler scheduler) {
+    // Test-out credits record a skill as known; they are not answers.
+    if (event.isCredit) return 0;
     final at = event.at;
     final due = before == null || before.isDue(at);
     if (!event.correct) return due ? wrong : 0;

@@ -4,7 +4,28 @@ library;
 import '../models/exercise.dart';
 import '../models/progress.dart';
 
-enum SessionMode { lesson, lab, nonstop, review }
+enum SessionMode {
+  lesson,
+  lab,
+  nonstop,
+  review,
+
+  /// A short quiz over one skill; passing credits the skill (see [AssessmentSession]).
+  testOut,
+
+  /// "Find my level": units in order until one is failed.
+  placement,
+}
+
+/// Lesson lengths offered on the lesson start sheet.
+enum SessionLength {
+  quick(5),
+  normal(12),
+  long(20);
+
+  const SessionLength(this.exercises);
+  final int exercises;
+}
 
 /// Lesson focus preset; weights per exercise type live in `assets/config/focus_presets.json`.
 enum LessonFocus { mixed, vocab, grammar }
@@ -89,4 +110,55 @@ abstract interface class SessionFactory {
   /// still-open mistakes, preferring the exercise type that was missed.
   /// Empty (`plannedLength == 0`) when nothing is open. See docs/engine.md.
   Future<PracticeSession> review({int length = 12});
+
+  /// Test out of a skill: about [length] production-leaning exercises over
+  /// its facets, no re-asks. Passing (score >= [passMark]) credits every
+  /// facet of the skill (see `kTestOutCreditType`).
+  Future<AssessmentSession> testOut(String skillId, {int length = 10, double passMark = 0.8});
+
+  /// Placement ("Find my level"): a few exercises per skill, unit by unit in
+  /// course order, stopping after the first unit scoring below [passMark];
+  /// every skill of the units passed before it is credited.
+  Future<AssessmentSession> placement({int perSkill = 2, double passMark = 0.8});
+
+  /// "Tough words": facets with at least [minLapses] lapses, each as a small
+  /// recognition -> production ladder. Empty when there are none.
+  Future<PracticeSession> toughWords({int length = 12, int minLapses = 4});
+}
+
+/// The result of a test-out or placement session, available once the session
+/// has ended (its last `next()` returned null).
+class AssessmentOutcome {
+  const AssessmentOutcome({
+    required this.passed,
+    required this.correct,
+    required this.total,
+    required this.passMark,
+    this.creditedSkills = const [],
+    this.passedUnits = const [],
+    this.failedUnit,
+  });
+
+  /// Test-out: the score reached [passMark]. Placement: at least one unit passed.
+  final bool passed;
+  final int correct;
+  final int total;
+  final double passMark;
+
+  /// Skills whose facets were credited, in course order.
+  final List<String> creditedSkills;
+
+  /// Placement: units passed, in course order.
+  final List<String> passedUnits;
+
+  /// Placement: the unit where it stopped (null when every unit passed).
+  final String? failedUnit;
+
+  double get score => total == 0 ? 0 : correct / total;
+}
+
+/// A test-out or placement session.
+abstract interface class AssessmentSession implements PracticeSession {
+  /// Null while the session runs; set when it ended normally (not when stopped).
+  AssessmentOutcome? get outcome;
 }

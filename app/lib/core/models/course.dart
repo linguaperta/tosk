@@ -27,6 +27,7 @@ class CourseMeta {
     this.unverified = false,
     this.attribution = '',
     this.schemaVersion = 1,
+    this.description = const {},
   });
 
   final String id; // 'it'
@@ -42,6 +43,9 @@ class CourseMeta {
   final bool unverified;
   final String attribution;
   final int schemaVersion;
+
+  /// Optional one-line course description per source language (meta key `description`).
+  final I18n description;
 
   String tenseLabel(String tense, String lang) =>
       tenseLabels[tense] == null ? tense.replaceAll('_', ' ') : pickLang(tenseLabels[tense]!, lang);

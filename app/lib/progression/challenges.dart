@@ -250,6 +250,7 @@ class ChallengeFacts {
 
     for (final s in steps) {
       final e = s.event;
+      if (e.isCredit) continue; // test-out credits are not answers
       final d = calendar.dateOf(e.at);
       dates[e] = d;
       _firstDate ??= d;

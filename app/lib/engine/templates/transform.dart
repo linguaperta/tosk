@@ -294,6 +294,7 @@ class TransformTemplate extends ExerciseTemplate {
         answers: answers,
         sentenceId: p.occ.sentence.id,
         translation: p.occ.sentence.translation(ctx.lang),
+        sourceTokens: tokenRefsOf(p.occ.sentence),
       );
     }
     return null;

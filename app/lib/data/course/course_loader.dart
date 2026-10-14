@@ -227,6 +227,7 @@ CourseMeta parseCourseMeta(Map<String, String> raw) {
       unverified: raw['unverified'] == '1' || raw['unverified'] == 'true',
       attribution: raw['attribution'] ?? '',
       schemaVersion: major,
+      description: _i18n(raw['description']),
     );
   } on FormatException catch (e) {
     throw CourseFormatException('Malformed meta JSON: ${e.message}');

@@ -63,6 +63,61 @@ class DemoSessionFactory implements SessionFactory {
   @override
   Future<PracticeSession> fading({int length = 12}) async => _make(SessionMode.review, pool.reversed.toList(), length);
 
+  static const _assessable = {
+    ExerciseType.multipleChoice,
+    ExerciseType.conjPick,
+    ExerciseType.conjGrid,
+    ExerciseType.sentenceBuilder,
+    ExerciseType.cloze,
+    ExerciseType.spotError,
+    ExerciseType.transform,
+  };
+
+  DemoAssessmentSession _assess(SessionMode mode, List<Exercise> source, List<List<String>> units, double passMark) =>
+      DemoAssessmentSession(
+        mode: mode,
+        source: source,
+        store: store,
+        grader: DemoGrader(accents: options.accents),
+        clock: clock,
+        course: course,
+        units: units,
+        passMark: passMark,
+      );
+
+  /// The skill's pool exercises (no flashcards or match pairs), each once.
+  @override
+  Future<AssessmentSession> testOut(String skillId, {int length = 10, double passMark = 0.8}) async {
+    final source = pool.where((e) => e.skillId == skillId && _assessable.contains(e.type)).take(length).toList();
+    return _assess(SessionMode.testOut, source, [
+      [skillId],
+    ], passMark);
+  }
+
+  /// Every assessable pool exercise, unit by unit.
+  @override
+  Future<AssessmentSession> placement({int perSkill = 2, double passMark = 0.8}) async {
+    final units = [
+      for (final u in course.units) [for (final s in course.skills) if (s.unitId == u.id) s.id],
+    ];
+    final source = [
+      for (final u in units)
+        for (final s in u) ...pool.where((e) => e.skillId == s && _assessable.contains(e.type)).take(perSkill),
+    ];
+    return _assess(SessionMode.placement, source, units, passMark);
+  }
+
+  /// Pool exercises on facets with at least [minLapses] lapses.
+  @override
+  Future<PracticeSession> toughWords({int length = 12, int minLapses = 4}) async {
+    final tough = {
+      for (final st in await store.allStates(courseId: course.meta.id))
+        if (st.lapses >= minLapses) st.facetId,
+    };
+    final source = pool.where((e) => tough.contains(e.facetId)).toList();
+    return _make(SessionMode.review, source, source.isEmpty ? 0 : length.clamp(1, source.length));
+  }
+
   /// The pool's exercises whose facet has a stored mistake (no resolution
   /// rule here; the engine's `openMistakes` is tested in the engine tests).
   @override
@@ -181,6 +236,8 @@ class DemoPracticeSession implements PracticeSession {
     return result;
   }
 
+  bool get stopped => _stopped;
+
   @override
   void stop() {
     _stopped = true;
@@ -198,4 +255,96 @@ class DemoPracticeSession implements PracticeSession {
     facetsPracticed: Set.of(_facets),
     mistakes: List.of(_mistakes),
   );
+}
+
+/// Test out and placement over hand-made exercises: one pass, no re-asks;
+/// at the end, units are passed in order until one scores below [passMark],
+/// and every facet of the passed units' skills gets a test-out credit.
+class DemoAssessmentSession extends DemoPracticeSession implements AssessmentSession {
+  DemoAssessmentSession({
+    required super.mode,
+    required super.source,
+    required super.store,
+    required super.grader,
+    required super.clock,
+    required this.course,
+    required this.units,
+    required this.passMark,
+  }) : super(length: source.length, requeueMistakes: false);
+
+  final CourseData course;
+  final List<List<String>> units;
+  final double passMark;
+  final Map<String, (int, int)> _bySkill = {};
+  AssessmentOutcome? _outcome;
+
+  @override
+  AssessmentOutcome? get outcome => _outcome;
+
+  @override
+  Future<Result> submit(Exercise exercise, Answer answer, {required Duration elapsed}) async {
+    final r = await super.submit(exercise, answer, elapsed: elapsed);
+    final k = exercise.skillId ?? '';
+    final (c, n) = _bySkill[k] ?? (0, 0);
+    _bySkill[k] = (c + (r.correct ? 1 : 0), n + 1);
+    return r;
+  }
+
+  @override
+  Future<Exercise?> next() async {
+    final e = await super.next();
+    if (e == null && !stopped && _outcome == null) _outcome = await _conclude();
+    return e;
+  }
+
+  Future<AssessmentOutcome> _conclude() async {
+    final credited = <String>[];
+    final passedUnits = <String>[];
+    String? failed;
+    for (var i = 0; i < units.length; i++) {
+      var c = 0, n = 0;
+      for (final s in units[i]) {
+        final (sc, sn) = _bySkill[s] ?? (0, 0);
+        c += sc;
+        n += sn;
+      }
+      if (n == 0) continue;
+      if (c / n < passMark) {
+        failed = mode == SessionMode.placement && i < course.units.length ? course.units[i].id : null;
+        break;
+      }
+      credited.addAll(units[i]);
+      if (mode == SessionMode.placement && i < course.units.length) passedUnits.add(course.units[i].id);
+    }
+    final now = clock().toUtc();
+    for (final skill in credited) {
+      for (final f in course.skillFacets(skill)) {
+        final st = await store.state(f.facetId);
+        if (st != null && st.reps > 0 && st.phase != CardPhase.learning) continue;
+        await store.record(
+          ReviewEvent(
+            id: const Uuid().v4(),
+            facetId: f.facetId,
+            at: now,
+            rating: Rating.easy,
+            exerciseType: kTestOutCreditType,
+            inputMode: InputMode.self,
+            responseMs: 0,
+            correct: true,
+            sessionId: id,
+            mode: mode.name,
+          ),
+        );
+      }
+    }
+    return AssessmentOutcome(
+      passed: credited.isNotEmpty,
+      correct: correctCount,
+      total: answered,
+      passMark: passMark,
+      creditedSkills: credited,
+      passedUnits: passedUnits,
+      failedUnit: failed,
+    );
+  }
 }
