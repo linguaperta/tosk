@@ -18,6 +18,8 @@ import 'reference/reference_screen.dart';
 import 'reference/word_screen.dart';
 import 'routes.dart';
 import 'settings/settings_screen.dart';
+import 'stories/stories_view.dart';
+import 'stories/story_reader.dart';
 import 'shell/app_shell.dart';
 
 /// A go_router page that shows its child as a modal bottom sheet.
@@ -125,6 +127,19 @@ GoRouter buildRouter({String initialLocation = Routes.map}) {
         builder: (_, _) => Consumer(
           builder: (context, ref, _) =>
               PlayerScreen(request: ToughWordsRequest(minLapses: ref.read(settingsProvider).value?.leechLapses ?? 4)),
+        ),
+      ),
+      GoRoute(
+        path: '/story/:storyId',
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (_, state) => StoryReaderScreen(storyId: state.pathParameters['storyId']!),
+      ),
+      GoRoute(
+        path: '/stories/unit/:unitId',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) => BottomSheetPage<void>(
+          key: state.pageKey,
+          child: UnitStoriesSheet(unitId: state.pathParameters['unitId']!),
         ),
       ),
       GoRoute(

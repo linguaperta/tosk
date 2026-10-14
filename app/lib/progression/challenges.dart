@@ -254,6 +254,12 @@ class ChallengeFacts {
       final d = calendar.dateOf(e.at);
       dates[e] = d;
       _firstDate ??= d;
+      if (e.isStory) {
+        // A story read is practice and earns XP, but it is no answer and no word.
+        if (seenDays.add(d)) _add(ChallengeMetric.practiceDays, d, e.at, 1);
+        if (s.xp > 0) _add(ChallengeMetric.xp, d, e.at, s.xp);
+        continue;
+      }
       _add(ChallengeMetric.reviews, d, e.at, 1);
       if (e.correct) {
         _add(ChallengeMetric.correctAnswers, d, e.at, 1);

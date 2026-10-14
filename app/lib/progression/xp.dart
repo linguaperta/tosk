@@ -27,7 +27,16 @@ class XpRules {
     this.recallBonusMax = 8,
     this.difficultyBonusMax = 4,
     this.lapsedBonus = 3,
+    this.storyFirstRead = 5,
+    this.storyMaxQuestionXp = 5,
+    this.storyReread = 2,
   });
+
+  /// A story read (`kStoryReadType`): [storyFirstRead] plus 1 per correct
+  /// answer (at most [storyMaxQuestionXp]) the first time, [storyReread] after.
+  final int storyFirstRead;
+  final int storyMaxQuestionXp;
+  final int storyReread;
 
   final int base;
   final int newFacet;
@@ -44,6 +53,12 @@ class XpRules {
   int xpFor(ReviewEvent event, FacetState? before, Scheduler scheduler) {
     // Test-out credits record a skill as known; they are not answers.
     if (event.isCredit) return 0;
+    // A story read: light, fixed XP, whatever the story facet's FSRS state.
+    if (event.isStory) {
+      if (before != null) return storyReread;
+      final score = storyScoreOf(event);
+      return storyFirstRead + (score == null ? 0 : score.correct.clamp(0, storyMaxQuestionXp));
+    }
     final at = event.at;
     final due = before == null || before.isDue(at);
     if (!event.correct) return due ? wrong : 0;

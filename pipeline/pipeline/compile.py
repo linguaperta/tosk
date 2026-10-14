@@ -265,10 +265,13 @@ def compile_pack(pack: Pack, out: Path, built_at: str | None = None) -> dict:
         if c.get("min_app_version"):
             con.execute("INSERT OR REPLACE INTO meta(key, value) VALUES ('min_app_version', ?)",
                         (str(c["min_app_version"]),))
+        from .stories import compile_stories
+        story_stats = compile_stories(con, pack)
         con.commit()
         con.execute("VACUUM")
     finally:
         con.close()
     return {"items": len(pack.items), "verbs": len(pack.verbs), "verb_forms": n_forms, "inflections": n_infl,
             "sentences": len(pack.sentences), "tokens": n_tokens, "facets": n_facets, "sentence_features": n_features,
+            **story_stats,
             "built_at": built_at}

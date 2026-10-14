@@ -38,6 +38,8 @@ XP is earned per review event (one graded facet outcome). Let `before` be the fa
 
 All constants are in `XpRules`.
 
+**Story reads** (`ReviewEvent.isStory`, `exerciseType == 'story'`, one per finished story on the story's own pseudo-facet `{course}:story:{storyId}#story`; see ARCHITECTURE.md, "Stories") earn light, fixed XP whatever that facet's FSRS state: **5 + 1 per correct comprehension answer** (at most +5) on the first read, **2** on every reread (`XpRules.storyFirstRead`, `storyMaxQuestionXp`, `storyReread`). So a story counts toward the daily goal, and as a practice day (streak, heatmap), but challenges count it only for practice days and XP, never as a review, a correct answer or a new word. The pseudo-facet belongs to no skill, so tiers, strength, fading, tough words and the verb collection never see it.
+
 **Test-out credits** (`ReviewEvent.isCredit`, `exerciseType == 'test_out'`, written when a test out or placement is passed; see `docs/engine.md`) earn **0 XP** and are not reviews: they are left out of the per-day counts (streaks, freezes, heatmap, today's reviews) and of every challenge metric. They do update facet states like any event, which is what makes a tested-out skill learned (bronze) and unlocks the skills after it. Credits are Easy, so a credited facet starts with FSRS's Easy stability, and a fully credited skill can show as silver until recall decays.
 
 ### Levels

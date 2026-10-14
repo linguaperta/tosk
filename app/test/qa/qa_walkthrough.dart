@@ -44,7 +44,7 @@ import '../ui/helpers.dart'
 final _out = Directory(Platform.environment['QA_OUT'] ?? 'build/qa');
 const _root = ValueKey('qa-root');
 
-Future<void> _loadFonts() async {
+Future<void> loadQaFonts() async {
   final flutterRoot = Platform.environment['FLUTTER_ROOT'] ?? 'C:/Users/timo/dev/flutter';
   final dir = '$flutterRoot/bin/cache/artifacts/material_fonts';
   Future<ByteData> f(String name) async => ByteData.sublistView(File('$dir/$name').readAsBytesSync());
@@ -238,7 +238,7 @@ Future<void> answerCurrentNoContinue(WidgetTester tester, {bool wrong = false}) 
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
-  setUpAll(_loadFonts);
+  setUpAll(loadQaFonts);
   // Note: flutter_test draws elevation shadows as solid black outlines
   // (debugDisableShadows); a thick black border around a FAB is that.
 

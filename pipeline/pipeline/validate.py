@@ -312,4 +312,8 @@ def validate(pack: Pack, check_notes: bool = True) -> list[str]:
         feats = tagger.tag(s["tokens"])
         for p in graph.problems(s["tokens"], feats):
             errors.append(f"{code}: sentence {s['id']} {s['text']!r}: {p}")
+
+    # ---- graded stories (stories.py)
+    from .stories import validate_stories
+    errors += validate_stories(pack)
     return errors
