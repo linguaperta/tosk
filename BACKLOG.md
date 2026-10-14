@@ -127,11 +127,12 @@ Each item says what "done" means. Add newly discovered work at the bottom of its
 - [x] B/W bug: some TextButton labels render as black blocks (course picker "Preview")
 - [x] Windows build needs ATL because of flutter_secure_storage_windows; replace it with a Dart-only Credential Manager implementation
 - [x] Content fixes: nl perfect + double infinitive tagged, "laat" adjective, uncountables, de|het nouns, it imperatives, translation sanity check (dropped 643 it / 249 nl bad pairs)
-- [~] Remaining sentence gaps: nl verleden-tijd (~140 slots < 8) and perfectum (~150 slots < 8); it 61 slots at 4–7
+- [x] Remaining sentence gaps: nl 298 → 19 slots < 8, it 61 → 4 (1,576 nl + 100 it generated sentences, all checked)
+- [ ] Last slots: nl `redden` past plural (same spelling as the present), `gebeuren.zij`, `sterven` perfect 1st/2nd person; it `sparire.noi`, `gestire.noi`, `soffrire.noi/.loro`
 - [ ] Lexicon gaps from the writers: quel/quella/questa/molti/buon, "thuis"; "zeven" (number) loses to the verb "zeven" (to sift); nevicare has no verb table
 - [ ] Italian "noun before a non-3rd-person verb" alignment rule is too strict ("Cosa dici?"); apply it only to the present tense
 - [ ] Test on real devices: notifications and permissions, the boot receiver, save/pick dialogs (Android), Boox B/W mode
-- [ ] Preview 3 APK
+- [x] Preview 3 APK (v0.3.0, 14 October)
 
 
 ## v0.4 candidates

@@ -6,7 +6,7 @@ The detailed task list lives in [BACKLOG.md](../BACKLOG.md). This page is the re
 | --- | --- | --- |
 | v0.1 (preview 1) | Full stack on real it/nl packs: map, lessons, lab, non-stop, progression, settings | shipped 13 Oct 2026 |
 | v0.2 (preview 2) | Real-pack correctness (compound tenses, Dutch clause rules), fast exercise generation | shipped 13 Oct 2026 |
-| **v0.3** | Bigger courses with grammar-first order, AI explanations, flagging, sounds, mistake review, one-handed layout, Sarnami (local) | in progress |
+| **v0.3** (preview 3) | Bigger grammar-first courses, AI explanations, flagging, sounds, mistake review, one-handed layout, B/W e-ink mode, reference, course picker, backup, daily goal, typing mode, Sarnami (local) | shipped 14 Oct 2026 |
 | v0.4 | Content downloads and sync | planned |
 | v0.5 | Handwriting and e-ink (Boox), listening | planned |
 | v0.6 | New full-size courses: Spanish, Portuguese, French, Esperanto, Swedish, Norwegian, Danish | planned |
