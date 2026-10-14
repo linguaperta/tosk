@@ -123,7 +123,8 @@ class CourseBuilder {
 
   /// A sentence. [align] entries are `surface=lex` or `surface=lex@tense.person`,
   /// applied in order to the first unaligned word token with that surface.
-  void sentence(String sid, String text, {required String en, String? nl, List<String> align = const [], bool splitElision = true}) {
+  void sentence(String sid, String text,
+      {required String en, String? nl, List<String> align = const [], bool splitElision = true, String src = 'fixture'}) {
     final tokens = <Token>[];
     final chunks = RegExp(r'(\s*)(\S+)').allMatches(text);
     for (final m in chunks) {
@@ -178,7 +179,7 @@ class CourseBuilder {
     }
     final rebuilt = aligned.map((t) => t.pre + t.t).join();
     if (rebuilt != text) throw StateError('$sid: tokens rebuild "$rebuilt" != "$text"');
-    _sentences.add(Sentence(id: sid, text: text, tr: {'en': en, 'nl': ?nl}, tokens: aligned, src: 'fixture'));
+    _sentences.add(Sentence(id: sid, text: text, tr: {'en': en, 'nl': ?nl}, tokens: aligned, src: src));
   }
 
   Skill _skill(String sid, int ord, SkillKind kind, String en, String nl,

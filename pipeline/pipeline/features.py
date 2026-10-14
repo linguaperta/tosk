@@ -9,7 +9,11 @@ the features it introduces:
   not tagged as present. A participle without an auxiliary tags the compound tense too (passive or
   adjectival use is gated with the perfect). A verb token without a ``form`` is looked up by its
   spelling: only a spelling that is no present form and no infinitive tags a tense (``kwam`` in
-  ``Kwam je?``).
+  ``Kwam je?``). A Dutch perfect with a double infinitive instead of a participle (``Ik heb Tom
+  niet zien vallen``, ``Hij heeft Japans willen leren``, ``Ik ben gaan zwemmen``: a finite form of
+  an auxiliary followed in its clause by two adjacent infinitives, the first not after *te*) tags
+  the compound tense too, plus ``compound_aux`` for its auxiliary and ``modal_infinitive`` when the
+  first infinitive is one of the modal verbs.
 * construct features declared per course in ``course.yaml`` under ``feature_detectors``
   (``{feature: {type: ..., ...}}``):
 
@@ -184,6 +188,44 @@ class FeatureTagger:
                 return True
         return False
 
+    def _is_infinitive(self, tok: dict) -> bool:
+        if tok.get("form") == "infinitive._":
+            return True
+        lex = tok.get("lex")
+        if lex in self.verbs and not tok.get("form"):
+            inf = ((self.verbs[lex].get("forms") or {}).get("infinitive") or {}).get("_")
+            return bool(inf) and _norm(tok["t"]) == _norm(_form(inf))
+        return False
+
+    def double_infinitive_perfect(self, toks: list[dict]) -> tuple[int, int] | None:
+        """(auxiliary index, first infinitive index) of a perfect with a double infinitive
+        ('Ik heb Tom niet zien vallen'), or None."""
+        if not getattr(self.lang, "double_infinitive_perfect", False):
+            return None
+        for i, t in enumerate(toks):
+            if not _is_word(t) or t.get("lex") not in self.aux_ids or self._is_infinitive(t) \
+                    or self._is_participle(t):
+                continue
+            prev = None                      # index of the previous word when it is an infinitive
+            before = None                    # the word before that infinitive
+            last_word = None
+            for j in range(i + 1, len(toks)):
+                u = toks[j]
+                if not _is_word(u):
+                    if u["t"] in _CLAUSE_PUNCT:
+                        break
+                    continue
+                if self._is_participle(u):
+                    break                    # an ordinary compound form
+                if self._is_infinitive(u):
+                    if prev is not None and _norm(before or "") not in ("te", "om"):
+                        return i, prev
+                    prev, before = j, last_word
+                else:
+                    prev = None
+                last_word = u["t"]
+        return None
+
     def _separable(self, vid: str) -> bool:
         v = self.verbs.get(vid) or {}
         ik = ((v.get("forms") or {}).get(self.present) or {}).get(self.lang.persons[0])
@@ -198,6 +240,9 @@ class FeatureTagger:
         for i in parts:
             if part_aux[i] is not None and (toks[i].get("form") or "").split(".", 1)[0] in self.compound:
                 aux_pos.add(part_aux[i])
+        ipp = self.double_infinitive_perfect(toks)
+        if ipp and self.first_compound:
+            feats.add(f"tense:{self.first_compound}")
         tenses_at: dict[int, set[str]] = {}
         for i, t in enumerate(toks):
             if not _is_word(t):
@@ -208,15 +253,17 @@ class FeatureTagger:
             tenses_at[i] = ts
             feats |= {f"tense:{x}" for x in ts}
         for name, kind, spec in self.detectors:
-            if self._detect(kind, spec, toks, parts, part_aux, aux_pos, tenses_at):
+            if self._detect(kind, spec, toks, parts, part_aux, aux_pos, tenses_at, ipp):
                 feats.add(name)
         return feats
 
-    def _detect(self, kind, spec, toks, parts, part_aux, aux_pos, tenses_at) -> bool:
+    def _detect(self, kind, spec, toks, parts, part_aux, aux_pos, tenses_at, ipp=None) -> bool:
         if kind == "words":
             return any(_is_word(t) and _norm(t["t"]) in spec["_words"] for t in toks)
         if kind == "compound_aux":
             want = spec.get("aux")
+            if ipp and self.aux_ids.get(toks[ipp[0]].get("lex")) == want:
+                return True
             for i in parts:
                 a = part_aux[i]
                 if a is not None:
@@ -235,6 +282,8 @@ class FeatureTagger:
                         return True
             return False
         if kind == "modal_infinitive":
+            if ipp and toks[ipp[1]].get("lex") in spec["_ids"]:
+                return True                  # 'Hij heeft Japans willen leren'
             for i, t in enumerate(toks):
                 if t.get("lex") in spec["_ids"] and i not in aux_pos and _is_word(t):
                     f = t.get("form") or ""

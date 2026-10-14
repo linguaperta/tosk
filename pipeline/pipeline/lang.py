@@ -72,6 +72,17 @@ class Lang:
     # (lemma, tense) forms that are not linked because their use differs from the tense label
     # (Dutch 'zou' is nearly always a conditional, not the past of 'zullen')
     unlinked_forms: set[tuple[str, str]] = field(default_factory=set)
+    # copula forms after which a word that is both an adjective and a verb form is the adjective
+    # (Dutch 'dat ik laat ben': late, not 'laten')
+    copulas: set[str] = field(default_factory=set)
+    # perfect with a double infinitive instead of a participle ('Ik heb Tom niet zien vallen',
+    # 'Hij heeft Japans willen leren'): features.py tags it as the compound tense
+    double_infinitive_perfect: bool = False
+    # Italian imperatives look like present forms ('Chiedi a un poliziotto!', 'Andiamo!'): verbs that
+    # never form one that way (their imperative is distinct: sii, abbi)
+    imperative_exempt: set[str] = field(default_factory=set)
+    # words that may precede a clause-initial imperative ('Non parlate!', 'Mi scusi!')
+    imperative_lead: set[str] = field(default_factory=set)
 
     @property
     def tenses(self) -> list[str]:
@@ -194,6 +205,9 @@ class Italian(Lang):
                           "anche", "sempre", "mai", "più", "ancora", "pure", "poi"},
             third_sg="lui/lei",
             third_pl="loro",
+            imperative_exempt={"essere", "avere"},
+            imperative_lead={"non", "mi", "ti", "ci", "vi", "si", "lo", "la", "li", "le", "ne", "gli", "me", "te",
+                             "ce", "ve", "se", "pure", "ora", "adesso", "allora"},
         )
 
     def verb_class(self, lemma, forms, table_tags):
@@ -372,6 +386,9 @@ class Dutch(Lang):
             dummy_subjects={"er"},
             degree_words={"hoe", "zo", "te", "heel", "erg", "nogal", "vrij", "best", "even"},
             unlinked_forms={("zullen", "verleden_tijd")},
+            copulas={"ben", "bent", "is", "was", "waren", "zijn", "geweest", "word", "wordt", "worden", "werd",
+                     "werden", "geworden", "blijf", "blijft", "blijven", "bleef", "bleven", "gebleven"},
+            double_infinitive_perfect=True,
         )
 
     def slot(self, tags):
