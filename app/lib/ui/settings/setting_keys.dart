@@ -39,6 +39,17 @@ abstract final class SettingKeys {
   /// install counts `course.active` as added; a fresh one opens the picker).
   static const coursesAdded = 'courses.added';
 
+  /// `'false'` turns off the daily check for course updates (on by default).
+  /// Downloads always need a tap.
+  static const autoCheckCourseUpdates = 'packs.auto_check';
+
+  /// Device-only (not in [all], never imported from a backup): the release
+  /// index URL override (debug screen; empty = the default), the last fetched
+  /// index (JSON) and when it was fetched (UTC ISO 8601).
+  static const packIndexUrl = 'packs.index_url';
+  static const packIndexCache = 'packs.index_cache';
+  static const packLastCheck = 'packs.last_check';
+
   static const all = [
     course,
     sourceLang,
@@ -51,5 +62,6 @@ abstract final class SettingKeys {
     leechLapses,
     coursesAdded,
     soundEffects,
+    autoCheckCourseUpdates,
   ];
 }
