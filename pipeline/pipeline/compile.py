@@ -11,7 +11,7 @@ import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 
-from . import query
+from . import features, query
 from .content import Pack
 from .paths import DDL_PATH
 
@@ -124,6 +124,7 @@ def compile_pack(pack: Pack, out: Path, built_at: str | None = None) -> dict:
             meta["person_labels"] = _j(c["person_labels"])
         if c.get("description"):
             meta["description"] = _j(c["description"])
+        meta["base_features"] = _j(sorted(c.get("base_features") or []))
         con.executemany("INSERT INTO meta(key, value) VALUES (?, ?)", sorted(meta.items()))
 
         for ui, unit in enumerate(c["units"]):
@@ -182,6 +183,16 @@ def compile_pack(pack: Pack, out: Path, built_at: str | None = None) -> dict:
                 n_tokens += 1
 
         resolved = resolve_all(pack)
+        tagger = features.FeatureTagger(c, pack.items, pack.verbs)
+        graph = features.SkillGraph(c, resolved, tagger)
+        n_features = 0
+        for s in sorted(pack.sentences, key=lambda r: r["id"]):
+            for f in sorted(tagger.tag(s["tokens"])):
+                con.execute("INSERT INTO sentence_features(sentence_id, feature) VALUES (?, ?)", (s["id"], f))
+                n_features += 1
+        for _, _, _, skill in pack.skills():
+            for f in sorted(graph.introduces[skill["id"]]):
+                con.execute("INSERT INTO skill_features(skill_id, feature) VALUES (?, ?)", (skill["id"], f))
         n_facets = 0
         for _, _, _, skill in pack.skills():
             ids = resolved[skill["id"]]
@@ -196,4 +207,5 @@ def compile_pack(pack: Pack, out: Path, built_at: str | None = None) -> dict:
     finally:
         con.close()
     return {"items": len(pack.items), "verbs": len(pack.verbs), "verb_forms": n_forms,
-            "sentences": len(pack.sentences), "tokens": n_tokens, "facets": n_facets, "built_at": built_at}
+            "sentences": len(pack.sentences), "tokens": n_tokens, "facets": n_facets, "sentence_features": n_features,
+            "built_at": built_at}

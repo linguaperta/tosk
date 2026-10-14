@@ -95,6 +95,17 @@ def test_italian_compound_with_essere_agreement():
     assert r["andato"] == ("it:andare", "passato_prossimo.lui/lei")
 
 
+def test_italian_only_adverbs_between_auxiliary_and_participle():
+    a = it_aligner()
+    r = run(a, "Io ho già mangiato la pizza.", "it")
+    assert r["mangiato"] == ("it:mangiare", "passato_prossimo.io")
+    # an adjective between them: no compound ('andate' is the present here, not a participle)
+    r = run(a, "Siete stanchi e andate a casa.", "it")
+    assert r["andate"] == ("it:andare", "presente.voi")
+    r = run(a, "Ho la pizza mangiato.", "it")
+    assert r["mangiato"] == ("it:mangiare", "participle._")
+
+
 def test_italian_avere_participle_agrees_only_after_clitic():
     r = run(it_aligner(), "Li ho mangiati.", "it")
     assert r["mangiati"] == ("it:mangiare", "passato_prossimo.io")

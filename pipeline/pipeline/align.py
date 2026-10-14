@@ -65,6 +65,16 @@ ELISION_IT = {
 CLITIC_NL = {"'t": ["het"], "'k": ["ik"], "'n": ["een"], "m'n": ["mijn"], "z'n": ["zijn"], "d'r": ["haar"],
              "'m": ["hem"], "'r": ["haar"]}
 OBJECT_CLITICS_IT = {"lo", "la", "li", "le", "l'", "ne"}
+# Italian words that may stand between an auxiliary and its participle ('ho già mangiato', 'non
+# sono mai stato', 'abbiamo tutti capito'); any other word in between ends the search, so a noun
+# or adjective is never taken for a participle ('Sono sicura del suo successo', 'Non siete
+# coraggiosi come sembrate').
+IT_BETWEEN_AUX_PART = {
+    "già", "mai", "appena", "ancora", "sempre", "più", "anche", "ben", "bene", "molto", "tanto", "poco",
+    "spesso", "davvero", "proprio", "forse", "solo", "soltanto", "subito", "finalmente", "tutto", "tutti",
+    "tutte", "quasi", "veramente", "certo", "certamente", "sicuramente", "probabilmente", "ormai", "pure",
+    "mica", "neanche", "nemmeno", "neppure", "così", "appunto", "completamente", "davvero", "io", "tu",
+    "lui", "lei", "noi", "voi", "loro"}
 VAGUE = "?"   # pseudo-person of a vague subject pronoun (Dutch 'u'): fits no person
 QUOTES = {'"', "«", "»", "“", "”"}
 CLAUSE_PUNCT = {",", ".", "?", "!", ";", ":", "...", "…", "—", "–", "(", ")", '"', "«", "»", "“", "”"}
@@ -439,7 +449,13 @@ class Aligner:
                 continue
             lo, hi = self._clause_range(out, ti)
             if lang.code == "it":
-                cand_idx = [words[k] for k in range(wi - 1, max(-1, wi - 5), -1) if words[k] >= lo]
+                cand_idx = []
+                for k in range(wi - 1, max(-1, wi - 5), -1):
+                    if words[k] < lo:
+                        break
+                    cand_idx.append(words[k])
+                    if norm(out[words[k]]["t"]) not in IT_BETWEEN_AUX_PART:
+                        break
             else:
                 before = [x for x in reversed(words[:wi]) if x >= lo]
                 after = [x for x in words[wi + 1:] if x <= hi]

@@ -33,6 +33,8 @@ CREATE TABLE meta (
 -- Optional keys:
 --   person_labels    JSON {person: i18n} when the person key isn't self-explanatory
 --   description      i18n JSON
+--   base_features    JSON array of grammar features allowed from the start, e.g. ["tense:presente"]
+--                    (see sentence_features / skill_features)
 
 CREATE TABLE units (
   id     TEXT PRIMARY KEY,           -- 'u1'
@@ -160,3 +162,19 @@ CREATE TABLE skill_facets (
   PRIMARY KEY (skill_id, facet_id)
 );
 CREATE INDEX skill_facets_facet ON skill_facets(facet_id);
+
+-- Grammar gating (docs/ARCHITECTURE.md, "Grammar gating"; additive, schema version stays 1).
+-- Feature names are course data: 'tense:{tense}' plus construct features the course declares
+-- ('aux:essere', 'modal', 'prep:articulated', 'separable', 'irregular:{tense}', ...).
+-- Grammar features each sentence uses, derived by the pipeline from token alignment plus language rules.
+CREATE TABLE sentence_features (
+  sentence_id TEXT NOT NULL REFERENCES sentences(id),
+  feature     TEXT NOT NULL,
+  PRIMARY KEY (sentence_id, feature)
+);
+-- Features a skill introduces (course.yaml 'introduces', plus 'tense:{T}' for a verbs grammar skill).
+CREATE TABLE skill_features (
+  skill_id TEXT NOT NULL REFERENCES skills(id),
+  feature  TEXT NOT NULL,
+  PRIMARY KEY (skill_id, feature)
+);
