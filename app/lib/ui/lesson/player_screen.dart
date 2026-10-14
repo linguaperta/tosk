@@ -82,14 +82,42 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
   bool get _endless => widget.request.endless;
 
+  /// Kept for [dispose], where `ref` can no longer be used.
+  late final ProgressRevision _revision;
+
+  /// Progress was refreshed for this session's answers ([_bumpProgress]).
+  bool _bumped = false;
+
   @override
   void initState() {
     super.initState();
+    _revision = ref.read(progressRevisionProvider.notifier);
     unawaited(_start());
+  }
+
+  /// Refreshes everything derived from progress (map, header, progress pages)
+  /// after this session's answers: on finishing, quitting or stopping.
+  void _bumpProgress() {
+    _bumped = true;
+    _revision.bump();
   }
 
   @override
   void dispose() {
+    // Left some other way (the route was replaced or removed) with answers
+    // recorded: the map and progress pages must still see them.
+    final s = _session;
+    if (s != null && !_bumped && s.answered > 0) {
+      s.stop();
+      final revision = _revision;
+      scheduleMicrotask(() {
+        try {
+          revision.bump();
+        } catch (_) {
+          // The provider scope is gone too (app closing): nothing to refresh.
+        }
+      });
+    }
     unawaited(_answers?.cancel());
     _exerciseScroll.dispose();
     _keys.dispose();
@@ -279,7 +307,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     final s = _session;
     if (s == null) return;
     final summary = s.summary();
-    ref.read(progressRevisionProvider.notifier).bump();
+    _bumpProgress();
     ref.read(fxProvider).finished();
     unawaited(_celebrate(summary.sessionId));
     setState(() {
@@ -351,7 +379,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     );
     if (leave == true && mounted) {
       _session?.stop();
-      ref.read(progressRevisionProvider.notifier).bump();
+      _bumpProgress();
       setState(() => _phase = PlayerPhase.summary); // lets PopScope pop
       _close();
     }
