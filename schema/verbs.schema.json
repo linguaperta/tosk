@@ -36,7 +36,8 @@
             "form": {"type": "string", "minLength": 1},
             "stem": {"type": "string", "minLength": 1},
             "ending": {"type": "string", "description": "may be empty (Dutch 'ik werk' = werk + '')"},
-            "alts": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+            "alts": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+            "src": {"type": "string", "description": "provenance of this form (not compiled)"}
           },
           "dependentRequired": {"stem": ["ending"], "ending": ["stem"]}
         }

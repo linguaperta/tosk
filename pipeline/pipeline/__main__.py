@@ -44,7 +44,9 @@ def _run(a) -> int:
     if a.cmd == "fetch":
         if "hns" in a.langs:
             from .hns.sil import fetch_all
+            from .hns.sources import fetch_sources
             fetch_all(force=a.force)
+            fetch_sources(force=a.force)
         rest = [x for x in a.langs if x != "hns"]
         if rest:
             from .fetch import fetch
