@@ -87,6 +87,11 @@ flutter {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    // ML Kit (handwriting) and the Onyx SDK drag in WorkManager 2.7.0 + Room
+    // 2.2.5, which crash at app start on current Android/R8 ("Failed to create
+    // an instance of androidx.work.impl.WorkDatabase", v0.5.0-0.5.2). Pin a
+    // current WorkManager, which brings a matching Room.
+    implementation("androidx.work:work-runtime:2.11.2")
     // Onyx (Boox) SDK, used only on ONYX devices behind a Build.MANUFACTURER
     // check (OnyxBridge.kt): low-latency pen raw drawing (TouchHelper) and
     // full e-ink refreshes (EpdController). Repository: repo.boox.com.
