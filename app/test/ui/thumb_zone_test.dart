@@ -56,6 +56,43 @@ void main() {
     }
   }
 
+  // Android 15+ draws edge-to-edge: the system navigation bar overlaps the
+  // bottom of the window and reports itself as a bottom view inset. Every
+  // bottom control (exercise controls, flashcard grades, Check, Continue)
+  // must stay above it, on any device's inset.
+  for (final type in ExerciseType.values) {
+    testWidgets('${type.id}: bottom controls clear a 48 px system navigation bar', (tester) async {
+      const size = Size(400, 800), navBar = 48.0;
+      await pumpApp(
+        tester,
+        size: size,
+        initialLocation: Routes.labPlay(skills: allSkills, types: [type], length: 1),
+      );
+      final dpr = tester.view.devicePixelRatio;
+      tester.view.padding = FakeViewPadding(bottom: navBar * dpr);
+      tester.view.viewPadding = FakeViewPadding(bottom: navBar * dpr);
+      addTearDown(tester.view.resetPadding);
+      addTearDown(tester.view.resetViewPadding);
+      await tester.pumpAndSettle();
+
+      void clears(Finder f, String what) {
+        if (f.evaluate().isEmpty) return;
+        expect(tester.getBottomLeft(f.first).dy, lessThanOrEqualTo(size.height - navBar), reason: '$what (${type.id})');
+      }
+
+      final ex = currentExercise(tester);
+      clears(find.byKey(ValueKey(controlKey(ex))), 'control');
+      clears(find.byKey(const ValueKey('check-button')), 'check');
+      if (ex is FlashcardExercise) {
+        await tester.tap(find.byKey(const ValueKey('flashcard-reveal')));
+        await tester.pumpAndSettle();
+        for (final r in Rating.values) {
+          clears(find.byKey(ValueKey('grade-${r.name}')), 'grade-${r.name}');
+        }
+      }
+    });
+  }
+
   testWidgets('tap targets: options, tiles and grid cells are at least 48 px tall', (tester) async {
     for (final type in [ExerciseType.multipleChoice, ExerciseType.conjGrid, ExerciseType.sentenceBuilder]) {
       await pumpApp(

@@ -565,7 +565,13 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
           // column is centered and at most 640 px wide.
           child: LayoutBuilder(
             builder: (context, viewport) {
-              const top = 12.0, bottom = 16.0;
+              // Self-submitting exercises (match pairs, flashcards) have no
+              // Check row or banner below them, so their bottom-aligned
+              // controls must clear the system navigation bar themselves
+              // (Android 15+ draws edge-to-edge; the inset is per device).
+              final bareBottom = result == null && selfSubmitting(ex.type);
+              const top = 12.0;
+              final bottom = 16.0 + (bareBottom ? MediaQuery.viewPaddingOf(context).bottom : 0);
               final side = math.max(16.0, (viewport.maxWidth - 640) / 2);
               return SingleChildScrollView(
                 key: const ValueKey('exercise-scroll'),
