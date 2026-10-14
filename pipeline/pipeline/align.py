@@ -33,7 +33,12 @@ Rules (also in pipeline/README.md):
           loro, otherwise io;
        e. otherwise 3rd person singular, then 3rd plural, then the first in person order.
   4. Dutch inversion: 'loop jij' uses the ik-form for jij; such a token keeps its lex but gets no
-     form. Dutch imperatives ('Vertel eens') likewise get no form.
+     form. Dutch imperatives ('Vertel eens') likewise get no form, and so do Italian imperatives,
+     which look like present forms ('Chiedi a un poliziotto!', 'Andiamo!'): a clause-initial verb
+     (after 'non' or clitics at most) without a subject pronoun, not of a verb with a distinct
+     imperative (essere, avere), in a sentence with '!' or whose English translation starts with
+     an imperative ('Ask ...', 'Please ask ...', "Don't ...", "Let's ..."). A Dutch adjective/verb
+     homograph before a copula is the adjective ('dat ik laat ben').
   5. Compound-tense exceptions (the words keep their lex, the compound form is not linked):
        a. a subject pronoun next to the auxiliary that fits none of its persons: inversion
           ('Heb je gegeten?' uses the ik-form), a coordinated subject ('io e lui abbiamo');
@@ -49,6 +54,7 @@ Rules (also in pipeline/README.md):
 """
 from __future__ import annotations
 
+import re
 from collections import defaultdict
 
 from .lang import Lang
@@ -101,6 +107,18 @@ class Aligner:
         self.aux_present: dict[str, dict[str, list[str]]] = {}  # aux lemma -> surface -> persons
         self.aux_ids: dict[str, str] = {}
         self.verb_ids: set[str] = set(verbs)
+        # first words of a verb's English glosses ('to ask for' -> 'ask'), for imperative translations
+        self.en_heads: dict[str, set[str]] = {}
+        for it in items:
+            if it["pos"] == "verb":
+                heads = set()
+                for g in (it.get("tr") or {}).get("en") or []:
+                    w = g.lower().split()
+                    if w and w[0] == "to":
+                        w = w[1:]
+                    if w:
+                        heads.add(w[0].strip("(),;"))
+                self.en_heads[it["id"]] = heads
         by_lemma_verb: dict[str, str] = {}
         for it in sorted(items, key=lambda i: self.rank[i["id"]]):
             if it["pos"] == "verb":
@@ -290,7 +308,9 @@ class Aligner:
             return None                      # pronoun that fits no form (subjunctive, imperative ...)
         ps = {c[1] for c in cands}
         if lang.code == "nl" and ps == {"ik"} and "ik" not in after:
-            return None                      # inverted jij form or imperative
+            last = wi + 1 >= len(words) or self._punct_between(toks, words[wi], words[wi + 1])
+            if not (last and "ik" in self._clause_pronouns(words, toks, wi)[0]):
+                return None                  # inverted jij form or imperative ('dat ik laat ben': ik)
         if lang.clause_starters and not after and self._clause_initial(words, toks, wi):
             # a clause-initial verb without a subject pronoun after it: an imperative ('Laat me ...',
             # the ik-form is the imperative), or a question with another subject ('Komt Tom?')
@@ -432,8 +452,59 @@ class Aligner:
         verbal = [c for c in self.verb_index.get(nxt, []) if not (self.lang.code == "nl" and c[2] == "ik")]
         return bool(nlex and self.items[nlex]["pos"] == "noun" and not verbal)
 
+    _EN_IMPERATIVE = re.compile(r"^[\"'“‘«\s]*(?:please,?\s+)?(?:(?:don['’]t|do not|never)\s+)?([a-z]+(?:['’]s)?)")
+
+    def _other_verb_excluded(self, by_verb: dict, vid: str, choice: tuple[str, str], toks: list[dict],
+                             words: list[int], wi: int) -> bool:
+        """Whether the other verbs sharing this spelling cannot be meant: none has a finite form of
+        the chosen person ('Hij was moe': wassen has 'was' only for ik), or (ik) their only reading
+        is a present ik-form and no object follows ('Ik was moe', not 'Ik was de auto')."""
+        for other, cands in by_verb.items():
+            if other == vid:
+                continue
+            persons = {p for _, p in cands if p != "_"}
+            if choice[1] not in persons:
+                continue
+            if {(t, p) for t, p in cands} == {(self.lang.present, self.lang.persons[0])} \
+                    and choice[1] == self.lang.persons[0] and wi + 1 < len(words) \
+                    and not self._punct_between(toks, words[wi], words[wi + 1]):
+                nxt = norm(toks[words[wi + 1]]["t"])
+                if nxt not in self.lang.determiners and nxt not in self.lang.pronouns \
+                        and nxt not in self.lang.object_pronouns and nxt not in {"hem", "haar", "ze", "zich", "me", "mij"}:
+                    continue
+            return False
+        return True
+
+    def _imperative(self, toks: list[dict], words: list[int], wi: int, vid: str, person: str,
+                    translation: str | None) -> bool:
+        """Italian: whether a present form at word #wi is an imperative (see rule 4)."""
+        lang = self.lang
+        if not lang.imperative_lead or self.items.get(vid, {}).get("lemma") in lang.imperative_exempt:
+            return False
+        if person not in (lang.persons[1], lang.persons[2], lang.persons[3], lang.persons[4]):
+            return False
+        k = wi - 1
+        while k >= 0 and not self._punct_between(toks, words[k], words[k + 1]) \
+                and norm(toks[words[k]]["t"]) in lang.imperative_lead:
+            k -= 1
+        if k >= 0 and not self._punct_between(toks, words[k], words[k + 1]):
+            return False                     # not clause-initial
+        before, after = self._pronoun_persons(words, toks, wi)
+        if before or after:
+            return False                     # 'Tu parli', 'Parli tu?'
+        if any(not t["is_word"] and t["t"] == "!" for t in toks[words[wi]:]):
+            return True
+        m = self._EN_IMPERATIVE.match((translation or "").lower())
+        if not m:
+            return False
+        w = m.group(1).replace("’", "'")
+        if w in ("let's", "lets"):
+            return person == lang.persons[3]
+        return w in self.en_heads.get(vid, set()) and not (translation or "").rstrip().endswith("?")
+
     # ------------------------------------------------------------------ main
-    def align(self, toks: list[dict]) -> list[dict]:
+    def align(self, toks: list[dict], translation: str | None = None) -> list[dict]:
+        """Aligned copies of the tokens. `translation` (English) helps to recognize imperatives."""
         lang = self.lang
         out = [dict(t, lex=None, form=None) for t in toks]
         words = [i for i, t in enumerate(out) if t["is_word"]]
@@ -559,6 +630,16 @@ class Aligner:
                 use_verb = False             # 'Leven is ...': a clause-initial noun, not a verb without subject
             if use_verb and lex and prev in lang.degree_words and self.items[lex]["pos"] == "adj":
                 use_verb = False             # 'hoe laat', 'zo laat': the adjective
+            if use_verb and lex and self.items[lex]["pos"] in ("intj", "phrase") \
+                    and self._clause_initial(words, out, wi) \
+                    and (wi + 1 >= len(words) or self._punct_between(out, ti, words[wi + 1])):
+                use_verb = False             # 'Prego.', 'Scusa, ...': the interjection, alone in its clause
+            if use_verb and lex and lang.copulas and self.items[lex]["pos"] == "adj" and wi + 1 < len(words) \
+                    and not self._punct_between(out, ti, words[wi + 1]):
+                nxt = norm(out[words[wi + 1]]["t"])
+                last = wi + 2 >= len(words) or self._punct_between(out, words[wi + 1], words[wi + 2])
+                if nxt in lang.copulas and (nxt != "zijn" or last):
+                    use_verb = False         # 'dat ik laat ben', 'of het open is': the adjective
             if use_verb and lang.clause_starters and finite_seen and lex and not pc \
                     and not any(c[1] in ("infinitive", "participle") for c in vc):
                 use_verb = False             # 'Ik zal een beetje laat aankomen': one finite verb per clause
@@ -583,9 +664,13 @@ class Aligner:
                 out[ti]["lex"] = vid
                 if choice and (self.items.get(vid, {}).get("lemma"), choice[0]) in lang.unlinked_forms:
                     choice = None            # Dutch 'zou' is a conditional, not the past of 'zal'
-                if choice and len(by_verb) > 1 and choice[1] != "_":
+                if choice and len(by_verb) > 1 and choice[1] != "_" \
+                        and not self._other_verb_excluded(by_verb, vid, choice, out, words, wi):
                     # a finite form of two verbs ('was': zijn or wassen): the verb is a guess
                     choice = None
+                if choice and choice[0] == lang.present and choice[1] != "_" \
+                        and self._imperative(out, words, wi, vid, choice[1], translation):
+                    choice = None            # 'Chiedi a un poliziotto!': an imperative, not 'tu chiedi'
                 if choice:
                     tense, person = choice
                     out[ti]["form"] = f"{tense}.{person}"

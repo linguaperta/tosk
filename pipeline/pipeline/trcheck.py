@@ -1,0 +1,185 @@
+"""Lightweight check that a Tatoeba translation belongs to its sentence.
+
+Tatoeba links are sometimes made to a variant of the sentence (another number, day or name):
+'Ci vediamo lunedì.' linked to 'See you on Tuesday.'. A translation fails the check when
+
+* the numbers differ: digits and number words (in the sentence only those not aligned to another
+  kind of item: Italian 'sei' is mostly 'you are'); one is ignored, it is also an article; Dutch
+  'half drie' (2:30) and idioms ('grazie mille') are not compared;
+* a weekday or month in either text has no counterpart in the other ('on Mondays' = 'il lunedì');
+* the names differ, counting only names both languages write alike (Tom, Mary, Boston: capitalized
+  inside sentences of both corpora, `invariant_names`), so Tom -> Mary fails and Giappone -> Japan
+  passes.
+
+The importer drops a sentence whose English translation fails, and only the Dutch translation of
+an Italian sentence when that one fails.
+"""
+from __future__ import annotations
+
+import re
+
+NUMBERS = {
+    "en": {"zero": 0, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9,
+           "ten": 10, "eleven": 11, "twelve": 12, "thirteen": 13, "fourteen": 14, "fifteen": 15, "sixteen": 16,
+           "seventeen": 17, "eighteen": 18, "nineteen": 19, "twenty": 20, "thirty": 30, "forty": 40, "fifty": 50,
+           "sixty": 60, "seventy": 70, "eighty": 80, "ninety": 90, "hundred": 100, "thousand": 1000,
+           "million": 10**6, "billion": 10**9},
+    "it": {"zero": 0, "due": 2, "tre": 3, "quattro": 4, "cinque": 5, "sei": 6, "sette": 7, "otto": 8, "nove": 9,
+           "dieci": 10, "undici": 11, "dodici": 12, "tredici": 13, "quattordici": 14, "quindici": 15, "sedici": 16,
+           "diciassette": 17, "diciotto": 18, "diciannove": 19, "venti": 20, "trenta": 30, "quaranta": 40,
+           "cinquanta": 50, "sessanta": 60, "settanta": 70, "ottanta": 80, "novanta": 90, "cento": 100,
+           "mille": 1000, "milione": 10**6, "milioni": 10**6, "miliardo": 10**9, "miliardi": 10**9},
+    "nl": {"nul": 0, "twee": 2, "drie": 3, "vier": 4, "vijf": 5, "zes": 6, "zeven": 7, "acht": 8, "negen": 9,
+           "tien": 10, "elf": 11, "twaalf": 12, "dertien": 13, "veertien": 14, "vijftien": 15, "zestien": 16,
+           "zeventien": 17, "achttien": 18, "negentien": 19, "twintig": 20, "dertig": 30, "veertig": 40,
+           "vijftig": 50, "zestig": 60, "zeventig": 70, "tachtig": 80, "negentig": 90, "honderd": 100,
+           "duizend": 1000, "miljoen": 10**6, "miljard": 10**9},
+}
+# Italian elided tens before a vowel: quarant'anni
+NUMBERS["it"].update({w[:-1]: v for w, v in list(NUMBERS["it"].items()) if 20 <= v <= 90})
+# ordinals (dates: 'il venti ottobre' = 'the twentieth of October'); 'first' and 'second' are left
+# out like 'one' ('a second')
+NUMBERS["en"].update({"third": 3, "fourth": 4, "fifth": 5, "sixth": 6, "seventh": 7, "eighth": 8, "ninth": 9,
+                      "tenth": 10, "eleventh": 11, "twelfth": 12, "thirteenth": 13, "fourteenth": 14,
+                      "fifteenth": 15, "sixteenth": 16, "seventeenth": 17, "eighteenth": 18, "nineteenth": 19,
+                      "twentieth": 20, "thirtieth": 30})
+NUMBERS["it"].update({"terzo": 3, "terza": 3, "quinto": 5, "quinta": 5, "sesto": 6, "sesta": 6, "settimo": 7,
+                      "settima": 7, "ottavo": 8, "ottava": 8, "nono": 9, "nona": 9, "decimo": 10, "decima": 10})
+NUMBERS["nl"].update({"derde": 3, "vierde": 4, "vijfde": 5, "zesde": 6, "zevende": 7, "achtste": 8, "negende": 9,
+                      "tiende": 10})
+# idioms with a number word that is no number: 'grazie mille' (thanks a lot)
+IDIOMS = {"it": {("grazie", "mille")}}
+# number words that are mostly something else (Italian 'sei' = you are, Dutch 'vier' = celebrate,
+# 'acht' = attention, 'elf' = elf, 'zeven' = to sieve): their value is not compared when the
+# sentence has one
+AMBIGUOUS = {"it": {"sei"}, "nl": {"vier", "acht", "elf", "zeven"}}
+# words that imply or rewrite numbers (times, pairs): no number comparison at all
+NUMBER_WORDS_VAGUE = {
+    "en": {"half", "quarter", "fortnight", "fortnights", "dozen", "dozens", "couple", "both", "pair", "twice",
+           "double", "o'clock", "noon", "midnight", "decade", "decades"},
+    "it": {"mezza", "mezzo", "quarto", "quarta", "entrambi", "entrambe", "paio", "coppia", "doppio", "mezzogiorno",
+           "mezzanotte"},
+    "nl": {"half", "kwart", "kwartier", "beide", "beiden", "paar", "dubbel", "middag", "middernacht"},
+}
+VAGUE_EN = re.compile(r"\b(you|we|they|us|them) two\b|\btwo of (you|us|them)\b", re.I)
+# weekdays then months, in the same order per language
+CALENDAR = {
+    "en": "monday tuesday wednesday thursday friday saturday sunday january february march april may june "
+          "july august september october november december",
+    "it": "lunedì martedì mercoledì giovedì venerdì sabato domenica gennaio febbraio marzo aprile maggio giugno "
+          "luglio agosto settembre ottobre novembre dicembre",
+    "nl": "maandag dinsdag woensdag donderdag vrijdag zaterdag zondag januari februari maart april mei juni "
+          "juli augustus september oktober november december",
+}
+CALENDAR_IDX = {lang: {w: i for i, w in enumerate(words.split())} for lang, words in CALENDAR.items()}
+CALENDAR_IDX["en"].update({w + "s": i for w, i in list(CALENDAR_IDX["en"].items()) if i < 7})   # 'on Mondays'
+CALENDAR_IDX["nl"].update({w + sfx: i for w, i in list(CALENDAR_IDX["nl"].items()) if i < 7
+                           for sfx in ("s", "en")})                     # "'s zondags", 'op maandagen'
+# English 'may' and 'march' are mostly verbs: they are months only when capitalized inside a sentence
+EN_VERB_MONTHS = {"may", "march"}
+_WORD = re.compile(r"[^\W\d_]+|\d+")      # apostrophes split: Sami's -> Sami, s; l'Australia
+_THOUSANDS = re.compile(r"(?<=\d)[,.](?=\d{3}(?!\d))")                     # 3,000 / 3.000 = 3000
+
+
+def _words(text: str) -> list[str]:
+    return _WORD.findall(text)
+
+
+def _num(word: str, lang: str) -> int | None:
+    if word.isdigit():
+        v = int(word)
+        return None if v == 1 or (v == 0 and len(word) > 1) else v     # 'one' is ignored; '9:00'
+    return NUMBERS.get(lang, {}).get(word.lower().replace("’", "'"))
+
+
+def numbers_in(text: str, lang: str) -> set[int]:
+    """Number values in a text: digits (1,000 = 1000) and number words."""
+    text = _THOUSANDS.sub("", text)
+    return {v for w in _words(text) if (v := _num(w, lang)) is not None}
+
+
+def calendar_in(text: str, lang: str) -> set[int]:
+    out = set()
+    idx = CALENDAR_IDX.get(lang, {})
+    for m in _WORD.finditer(text):
+        w = m.group(0)
+        k = w.lower()
+        if k in idx:
+            if lang == "en" and k in EN_VERB_MONTHS:
+                before = text[:m.start()].rstrip(" \"'“‘«")
+                if not w[:1].isupper() or not before or before[-1] in ".!?":
+                    continue                 # 'may I', 'May I ...?'
+            out.add(idx[k])
+    return out
+
+
+def names_in(text: str) -> set[str]:
+    """Capitalized words that do not start the text."""
+    ws = _words(text)
+    return {w for w in ws[1:] if w[:1].isupper() and not w.isupper()}
+
+
+def _unpaired(names: set[str], other_text: str) -> set[str]:
+    """Names with no word in the other text sharing their first 3 letters (Maria ~ Mary, Thomas ~
+    Tom, Google ~ googled)."""
+    prefixes = {w[:3].lower() for w in _words(other_text)}
+    return {n for n in names if n[:3].lower() not in prefixes}
+
+
+def mismatch(tokens: list[dict], items: dict[str, dict], code: str, tr: str, tr_lang: str,
+             names: set[str] = frozenset()) -> str | None:
+    """Why `tr` (in tr_lang) does not translate the aligned sentence `tokens` (in code), or None.
+    `names`: names both languages write alike (Tom, Mary, Boston; see `invariant_names`), checked
+    for English translations only."""
+    text = "".join(t.get("pre", "") + t["t"] for t in tokens)
+    words = [t for t in tokens if t.get("is_word", True) is not False]
+    low = [t["t"].lower().replace("’", "'").rstrip("'") for t in words]
+    src_nums = {v for d in re.findall(r"\d+", _THOUSANDS.sub("", text))
+                if (v := _num(d, code)) is not None}
+    ignore = set()
+    for i, t in enumerate(words):
+        if (i > 0 and (low[i - 1], low[i]) in IDIOMS.get(code, set())) or low[i][:1].isdigit():
+            continue
+        v = _num(low[i], code)
+        if v is None:
+            continue
+        if low[i] in AMBIGUOUS.get(code, set()):
+            ignore.add(v)
+        else:
+            src_nums.add(v)
+    tr_nums = numbers_in(tr, tr_lang) - ignore
+    vague = bool(set(low) & NUMBER_WORDS_VAGUE.get(code, set())) \
+        or bool({w.lower() for w in _words(tr)} & NUMBER_WORDS_VAGUE.get(tr_lang, set())) \
+        or re.search(r"\d[:.]\d", text + " " + tr) is not None \
+        or (tr_lang == "en" and VAGUE_EN.search(tr) is not None)
+    if src_nums - ignore != tr_nums and not vague:
+        return f"numbers {sorted(src_nums - ignore)} vs {sorted(tr_nums)}"
+    if calendar_in(text, code) != calendar_in(tr, tr_lang):
+        return "weekday/month"
+    if tr_lang == "en" and names:
+        src_names = set(_words(text)) & names
+        tr_names = set(_words(tr)) & names
+        odd = _unpaired(src_names - tr_names, tr) | _unpaired(tr_names - src_names, text)
+        if odd:
+            return f"names {sorted(src_names)} vs {sorted(tr_names)}"
+    return None
+
+
+def invariant_names(pairs, min_count: int = 3, min_share: float = 0.8) -> set[str]:
+    """Names written alike in both languages, from (sentence, translation) pairs: capitalized words
+    inside a translation that the sentence also contains in at least `min_share` of at least
+    `min_count` pairs (Tom, Mary, Boston; not London, which Italian writes Londra) and that never
+    occur in lower case ('Ma' after a quote is the conjunction)."""
+    lower: set[str] = set()
+    seen: dict[str, int] = {}
+    both: dict[str, int] = {}
+    for src, tr in pairs:
+        sw, tw = _words(src), _words(tr)
+        lower.update(w for w in sw + tw if w[:1].islower())
+        ss = set(sw)
+        for w in names_in(tr):
+            seen[w] = seen.get(w, 0) + 1
+            if w in ss:
+                both[w] = both.get(w, 0) + 1
+    return {w for w, n in seen.items() if n >= min_count and both.get(w, 0) >= min_share * n and len(w) > 1
+            and w.lower() not in lower}
