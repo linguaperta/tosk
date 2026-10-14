@@ -135,6 +135,18 @@ Each item says what "done" means. Add newly discovered work at the bottom of its
 - [x] Preview 3 APK (v0.3.0, 14 October)
 
 
+## v0.3.2: user testing feedback (14 October)
+
+- [x] Bottom controls hidden behind the Android nav bar on flashcards and match pairs (edge-to-edge inset); preview 3.1
+- [~] Match pairs: stale selection on fast taps, correct pairs dropped, both cards of a wrong pair shown red; stress tests
+- [~] Spot the error: tapping the error word shows correct (green), tapping a wrong token shows wrong
+- [~] Map: tapping a skill opens an info sheet first (description, tier, strength, what's needed for the next tier, then Start / Test out / Note / Words)
+- [~] Progress per course: XP, level, challenges, badges, verb collection, mistakes, best run. Account-wide: daily goal, streak, freezes, heatmap
+- [~] Remove the course switcher from the map (Settings only)
+- [~] All practice modes advance skills (non-stop introduces new facets; the map refreshes after every mode)
+- [~] First-time intro for every exercise type, re-openable via (?)
+- [~] Transform renamed "Change the tense" / "Change the person", with a from → to chip
+
 ## v0.4 (in progress, started 14 October)
 
 - [~] GitHub pack source: index.json from GitHub Releases, download, update, sha256 check, atomic swap; publish tooling (`python -m pipeline publish`); "Add course from file" in the course picker
