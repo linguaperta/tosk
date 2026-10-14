@@ -153,6 +153,9 @@ Resume by asking Claude to continue these. Worktrees live under `.claude/worktre
 - `agent-a4b8843896e5d5aa5`: v0.4 bookmarks, stats/forecast, AI conversation (was building the bookmarks UI)
 - `agent-a3b91cacf2e5268e6`: v0.7 Firebase sync, Hosting, CI, PWA (was writing the sync interfaces, models and progress repo)
 - `agent-aee040951f04bbd11`: v0.6 Spanish pilot (content largely done and pushed to tosk-data `content/es`; was running the Flutter tests)
+- [x] v0.5.3: fixed the Android start-up crash in 0.5.0–0.5.2 (WorkManager 2.7.0 + Room 2.2.5 from ML Kit/Onyx → pinned work-runtime 2.11.2). Crash reporter on next start; Onyx SDK lazy with a native-crash guard
+- [ ] Map: the floating "Review mistakes" / "What's fading" buttons cover skill nodes on phones (move into the header or a bottom bar)
+- [ ] Add a release-build smoke test to CI/checks: install and launch the release APK on an emulator or device (the 0.5.0 crash only showed in release builds on a real device)
 - [x] v0.5 handwriting (ML Kit + Onyx pen SDK), e-ink full refresh, listen_pick, pronunciation buttons; preview 5 (v0.5.0). Needs on-device testing: see `docs/device-testing.md`
 
 ## v0.7: accounts and sync (approved 14 October: Firebase, everything free)
