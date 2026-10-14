@@ -39,6 +39,10 @@ abstract final class SettingKeys {
   /// install counts `course.active` as added; a fresh one opens the picker).
   static const coursesAdded = 'courses.added';
 
+  /// Exercise types whose first-time intro was seen: comma-separated type ids
+  /// (account-wide, not per course).
+  static const introSeen = 'intro.seen';
+
   static const all = [
     course,
     sourceLang,
@@ -51,5 +55,6 @@ abstract final class SettingKeys {
     leechLapses,
     coursesAdded,
     soundEffects,
+    introSeen,
   ];
 }
