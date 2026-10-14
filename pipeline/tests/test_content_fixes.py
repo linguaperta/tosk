@@ -160,3 +160,18 @@ def test_dutch_was_is_zijn_unless_it_can_be_wassen():
     assert run(a, "Ik was moe.", "nl")["was"] == ("nl:zijn", f"{V}.ik")
     assert run(a, "Ik was de auto.", "nl")["was"] == ("nl:zijn", None)          # or: I wash the car
 
+
+def test_interjections_and_multi_word_phrases():
+    items = [item("it:pregare", "verb", 300), item("it:prego", "intj", 900), item("it:per", "prep", 10),
+             item("it:favore", "noun", 500), item("it:per favore", "phrase", 950), item("it:io", "pron", 4),
+             item("it:grazie", "intj", 20)]
+    verbs = {v["id"]: v for v in [
+        verb("it:pregare", IT_P, ["prego", "preghi", "prega", "preghiamo", "pregate", "pregano"], "pregato", "avere")]}
+    a = Aligner(get_lang("it"), items, verbs)
+    assert run(a, "Grazie! Prego.", "it")["Prego"] == ("it:prego", None)        # alone: the interjection
+    assert run(a, "Prego, signora.", "it")["Prego"] == ("it:prego", None)
+    assert run(a, "Io prego.", "it")["prego"] == ("it:pregare", "presente.io")
+    r = run(a, "Un caffè, per favore.", "it")
+    assert r["per"] == ("it:per favore", None) and r["favore"] == ("it:per favore", None)
+    assert run(a, "Lo faccio per te.", "it")["per"] == ("it:per", None)
+

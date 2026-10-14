@@ -171,12 +171,22 @@ class Aligner:
             part = ev.get("participle", {}).get("_")
             if part:
                 self.essere_forms |= {norm(x) for x in lang.participle_variants(_form(part), "essere")}
+        # multi-word phrases ('per favore', 'tot ziens', 'dank je'): word sequence -> item id
+        self.phrases: dict[tuple[str, ...], str] = {}
+        # interjections that share their spelling with another word ('Prego', 'Dag', 'Bedankt')
+        self.intj: dict[str, str] = {}
         for it in items:
             if it["pos"] == "verb":
                 continue
             for s in [it["lemma"], *(it.get("variants") or [])]:
                 if " " not in s:
                     self.lemma_index[norm(s)].append(it["id"])
+                    if it["pos"] in ("intj", "phrase"):
+                        cur = self.intj.get(norm(s))
+                        if cur is None or self.rank[it["id"]] < self.rank[cur]:
+                            self.intj[norm(s)] = it["id"]
+                elif it["pos"] in ("intj", "phrase", "adv"):
+                    self.phrases[tuple(norm(s).split())] = it["id"]
             for s in it.get("inflections") or []:
                 self.infl_index[norm(s)].append(it["id"])
 
@@ -614,6 +624,11 @@ class Aligner:
             vc = self.verb_index.get(s)
             pc = self.part_index.get(s)
             lex = self.lex_lookup(s)
+            if s in self.intj and self._clause_initial(words, out, wi) and not (
+                    wi + 1 < len(words) and not self._punct_between(out, ti, words[wi + 1])
+                    and norm(out[words[wi + 1]]["t"]) in lang.pronouns):
+                out[ti]["lex"] = self.intj[s]    # 'Prego.', 'Scusa, ...', 'Dag Anna!': the interjection
+                continue
             prev = norm(out[words[wi - 1]]["t"]) if wi > 0 else ""
             use_verb = bool(vc) and not (lex and prev in lang.determiners)
             if vc and not use_verb and prev in lang.demonstratives and self.items[lex]["pos"] != "noun" \
@@ -630,10 +645,6 @@ class Aligner:
                 use_verb = False             # 'Leven is ...': a clause-initial noun, not a verb without subject
             if use_verb and lex and prev in lang.degree_words and self.items[lex]["pos"] == "adj":
                 use_verb = False             # 'hoe laat', 'zo laat': the adjective
-            if use_verb and lex and self.items[lex]["pos"] in ("intj", "phrase") \
-                    and self._clause_initial(words, out, wi) \
-                    and (wi + 1 >= len(words) or self._punct_between(out, ti, words[wi + 1])):
-                use_verb = False             # 'Prego.', 'Scusa, ...': the interjection, alone in its clause
             if use_verb and lex and lang.copulas and self.items[lex]["pos"] == "adj" and wi + 1 < len(words) \
                     and not self._punct_between(out, ti, words[wi + 1]):
                 nxt = norm(out[words[wi + 1]]["t"])
@@ -692,4 +703,13 @@ class Aligner:
             if pc:
                 vid = min((e[0] for e in pc), key=lambda v: self.rank.get(v, (True, 0, v)))
                 out[ti]["lex"], out[ti]["form"] = vid, "participle._"
+        # pass 3: multi-word phrases ('per favore', 'tot ziens'): every word links to the phrase
+        for seq, iid in self.phrases.items():
+            n = len(seq)
+            for wi in range(len(words) - n + 1):
+                span = words[wi:wi + n]
+                if tuple(norm(out[x]["t"]) for x in span) == seq \
+                        and not any(self._punct_between(out, a, b) for a, b in zip(span, span[1:])):
+                    for x in span:
+                        out[x]["lex"], out[x]["form"] = iid, None
         return out
