@@ -157,7 +157,7 @@ Each item says what "done" means. Add newly discovered work at the bottom of its
 - [x] Inflection tables for any POS + `#infl:` facets: plurals, adjective agreement, possessives, split separable verbs
 
 - [ ] Bookmarks: star words, sentences or exercises; "Starred" practice session
-- [ ] Graded mini-stories per unit (pipeline-generated with only known vocab and grammar), with tap-for-translation and comprehension questions
+- [x] Graded mini-stories per unit (it 18, nl 16; Practice → Stories + book button on unit bands) (pipeline-generated with only known vocab and grammar), with tap-for-translation and comprehension questions
 - [ ] Pronunciation button (on-device TTS); review forecast and stats (accuracy per type and tense)
 - [ ] AI conversation practice limited to unlocked grammar and vocab (needs an API key)
 - [x] Schema: generalize `verb_forms` into inflection tables for any POS, with a declension facet kind (unlocks German and Slavic noun/adjective cases)
