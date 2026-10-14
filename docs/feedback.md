@@ -11,7 +11,7 @@ After Check, the feedback panel's actions row shows **Explain answer with AI**, 
 | Setting | Stored | Notes |
 | --- | --- | --- |
 | Provider | `ai.provider` (`anthropic`, `openai`, `openai_compatible`; empty = off) | progress DB settings |
-| API key | secure storage, key `tosk.ai.api_key` | `flutter_secure_storage`: Keychain, Android Keystore-backed prefs, Windows Credential Manager, libsecret. **On the web** it is the browser's storage, and the settings screen says so. Never in the progress DB, never logged (`AiConfig.toString` hides it) |
+| API key | secure storage, key `tosk.ai.api_key` | `flutter_secure_storage`: Keychain, Android Keystore-backed prefs, Windows Credential Manager, libsecret. On Windows the implementation is the local pure-Dart `app/packages/secure_storage_windows_dart/` (FFI, no ATL; see `docs/release.md`): a generic credential `tosk/flutter_secure_storage/<key>` per key (named after the exe), per user and machine, value as UTF-8 (max 2560 bytes). **On the web** it is the browser's storage, and the settings screen says so. Never in the progress DB, never logged (`AiConfig.toString` hides it) |
 | Model | `ai.model` (empty = provider default) | Claude: `claude-haiku-5-5` (small, fast; `claude-sonnet-5-5` and `claude-opus-5-5` also work). OpenAI: `gpt-5-mini` as an editable default; **pick a current small model**, since OpenAI's lineup changes. OpenAI-compatible: required |
 | Base URL | `ai.base_url` | OpenAI-compatible only, the API root ending in `/v1` (e.g. a local server). The key is optional there |
 | Explanations in | `ai.explain_lang` (empty = `auto`) | `auto` follows the app's source language |

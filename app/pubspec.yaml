@@ -62,6 +62,16 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   drift_dev: ^2.35.1
   build_runner: ^2.16.2
+  integration_test:
+    sdk: flutter
+
+# The pub.dev flutter_secure_storage_windows builds a C++ plugin that needs ATL
+# (atlstr.h), which plain Visual Studio Build Tools lack. This local package
+# replaces it with a pure-Dart implementation (Windows Credential Manager via
+# FFI), so no C++ is compiled for it. See docs/release.md.
+dependency_overrides:
+  flutter_secure_storage_windows:
+    path: packages/secure_storage_windows_dart
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
