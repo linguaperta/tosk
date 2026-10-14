@@ -147,6 +147,14 @@ Each item says what "done" means. Add newly discovered work at the bottom of its
 - [x] First-time intro for every exercise type, re-openable via (?)
 - [x] Transform renamed "Change the tense" / "Change the person", with a from â†’ to chip
 
+## Paused 14 October (usage); work in progress, uncommitted, in local worktrees
+
+Resume by asking Claude to continue these. Worktrees live under `.claude/worktrees/` in the main checkout:
+- `agent-a4b8843896e5d5aa5`: v0.4 bookmarks, stats/forecast, AI conversation (was building the bookmarks UI)
+- `agent-a3b91cacf2e5268e6`: v0.7 Firebase sync, Hosting, CI, PWA (was writing the sync interfaces, models and progress repo)
+- `agent-aee040951f04bbd11`: v0.6 Spanish pilot (content largely done and pushed to tosk-data `content/es`; was running the Flutter tests)
+- [x] v0.5 handwriting (ML Kit + Onyx pen SDK), e-ink full refresh, listen_pick, pronunciation buttons; preview 5 (v0.5.0). Needs on-device testing: see `docs/device-testing.md`
+
 ## v0.7: accounts and sync (approved 14 October: Firebase, everything free)
 
 - [~] Firebase: Google sign-in, Firestore per-user answer log (union merge, offline-first, per-event UTC offset, future-timestamp clamp), settings last-writer-wins, "Delete my cloud data"
@@ -189,5 +197,5 @@ Each one at the expanded it/nl scale: 8â€“10 units, ~30 skills, ~1000 taught wor
 - [x] Phase 6: Sarnami (`hns`): 9 units, 35 skills, 394 taught words, 742 verb tables, 3,004 sentences. Sources: [source] dictionary, [source] 1991, [source]© 1985 (checking), [source], NT (checking only), plus Claude-drafted/generated material, with per-record `src` and a SOURCES manifest. Local-only (copyright), unverified; see `docs/sarnami.md`.
 - [ ] Sarnami: review by a speaker (open questions in `docs/sarnami.md`); [source]©'s past habitual/conditional not modelled; [source] readers blocked by a bot challenge
 - [-] Phase 7: `GitHubPackSource`, `DriveSyncBackend`. Interfaces only in v1.
-- [ ] v0.5: ink `AnswerInput` (ML Kit Digital Ink) + Onyx pen SDK behind an ONYX device check (user approved, 14 October); e-ink full refresh; listen_pick with on-device TTS. The AI explainer and the B/W e-ink mode moved up to v0.3.
+- [x] v0.5: ink `AnswerInput` (ML Kit Digital Ink) + Onyx pen SDK behind an ONYX device check (user approved, 14 October); e-ink full refresh; listen_pick with on-device TTS. The AI explainer and the B/W e-ink mode moved up to v0.3.
 - [-] `listen_pick` exercise (needs audio/TTS)
