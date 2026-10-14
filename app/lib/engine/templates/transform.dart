@@ -56,25 +56,34 @@ class TransformTemplate extends ExerciseTemplate {
   @override
   bool canGenerate(SkillFacet facet, GenContext ctx) =>
       supports(facet) &&
-      ctx.index.memo('transform/$distractorCount|${facet.facetId}|${ctx.lang}',
+      ctx.memo('transform/$distractorCount|${facet.facetId}|${ctx.lang}',
           () => _plans(facet, ctx).any((p) => _distractors(p, ctx, shuffle: false).isNotEmpty));
 
   List<_Plan> _plans(SkillFacet facet, GenContext ctx) {
     final tense = facet.tense;
     if (tense == null) return const [];
+    // Grammar gating: the result shows the target tense (and the facet's
+    // constructs, e.g. `aux:essere` or `irregular:futuro`), so the learner
+    // must know them, like every feature of the source sentence.
+    if (!ctx.featureKnown('tense:$tense')) return const [];
+    if (!ctx.course.skillFeatures(facet.skillId).every(ctx.featureKnown)) return const [];
     final ix = ctx.index;
     final meta = ctx.course.meta;
     final forms = ctx.course.verbForms(facet.itemId);
     final out = <_Plan>[];
     final infinitive = forms['infinitive.$kNoPerson'];
     for (final o in ix.formOccurrences(facet.itemId)) {
+      if (!ctx.sentenceOk(o.sentence)) continue;
+      // Another finite verb would keep its tense or person (`Il dolore va e
+      // viene` -> `va e è venuto`): only sentences with one finite verb.
+      if (!_onlyFiniteVerb(o, ctx)) continue;
       // A finite form spelled like the infinitive (Dutch `vertellen`) may
       // really be an infinitive after a modal (`kan ik dat Tom niet
       // vertellen`): rewriting it is unreliable.
       if (infinitive != null && o.wordCount == 1 && ix.acceptedKeys(infinitive).contains(foldAnswer(o.matched))) {
         continue;
       }
-      if (o.tense != tense && _tenseSwapOk(o, tense, ctx)) {
+      if (o.tense != tense && _tenseSwapOk(o, tense, ctx) && _adverbsAllow(o.sentence, tense, ctx)) {
         final target = forms['$tense.${o.person}'];
         if (target != null) {
           final r = _construct(o, target.form, tense, ctx);
@@ -87,6 +96,7 @@ class TransformTemplate extends ExerciseTemplate {
           if (p == o.person || ambiguous.contains(p) || !ix.dropsPronoun(p)) continue;
           final target = forms['$tense.$p'];
           if (target == null) continue;
+          if (o.tense != tense && !_adverbsAllow(o.sentence, tense, ctx)) continue;
           final r = _construct(o, target.form, tense, ctx);
           if (r == null) continue;
           final desc = o.tense == tense
@@ -97,6 +107,30 @@ class TransformTemplate extends ExerciseTemplate {
       }
     }
     return out;
+  }
+
+  /// Whether [o] is the sentence's only finite verb (its auxiliary belongs to it).
+  bool _onlyFiniteVerb(FormOccurrence o, GenContext ctx) {
+    final s = o.sentence;
+    final aux = ctx.index.auxiliaryPositions(s);
+    for (var i = 0; i < s.tokens.length; i++) {
+      final t = s.tokens[i];
+      if (o.positions.contains(i) || aux.contains(i) || !t.isWord || t.lex == null) continue;
+      // A verb whose person the alignment left open is finite too.
+      if (t.form == null ? ctx.course.verbForms(t.lex!).isNotEmpty : t.person != kNoPerson) return false;
+    }
+    return true;
+  }
+
+  /// No time adverb of the sentence ties it to other tenses than [target]
+  /// (`Adesso mangio` is never rewritten into a past tense, `Ieri ho
+  /// mangiato` never into the present). The adverbs are course data
+  /// ([CourseMeta.timeAdverbs], course.yaml `time_adverbs`).
+  bool _adverbsAllow(Sentence s, String target, GenContext ctx) {
+    for (final tenses in ctx.index.timeAdverbTenses(s)) {
+      if (!tenses.contains(target)) return false;
+    }
+    return true;
   }
 
   /// A tense change keeps the sentence coherent only when every other finite
@@ -275,14 +309,19 @@ class TransformTemplate extends ExerciseTemplate {
     if (plans.isEmpty) return null;
     final tensePlans = [for (final p in plans) if (p.tenseSwap) p];
     final personPlans = [for (final p in plans) if (!p.tenseSwap) p];
+    Sentence sentence(_Plan p) => p.occ.sentence;
     final ordered = <_Plan>[
-      ...ctx.shuffled(tensePlans.isNotEmpty && (personPlans.isEmpty || ctx.random.nextDouble() < 0.7) ? tensePlans : personPlans),
-      ...ctx.shuffled(plans),
+      ...ctx.prefer(
+          tensePlans.isNotEmpty && (personPlans.isEmpty || ctx.random.nextDouble() < 0.7) ? tensePlans : personPlans,
+          sentence,
+          take: 6),
+      ...ctx.prefer(plans, sentence, take: 6),
     ];
     for (final p in ordered.take(6)) {
       final d = _distractors(p, ctx);
       if (d.isEmpty) continue;
       final answers = _answers(p, ctx);
+      ctx.useSentence(p.occ.sentence.id);
       return TransformExercise(
         id: ctx.nextId(),
         facetId: facet.facetId,

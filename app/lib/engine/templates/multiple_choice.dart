@@ -34,7 +34,7 @@ class MultipleChoiceTemplate extends ExerciseTemplate {
 
   @override
   bool canGenerate(SkillFacet facet, GenContext ctx) => supports(facet) &&
-      ctx.index.memo('multiple_choice/$sentenceShare/$optionCount|${facet.facetId}|${ctx.lang}', () => _can(facet, ctx));
+      ctx.memo('multiple_choice/$sentenceShare/$optionCount|${facet.facetId}|${ctx.lang}', () => _can(facet, ctx));
 
   bool _can(SkillFacet facet, GenContext ctx) {
     final item = ctx.course.item(facet.itemId);
@@ -72,6 +72,12 @@ class MultipleChoiceTemplate extends ExerciseTemplate {
         ? [...item.glosses(ctx.lang), for (final s in ix.synonymsOf(item)) ...s.glosses(ctx.lang)]
         : [...item.spellings, for (final s in ix.synonymsOf(item)) ...s.spellings];
     final picker = OptionPicker(forbidden: forbidden, max: optionCount - 1);
+    // Every meaning (any language) of the target and of its synonyms: an
+    // item sharing one of them is no wrong option, whichever of its glosses
+    // is displayed (`hello` for `ciao`, once a synonym says `hi` and `hello`).
+    final accepted = rec
+        ? {...ix.glossKeys(item), for (final s in ix.synonymsOf(item)) ...ix.glossKeys(s)}
+        : const <String>{};
     final groups = ix.relatedItems(item);
     for (final g in groups) {
       final list = shuffle ? ctx.shuffled(g) : g;
@@ -81,6 +87,7 @@ class MultipleChoiceTemplate extends ExerciseTemplate {
         if (text.trim().isEmpty) continue;
         // A gloss that is also a meaning of the target is never wrong.
         if (rec && ix.glossKeysIn(item, ctx.lang).contains(foldAnswer(text))) continue;
+        if (rec && ix.glossKeys(o).any(accepted.contains)) continue;
         picker.add(text);
       }
     }
@@ -109,23 +116,29 @@ class MultipleChoiceTemplate extends ExerciseTemplate {
 
   // ---------------------------------------------------------------- sentence
 
+  /// Sentences of [item] the learner may meet (grammar gating).
   List<Sentence> _sentences(Item item, GenContext ctx) => [
         for (final s in ctx.course.sentencesFor(item.id))
-          if ((s.translation(ctx.lang) ?? '').trim().isNotEmpty) s,
+          if ((s.translation(ctx.lang) ?? '').trim().isNotEmpty && ctx.sentenceOk(s)) s,
       ];
 
   Exercise? _sentence(SkillFacet facet, Item item, bool rec, GenContext ctx) {
     final pool = _sentences(item, ctx);
     if (pool.isEmpty) return null;
     final ix = ctx.index;
-    for (final s in ctx.shuffled(pool).take(4)) {
+    for (final s in ctx.prefer(pool, (s) => s, take: 4)) {
       final translation = s.translation(ctx.lang)!;
       final shuffled = ctx.shuffled(ix.allSentences);
       // Prefer sentences that share a word with [s]. Filtered lazily: only a
       // few candidates are needed.
       final lexes = {for (final t in s.tokens) if (t.lex != null) t.lex};
       bool related(Sentence t) => t.tokens.any((x) => x.lex != null && lexes.contains(x.lex));
-      bool usable(Sentence t) => (t.translation(ctx.lang) ?? '').trim().isNotEmpty && !ix.equivalent(s, t);
+      // Wrong target-language options are shown too: only sentences whose
+      // grammar the learner knows (their words may be new: they are wrong anyway).
+      bool usable(Sentence t) =>
+          (t.translation(ctx.lang) ?? '').trim().isNotEmpty &&
+          (rec || ctx.gate == null || ctx.gate!.featuresKnown(t.id)) &&
+          !ix.equivalent(s, t);
       final ordered = shuffled
           .where((t) => related(t) && usable(t))
           .followedBy(shuffled.where((t) => !related(t) && usable(t)));
@@ -168,6 +181,7 @@ class MultipleChoiceTemplate extends ExerciseTemplate {
       if (distractors.length < 2) continue;
       final correct = rec ? translation : s.text;
       final (options, idx) = placeOptions(correct, distractors, ctx.random);
+      ctx.useSentence(s.id);
       return MultipleChoiceExercise(
         id: ctx.nextId(),
         facetId: facet.facetId,

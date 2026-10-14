@@ -28,6 +28,7 @@ class CourseMeta {
     this.attribution = '',
     this.schemaVersion = 1,
     this.baseFeatures = const [],
+    this.timeAdverbs = const {},
   });
 
   final String id; // 'it'
@@ -47,6 +48,12 @@ class CourseMeta {
   /// Grammar features allowed from the start (`meta.base_features`, e.g. `tense:presente`).
   /// See [CourseData.sentenceFeatures] and docs/ARCHITECTURE.md, "Grammar gating".
   final List<String> baseFeatures;
+
+  /// Time adverbs that tie a sentence to some tenses (`meta.time_adverbs`):
+  /// adverb (one or more words, e.g. `ieri`, `l'anno scorso`) -> the tenses it
+  /// fits. A transform never rewrites a sentence with such an adverb into
+  /// another tense (`Ieri ho mangiato` never becomes the present).
+  final Map<String, List<String>> timeAdverbs;
 
   String tenseLabel(String tense, String lang) =>
       tenseLabels[tense] == null ? tense.replaceAll('_', ' ') : pickLang(tenseLabels[tense]!, lang);
