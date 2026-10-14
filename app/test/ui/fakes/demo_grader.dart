@@ -48,6 +48,13 @@ class DemoGrader {
           outcomes: outcomes,
         );
       case ConjPickExercise e:
+        if (answer is TextAnswer) {
+          // Typing mode: the typed ending ('-' for none).
+          final t = answer.text.trim().replaceFirst(RegExp(r'^[-–]\s*'), '');
+          final given = '${e.stem}$t';
+          final accepted = {e.fullForm, ...e.accepted}.map(normalize);
+          return single(accepted.contains(normalize(given)), e.fullForm, given);
+        }
         final i = answer is ChoiceAnswer ? answer.index : -1;
         return single(i == e.correctIndex, e.fullForm, i < 0 ? '' : '${e.stem}${_at(e.endings, i)}');
       case ConjGridExercise e:
@@ -92,8 +99,11 @@ class DemoGrader {
   }
 
   Result _tiles(List<List<String>> answers, Answer answer, Result Function(bool, String, String) single) {
-    final words = answer is TilesAnswer ? answer.words : const <String>[];
-    final given = words.join(' ');
+    final given = switch (answer) {
+      TilesAnswer(:final words) => words.join(' '),
+      TextAnswer(:final text) => text.trim(), // typing mode
+      _ => '',
+    };
     final ok = answers.any((a) => normalize(a.join(' ')) == normalize(given));
     return single(ok, answers.first.join(' '), given);
   }

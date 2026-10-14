@@ -22,6 +22,19 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   static const _minZoom = 0.7, _maxZoom = 1.9;
   double _zoom = 1;
 
+  /// Maps with at least this many units get "Jump to current unit".
+  static const _longMapUnits = 4;
+  final Map<String, GlobalKey> _unitKeys = {};
+
+  GlobalKey _unitKey(String unitId) => _unitKeys[unitId] ??= GlobalKey(debugLabel: 'unit-$unitId');
+
+  /// Scrolls the map so [unitId]'s band is at the top.
+  void _jumpTo(String unitId) {
+    final ctx = _unitKeys[unitId]?.currentContext;
+    if (ctx == null) return;
+    Scrollable.ensureVisible(ctx, duration: ref.read(motionProvider).long, curve: Curves.easeOutCubic);
+  }
+
   void _setZoom(double z) => setState(() => _zoom = z.clamp(_minZoom, _maxZoom));
 
   @override
@@ -37,6 +50,17 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final mistakeCount = ref.watch(openMistakesProvider).value?.length ?? 0;
     final scheme = Theme.of(context).colorScheme;
     final anyPracticed = stats.value?.values.any((s) => s.practiced) ?? false;
+    final c = course.value;
+    final longMap = c != null && c.units.length >= _longMapUnits;
+    final current = !longMap
+        ? null
+        : currentUnitId([
+            for (final u in c.units)
+              for (final s in c.skills)
+                if (s.unitId == u.id) (unitId: u.id, skillId: s.id),
+          ], stats.value ?? const {});
+    // Room below the last band for the action buttons.
+    final fabRoom = 96.0 + (mistakeCount > 0 ? 72 : 0) + (current != null ? 52 : 0);
 
     return Scaffold(
       appBar: AppBar(
@@ -58,6 +82,17 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
+          // Long maps: back to where the learner is (first unfinished unit).
+          if (current != null) ...[
+            FloatingActionButton.small(
+              key: const ValueKey('jump-current-unit'),
+              heroTag: 'jump-fab',
+              tooltip: 'Jump to current unit',
+              onPressed: () => _jumpTo(current),
+              child: const Icon(Icons.my_location),
+            ),
+            const SizedBox(height: 12),
+          ],
           if (mistakeCount > 0) ...[
             FloatingActionButton.extended(
               key: const ValueKey('mistakes-button'),
@@ -94,8 +129,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           }
           return SingleChildScrollView(
             key: const ValueKey('map-scroll'),
-            // Room below the last band for the action buttons.
-            padding: EdgeInsets.only(top: 8, bottom: mistakeCount > 0 ? 168 : 96),
+            padding: EdgeInsets.only(top: 8, bottom: fabRoom),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -115,6 +149,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                       ? context.push(Routes.skill(skill.id))
                       : context.push(Routes.lesson(skill.id, focus: defaultFocus)),
                   onLongPress: (skill) => context.push(Routes.skill(skill.id)),
+                  unitKeys: {for (final u in course.units) u.id: _unitKey(u.id)},
                 ),
               ],
             ),

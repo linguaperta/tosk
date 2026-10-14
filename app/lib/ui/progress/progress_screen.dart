@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../progression/progression.dart';
 import '../../providers.dart';
 import '../common/async_view.dart';
+import '../goal/daily_goal_bar.dart';
+import '../goal/daily_goal_providers.dart';
 import '../lesson/session_summary_view.dart' show facetLabel;
 import '../progression/progression_widgets.dart';
 import '../routes.dart';
@@ -27,6 +29,13 @@ class ProgressScreen extends ConsumerWidget {
     final theme = Theme.of(context);
     final course = ref.watch(courseDataProvider).value;
     final lang = ref.watch(sourceLangProvider);
+    final goal = ref.watch(dailyGoalStatusProvider);
+    final goalDays = goal != null && goal.enabled && heatmap != null
+        ? {
+            for (final d in ref.watch(goalMetDaysProvider))
+              if (!d.isBefore(heatmap.from) && !d.isAfter(heatmap.to)) d,
+          }
+        : const <LocalDate>{};
 
     Widget section(String title, Widget child, {Key? key}) => Padding(
       key: key,
@@ -61,7 +70,17 @@ class ProgressScreen extends ConsumerWidget {
                       margin: EdgeInsets.zero,
                       child: Padding(
                         padding: const EdgeInsets.all(12),
-                        child: StreakHeatmap(data: heatmap, reduceMotion: reduce),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // The daily goal: today's progress and the days it was met.
+                            if (goal != null && goal.enabled) ...[
+                              DailyGoalBar(status: goal),
+                              const SizedBox(height: 8),
+                            ],
+                            StreakHeatmap(data: heatmap, reduceMotion: reduce, goalDays: goalDays),
+                          ],
+                        ),
                       ),
                     ),
                     key: const ValueKey('progress-heatmap'),

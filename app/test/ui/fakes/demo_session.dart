@@ -132,7 +132,7 @@ class DemoSessionFactory implements SessionFactory {
   }
 }
 
-class DemoPracticeSession implements PracticeSession {
+class DemoPracticeSession implements PracticeSession, OverridableSession {
   DemoPracticeSession({
     required this.mode,
     required List<Exercise> source,
@@ -194,15 +194,67 @@ class DemoPracticeSession implements PracticeSession {
     return _queue.removeAt(0);
   }
 
+  /// Last verdict and the events it wrote, per exercise id ("I was right").
+  final Map<String, (Result, List<ReviewEvent>)> _verdicts = {};
+  final Set<String> _overridden = {};
+
+  @override
+  bool canOverride(String exerciseId) {
+    final v = _verdicts[exerciseId];
+    return v != null && !v.$1.correct && !_overridden.contains(exerciseId);
+  }
+
+  @override
+  Future<List<ReviewEvent>> overrideAnswer(String exerciseId) async {
+    if (!canOverride(exerciseId)) return const [];
+    _overridden.add(exerciseId);
+    _correct++;
+    final out = <ReviewEvent>[];
+    for (final e in _verdicts[exerciseId]!.$2) {
+      if (e.correct) continue;
+      final o = ReviewEvent(
+        id: const Uuid().v4(),
+        facetId: e.facetId,
+        at: clock().toUtc().add(const Duration(milliseconds: 1)),
+        rating: Rating.good,
+        exerciseType: kOverrideType,
+        inputMode: InputMode.self,
+        responseMs: 0,
+        correct: true,
+        answer: e.id,
+        sessionId: id,
+        mode: mode.name,
+      );
+      await store.record(o);
+      out.add(o);
+      _mistakes.remove(e.facetId);
+    }
+    return out;
+  }
+
   @override
   Future<Result> submit(Exercise exercise, Answer answer, {required Duration elapsed}) async {
     final result = grader.grade(exercise, answer, elapsed: elapsed);
     _answered++;
     if (result.correct) _correct++;
     final now = clock().toUtc();
+    final written = <ReviewEvent>[];
+    _verdicts[exercise.id] = (result, written);
+    _overridden.remove(exercise.id);
     for (final o in result.outcomes) {
       _facets.add(o.facetId);
       final eventId = const Uuid().v4();
+      written.add(ReviewEvent(
+        id: eventId,
+        facetId: o.facetId,
+        at: now,
+        rating: o.rating,
+        exerciseType: exercise.type.id,
+        inputMode: answer.inputMode,
+        responseMs: elapsed.inMilliseconds,
+        correct: o.correct,
+        sessionId: id,
+      ));
       await store.record(
         ReviewEvent(
           id: eventId,

@@ -52,3 +52,14 @@ String daysAgoLabel(int days) => switch (days) {
 
 /// Compact form for map nodes: "today", "1d", "12d".
 String daysAgoShort(int days) => days == 0 ? 'today' : '${days}d';
+
+/// The unit to jump to on a long map: the first unit (in course order) with
+/// a skill that is unlocked but not finished yet (available or started,
+/// below bronze). Null when every skill is finished or locked.
+String? currentUnitId(List<({String unitId, String skillId})> skills, Map<String, SkillStats> stats) {
+  for (final s in skills) {
+    final tier = stats[s.skillId]?.tier ?? MapTier.available;
+    if (tier == MapTier.available || tier == MapTier.started) return s.unitId;
+  }
+  return null;
+}

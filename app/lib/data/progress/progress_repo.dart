@@ -12,11 +12,12 @@ import 'package:drift/drift.dart';
 
 import '../../core/core.dart';
 import '../fsrs/fsrs_scheduler.dart';
+import '../sync/progress_backup.dart' show SettingsLister;
 import 'event_importer.dart';
 import 'progress_db.dart';
 import 'replay.dart';
 
-class ProgressRepo implements ProgressStore, EventImporter {
+class ProgressRepo implements ProgressStore, EventImporter, SettingsLister {
   ProgressRepo(this.db, {Scheduler? scheduler}) : scheduler = scheduler ?? FsrsScheduler();
 
   final ProgressDb db;
@@ -235,6 +236,11 @@ class ProgressRepo implements ProgressStore, EventImporter {
         await (db.select(db.settings)..where((t) => t.key.equals(key))).getSingleOrNull();
     return row?.value;
   }
+
+  @override
+  Future<Map<String, String>> allSettings() async => {
+        for (final r in await db.select(db.settings).get()) r.key: r.value,
+      };
 
   @override
   Future<void> setSetting(String key, String? value) async {

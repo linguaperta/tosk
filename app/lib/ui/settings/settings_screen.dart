@@ -8,7 +8,10 @@ import '../common/async_view.dart';
 import '../courses/course_picker.dart';
 import '../routes.dart';
 import '../shell/course_switcher.dart';
+import 'answer_input_section.dart';
 import 'app_settings.dart';
+import 'backup_section.dart';
+import 'daily_goal_section.dart';
 
 /// Settings, persisted through the progress store (see `setting_keys.dart`).
 class SettingsScreen extends ConsumerWidget {
@@ -159,6 +162,10 @@ class SettingsScreen extends ConsumerWidget {
                     label: (n) => '$n',
                     onChanged: (v) => ctl.change((s) => s.copyWith(leechLapses: v)),
                   ),
+                  // v0.3 practice extras (their own settings and widgets).
+                  const AnswerInputSection(),
+                  const DailyGoalSection(),
+                  const BackupSection(),
                 ],
               ),
             ),

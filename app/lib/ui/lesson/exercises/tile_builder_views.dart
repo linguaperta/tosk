@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/core.dart';
 import '../../common/word_popover.dart';
 import '../../theme/bw_skin.dart';
+import '../typing.dart';
 import 'common.dart';
 
 /// Answer line plus word bank: tap a tile to append it, tap a placed tile to remove it.
@@ -132,7 +133,12 @@ class SentenceBuilderView extends ExerciseWidget<SentenceBuilderExercise> {
     super.result,
     super.keys,
     super.reduceMotion,
+    super.onCheck,
+    this.typed = false,
   });
+
+  /// Typing mode: type the sentence instead of building it from tiles.
+  final bool typed;
 
   @override
   State<SentenceBuilderView> createState() => _SentenceBuilderViewState();
@@ -167,13 +173,76 @@ class _SentenceBuilderViewState extends State<SentenceBuilderView> {
           ],
         ],
       ),
-      controls: TileAnswerArea(
-        tiles: e.tiles,
-        locked: widget.locked,
-        correct: widget.result?.correct,
-        keys: widget.keys,
-        onChanged: (words) => widget.onChanged(words == null ? null : TilesAnswer(words)),
-      ),
+      controls: widget.typed
+          ? TypedSentenceArea(
+              locked: widget.locked,
+              correct: widget.result?.correct,
+              hintText: 'Type the translation',
+              onChanged: widget.onChanged,
+              onSubmitted: widget.onCheck,
+            )
+          : TileAnswerArea(
+              tiles: e.tiles,
+              locked: widget.locked,
+              correct: widget.result?.correct,
+              keys: widget.keys,
+              onChanged: (words) => widget.onChanged(words == null ? null : TilesAnswer(words)),
+            ),
+    );
+  }
+}
+
+/// Typing mode for the sentence builder and transform: the whole sentence as
+/// text (with the accent bar), no tiles.
+class TypedSentenceArea extends StatelessWidget {
+  const TypedSentenceArea({
+    super.key,
+    required this.locked,
+    required this.onChanged,
+    this.correct,
+    this.hintText,
+    this.onSubmitted,
+  });
+
+  final bool locked;
+  final bool? correct;
+  final String? hintText;
+  final ValueChanged<Answer?> onChanged;
+  final VoidCallback? onSubmitted;
+
+  @override
+  Widget build(BuildContext context) {
+    final fb = FeedbackColors.of(context);
+    final mark = correct;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        TypedAnswerField(
+          enabled: !locked,
+          autofocus: true,
+          multiline: true,
+          hintText: hintText,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            // Black & white: a wrong answer is struck through after checking.
+            decoration: mark == false && fb.mono ? TextDecoration.lineThrough : null,
+          ),
+          onChanged: (text) => onChanged(text.trim().isEmpty ? null : TextAnswer(text, inputMode: InputMode.keyboard)),
+          onSubmitted: onSubmitted,
+        ),
+        if (mark != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Row(
+              key: const ValueKey('typed-verdict'),
+              children: [
+                Icon(mark ? Icons.check : Icons.close, size: 18, color: mark ? fb.correct : fb.wrong),
+                const SizedBox(width: 6),
+                Text(mark ? 'Right' : 'Not quite', style: Theme.of(context).textTheme.bodyMedium),
+              ],
+            ),
+          ),
+      ],
     );
   }
 }
@@ -187,7 +256,12 @@ class TransformView extends ExerciseWidget<TransformExercise> {
     super.result,
     super.keys,
     super.reduceMotion,
+    super.onCheck,
+    this.typed = false,
   });
+
+  /// Typing mode: type the sentence instead of building it from tiles.
+  final bool typed;
 
   @override
   State<TransformView> createState() => _TransformViewState();
@@ -229,13 +303,21 @@ class _TransformViewState extends State<TransformView> {
           ),
         ],
       ),
-      controls: TileAnswerArea(
-        tiles: e.tiles,
-        locked: widget.locked,
-        correct: widget.result?.correct,
-        keys: widget.keys,
-        onChanged: (words) => widget.onChanged(words == null ? null : TilesAnswer(words)),
-      ),
+      controls: widget.typed
+          ? TypedSentenceArea(
+              locked: widget.locked,
+              correct: widget.result?.correct,
+              hintText: 'Type the new sentence',
+              onChanged: widget.onChanged,
+              onSubmitted: widget.onCheck,
+            )
+          : TileAnswerArea(
+              tiles: e.tiles,
+              locked: widget.locked,
+              correct: widget.result?.correct,
+              keys: widget.keys,
+              onChanged: (words) => widget.onChanged(words == null ? null : TilesAnswer(words)),
+            ),
     );
   }
 }

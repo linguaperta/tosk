@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../providers.dart';
 import '../courses/course_picker.dart';
+import '../goal/daily_goal_providers.dart';
 import '../theme/bw_skin.dart';
 
 /// Top-level destinations. Order matches the shell branches in `router.dart`.
@@ -44,6 +45,9 @@ class _AppShellState extends ConsumerState<AppShell> {
         if (mounted) showCoursePicker(context, firstRun: true);
       });
     }, fireImmediately: true);
+    // Daily reminder: keep the scheduled notifications in line with the
+    // goal, the reminder setting and today's progress.
+    syncReminders(ref);
   }
 
   void _go(int index) => shell.goBranch(index, initialLocation: index == shell.currentIndex);

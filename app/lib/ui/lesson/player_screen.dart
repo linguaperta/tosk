@@ -12,7 +12,9 @@ import '../../providers.dart';
 import '../common/async_view.dart';
 import '../routes.dart';
 import '../slots/progression_slots.dart';
+import 'exercises/exercise_layout.dart';
 import 'exercises/exercise_view.dart';
+import 'answer_override.dart';
 import 'assessment_result.dart';
 import 'feedback_banner.dart';
 import '../../data/progress/replay.dart' show toStoredTime;
@@ -46,6 +48,11 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   bool _busy = false;
   SessionSummary? _summary;
 
+  /// "I was right": the current wrong answer was counted as right. The
+  /// exercise keeps its marks; the feedback panel shows [_bannerResult].
+  bool _overridden = false;
+  Result? _bannerResult;
+
   /// Non-stop scoring (combo, multiplier, bonus rounds), fed one graded
   /// exercise at a time with the `at` the session recorded.
   NonStopRun _run = const NonStopRun();
@@ -56,6 +63,10 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   Completer<void>? _answerHandled;
   final _watch = Stopwatch();
   final _keys = ExerciseKeys();
+
+  /// The exercise's scroll view: each exercise starts at the top, and after
+  /// Check the prompt is scrolled back into view ([ExerciseLayout.revealPrompt]).
+  final _exerciseScroll = ScrollController();
   final _focus = FocusNode(debugLabel: 'player');
 
   bool get _endless => widget.request.endless;
@@ -69,6 +80,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   @override
   void dispose() {
     unawaited(_answers?.cancel());
+    _exerciseScroll.dispose();
     _keys.dispose();
     _focus.dispose();
     super.dispose();
@@ -126,11 +138,15 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       _counter++;
       _draft = null;
       _result = null;
+      _overridden = false;
+      _bannerResult = null;
       _phase = PlayerPhase.playing;
     });
     _watch
       ..reset()
       ..start();
+    // A new exercise starts at the top, not where the last one was scrolled.
+    if (_exerciseScroll.hasClients) _exerciseScroll.jumpTo(0);
     _focus.requestFocus();
   }
 
@@ -155,6 +171,10 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       }
       setState(() => _result = r);
       _focus.requestFocus();
+      // Once the feedback panel is laid out: the instruction back in view.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) ExerciseLayout.revealPrompt(_exerciseScroll, duration: ref.read(motionProvider).medium);
+      });
     } finally {
       _busy = false;
     }
@@ -279,6 +299,43 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       note: ex.skillId == null ? null : course?.note(ex.skillId!, lang),
       at: ref.read(clockProvider)().toUtc(),
     );
+  }
+
+  /// "I was right" in the feedback panel: only for a wrong verdict the
+  /// session can override (engine sessions), once.
+  List<FeedbackAction> _overrideActions(Exercise ex, Result r) {
+    final Object? s = _session;
+    if (r.correct || _overridden || s is! OverridableSession || !s.canOverride(ex.id)) return const [];
+    return [
+      FeedbackAction(
+        key: const ValueKey('override-button'),
+        icon: Icons.thumb_up_alt_outlined,
+        label: 'I was right',
+        onPressed: () => unawaited(_override(ex, r)),
+      ),
+    ];
+  }
+
+  Future<void> _override(Exercise ex, Result r) async {
+    final Object? s = _session;
+    if (s is! OverridableSession || !await confirmOverride(context) || !mounted) return;
+    if (_exercise != ex) return;
+    final events = await s.overrideAnswer(ex.id);
+    final course = ref.read(courseDataProvider).value;
+    await saveOverrideFlag(
+      ref.read(progressStoreProvider),
+      courseId: course?.meta.id ?? '',
+      exercise: ex,
+      result: r,
+      overrides: events,
+      at: ref.read(clockProvider)().toUtc(),
+      packVersion: course?.meta.version,
+    );
+    if (!mounted || _exercise != ex) return;
+    setState(() {
+      _overridden = true;
+      _bannerResult = overriddenResult(r);
+    });
   }
 
   bool _editingText() {
@@ -452,6 +509,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
               final side = math.max(16.0, (viewport.maxWidth - 640) / 2);
               return SingleChildScrollView(
                 key: const ValueKey('exercise-scroll'),
+                controller: _exerciseScroll,
                 padding: EdgeInsets.fromLTRB(side, top, side, bottom),
                 child: ConstrainedBox(
                   constraints: BoxConstraints(minHeight: math.max(0, viewport.maxHeight - top - bottom)),
@@ -472,10 +530,11 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
         if (result != null)
           FeedbackBanner(
             key: ValueKey('feedback-$_counter'),
-            result: result,
+            result: _bannerResult ?? result,
             reduceMotion: reduce,
             onContinue: _continue,
             onWhy: whyAvailable && !result.correct ? _why : null,
+            extraActions: [..._overrideActions(ex, result)],
           )
         else if (!selfSubmitting(ex.type))
           SafeArea(

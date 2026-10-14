@@ -5,6 +5,7 @@ library;
 
 export 'calendar.dart';
 export 'challenges.dart';
+export 'daily_goal.dart';
 export 'leeches.dart';
 export 'nonstop.dart';
 export 'progression_service.dart';

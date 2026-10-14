@@ -33,6 +33,9 @@ class TestProgressStore extends InMemoryProgressStore {
   Map<String, String> get settings => Map.unmodifiable(_settings);
 
   @override
+  Future<Map<String, String>> allSettings() async => Map.of(_settings);
+
+  @override
   Future<String?> getSetting(String key) async => _settings[key];
 
   @override
@@ -116,8 +119,31 @@ Future<void> goTab(WidgetTester tester, String label) async {
   }
 }
 
+/// When [finder] matches nothing (a lazy list built it away), scrolls the
+/// vertical scrollables up, then down, until it appears.
+Future<void> scrollToFind(WidgetTester tester, Finder finder) async {
+  if (finder.evaluate().isNotEmpty) return;
+  final vertical = find.byWidgetPredicate(
+    (w) => w is Scrollable && (w.axisDirection == AxisDirection.down || w.axisDirection == AxisDirection.up),
+  );
+  for (final element in vertical.evaluate().toList()) {
+    final scrollable = find.byElementPredicate((e) => e == element);
+    for (final dy in const [300.0, -300.0]) {
+      for (var i = 0; i < 30 && finder.evaluate().isEmpty; i++) {
+        final pos = (element as StatefulElement).state as ScrollableState;
+        final before = pos.position.pixels;
+        await tester.drag(scrollable, Offset(0, dy), warnIfMissed: false);
+        await tester.pumpAndSettle();
+        if (pos.position.pixels == before) break;
+      }
+      if (finder.evaluate().isNotEmpty) return;
+    }
+  }
+}
+
 /// Scrolls [finder] into view, taps it and settles.
 Future<void> tapIt(WidgetTester tester, Finder finder) async {
+  await scrollToFind(tester, finder);
   await tester.ensureVisible(finder);
   await tester.pumpAndSettle();
   await tester.tap(finder);
@@ -170,7 +196,13 @@ Future<bool> answerCurrentNoContinue(WidgetTester tester, {bool wrong = false}) 
       }
       return find.byKey(const ValueKey('continue-button')).evaluate().isNotEmpty;
     case ConjPickExercise e:
-      await tapKey(tester, 'ending-${wrong ? (e.correctIndex + 1) % e.endings.length : e.correctIndex}');
+      final typedPick = find.byKey(const ValueKey('conj-pick-typed'));
+      if (typedPick.evaluate().isNotEmpty) {
+        final ending = e.fullForm.substring(e.stem.length);
+        await typeInto(tester, typedPick, wrong ? 'xyz' : (ending.isEmpty ? '-' : ending));
+      } else {
+        await tapKey(tester, 'ending-${wrong ? (e.correctIndex + 1) % e.endings.length : e.correctIndex}');
+      }
       await check();
     case ConjGridExercise e:
       final used = <int>{};
@@ -180,6 +212,13 @@ Future<bool> answerCurrentNoContinue(WidgetTester tester, {bool wrong = false}) 
       ];
       final words = [for (final i in asked) e.cells[i].expected];
       if (wrong) words.setAll(0, [words[1], words[0]]);
+      if (find.byKey(ValueKey('grid-input-${asked.first}')).evaluate().isNotEmpty) {
+        for (var k = 0; k < asked.length; k++) {
+          await typeInto(tester, find.byKey(ValueKey('grid-input-${asked[k]}')), words[k]);
+        }
+        await check();
+        return true;
+      }
       for (var k = 0; k < asked.length; k++) {
         final t = _freeTile(e.tiles, words[k], used);
         used.add(t);
@@ -188,6 +227,11 @@ Future<bool> answerCurrentNoContinue(WidgetTester tester, {bool wrong = false}) 
       }
       await check();
     case SentenceBuilderExercise(:final tiles, :final answers) || TransformExercise(:final tiles, :final answers):
+      if (find.byKey(const ValueKey('answer-input')).evaluate().isNotEmpty) {
+        await typeInto(tester, find.byKey(const ValueKey('answer-input')), wrong ? 'xxx' : answers.first.join(' '));
+        await check();
+        return true;
+      }
       final used = <int>{};
       final words = List.of(answers.first);
       if (wrong) words.removeLast();
@@ -198,7 +242,7 @@ Future<bool> answerCurrentNoContinue(WidgetTester tester, {bool wrong = false}) 
       }
       await check();
     case ClozeExercise e:
-      if (e.options != null) {
+      if (e.options != null && find.byKey(const ValueKey('answer-input')).evaluate().isEmpty) {
         await tapKey(tester, 'cloze-option-${wrong ? (e.correctIndex! + 1) % e.options!.length : e.correctIndex}');
       } else {
         await tester.enterText(find.byKey(const ValueKey('answer-input')), wrong ? 'xyz' : e.expected);
@@ -211,6 +255,15 @@ Future<bool> answerCurrentNoContinue(WidgetTester tester, {bool wrong = false}) 
       await check();
   }
   return true;
+}
+
+/// Types [text] into the text field at (or inside) [finder].
+Future<void> typeInto(WidgetTester tester, Finder finder, String text) async {
+  final field = find.descendant(of: finder, matching: find.byType(EditableText), matchRoot: true);
+  await tester.ensureVisible(field.first);
+  await tester.pumpAndSettle();
+  await tester.enterText(field.first, text);
+  await tester.pumpAndSettle();
 }
 
 /// Answers until the summary shows (with a safety cap).

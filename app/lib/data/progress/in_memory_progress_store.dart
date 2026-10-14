@@ -5,10 +5,11 @@ library;
 
 import '../../core/core.dart';
 import '../fsrs/fsrs_scheduler.dart';
+import '../sync/progress_backup.dart' show SettingsLister;
 import 'event_importer.dart';
 import 'replay.dart';
 
-class InMemoryProgressStore implements ProgressStore, EventImporter {
+class InMemoryProgressStore implements ProgressStore, EventImporter, SettingsLister {
   InMemoryProgressStore({Scheduler? scheduler}) : scheduler = scheduler ?? FsrsScheduler();
 
   final Scheduler scheduler;
@@ -135,6 +136,9 @@ class InMemoryProgressStore implements ProgressStore, EventImporter {
         note: mistake.note,
         explanation: mistake.explanation,
       );
+
+  @override
+  Future<Map<String, String>> allSettings() async => Map.of(_settings);
 
   @override
   Future<String?> getSetting(String key) async => _settings[key];

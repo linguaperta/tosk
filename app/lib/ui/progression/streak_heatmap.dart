@@ -15,6 +15,7 @@ class StreakHeatmap extends StatelessWidget {
     this.gap = 3,
     this.onDayTap,
     this.showLegend = true,
+    this.goalDays = const {},
   });
 
   final HeatmapData data;
@@ -23,6 +24,11 @@ class StreakHeatmap extends StatelessWidget {
   final double gap;
   final ValueChanged<LocalDate>? onDayTap;
   final bool showLegend;
+
+  /// Days on which the daily goal was met: marked with a corner notch
+  /// ([GoalNotch], an outlined triangle that reads on any fill and in black
+  /// and white), with "Goal met" in the legend.
+  final Set<LocalDate> goalDays;
 
   static const _weekdayLabels = ['Mon', '', 'Wed', '', 'Fri', '', ''];
 
@@ -51,9 +57,11 @@ class StreakHeatmap extends StatelessWidget {
             ? Border.all(color: cs.onSurface, width: mono ? 2 : 1.2)
             : (mono ? Border.all(color: kBwGray, width: 0.8) : null),
       );
-      final label = '$d: $count review${count == 1 ? '' : 's'}${frozen ? ' (streak freeze)' : ''}';
+      final goal = goalDays.contains(d);
+      final label =
+          '$d: $count review${count == 1 ? '' : 's'}${frozen ? ' (streak freeze)' : ''}${goal ? ', goal met' : ''}';
       final dot = mono && !frozen ? HeatDot(bucket: data.bucketOf(d), maxBucket: data.maxBucket, size: cellSize) : null;
-      final box = reduceMotion || mono
+      Widget box = reduceMotion || mono
           ? Container(width: cellSize, height: cellSize, decoration: decoration, child: dot)
           : AnimatedContainer(
               duration: const Duration(milliseconds: 300),
@@ -61,6 +69,15 @@ class StreakHeatmap extends StatelessWidget {
               height: cellSize,
               decoration: decoration,
             );
+      if (goal) {
+        box = Stack(
+          key: ValueKey('goal-$d'),
+          children: [
+            box,
+            Positioned(top: 0, right: 0, child: GoalNotch(size: cellSize * 0.55)),
+          ],
+        );
+      }
       return Tooltip(
         message: label,
         waitDuration: const Duration(milliseconds: 400),
@@ -211,6 +228,27 @@ class StreakHeatmap extends StatelessWidget {
                   Text('Freeze', style: labelStyle),
                 ],
               ),
+              if (goalDays.isNotEmpty) ...[
+                const SizedBox(width: 10),
+                Row(
+                  key: const ValueKey('heatmap-goal-legend'),
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: cellSize,
+                      height: cellSize,
+                      decoration: BoxDecoration(
+                        color: ProgressionColors.heat(0, data.maxBucket, cs),
+                        borderRadius: BorderRadius.circular(cellSize / 5),
+                        border: isMonochrome(cs) ? Border.all(color: kBwGray, width: 0.8) : null,
+                      ),
+                      child: Align(alignment: Alignment.topRight, child: GoalNotch(size: cellSize * 0.55)),
+                    ),
+                    const SizedBox(width: 4),
+                    Text('Goal met', style: labelStyle),
+                  ],
+                ),
+              ],
             ],
           ),
         ],
@@ -293,4 +331,49 @@ class StreakCounter extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The heatmap's "goal met" mark: a small triangle in a cell's top-right
+/// corner, filled with the text color and outlined in the surface color, so
+/// it shows on empty and full cells alike (black & white included).
+class GoalNotch extends StatelessWidget {
+  const GoalNotch({super.key, required this.size});
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final mono = isMonochrome(cs);
+    return CustomPaint(
+      size: Size.square(size),
+      painter: _NotchPainter(fill: mono ? kBwBlack : cs.onSurface, outline: mono ? kBwWhite : cs.surface),
+    );
+  }
+}
+
+class _NotchPainter extends CustomPainter {
+  const _NotchPainter({required this.fill, required this.outline});
+  final Color fill;
+  final Color outline;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = Path()
+      ..moveTo(0, 0)
+      ..lineTo(size.width, 0)
+      ..lineTo(size.width, size.height)
+      ..close();
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = outline
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5
+        ..strokeJoin = StrokeJoin.round,
+    );
+    canvas.drawPath(path, Paint()..color = fill);
+  }
+
+  @override
+  bool shouldRepaint(_NotchPainter old) => old.fill != fill || old.outline != outline;
 }
