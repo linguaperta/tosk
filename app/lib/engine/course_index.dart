@@ -444,7 +444,18 @@ class CourseIndex {
         }
       }
     }
+    // A later word of a compound form right after a determiner is a noun or
+    // an adjective, not a participle (`Hebben dieren een geweten?`: conscience).
+    out.removeWhere((o) => o.positions.skip(1).any((p) => _afterDeterminer(o.sentence, p)));
     return out;
+  }
+
+  bool _afterDeterminer(Sentence s, int p) {
+    if (p == 0) return false;
+    final prev = s.tokens[p - 1];
+    if (!prev.isWord) return false;
+    final lex = prev.lex;
+    return lex != null && course.item(lex)?.pos == 'det';
   }
 
   final Map<String, Set<int>> _auxPos = {};

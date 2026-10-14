@@ -128,6 +128,10 @@ class GenContext {
   /// Whether a grammar feature is known (always without a [gate]).
   bool featureKnown(String feature) => gate?.featureKnown(feature) ?? true;
 
+  /// Whether forms of [tense] may be shown, e.g. as a wrong option
+  /// ([SentenceGate.tenseShowable]; always without a [gate]).
+  bool tenseShowable(String tense) => gate?.tenseShowable(tense) ?? true;
+
   /// Memoizes a template's `canGenerate` answer: in the gate when there is
   /// one (the answer depends on what the learner knows), else per course.
   /// [key] must contain everything else the value depends on.

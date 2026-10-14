@@ -160,7 +160,8 @@ class MultipleChoiceTemplate extends ExerciseTemplate {
         ], max: optionCount - 1);
         final altered = <String>[
           for (final o in ix.formOccurrencesInSentence(s))
-            for (final sw in formSwaps(ix, o)) renderPairs(sw.render()),
+            for (final sw in formSwaps(ix, o))
+              if (sw.replacement.tense == o.tense || ctx.tenseShowable(sw.replacement.tense)) renderPairs(sw.render()),
           for (final o in ix.articleOccurrencesInSentence(s))
             for (final a in wrongArticles(ix, ctx.course.item(o.nounId)!)) renderPairs(renderArticleSwap(o, a)),
         ];

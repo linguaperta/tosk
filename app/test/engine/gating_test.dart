@@ -39,6 +39,9 @@ InMemoryCourseData _course({bool gated = true}) {
   b.word('adesso', 'adv', en: ['now'], freq: 100);
   b.word('ieri', 'adv', en: ['yesterday'], freq: 110);
   b.word('lo', 'pron', en: ['the', 'it'], freq: 5);
+  b.word('un', 'det', en: ['a'], freq: 4);
+  b.word('sempre', 'adv', en: ['always'], freq: 120);
+  b.word('buono', 'adj', en: ['good'], freq: 130);
   b.verb('mangiare', ['to eat'], freq: 200, cls: 'are', aux: 'avere', tables: {
     _pres: ['mangi|o', 'mangi|', 'mangi|a', 'mang|iamo', 'mangi|ate', 'mangi|ano'],
     _pp: ['ho mangiato', 'hai mangiato', 'ha mangiato', 'abbiamo mangiato', 'avete mangiato', 'hanno mangiato'],
@@ -88,6 +91,10 @@ InMemoryCourseData _course({bool gated = true}) {
   s('s:14', 'Mangiamo il pane.', 'We eat the bread.', ['Mangiamo=mangiare@presente.noi', 'il=il', 'pane=pane'], pres);
   s('s:15', 'Beviamo il vino.', 'We drink the wine.', ['Beviamo=bere@presente.noi', 'il=il', 'vino=vino'], pres);
   s('s:16', 'Il pane e Tom.', 'The bread and Tom.', ['Il=il', 'pane=pane', 'e=e'], const {});
+  s('s:17', 'Mangia sempre.', 'It is always eating.', ['Mangia=mangiare@presente.lui/lei'], pres);
+  s('s:18', 'Beviamo il vino buono.', 'We drink the good wine.',
+      ['Beviamo=bere@presente.noi', 'il=il', 'vino=vino', 'buono=buono'], pres);
+  s('s:19', 'Ha un bevuto.', 'He has a drunk one.', ['Ha=bere', 'un=un', 'bevuto=bere@passato_prossimo.lui/lei'], pp);
   return b.build();
 }
 
@@ -242,10 +249,16 @@ void main() {
       // Learner in "present" who has not started "past": no rewrite of
       // `Ho bevuto il vino` (unknown source tense) nor into the past.
       final g1 = SentenceGate(c, started: ['food'], current: ['present']);
-      expect(const TransformTemplate().canGenerate(present, _ctx(c, 'present', gate: g1)), isFalse);
-      // Started "past": `Ho bevuto il vino.` -> present is fine.
       final g2 = SentenceGate(c, started: ['food', 'past'], current: ['present']);
-      expect(const TransformTemplate().canGenerate(present, _ctx(c, 'present', gate: g2)), isTrue);
+      final sources1 = <String?>{};
+      final sources2 = <String?>{};
+      for (var seed = 0; seed < 40; seed++) {
+        sources1.add((const TransformTemplate().generate(present, _ctx(c, 'present', gate: g1, seed: seed)) as TransformExercise?)?.sentenceId);
+        sources2.add((const TransformTemplate().generate(present, _ctx(c, 'present', gate: g2, seed: seed)) as TransformExercise?)?.sentenceId);
+      }
+      expect(sources1, isNot(contains('s:11')));
+      // Started "past": `Ho bevuto il vino.` -> present is fine.
+      expect(sources2, contains('s:11'));
       // In "past" (current), the present sentences may be turned into the past.
       final g3 = SentenceGate(c, started: ['food', 'present'], current: ['past']);
       expect(const TransformTemplate().canGenerate(past, _ctx(c, 'past', gate: g3)), isTrue);
@@ -300,6 +313,30 @@ void main() {
       expect(pastSources, contains('s:1'));
       expect(presentSources, isNot(contains('s:8')), reason: '`Ieri ho mangiato` never becomes the present');
       expect(presentSources, contains('s:2'));
+    });
+
+    test('person changes: no impersonal third person, no number change next to an adjective', () {
+      final c = _course(gated: false);
+      final mangiare = _facet(c, 'present', 'it:mangiare#form:presente');
+      final bere = _facet(c, 'present', 'it:bere#form:presente');
+      final plain = <String>{}; // Beviamo il vino.
+      final adjective = <String>{}; // Beviamo il vino buono.
+      for (var seed = 0; seed < 120; seed++) {
+        expect(gen(c, mangiare, seed)?.sentenceId, isNot('s:17'), reason: '"It is always eating": maybe impersonal');
+        final e = gen(c, bere, seed);
+        if (e?.sentenceId == 's:15') plain.add(e!.targetDescription);
+        if (e?.sentenceId == 's:18') adjective.add(e!.targetDescription);
+      }
+      bool singular(String t) => t.contains('io') || t.contains('tu') || t.contains('lui');
+      expect(plain.any(singular), isTrue, reason: '$plain');
+      expect(adjective.any(singular), isFalse, reason: '$adjective');
+    });
+
+    test('a participle right after a determiner is no verb form', () {
+      final c = _course(gated: false);
+      final occ = CourseIndex.of(c).formOccurrences('it:bere');
+      expect(occ.map((o) => o.sentence.id), isNot(contains('s:19')));
+      expect(occ.map((o) => o.sentence.id), contains('s:11'));
     });
   });
 

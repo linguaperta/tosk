@@ -140,6 +140,8 @@ class ClozeTemplate extends ExerciseTemplate {
       for (final f in forms.values) {
         if (f.person == kNoPerson || f.key == o.cell.key) continue;
         if (forbidden.contains(foldAnswer(f.form))) continue;
+        // No form of a tense the learner has not met (grammar gating).
+        if (f.tense != o.tense && !ctx.tenseShowable(f.tense)) continue;
         final opt = matchCase(f.form, expected);
         if (f.tense == o.tense) {
           sameTense.add(opt);

@@ -112,6 +112,15 @@ class SentenceGate {
 
   bool featureKnown(String feature) => _knownFeatures.contains(feature);
 
+  late final Set<String> _courseFeatures = {for (final s in course.skills) ...course.skillFeatures(s.id)};
+
+  /// Whether forms of [tense] may be shown (as wrong options or tiles too):
+  /// the tense is known, and so are its irregular forms when the course
+  /// teaches those separately (`irregular:futuro`, `irregular:verleden_tijd`).
+  bool tenseShowable(String tense) =>
+      featureKnown('tense:$tense') &&
+      (!_courseFeatures.contains('irregular:$tense') || featureKnown('irregular:$tense'));
+
   /// Whether every grammar feature of the sentence is known.
   bool featuresKnown(String sentenceId) => course.sentenceFeatures(sentenceId).every(_knownFeatures.contains);
 

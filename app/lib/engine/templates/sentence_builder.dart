@@ -74,7 +74,8 @@ class SentenceBuilderTemplate extends ExerciseTemplate {
     // Other persons' forms of the verbs (the word that differs).
     final verbSwaps = <String>[
       for (final o in ix.formOccurrencesInSentence(s))
-        for (final sw in formSwaps(ix, o)) lowerFirst(sw.newWord),
+        for (final sw in formSwaps(ix, o))
+          if (sw.replacement.tense == o.tense || ctx.tenseShowable(sw.replacement.tense)) lowerFirst(sw.newWord),
     ];
     // Wrong articles, when the sentence uses one.
     final usesArticle = words.any((t) => ix.articleKeys.contains(normalizeAnswer(t.t)));

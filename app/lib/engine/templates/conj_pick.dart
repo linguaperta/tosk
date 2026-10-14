@@ -69,7 +69,7 @@ class ConjPickTemplate extends ExerciseTemplate {
 
     final own = course.verbForms(facet.itemId).values.where((f) => f.person != kNoPerson);
     addGroup(own.where((f) => f.tense == cell.tense && f.person != cell.person));
-    addGroup(own.where((f) => f.tense != cell.tense));
+    addGroup(own.where((f) => f.tense != cell.tense && ctx.tenseShowable(f.tense)));
     final others = [for (final v in ix.verbs) if (v.id != facet.itemId) v];
     final sameClass = [
       for (final v in others)
@@ -93,7 +93,7 @@ class ConjPickTemplate extends ExerciseTemplate {
   @override
   bool canGenerate(SkillFacet facet, GenContext ctx) {
     if (!supports(facet)) return false;
-    return ctx.index.memo('conj_pick/$optionCount|${facet.facetId}',
+    return ctx.memo('conj_pick/$optionCount|${facet.facetId}',
         () => _cells(facet, ctx).any((c) => _distractors(facet, c, ctx, shuffle: false).length >= 2));
   }
 
