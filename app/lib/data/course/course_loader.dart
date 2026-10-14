@@ -78,18 +78,20 @@ CourseRepo loadCourseRepoFromSqlite(CommonDatabase db) {
     (skillItemIds[r[0] as String] ??= []).add(r[1] as String);
   }
 
+  // Facet kinds this app doesn't know (a pack of a newer schema minor) are skipped.
   final skillFacets = [
     for (final r in db.select(
       'SELECT skill_id, facet_id, item_id, kind, tense, ord FROM skill_facets ORDER BY skill_id, ord, facet_id',
     ).rows)
-      SkillFacet(
-        skillId: r[0] as String,
-        facetId: r[1] as String,
-        itemId: r[2] as String,
-        kind: FacetKind.parse(r[3] as String),
-        tense: r[4] as String?,
-        ord: r[5] as int,
-      ),
+      if (FacetKind.tryParse(r[3] as String) case final kind?)
+        SkillFacet(
+          skillId: r[0] as String,
+          facetId: r[1] as String,
+          itemId: r[2] as String,
+          kind: kind,
+          tense: r[4] as String?,
+          ord: r[5] as int,
+        ),
   ];
 
   final verbs = [
@@ -156,7 +158,7 @@ CourseRepo loadCourseRepoFromSqlite(CommonDatabase db) {
   // Grammar gating tables (additive in schema 1; packs built before them have none).
   final tables = {
     for (final r in db.select(
-      "SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('sentence_features', 'skill_features')",
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('sentence_features', 'skill_features', 'inflections')",
     ).rows)
       r[0] as String,
   };
@@ -173,6 +175,22 @@ CourseRepo loadCourseRepoFromSqlite(CommonDatabase db) {
     }
   }
 
+  // Inflection tables (schema minor 1).
+  final inflections = <InflectionForm>[
+    if (tables.contains('inflections'))
+      for (final r in db.select('SELECT item_id, tbl, cell, form, stem, ending, alts, wrong FROM inflections').rows)
+        InflectionForm(
+          itemId: r[0] as String,
+          table: r[1] as String,
+          cell: r[2] as String,
+          form: r[3] as String,
+          stem: r[4] as String?,
+          ending: r[5] as String?,
+          alts: _stringList(r[6]),
+          wrong: _stringList(r[7]),
+        ),
+  ];
+
   final data = InMemoryCourseData(
     meta: meta,
     units: units,
@@ -186,6 +204,7 @@ CourseRepo loadCourseRepoFromSqlite(CommonDatabase db) {
     notes: notes,
     sentenceFeatures: sentenceFeatures,
     skillFeatures: skillFeatures,
+    inflections: inflections,
   );
   sw.stop();
   return CourseRepo(
@@ -252,6 +271,8 @@ CourseMeta parseCourseMeta(Map<String, String> raw) {
       baseFeatures: _stringList(raw['base_features']),
       timeAdverbs: _glosses(raw['time_adverbs']),
       description: _i18n(raw['description']),
+      inflectionTables: _inflectionTables(raw['inflection_tables']),
+      schemaMinor: int.tryParse(raw['schema_minor'] ?? '') ?? 0,
     );
   } on FormatException catch (e) {
     throw CourseFormatException('Malformed meta JSON: ${e.message}');
@@ -294,6 +315,33 @@ Map<String, I18n> _i18nMap(Object? v) {
           ? {for (final x in (e.value as Map).entries) '${x.key}': '${x.value}'}
           : {'en': '${e.value}'},
   };
+}
+
+Map<String, InflectionTable> _inflectionTables(Object? v) {
+  if (v == null || v == '{}' || v == '') return const {};
+  final d = _json(v);
+  if (d is! Map) return const {};
+  final out = <String, InflectionTable>{};
+  for (final e in d.entries) {
+    final t = e.value;
+    if (t is! Map) continue;
+    final labels = t['labels'];
+    out['${e.key}'] = InflectionTable(
+      name: '${e.key}',
+      cells: [for (final c in (t['cells'] as List? ?? const [])) '$c'],
+      pos: [for (final c in (t['pos'] as List? ?? const [])) '$c'],
+      base: t['base'] as String?,
+      agreement: t['agreement'] == true,
+      title: t['title'] is Map ? {for (final x in (t['title'] as Map).entries) '${x.key}': '${x.value}'} : const {},
+      labels: labels is Map
+          ? {
+              for (final x in labels.entries)
+                if (x.value is Map) '${x.key}': {for (final y in (x.value as Map).entries) '${y.key}': '${y.value}'},
+            }
+          : const {},
+    );
+  }
+  return out;
 }
 
 Map<String, List<String>> _glosses(Object? v) {

@@ -10,6 +10,7 @@ import '../grading/rating.dart';
 import '../strings.dart';
 import '../template.dart';
 import '../text/normalize.dart';
+import 'inflection.dart';
 
 /// Fill a whole tense table.
 ///
@@ -30,11 +31,17 @@ class ConjGridTemplate extends ExerciseTemplate {
   ExerciseType get type => ExerciseType.conjGrid;
 
   @override
-  Set<FacetKind> get kinds => const {FacetKind.form};
+  Set<FacetKind> get kinds => const {FacetKind.form, FacetKind.infl};
 
   @override
   bool canGenerate(SkillFacet facet, GenContext ctx) {
     if (!supports(facet) || facet.tense == null) return false;
+    if (facet.kind == FacetKind.infl) {
+      return ctx.memo('conj_grid/$distractorCount/$minCells|${facet.facetId}', () {
+        final cells = ctx.course.inflectionTable(facet.itemId, facet.table!);
+        return cells.length >= minCells && _inflDistractors(facet, cells, ctx, shuffle: false).isNotEmpty;
+      });
+    }
     return ctx.memo('conj_grid/$distractorCount/$minCells|${facet.facetId}', () {
       final cells = ctx.index.finiteForms(facet.itemId, facet.tense!);
       return cells.length >= minCells && _distractors(facet, cells, ctx, shuffle: false).isNotEmpty;
@@ -149,9 +156,91 @@ class ConjGridTemplate extends ExerciseTemplate {
     ];
   }
 
+  /// Grid distractors for an inflection table: the cells' `wrong` forms, then
+  /// the same table's forms of other items (`nuova` in the grid of `bello`).
+  List<String> _inflDistractors(SkillFacet facet, List<InflectionForm> cells, GenContext ctx, {bool shuffle = true}) {
+    final picker = OptionPicker(forbidden: [for (final c in cells) ...c.accepted], max: distractorCount);
+    final groups = ctx.index.memo('conj_grid.infl|${facet.facetId}', () {
+      final words = cells.first.form.split(' ').length;
+      return [
+        [for (final c in cells) ...c.wrong],
+        [
+          for (final id in inflItems(ctx.index, facet.table!))
+            if (id != facet.itemId)
+              for (final c in ctx.course.inflectionTable(id, facet.table!))
+                if (c.cell != inflTableOf(ctx, facet)?.base && c.form.split(' ').length == words) c.form,
+        ],
+      ];
+    });
+    if (shuffle) {
+      picker.addGroups(groups, ctx.random);
+    } else {
+      for (final g in groups) {
+        for (final o in g.take(50)) {
+          if (picker.full) return picker.picked;
+          picker.add(o);
+        }
+      }
+    }
+    return picker.picked;
+  }
+
+  Exercise? _generateInfl(SkillFacet facet, GenContext ctx) {
+    final item = ctx.course.item(facet.itemId);
+    final spec = inflTableOf(ctx, facet);
+    if (item == null || spec == null) return null;
+    final forms = ctx.course.inflectionTable(facet.itemId, facet.table!);
+    if (forms.length < minCells) return null;
+    final distractors = _inflDistractors(facet, forms, ctx);
+    if (distractors.isEmpty) return null;
+    // The base cell (the lemma) is always given; of the others about half
+    // (fresh) or a third (learning) are prefilled, at least two stay asked.
+    final open = [for (var i = 0; i < forms.length; i++) if (forms[i].cell != spec.base) i];
+    final n = open.length;
+    var prefill = switch (ctx.stage(facet.facetId)) {
+      FacetStage.fresh => n ~/ 2,
+      FacetStage.learning => n ~/ 3,
+      FacetStage.stable => 0,
+    };
+    prefill = min(prefill, n - 2);
+    final prefilled = {
+      for (var i = 0; i < forms.length; i++) if (forms[i].cell == spec.base) i,
+      ...ctx.shuffled(open).take(max(0, prefill)),
+    };
+    final cells = [
+      for (var i = 0; i < forms.length; i++)
+        GridCell(
+          person: forms[i].cell,
+          personLabel: spec.cellLabel(forms[i].cell, ctx.lang),
+          expected: forms[i].form,
+          accepted: forms[i].accepted,
+          prefilled: prefilled.contains(i),
+        ),
+    ];
+    final tiles = ctx.shuffled([
+      for (final c in cells)
+        if (!c.prefilled) c.expected,
+      ...distractors,
+    ]);
+    return ConjGridExercise(
+      id: ctx.nextId(),
+      facetId: facet.facetId,
+      skillId: ctx.skill?.id,
+      instruction: instruction(prefilled.isEmpty ? 'conj_grid' : 'conj_grid.partial', ctx.lang),
+      lemma: item.lemma,
+      gloss: item.gloss(ctx.lang),
+      tense: spec.name,
+      tenseLabel: spec.titleIn(ctx.lang),
+      cells: cells,
+      tiles: tiles,
+      inflection: true,
+    );
+  }
+
   @override
   Exercise? generate(SkillFacet facet, GenContext ctx) {
     if (!supports(facet) || facet.tense == null) return null;
+    if (facet.kind == FacetKind.infl) return _generateInfl(facet, ctx);
     final verb = ctx.course.item(facet.itemId);
     if (verb == null) return null;
     final forms = ctx.index.finiteForms(facet.itemId, facet.tense!);

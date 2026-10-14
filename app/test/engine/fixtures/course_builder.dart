@@ -22,7 +22,51 @@ class CourseBuilder {
   final Map<String, Map<String, String>> _notes = {};
   final Map<String, Set<String>> _sentenceFeatures = {};
   final Map<String, Set<String>> _skillFeatures = {};
+  final List<InflectionForm> _infl = [];
   String? _unit;
+
+  /// An inflection table of a non-verb. [cells] maps cell -> entry with the
+  /// verb syntax (`stem|ending`, `;` alternatives); [wrong] the cell's wrong
+  /// forms.
+  void inflection(String lemmaOrId, String table, Map<String, String> cells,
+      {Map<String, List<String>> wrong = const {}}) {
+    final itemId = id(lemmaOrId);
+    _check(itemId);
+    for (final e in cells.entries) {
+      final variants = e.value.split(';');
+      final canon = variants.first;
+      final bar = canon.indexOf('|');
+      _infl.add(InflectionForm(
+        itemId: itemId,
+        table: table,
+        cell: e.key,
+        form: canon.replaceAll('|', ''),
+        stem: bar >= 0 ? canon.substring(0, bar) : null,
+        ending: bar >= 0 ? canon.substring(bar + 1) : null,
+        alts: variants.skip(1).toList(),
+        wrong: wrong[e.key] ?? const [],
+      ));
+    }
+  }
+
+  /// A grammar skill training `#infl:{table}` of [items] (course.yaml
+  /// `facet: infl`); with [withVocab] also `#rec`/`#prod` (`inflections:`
+  /// added to an items skill).
+  void inflSkill(String sid, int ord, String en, String nl, String table, List<String> items,
+      {List<String> requires = const [], List<String> exercises = const [], bool withVocab = false}) {
+    _skill(sid, ord, SkillKind.grammar, en, nl, requires: requires, exercises: exercises);
+    final ids = [for (final i in items) id(i)];
+    _skillItems[sid] = ids;
+    for (var o = 0; o < ids.length; o++) {
+      _check(ids[o]);
+      if (withVocab) {
+        _facets.add(SkillFacet(skillId: sid, facetId: '${ids[o]}#rec', itemId: ids[o], kind: FacetKind.rec, ord: o));
+        _facets.add(SkillFacet(skillId: sid, facetId: '${ids[o]}#prod', itemId: ids[o], kind: FacetKind.prod, ord: o));
+      }
+      _facets.add(SkillFacet(
+          skillId: sid, facetId: '${ids[o]}#infl:$table', itemId: ids[o], kind: FacetKind.infl, tense: table, ord: o));
+    }
+  }
 
   /// Grammar features of a sentence (`sentence_features`).
   void sentenceFeatures(String sentenceId, Iterable<String> features) =>
@@ -252,5 +296,6 @@ class CourseBuilder {
         notes: _notes,
         sentenceFeatures: _sentenceFeatures,
         skillFeatures: _skillFeatures,
+        inflections: _infl,
       );
 }

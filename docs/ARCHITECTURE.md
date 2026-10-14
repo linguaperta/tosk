@@ -38,6 +38,7 @@ The DDL in `schema/course_db.sql` is the authoritative definition. The key point
   - `{itemId}#prod`: produce, from meaning to target
   - `{itemId}#form:{tense}`: one verb's forms in one tense, for example `it:mangiare#form:presente`
   - `{itemId}#article`: a noun's article or gender (extends the spec for the de/het and article skills)
+  - `{itemId}#infl:{table}`: one inflection table of a non-verb, for example `it:gatto#infl:number` (plural), `it:bello#infl:agreement` (m.sg/f.sg/m.pl/f.pl), `nl:huis#infl:diminutive` (schema minor 1; see "Inflection tables")
 - **Skill id and unit id:** unique within a course. In the progress DB, skill-level records are keyed `{course}/{skillId}`.
 
 Which facets a skill trains is decided by the pipeline:
@@ -47,6 +48,24 @@ Which facets a skill trains is decided by the pipeline:
 | vocab | `#rec` and `#prod` for each item |
 | grammar with `verbs: {tense: T}` | `#form:T` for each verb (and `#rec` for verbs not yet seen elsewhere is NOT added; recognition belongs to vocab skills) |
 | grammar with `items:` and `facet: article` | `#article` for each noun |
+| grammar with `items:`, `facet: infl` and `inflections: {table: T}` | `#infl:T` for each item whose table T has at least two different forms (the query keeps only those) |
+| any `items:` skill with `inflections: {table: T}` and no `facet` | `#rec` and `#prod` for each item, plus `#infl:T` for each item that inflects |
+
+## Inflection tables (schema minor 1)
+
+Verbs have conjugation tables (`verb_forms`). Every other part of speech can have **inflection tables**, generic over the language (additive to `schema/course_db.sql`; `meta.schema_minor = 1`, the major version stays 1):
+
+```sql
+CREATE TABLE inflections (item_id, tbl, cell, form, stem, ending, alts, wrong, PRIMARY KEY (item_id, tbl, cell));
+-- meta 'inflection_tables': {table: {pos, cells (display order), base, agreement, title, labels}}
+```
+
+- **Tables are course data.** `course.yaml` declares them (`inflection_tables`), the pipeline fills them per item (`pipeline/pipeline/inflect.py`, one builder per language and table), the app reads the cells and labels from meta. Italian: `number` (`sg`/`pl`) and `agreement` (`m.sg`/`f.sg`/`m.pl`/`f.pl`, adjectives and determiners such as the possessives). Dutch: `number`, `agreement` (`base`/`infl`: *groot*/*grote*), `comparison` (`base`/`comparative`/`superlative`, imported but not trained yet) and `diminutive` (`sg`/`dim`). German and Slavic cases are the same shape (`nom.sg` … `gen.pl`).
+- **`base`** is the cell equal to the lemma: given, never asked by the ending picker.
+- **`agreement: true`** means the cell follows from the sentence (the adjective agrees with its noun), so in an aligned sentence every other cell of the item is a wrong option. Otherwise the cells differ in meaning (singular vs plural, a diminutive), and sentence exercises only offer the cell's **`wrong`** forms: plausible learner errors that the pipeline checked are no word of the language (`katen`, `huisen`, `wite`, `huistje`), so they can never be right against the translation.
+- **Token forms:** an aligned inflected non-verb has `Token.form = 'infl:{table}.{cell}'` (`infl:number.pl`, `infl:agreement.f.sg`). The `infl:` prefix keeps these apart from verb keys `'{tense}.{person}'` (tense keys never contain a colon); the cell is everything after the first dot. `Token.tense`/`person` are null for them. The pipeline sets an agreement cell only where its language rules found the controlling noun (Italian: the adjacent noun or the noun before a copula with a fixed gender and a known number; Dutch: the attributive rule de/het + (in)definite, or predicative at the clause end) and the attested form matches, so `Sono stanca` (the speaker's gender is unknown) gets no form.
+- **Verbs** stay in `verb_forms`; conceptually a verb table is the special case table = tense, cell = person.
+- **Old apps:** apps before 0.4.0 failed on `kind = 'infl'` (`FacetKind.parse`); from this version on the loader skips facet kinds it doesn't know. The compiler therefore writes `meta.min_app_version = 0.4.0` into packs that train inflection tables, and `publish` copies it into the pack index, so older apps are offered an app update instead of the pack.
 
 ## Exercise type ids
 
