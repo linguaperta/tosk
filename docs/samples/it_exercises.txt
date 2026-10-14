@@ -1453,12 +1453,12 @@ SKILL present-are (grammar)  Present tense of -are verbs
 
 [conj_pick] it:parlare#form:presente  (skill present-are)
   Pick the right ending
-  parlare (to talk) — voi, present
+  parlare (to speak) — voi, present
   parl___    iamo  |   ano  |  *ate  |   i   => parlate
 
 [conj_pick] it:aspettare#form:presente  (skill present-are)
   Pick the right ending
-  aspettare (to wait for) — tu, present
+  aspettare (to wait) — tu, present
   aspett___   *i  |   ano  |   iamo  |   o   => aspetti
 
 [conj_pick] it:sembrare#form:presente  (skill present-are)
@@ -1500,7 +1500,7 @@ SKILL present-are (grammar)  Present tense of -are verbs
 
 [conj_grid] it:parlare#form:presente  (skill present-are)
   Complete the table
-  parlare (to talk) — present
+  parlare (to speak) — present
     io       parlo
     tu       (parli)
     lui/lei (he/she) parla
@@ -1511,7 +1511,7 @@ SKILL present-are (grammar)  Present tense of -are verbs
 
 [conj_grid] it:aspettare#form:presente  (skill present-are)
   Complete the table
-  aspettare (to wait for) — present
+  aspettare (to wait) — present
     io       aspetto
     tu       (aspetti)
     lui/lei (he/she) (aspetta)
@@ -1890,7 +1890,7 @@ SKILL present-ere (grammar)  Present tense of -ere verbs
 
 [conj_pick] it:succedere#form:presente  (skill present-ere)
   Pick the right ending
-  succedere (to take the place) — noi, present
+  succedere (to happen) — noi, present
   succed___    e  |   ono  |  *iamo  |   i   => succediamo
 
 [conj_pick] it:credere#form:presente  (skill present-ere)
@@ -1955,7 +1955,7 @@ SKILL present-ere (grammar)  Present tense of -ere verbs
 
 [conj_grid] it:succedere#form:presente  (skill present-ere)
   Complete the table
-  succedere (to take the place) — present
+  succedere (to happen) — present
     io       succedo
     tu       (succedi)
     lui/lei (he/she) (succede)
@@ -2155,7 +2155,7 @@ SKILL present-ire (grammar)  Present tense of -ire verbs
 
 [conj_pick] it:sentire#form:presente  (skill present-ire)
   Pick the right ending
-  sentire (to feel) — voi, present
+  sentire (to hear) — voi, present
   sent___    i  |   iamo  |   ono  |  *ite   => sentite
 
 [conj_pick] it:servire#form:presente  (skill present-ire)
@@ -2180,7 +2180,7 @@ SKILL present-ire (grammar)  Present tense of -ire verbs
 
 [conj_pick] it:scoprire#form:presente  (skill present-ire)
   Pick the right ending
-  scoprire (to uncover) — lui/lei (he/she), present
+  scoprire (to discover) — lui/lei (he/she), present
   scopr___    i  |   ono  |  *e  |   ite   => scopre
 
 [conj_pick] it:seguire#form:presente  (skill present-ire)
@@ -2202,7 +2202,7 @@ SKILL present-ire (grammar)  Present tense of -ire verbs
 
 [conj_grid] it:sentire#form:presente  (skill present-ire)
   Complete the table
-  sentire (to feel) — present
+  sentire (to hear) — present
     io       (sento)
     tu       senti
     lui/lei (he/she) (sente)
@@ -2257,7 +2257,7 @@ SKILL present-ire (grammar)  Present tense of -ire verbs
 
 [conj_grid] it:scoprire#form:presente  (skill present-ire)
   Complete the table
-  scoprire (to uncover) — present
+  scoprire (to discover) — present
     io       (scopro)
     tu       scopri
     lui/lei (he/she) (scopre)
@@ -3151,27 +3151,27 @@ SKILL everyday-verbs (vocab)  Everyday verbs
 --- flashcard: 8 example(s)
 [flashcard] it:aiutare#prod  (skill everyday-verbs)
   How do you say this?
-  to help, to assist  =>  aiutare   [verb]
+  to help  =>  aiutare   [verb]
 
 [flashcard] it:aiutare#rec  (skill everyday-verbs)
   What does this mean?
-  aiutare  =>  to help, to assist   [verb]
+  aiutare  =>  to help   [verb]
 
 [flashcard] it:portare#prod  (skill everyday-verbs)
   How do you say this?
-  to bring, to fetch, to take, to carry, to transmit  =>  portare   [verb]
+  to bring, to carry, to wear  =>  portare   [verb]
 
 [flashcard] it:portare#rec  (skill everyday-verbs)
   What does this mean?
-  portare  =>  to bring, to fetch, to take, to carry, to transmit   [verb]
+  portare  =>  to bring, to carry, to wear   [verb]
 
 [flashcard] it:giocare#prod  (skill everyday-verbs)
   How do you say this?
-  to play, to specifically, to respond to bait, to have a gambling addiction, to put as stake  =>  giocare   [verb]
+  to play  =>  giocare   [verb]
 
 [flashcard] it:giocare#rec  (skill everyday-verbs)
   What does this mean?
-  giocare  =>  to play, to specifically, to respond to bait, to have a gambling addiction, to put as stake   [verb]
+  giocare  =>  to play   [verb]
 
 [flashcard] it:cominciare#prod  (skill everyday-verbs)
   How do you say this?
@@ -3195,12 +3195,12 @@ SKILL everyday-verbs (vocab)  Everyday verbs
 [multiple_choice] it:portare#prod  (skill everyday-verbs)
   Pick the right word
   to bring
-   guidare  |   pulire  |   cantare  |  *portare
+   cantare  |  *portare  |   guidare  |   pulire
 
 [multiple_choice] it:portare#rec  (skill everyday-verbs)
   Pick the right translation
   portare
-   to remember  |   to phone  |   to begin  |  *to bring
+   to phone  |  *to bring  |   to remember  |   to begin
 
 [multiple_choice] it:giocare#prod  (skill everyday-verbs)
   Pick the right word
@@ -3215,12 +3215,12 @@ SKILL everyday-verbs (vocab)  Everyday verbs
 [multiple_choice] it:cominciare#prod  (skill everyday-verbs)
   Pick the right word
   to begin
-   viaggiare  |   ballare  |  *cominciare  |   lavare
+   ballare  |  *cominciare  |   viaggiare  |   lavare
 
 [multiple_choice] it:cominciare#rec  (skill everyday-verbs)
   Pick the right translation
   cominciare
-  *to begin  |   to teach  |   to drive  |   to sing
+   to drive  |   to teach  |   to sing  |  *to begin
 
 --- match_pairs: 8 example(s)
 [match_pairs] it:aiutare#rec  (skill everyday-verbs)
@@ -3383,9 +3383,9 @@ SKILL everyday-verbs (vocab)  Everyday verbs
 
 [cloze] it:imparare#prod  (skill everyday-verbs)
   Fill in the gap
-  ___ una lingua straniera è difficile.   (to learn)
-  "Learning a foreign language is difficult."
-  *Imparare  |   Guidare  |   Telefonare  |   Cominciare
+  Ho molto da ___ da te.   (to learn)
+  "I've got a lot to learn from you."
+   cantare  |   viaggiare  |  *imparare  |   camminare
 
 ========================================================================
 SKILL irregular-present (grammar)  Irregular verbs in the present
@@ -7050,7 +7050,7 @@ SKILL passato-prossimo-essere (grammar)  The passato prossimo with essere
 
 [conj_grid] it:piacere#form:passato_prossimo  (skill passato-prossimo-essere)
   Complete the table
-  piacere (to be pleasing to) — present perfect (passato prossimo)
+  piacere (to please) — present perfect (passato prossimo)
     io       (sono piaciuto)
     tu       sei piaciuto
     lui/lei (he/she) è piaciuto
@@ -7083,7 +7083,7 @@ SKILL passato-prossimo-essere (grammar)  The passato prossimo with essere
 
 [conj_grid] it:succedere#form:passato_prossimo  (skill passato-prossimo-essere)
   Complete the table
-  succedere (to take the place) — present perfect (passato prossimo)
+  succedere (to happen) — present perfect (passato prossimo)
     io       (sono successo)
     tu       (sei successo)
     lui/lei (he/she) è successo
@@ -8740,7 +8740,7 @@ SKILL futuro (grammar)  The future tense
 
 [conj_pick] it:parlare#form:futuro  (skill futuro)
   Pick the right ending
-  parlare (to talk) — tu, future
+  parlare (to speak) — tu, future
   parl___    eremo  |  *erai  |   erò  |   eranno   => parlerai
 
 [conj_pick] it:capire#form:futuro  (skill futuro)
@@ -8750,12 +8750,12 @@ SKILL futuro (grammar)  The future tense
 
 [conj_pick] it:sentire#form:futuro  (skill futuro)
   Pick the right ending
-  sentire (to feel) — noi, future
+  sentire (to hear) — noi, future
   sent___   *iremo  |   iranno  |   irai  |   irà   => sentiremo
 
 [conj_pick] it:aspettare#form:futuro  (skill futuro)
   Pick the right ending
-  aspettare (to wait for) — loro (they), future
+  aspettare (to wait) — loro (they), future
   aspett___    erà  |  *eranno  |   erai  |   eremo   => aspetteranno
 
 [conj_pick] it:sembrare#form:futuro  (skill futuro)
@@ -8770,7 +8770,7 @@ SKILL futuro (grammar)  The future tense
 
 [conj_pick] it:piacere#form:futuro  (skill futuro)
   Pick the right ending
-  piacere (to be pleasing to) — noi, future
+  piacere (to please) — noi, future
   piac___   *eremo  |   erai  |   erete  |   erò   => piaceremo
 
 --- conj_grid: 8 example(s)
@@ -8798,7 +8798,7 @@ SKILL futuro (grammar)  The future tense
 
 [conj_grid] it:parlare#form:futuro  (skill futuro)
   Complete the table
-  parlare (to talk) — future
+  parlare (to speak) — future
     io       (parlerò)
     tu       parlerai
     lui/lei (he/she) parlerà
@@ -8820,7 +8820,7 @@ SKILL futuro (grammar)  The future tense
 
 [conj_grid] it:sentire#form:futuro  (skill futuro)
   Complete the table
-  sentire (to feel) — future
+  sentire (to hear) — future
     io       (sentirò)
     tu       sentirai
     lui/lei (he/she) sentirà
@@ -8831,7 +8831,7 @@ SKILL futuro (grammar)  The future tense
 
 [conj_grid] it:aspettare#form:futuro  (skill futuro)
   Complete the table
-  aspettare (to wait for) — future
+  aspettare (to wait) — future
     io       aspetterò
     tu       (aspetterai)
     lui/lei (he/she) aspetterà
@@ -9254,82 +9254,82 @@ SKILL more-verbs (vocab)  More verbs
 --- flashcard: 8 example(s)
 [flashcard] it:cambiare#prod  (skill more-verbs)
   How do you say this?
-  to exchange, to change  =>  cambiare   [verb]
+  to change  =>  cambiare   [verb]
 
 [flashcard] it:cambiare#rec  (skill more-verbs)
   What does this mean?
-  cambiare  =>  to exchange, to change   [verb]
+  cambiare  =>  to change   [verb]
 
 [flashcard] it:provare#prod  (skill more-verbs)
   How do you say this?
-  to try, to try out, to test, to attempt, to feel  =>  provare   [verb]
+  to try, to try on, to feel  =>  provare   [verb]
 
 [flashcard] it:provare#rec  (skill more-verbs)
   What does this mean?
-  provare  =>  to try, to try out, to test, to attempt, to feel   [verb]
+  provare  =>  to try, to try on, to feel   [verb]
 
 [flashcard] it:mandare#prod  (skill more-verbs)
   How do you say this?
-  to send, to forward, to dispatch, to transmit, to throw  =>  mandare   [verb]
+  to send  =>  mandare   [verb]
 
 [flashcard] it:mandare#rec  (skill more-verbs)
   What does this mean?
-  mandare  =>  to send, to forward, to dispatch, to transmit, to throw   [verb]
+  mandare  =>  to send   [verb]
 
 [flashcard] it:incontrare#prod  (skill more-verbs)
   How do you say this?
-  to meet, to come across, to bump into, to run into, to find  =>  incontrare   [verb]
+  to meet  =>  incontrare   [verb]
 
 [flashcard] it:incontrare#rec  (skill more-verbs)
   What does this mean?
-  incontrare  =>  to meet, to come across, to bump into, to run into, to find   [verb]
+  incontrare  =>  to meet   [verb]
 
 --- multiple_choice: 8 example(s)
 [multiple_choice] it:cambiare#prod  (skill more-verbs)
   Pick the right word
-  to exchange
-  *cambiare  |   ridere  |   promettere  |   ringraziare
+  to change
+   promettere  |   ringraziare  |   ridere  |  *cambiare
 
 [multiple_choice] it:cambiare#rec  (skill more-verbs)
   Pick the right translation
   cambiare
-  *to exchange  |   to be born  |   to pull  |   to promise
+   to pull  |   to be born  |   to promise  |  *to change
 
 [multiple_choice] it:provare#prod  (skill more-verbs)
   Pick the right word
   to try
-   nascondere  |   sorridere  |  *provare  |   nascere
+   nascere  |   sorridere  |   nascondere  |  *provare
 
 [multiple_choice] it:provare#rec  (skill more-verbs)
   Pick the right translation
   provare
-   to fly  |  *to try  |   to greet  |   to laugh
+   to laugh  |   to fly  |   to greet  |  *to try
 
 [multiple_choice] it:mandare#prod  (skill more-verbs)
   Pick the right word
   to send
-   sorridere  |   scegliere  |  *mandare  |   volare
+  *mandare  |   fumare  |   accettare  |   promettere
 
 [multiple_choice] it:mandare#rec  (skill more-verbs)
   Pick the right translation
   mandare
-  *to send  |   to marry  |   to rest  |   to avoid
+  *to send  |   to sign  |   to dream  |   to cry
 
 [multiple_choice] it:incontrare#prod  (skill more-verbs)
   Pick the right word
   to meet
-  *incontrare  |   nascondere  |   sognare  |   sposare
+   sposare  |  *incontrare  |   nascondere  |   sognare
 
 [multiple_choice] it:incontrare#rec  (skill more-verbs)
   Pick the right translation
   incontrare
-   to spend  |   to show  |   to dream  |  *to meet
+   to show  |   to spend  |   to dream  |  *to meet
 
 --- match_pairs: 8 example(s)
 [match_pairs] it:cambiare#rec  (skill more-verbs)
   Match the pairs
   ringraziare  =  to thank
-  cambiare  =  to exchange
+  cambiare  =  to change
   firmare  =  to sign
   salutare  =  to greet
   mandare  =  to send
@@ -9364,7 +9364,7 @@ SKILL more-verbs (vocab)  More verbs
   firmare  =  to sign
   provare  =  to try
   evitare  =  to avoid
-  cambiare  =  to exchange
+  cambiare  =  to change
 
 [match_pairs] it:accettare#rec  (skill more-verbs)
   Match the pairs
@@ -9372,7 +9372,7 @@ SKILL more-verbs (vocab)  More verbs
   ridere  =  to laugh
   fumare  =  to smoke
   accettare  =  to accept
-  cambiare  =  to exchange
+  cambiare  =  to change
 
 [match_pairs] it:ridere#rec  (skill more-verbs)
   Match the pairs
@@ -9386,8 +9386,8 @@ SKILL more-verbs (vocab)  More verbs
   Match the pairs
   salutare  =  to greet
   accettare  =  to accept
-  piangere  =  to weep
-  cambiare  =  to exchange
+  piangere  =  to cry
+  cambiare  =  to change
   raccontare  =  to tell
 
 --- sentence_builder: 8 example(s)
@@ -9442,7 +9442,7 @@ SKILL more-verbs (vocab)  More verbs
 --- cloze: 8 example(s)
 [cloze] it:cambiare#prod  (skill more-verbs)
   Fill in the gap
-  Quello non ___ come mi sento.   (to exchange)
+  Quello non ___ come mi sento.   (to change)
   "That doesn't change how I feel."
    accetta  |   brucia  |   saluta  |  *cambia
 
@@ -9454,9 +9454,9 @@ SKILL more-verbs (vocab)  More verbs
 
 [cloze] it:mandare#prod  (skill more-verbs)
   Fill in the gap
-  Mi ___ fuori di testa.   (to send)
-  "He freaks me out."
-  *manda  |   sceglie  |   prova  |   saluta
+  Vi ___ il regalo oggi!   (to send)
+  "I sent your present today!"
+   sono caduto  |  *ho mandato  |   ho deciso  |   ho mostrato
 
 [cloze] it:incontrare#prod  (skill more-verbs)
   Fill in the gap
@@ -9466,9 +9466,9 @@ SKILL more-verbs (vocab)  More verbs
 
 [cloze] it:tirare#prod  (skill more-verbs)
   Fill in the gap
-  Lui ___ fuori una moneta dalla sua tasca.   (to pull)
-  "He took a coin out of his pocket."
-   ha sposato  |  *ha tirato  |   ha promesso  |   ha raccontato
+  ___ su i pantaloni.   (to pull)
+  "Pull up your pants."
+   Incontra  |  *Tira  |   Accetta  |   Cambia
 
 [cloze] it:accettare#prod  (skill more-verbs)
   Fill in the gap
@@ -9484,7 +9484,7 @@ SKILL more-verbs (vocab)  More verbs
 
 [cloze] it:piangere#prod  (skill more-verbs)
   Fill in the gap
-  Quando vedo quello spettacolo, ___ sempre.   (to weep)
+  Quando vedo quello spettacolo, ___ sempre.   (to cry)
   "When I see that play, I always cry."
    provo  |   ringrazio  |  *piango  |   incontro
 

@@ -360,6 +360,9 @@ def run_import(code: str, content_root: str | None = None) -> None:
         if key in chosen:
             prev = chosen[key]
             prev["tags"] = sorted(set(prev.get("tags", [])) | set(s.get("tags", [])))
+            for k in ("en", "nl", "gender", "article", "plural"):
+                if s.get(k) and not prev.get(k):
+                    prev[k] = s[k]      # a later entry fills in what an earlier gloss-only one lacks
             continue
         chosen[key] = s
         if s.get("inflections"):
