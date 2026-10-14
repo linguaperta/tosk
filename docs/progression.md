@@ -38,6 +38,14 @@ All constants are in `XpRules`.
 
 Reaching level `n` takes `floor(100 · (n−1)^1.6)` cumulative XP, and level 1 starts at 0. So level 2 needs 100, level 5 needs 917, level 10 needs 3,373, level 20 needs 11,124 and level 50 needs about 50,600. `LevelCurve.levelFor(xp)` returns `LevelInfo(level, xpIntoLevel, xpForNext, totalXp)`, where `xpForNext` is the size of the current level.
 
+**Answer overrides** ("I was right", `kOverrideType`): `canonicalOrder` applies them (`applyOverrides`), so the overridden answer is replayed as Good and earns the XP of a right answer, and the override event itself is no step (no XP, no review). `LogReplay.update` compares ratings too, so an override arriving later rebuilds the replay.
+
+## Daily goal and reminder (`daily_goal.dart`)
+
+- **Model: XP per local day**, over every course (the header's "+N today"): Off, 20, 50 (default) or 100 (`goal.daily_xp`). XP rather than lessons: every mode earns it, it already weighs due and new words over re-practice, and it comes from the log, so it syncs. A normal lesson earns about 50.
+- `DailyGoalStatus(goalXp, todayXp)`: `met`, `remaining`, `progress`. `goalMetDays(xpByDay, goal)`: the dates that reached it (`ProgressionService.xpByDay()`), marked on the heatmap.
+- `planReminders(...)`: one reminder at the chosen local time on each of the next 7 days, none without a goal or with the reminder off, none whose time has passed, and none today once today's goal is met. Wall times go through the device's zone rules (DST-safe; tests pass a wall-clock function). The UI re-plans whenever the plan inputs change (start, settings, every session), so the chain keeps going and today's reminder disappears as soon as the goal is reached.
+
 ## Skill tiers (`tiers.dart`)
 
 The inputs are the course's skill facets, the facet states, the scheduler, and `now`. "Learned" means a facet has been reviewed and is no longer in its initial FSRS learning phase: `reps > 0 && phase != learning`. A relearning facet still counts as learned, because it graduated before.

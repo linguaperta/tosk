@@ -202,6 +202,18 @@ For e-ink readers (the user's Boox is black and white only). **Settings → Disp
 
 I chose this over `flutter_markdown_plus` and `gpt_markdown` because grammar notes are bundled, trusted content that uses only these features. It adds no package, so it can't cause pubspec merge conflicts, and it keeps the web bundle small.
 
+### v0.3 batch B: typing mode, "I was right", daily goal, backup
+
+- **Typing ("challenge") mode** (Settings → Challenge → Answer input: Tap / Type; `lesson.answer_input`, `LearnerSettings` in `ui/settings/learner_settings.dart`, kept apart from `AppSettings`). With Type: cloze is a text field (even when the exercise has options), conjugation pick shows `mang|` as the field prefix and takes the ending ("No ending? Type -" when an option is empty), the grid turns every asked cell into a 48 px text field (Enter goes to the next empty cell, then checks; no tile bank), the sentence builder and transform take the whole sentence (`TypedSentenceArea`, ✓/✗ and strikethrough in black & white after checking). Recognition exercises stay tap. Text fields autofocus, so the keyboard comes up with the controls just above it.
+- **Accent bar** (`ui/lesson/typing.dart`): one row of the course's special letters (`accentLettersProvider` → engine `specialLetters`, never per-language code), above the field (the grid: one bar under the table for the focused cell). 48 × 48 px buttons, outlined in black & white; a tap inserts at the cursor, a long press the capital; it sits in a `TextFieldTapRegion`, so the field keeps the focus and the keyboard. `TypedAnswerField` reports changes through its controller, so inserted letters count.
+- **"I was right"** (`ui/lesson/answer_override.dart`): after a wrong verdict, a `FeedbackAction` (`override-button`, first in `extraActions`) when the session is an `OverridableSession` that can still override that answer. It asks "Count my answer as correct?"; on confirm the engine writes the override (see ARCHITECTURE.md), the panel turns to "Correct!" (the exercise keeps its marks), and a flag is saved in the `flags` table (reason `answer_wrong`, comment "I was right: …" with the overridden event ids, full exercise snapshot).
+- **Daily goal** (Settings → Daily goal: Off / 20 / 50 / 100 XP; `goal.daily_xp`): the map header gets a goal row (`DailyGoalBar`: flag icon, bar, "30 / 50 XP"; a check and "Goal met" once reached; fits at 320 px), the Progress page shows it above the heatmap, and the heatmap marks goal days with a corner notch (`GoalNotch`, an outlined triangle that reads on empty and full cells and in black & white) with a "Goal met" legend.
+- **Reminder** (`reminders/reminder_backend.dart`, `ui/goal/daily_goal_providers.dart`): Settings shows "Daily reminder" and its time only where `ReminderBackend.supported` (Android, iOS, macOS via flutter_local_notifications; hidden on Windows, Linux and the web) and a goal is set. Switching it on asks for notification permission (Android 13+ POST_NOTIFICATIONS, iOS/macOS alert permission) at that moment; denied leaves it off with a message. `syncReminders` (from the app shell) re-schedules whenever `reminderPlanProvider` changes: inexact alarms (`inexactAllowWhileIdle`, no SCHEDULE_EXACT_ALARM), absolute UTC instants (no timezone database), ids 4100–4113; the plugin's boot receiver restores them after a reboot. Under `flutter test` the backend is a no-op; tests inject `FakeReminderBackend`.
+- **Backup** (Settings → Backup): Export progress writes `tosk-backup-YYYYMMDD.jsonl` through file_picker's `saveFile` (desktop save dialog, Android/iOS system document picker, web download); Import progress picks a file, shows its counts and date range and asks first, merges (see docs/data-layer.md), refreshes progress and settings, and reports "N new answers (M already here), …". `BackupFiles` is the injectable file I/O.
+- **Map: jump to current unit**: maps with 4+ units get a small FAB (`jump-current-unit`, above the others, thumb zone) that scrolls to the first unit with an available or started skill (`currentUnitId`).
+- **Instruction in view**: every exercise starts scrolled to the top, and after Check `ExerciseLayout.revealPrompt` scrolls back just enough to show the whole prompt when its top was scrolled away (a tall grid, a text field scrolled above the keyboard).
+- Tests: `test/ui/v03b_features_test.dart` (all of the above), `test/ui/v03b_bw_test.dart` (every new state pixel-scanned in black & white at every e-ink harness size; color, dark and text 1.3 at 320×568, 360×640 and 1280×800).
+
 ## Providers (`lib/providers.dart`)
 
 | Provider | Type | Value |
@@ -277,6 +289,9 @@ Every setting is stored through `ProgressStore.getSetting/setSetting`, as a stri
 | `lesson.default_length` | `quick` (5), `normal` (12) or `long` (20): `SessionLength` |
 | `lesson.leech_lapses` | Lapses from which a facet is a "tough word" (integer, default 4) |
 | `courses.added` | "My courses": comma-separated course ids, in the order added (absent until first used) |
+| `lesson.answer_input` | `tap` or `type` (typing / challenge mode) |
+| `goal.daily_xp` | Daily goal in XP: `0` (off), `20`, `50` (default) or `100` |
+| `reminder.enabled`, `reminder.time` | Daily reminder on/off and `HH:MM` (device-only: never imported from a backup) |
 
 Unknown or missing values fall back to the defaults. They live in the progress database, so they survive a restart (in demo mode, in `progress-demo.sqlite`).
 
