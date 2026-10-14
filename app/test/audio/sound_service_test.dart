@@ -43,21 +43,6 @@ void main() {
     expect(backend.preloaded, isEmpty);
   });
 
-  test('select ticks closer than the gap are dropped', () async {
-    final backend = FakeAudioBackend();
-    var now = DateTime.utc(2026);
-    final s = SoundService(backend, clock: () => now);
-    s.select();
-    now = now.add(const Duration(milliseconds: 10));
-    s.select();
-    now = now.add(SoundService.selectGap);
-    s.select();
-    s.correct(); // other sounds are never throttled
-    s.correct();
-    await pumpEventQueue();
-    expect(backend.played, [Sfx.select, Sfx.select, Sfx.correct, Sfx.correct]);
-  });
-
   test('a backend that throws fails silently', () async {
     SoundService(_Throwing())
       ..warmUp()

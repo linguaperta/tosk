@@ -65,7 +65,8 @@ void main() {
     expect(find.text('Not quite'), findsOneWidget);
     expect(find.byKey(const ValueKey('feedback-expected')), findsOneWidget);
     expect(find.text(mc.options[mc.correctIndex]), findsWidgets);
-    expect(find.byKey(const ValueKey('why-button')), findsNothing); // explainer unavailable
+    expect(find.byKey(const ValueKey('ai-explain-button')), findsNothing); // AI not configured
+    expect(find.byKey(const ValueKey('flag-button')), findsOneWidget);
     await tapKey(tester, 'continue-button');
 
     final n = await playToSummary(tester);
@@ -146,7 +147,9 @@ void main() {
     expect(find.byType(MapScreen), findsOneWidget);
   });
 
-  testWidgets('"Why?" shows when an explainer is available and streams its answer', (tester) async {
+  testWidgets('"Explain answer with AI" shows when an explainer is available and streams its answer', (
+    tester,
+  ) async {
     final explainer = _FakeExplainer();
     await pumpApp(
       tester,
@@ -154,10 +157,12 @@ void main() {
       overrides: [explainerProvider.overrideWithValue(explainer)],
     );
     await answerWrongWithoutContinuing(tester);
-    await tapKey(tester, 'why-button');
+    expect(find.byKey(const ValueKey('why-button')), findsNothing, reason: 'replaced by the AI button');
+    await tapKey(tester, 'ai-explain-button');
     expect(find.text('Because noi takes -iamo.'), findsOneWidget);
     expect(explainer.last!.note, contains('-are'));
     expect(explainer.last!.expected, 'mangiamo');
+    expect(explainer.last!.correct, isFalse);
   });
 
   testWidgets('reduce motion: feedback banner is not animated, fx disabled', (tester) async {

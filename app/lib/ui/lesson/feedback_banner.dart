@@ -4,14 +4,15 @@ import '../../core/core.dart';
 import '../theme/bw_skin.dart';
 import 'exercises/common.dart';
 
-/// A secondary action in the [FeedbackBanner]'s actions row ("Why?", and
-/// later e.g. "Explain with AI" or "Flag exercise"). Takes the banner's colors.
+/// A secondary action in the [FeedbackBanner]'s actions row ("Why?",
+/// "Explain answer with AI", "Report"). Takes the banner's colors; a null
+/// [onPressed] shows it disabled (e.g. "Reported" after a flag was saved).
 class FeedbackAction {
   const FeedbackAction({required this.key, required this.icon, required this.label, required this.onPressed});
   final Key key;
   final IconData icon;
   final String label;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 }
 
 /// Instant feedback after Check: right/wrong, the expected answer, a row of
@@ -38,7 +39,8 @@ class FeedbackBanner extends StatelessWidget {
   /// Null hides the "Why?" button (explainer unavailable, or the answer was right).
   final VoidCallback? onWhy;
 
-  /// More secondary actions after "Why?" (none in v1).
+  /// More secondary actions after "Why?" (the player passes "Explain answer
+  /// with AI" when AI is configured, and "Report").
   final List<FeedbackAction> extraActions;
   final bool reduceMotion;
 

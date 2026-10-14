@@ -119,15 +119,10 @@ class AudioplayersBackend implements AudioBackend {
 /// The UI's entry point. Cheap to create (the backend holds the loaded
 /// sounds); [enabled] follows the "Sound effects" setting.
 class SoundService {
-  SoundService(this.backend, {this.enabled = true, DateTime Function()? clock}) : _clock = clock ?? DateTime.now;
+  SoundService(this.backend, {this.enabled = true});
 
   final AudioBackend backend;
   final bool enabled;
-  final DateTime Function() _clock;
-  DateTime? _lastSelect;
-
-  /// Ticks closer together than this are dropped (one tap can report twice).
-  static const Duration selectGap = Duration(milliseconds: 45);
 
   /// Loads every sound in the background (call when a session starts).
   void warmUp() {
@@ -137,12 +132,6 @@ class SoundService {
 
   void play(Sfx sfx) {
     if (!enabled) return;
-    if (sfx == Sfx.select) {
-      final now = _clock();
-      final last = _lastSelect;
-      if (last != null && now.difference(last) < selectGap) return;
-      _lastSelect = now;
-    }
     _quietly(() => backend.play(sfx));
   }
 
