@@ -355,6 +355,9 @@ class SpotErrorExercise extends Exercise {
   ExerciseType get type => ExerciseType.spotError;
 }
 
+/// What a transform exercise asks to change.
+enum TransformChange { tense, person }
+
 @immutable
 class TransformExercise extends Exercise {
   const TransformExercise({
@@ -369,9 +372,22 @@ class TransformExercise extends Exercise {
     this.sentenceId,
     this.translation,
     this.sourceTokens,
+    this.change,
+    this.fromLabel,
+    this.toLabel,
   });
   final String source; // original sentence
   final String targetDescription; // e.g. "→ passato prossimo" or "→ noi"
+
+  /// What changes: the tense or the person (null from older snapshots).
+  final TransformChange? change;
+
+  /// The source sentence's tense or person (with its tense when both change),
+  /// in the course's labels and the source language: `present`, `io`.
+  final String? fromLabel;
+
+  /// The target tense or person: `present perfect (passato prossimo)`, `noi`.
+  final String? toLabel;
   final List<String> tiles;
   final List<List<String>> answers; // first is canonical
   final String? sentenceId;
@@ -455,9 +471,14 @@ class SelfGradeAnswer extends Answer {
 
 class MatchAnswer extends Answer {
   /// left index -> right index as finally matched, plus left indices that had a wrong attempt.
-  const MatchAnswer(this.matches, {this.missed = const {}});
+  const MatchAnswer(this.matches, {this.missed = const {}, this.wrongPairs = const []});
   final Map<int, int> matches;
   final Set<int> missed;
+
+  /// Every wrong pair the learner tried, in order, as (left index, right
+  /// index): for display (both cards marked) and the stored answer text.
+  /// Grading uses [missed].
+  final List<(int, int)> wrongPairs;
 }
 
 class GridAnswer extends Answer {

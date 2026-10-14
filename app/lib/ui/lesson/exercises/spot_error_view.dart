@@ -69,10 +69,17 @@ class _SpotErrorViewState extends State<SpotErrorView> {
     widget.onChanged(TokenAnswer(i));
   }
 
+  /// After checking, the word to find (the error) is the right answer: it
+  /// shows as correct (✓), whether the learner tapped it or not. A tapped
+  /// word that wasn't the error shows as wrong (✗). The correction is shown
+  /// under the sentence.
   OptionState _state(int i) {
     final e = widget.exercise;
-    if (widget.result == null) return _selected == i ? OptionState.selected : OptionState.idle;
-    if (i == e.errorIndex) return OptionState.wrong;
+    final r = widget.result;
+    if (r == null) return _selected == i ? OptionState.selected : OptionState.idle;
+    final tapped = _selected ?? (r.correct ? e.errorIndex : null);
+    if (i == e.errorIndex) return OptionState.correct;
+    if (i == tapped) return OptionState.wrong;
     return OptionState.idle;
   }
 
@@ -143,6 +150,7 @@ class _SpotErrorViewState extends State<SpotErrorView> {
           if (widget.result != null) ...[
             const SizedBox(height: 16),
             Row(
+              key: const ValueKey('spot-correction'),
               children: [
                 Icon(Icons.edit, size: 18, color: fb.correct),
                 const SizedBox(width: 6),

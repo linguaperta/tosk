@@ -95,6 +95,10 @@ Map<String, Object?> exerciseToJson(Exercise e) {
       'answers': e.answers,
       'sentence_id': e.sentenceId,
       'translation': e.translation,
+      // Since v0.3.2; left out when absent, so older snapshots stay identical.
+      if (e.change != null) 'change': e.change!.name,
+      if (e.fromLabel != null) 'from_label': e.fromLabel,
+      if (e.toLabel != null) 'to_label': e.toLabel,
     },
     ListenPickExercise() => {
       'text': e.text,
@@ -252,6 +256,9 @@ Exercise exerciseFromJson(Map<String, Object?> j) {
       answers: answers('answers'),
       sentenceId: j['sentence_id'] as String?,
       translation: j['translation'] as String?,
+      change: TransformChange.values.where((c) => c.name == j['change']).firstOrNull,
+      fromLabel: j['from_label'] as String?,
+      toLabel: j['to_label'] as String?,
     ),
     'listen_pick' => ListenPickExercise(
       id: id,

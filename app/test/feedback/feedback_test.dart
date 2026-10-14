@@ -37,6 +37,26 @@ void main() {
       });
     }
 
+    test('transform: the change and its from/to labels round-trip', () {
+      const e = TransformExercise(
+        id: 'x10',
+        facetId: 'it:mangiare#form:passato_prossimo',
+        instruction: 'Change the tense',
+        source: 'Mangio.',
+        targetDescription: '→ present perfect',
+        tiles: ['Ho', 'mangiato'],
+        answers: [
+          ['Ho', 'mangiato'],
+        ],
+        change: TransformChange.tense,
+        fromLabel: 'present',
+        toLabel: 'present perfect',
+      );
+      final back = exerciseFromJson((jsonDecode(jsonEncode(exerciseToJson(e))) as Map).cast<String, Object?>())
+          as TransformExercise;
+      expect((back.change, back.fromLabel, back.toLabel), (TransformChange.tense, 'present', 'present perfect'));
+    });
+
     test('unknown type and missing fields are format errors', () {
       expect(() => exerciseFromJson({'type': 'nope', 'id': 'a', 'facet_id': 'b'}), throwsFormatException);
       expect(() => exerciseFromJson({'type': 'cloze', 'id': 'a', 'facet_id': 'b'}), throwsFormatException);

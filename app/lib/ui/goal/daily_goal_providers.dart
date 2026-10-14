@@ -22,7 +22,8 @@ final dailyGoalStatusProvider = Provider<DailyGoalStatus?>((ref) {
   final profile = ref.watch(progressProfileProvider).value;
   final settings = ref.watch(learnerSettingsProvider).value;
   if (profile == null || settings == null) return null;
-  return DailyGoalStatus(goalXp: settings.dailyGoalXp, todayXp: profile.todayXp);
+  // The goal is account-wide: today's XP over every course.
+  return DailyGoalStatus(goalXp: settings.dailyGoalXp, todayXp: profile.accountTodayXp);
 });
 
 /// XP per local date (whole log, every course).
@@ -51,7 +52,7 @@ final reminderPlanProvider = Provider<List<ReminderSlot>?>((ref) {
   return planReminders(
     enabled: true,
     goalXp: settings.dailyGoalXp,
-    todayXp: profile.todayXp,
+    todayXp: profile.accountTodayXp,
     today: profile.today,
     now: now,
     hour: settings.reminderTime.hour,

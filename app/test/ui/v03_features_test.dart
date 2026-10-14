@@ -166,10 +166,11 @@ void main() {
       await tapKey(tester, 'course-picker-done');
       expect(find.byKey(const ValueKey('course-picker')), findsNothing);
       expect(find.byKey(const ValueKey('skill-node-groeten')), findsOneWidget);
-      // The switcher lists only my courses (+ manage).
-      await tapKey(tester, 'course-switcher');
-      expect(find.text('Italian'), findsNothing);
-      expect(find.byKey(const ValueKey('manage-courses')), findsOneWidget);
+      // Settings lists only my courses (+ manage).
+      await goTab(tester, 'Settings');
+      expect(find.byKey(const ValueKey('course-it')), findsNothing);
+      expect(find.byKey(const ValueKey('course-nl')), findsOneWidget);
+      expect(find.byKey(const ValueKey('manage-courses-tile')), findsOneWidget);
     });
 
     testWidgets('closing the first-run picker without choosing adds the course shown', (tester) async {
@@ -195,8 +196,8 @@ void main() {
           correct: true,
         ),
       );
-      await tapKey(tester, 'course-switcher');
-      await tapKey(tester, 'manage-courses');
+      await goTab(tester, 'Settings');
+      await tapKey(tester, 'manage-courses-tile');
       expect(find.byKey(const ValueKey('course-picker')), findsOneWidget);
       await tapKey(tester, 'course-remove-nl');
       expect(store.settings[SettingKeys.coursesAdded], 'it');
@@ -334,7 +335,7 @@ void main() {
       await tapKey(tester, 'setting-leech-3');
       expect(store.settings[SettingKeys.leechLapses], '3');
       await goTab(tester, 'Map');
-      await tapKey(tester, 'skill-node-greetings');
+      await startLessonFromMap(tester, 'greetings');
       expect(await playToSummary(tester, cap: 80), 20);
     });
   });

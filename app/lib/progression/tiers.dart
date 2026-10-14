@@ -136,6 +136,75 @@ class SkillProgress {
       'SkillProgress($skillId, $tier, learned $learnedCount/$facetCount, strength ${strength.toStringAsFixed(2)}, fading ${fading.toStringAsFixed(2)})';
 }
 
+/// What a skill still needs for its next tier, counted in items (words,
+/// verbs, nouns): an item counts until every one of its facets in the skill
+/// meets the next tier's rule ([TierRules]).
+@immutable
+class NextTierNeeds {
+  const NextTierNeeds({required this.tier, required this.next, required this.remaining, required this.total});
+
+  /// The skill's tier now.
+  final SkillTier tier;
+
+  /// The tier to reach next (bronze for a locked, available or started skill);
+  /// null at gold.
+  final SkillTier? next;
+
+  /// Items not meeting [next]'s rule yet.
+  final int remaining;
+
+  /// Items the skill trains.
+  final int total;
+
+  @override
+  bool operator ==(Object other) =>
+      other is NextTierNeeds &&
+      other.tier == tier &&
+      other.next == next &&
+      other.remaining == remaining &&
+      other.total == total;
+
+  @override
+  int get hashCode => Object.hash(tier, next, remaining, total);
+
+  @override
+  String toString() => 'NextTierNeeds($tier -> $next: $remaining of $total to go)';
+}
+
+/// What [facets] (one skill's) need to go from [tier] to the next tier at [now].
+NextTierNeeds nextTierNeeds({
+  required SkillTier tier,
+  required List<SkillFacet> facets,
+  required Map<String, FacetState> states,
+  required Scheduler scheduler,
+  required DateTime now,
+  TierRules rules = const TierRules(),
+}) {
+  final byItem = <String, List<String>>{};
+  for (final f in facets) {
+    (byItem[f.itemId] ??= []).add(f.facetId);
+  }
+  final next = switch (tier) {
+    SkillTier.locked || SkillTier.available || SkillTier.started => SkillTier.bronze,
+    SkillTier.bronze => SkillTier.silver,
+    SkillTier.silver => SkillTier.gold,
+    SkillTier.gold => null,
+  };
+  bool meets(String facetId) {
+    final s = states[facetId];
+    final r = s == null ? 0.0 : scheduler.retrievability(s, now).clamp(0.0, 1.0);
+    return switch (next) {
+      SkillTier.bronze => rules.isLearned(s),
+      SkillTier.silver => rules.meetsSilver(s, r),
+      SkillTier.gold => rules.meetsGold(s, r),
+      _ => true,
+    };
+  }
+
+  final remaining = next == null ? 0 : byItem.values.where((ids) => !ids.every(meets)).length;
+  return NextTierNeeds(tier: tier, next: next, remaining: remaining, total: byItem.length);
+}
+
 /// Progress of one skill, ignoring prerequisites (tier is at least [SkillTier.available]).
 SkillProgress skillProgressOf({
   required String skillId,

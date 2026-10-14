@@ -19,6 +19,51 @@ void main() {
 
   SkillTier tierAt(List<ReviewEvent> events, String skill, DateTime now) => progressAt(events, now)[skill]!.tier;
 
+  group('next tier needs', () {
+    NextTierNeeds needs(List<ReviewEvent> events, String skill, DateTime now) {
+      final r = LogReplay(scheduler: sch)..update(events);
+      final p = computeSkillProgress(course: course, states: r.states, scheduler: sch, now: now)[skill]!;
+      return nextTierNeeds(
+        tier: p.tier,
+        facets: course.skillFacets(skill),
+        states: r.states,
+        scheduler: sch,
+        now: now,
+      );
+    }
+
+    test('counts items (not facets) still missing the next tier\'s rule', () {
+      // Fresh: both greetings (4 facets, 2 items) to learn for bronze.
+      expect(needs(const [], 'greetings', t0),
+          const NextTierNeeds(tier: SkillTier.available, next: SkillTier.bronze, remaining: 2, total: 2));
+      final f = EventFactory();
+      // ciao fully graduated (both facets), grazie only reviewed once: 1 to go.
+      final later = t0.add(const Duration(minutes: 15));
+      final evs = [
+        for (final id in greetingFacets) f.ev(id, t0),
+        f.ev('it:ciao#rec', later),
+        f.ev('it:ciao#prod', later),
+      ];
+      expect(needs(evs, 'greetings', later),
+          const NextTierNeeds(tier: SkillTier.started, next: SkillTier.bronze, remaining: 1, total: 2));
+    });
+
+    test('bronze -> silver -> gold, then nothing left', () {
+      final f = EventFactory();
+      final bronzeEvs = [for (final id in greetingFacets) ...trainFacet(f, id, t0)];
+      final at = bronzeEvs.map((e) => e.at).reduce((a, b) => a.isAfter(b) ? a : b);
+      final b = needs(bronzeEvs, 'greetings', at);
+      expect((b.tier, b.next, b.total), (SkillTier.bronze, SkillTier.silver, 2));
+      expect(b.remaining, greaterThan(0));
+      final goldEvs = [for (final id in greetingFacets) ...trainFacet(f, id, t0, targetStability: 30)];
+      final end = goldEvs.map((e) => e.at).reduce((a, b) => a.isAfter(b) ? a : b);
+      final g = needs(goldEvs, 'greetings', end);
+      expect(g.tier, SkillTier.gold);
+      expect(g.next, isNull);
+      expect(g.remaining, 0);
+    });
+  });
+
   test('nothing reviewed: first skill available, dependents locked', () {
     final p = progressAt(const [], t0);
     expect(p['greetings']!.tier, SkillTier.available);

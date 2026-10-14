@@ -152,6 +152,12 @@ Future<void> tapIt(WidgetTester tester, Finder finder) async {
 
 Future<void> tapKey(WidgetTester tester, String key) => tapIt(tester, find.byKey(ValueKey(key)));
 
+/// A tap on a map node opens the skill's sheet; Start lesson starts it.
+Future<void> startLessonFromMap(WidgetTester tester, String skillId) async {
+  await tapKey(tester, 'skill-node-$skillId');
+  await tapKey(tester, 'start-lesson');
+}
+
 Exercise currentExercise(WidgetTester tester) => tester.widget<ExerciseView>(find.byType(ExerciseView)).exercise;
 
 int _freeTile(List<String> tiles, String word, Set<int> used) {

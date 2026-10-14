@@ -39,6 +39,10 @@ abstract final class SettingKeys {
   /// install counts `course.active` as added; a fresh one opens the picker).
   static const coursesAdded = 'courses.added';
 
+  /// Exercise types whose first-time intro was seen: comma-separated type ids
+  /// (account-wide, not per course).
+  static const introSeen = 'intro.seen';
+
   /// `'false'` turns off the daily check for course updates (on by default).
   /// Downloads always need a tap.
   static const autoCheckCourseUpdates = 'packs.auto_check';
@@ -62,6 +66,7 @@ abstract final class SettingKeys {
     leechLapses,
     coursesAdded,
     soundEffects,
+    introSeen,
     autoCheckCourseUpdates,
   ];
 }

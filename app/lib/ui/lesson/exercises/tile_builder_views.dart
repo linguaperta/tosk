@@ -331,7 +331,6 @@ class _TransformViewState extends State<TransformView> {
   @override
   Widget build(BuildContext context) {
     final e = widget.exercise;
-    final scheme = Theme.of(context).colorScheme;
     return ExerciseLayout(
       prompt: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -352,15 +351,7 @@ class _TransformViewState extends State<TransformView> {
             ),
           ],
           const SizedBox(height: 10),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Chip(
-              key: const ValueKey('transform-target'),
-              avatar: Icon(Icons.swap_horiz, size: 18, color: scheme.onTertiaryContainer),
-              backgroundColor: scheme.tertiaryContainer,
-              label: Text(e.targetDescription, style: TextStyle(color: scheme.onTertiaryContainer)),
-            ),
-          ),
+          TransformTargetChip(exercise: e),
         ],
       ),
       controls: widget.ink
@@ -384,6 +375,62 @@ class _TransformViewState extends State<TransformView> {
               keys: widget.keys,
               onChanged: (words) => widget.onChanged(words == null ? null : TilesAnswer(words)),
             ),
+    );
+  }
+}
+
+/// What to change, prominently: `present → present perfect (passato
+/// prossimo)` or `io → noi`, in the course's labels. Falls back to the
+/// engine's `→ target` description for exercises without labels.
+class TransformTargetChip extends StatelessWidget {
+  const TransformTargetChip({super.key, required this.exercise});
+  final TransformExercise exercise;
+
+  @override
+  Widget build(BuildContext context) {
+    final e = exercise;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final mono = isMonochrome(scheme);
+    final fg = scheme.onTertiaryContainer;
+    final from = e.fromLabel, to = e.toLabel;
+    final style = theme.textTheme.titleMedium?.copyWith(color: fg);
+    final label = from != null && to != null ? '$from → $to' : e.targetDescription;
+    return Semantics(
+      label: label,
+      excludeSemantics: true,
+      child: Container(
+        key: const ValueKey('transform-target'),
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: scheme.tertiaryContainer,
+          borderRadius: BorderRadius.circular(12),
+          border: mono ? Border.all(color: kBwBlack, width: kBwBorder) : null,
+        ),
+        child: from != null && to != null
+            ? Wrap(
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                runSpacing: 2,
+                children: [
+                  Text(from, key: const ValueKey('transform-from'), style: style),
+                  Icon(Icons.arrow_forward, size: 20, color: fg),
+                  Text(
+                    to,
+                    key: const ValueKey('transform-to'),
+                    style: style?.copyWith(fontWeight: FontWeight.w800),
+                  ),
+                ],
+              )
+            : Row(
+                children: [
+                  Icon(Icons.swap_horiz, size: 20, color: fg),
+                  const SizedBox(width: 8),
+                  Flexible(child: Text(e.targetDescription, style: style)),
+                ],
+              ),
+      ),
     );
   }
 }

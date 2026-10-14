@@ -173,6 +173,11 @@ abstract class EngineSession implements PracticeSession, OverridableSession {
   /// Called until an exercise can be generated.
   SessionSlot? nextSlot();
 
+  /// No exercise could be generated for [slot] (no template can serve its
+  /// facet right now, e.g. under grammar gating). Subclasses that pick facets
+  /// themselves can skip it from then on.
+  void onGenerateFailed(SessionSlot slot) {}
+
   LessonFocus get focus => LessonFocus.mixed;
 
   /// Lab: the chosen types override the skill's `exercises` restriction.
@@ -269,7 +274,10 @@ abstract class EngineSession implements PracticeSession, OverridableSession {
         return null;
       }
       final ex = _generate(slot);
-      if (ex == null) continue;
+      if (ex == null) {
+        onGenerateFailed(slot);
+        continue;
+      }
       _servedTotal++;
       if (!slot.reask) _servedPlanned++;
       _lastType = ex.type;
