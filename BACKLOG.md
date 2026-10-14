@@ -100,7 +100,7 @@ Each item says what "done" means. Add newly discovered work at the bottom of its
 
 - [x] Grammar-first curriculum: a construct is taught by its own skill before other exercises use it
 - [x] Grammar gating data: `sentence_features`, `skill_features` and `base_features` in the pipeline and compiler, with a validator check (home-skill rule)
-- [~] Grammar gating in the engine: only sentences whose features are known; unknown vocabulary capped (≤1 for grammar focus, ≤2 for vocab)
+- [x] Grammar gating in the engine: only sentences whose features are known; unknown vocabulary capped (≤1 for grammar focus, ≤2 for vocab)
 - [x] Bottom-aligned exercise controls (one-handed use)
 - [~] "Explain answer with AI" after every checked answer (Claude or OpenAI key in Settings; no button without a key), streamed and cached
 - [~] Flag an exercise (reason and comment); Submit saves locally with a `.jsonl` export; "Confer with AI" checks the complaint
@@ -116,9 +116,9 @@ Each item says what "done" means. Add newly discovered work at the bottom of its
 - [ ] Grammar library tab: all notes browsable, each with "practice this"
 - [ ] Leech handling: facets with ≥4 lapses → "tough words" drill and mistake review (+ AI mnemonic when configured)
 - [ ] Session length options: quick (5) / normal (12) / long (20)
-- [ ] Pipeline: AI-generated example sentences for thin slots (verb × person × tense < 5 sentences), under gating constraints, validated by the aligner, `src: claude-gen`, reviewed in samples
-- [~] Sentence variety: log the sentence id with each answer; the engine prefers unseen or least-recently-seen sentences
-- [ ] Sentence floor: generation tops up every verb×person×tense slot and every vocab topic to ≥8–10 distinct sentences
+- [~] Pipeline: AI-generated example sentences for thin slots (verb × person × tense < 5 sentences), under gating constraints, validated by the aligner, `src: claude-gen`, reviewed in samples
+- [x] Sentence variety: log the sentence id with each answer; the engine prefers unseen or least-recently-seen sentences
+- [~] Sentence floor: generation tops up every verb×person×tense slot and every vocab topic to ≥8–10 distinct sentences
 - [ ] Course picker as a pop-up menu: +/- to add or remove each course, a preview per course (description, units/skills, sample words and sentences, unverified badge); the app only shows courses you've added
 - [x] Black & white (e-ink) mode for the Boox: pure B/W skin, nothing conveyed by color (icons, labels, patterns, inverted fills), reduce motion forced on. Tested: grayscale-only assertions on every screen and exercise type, goldens, overflow at Boox and phone sizes
 - [ ] QA leftovers: `ciao` MC offers "hello" as a distractor (synonym data); instruction can slide under the app bar on tall exercises; a "jump to current unit" button on long maps
