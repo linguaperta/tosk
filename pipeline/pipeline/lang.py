@@ -119,6 +119,12 @@ class Lang:
     interrogatives: set[str] = field(default_factory=set)
     # nouns used as time adverbs ("mañana", "hoy"): never the subject of the verb after them
     adverbial_nouns: set[str] = field(default_factory=set)
+    # an adjective that is also only a first-person-singular verb form is the adjective unless it
+    # starts the clause or 'yo' stands next to it (Spanish 'enfermo', 'largo', 'claro')
+    adj_over_first_person: bool = False
+    # the language writes no apostrophes: Tatoeba sentences with one (English titles, odd quoting)
+    # are skipped by the importer
+    no_apostrophes: bool = False
     # a spelling shared by several verbs goes to the verb that has a form of the person an
     # adjacent subject pronoun gives, or a third-person form after one of `third_person_clitics`
     person_hint_verbs: bool = False

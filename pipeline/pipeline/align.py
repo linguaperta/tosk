@@ -680,6 +680,11 @@ class Aligner:
             if use_verb and noun and lang.clause_starters and self._clause_initial(words, out, wi) \
                     and not (wi + 1 < len(words) and norm(out[words[wi + 1]]["t"]) in lang.pronouns):
                 use_verb = False             # 'Leven is ...': a clause-initial noun, not a verb without subject
+            if use_verb and lex and lang.adj_over_first_person and self.items[lex]["pos"] == "adj" \
+                    and all(c[2] == lang.persons[0] for c in vc) and not self._clause_initial(words, out, wi) \
+                    and prev not in lang.skip_between \
+                    and lang.persons[0] not in sum(self._pronoun_persons(words, out, wi), []):
+                use_verb = False             # 'está enfermo', 'un día largo': the adjective, not 'yo enfermo'
             if use_verb and lex and prev in lang.degree_words and self.items[lex]["pos"] == "adj":
                 use_verb = False             # 'hoe laat', 'zo laat': the adjective
             if use_verb and lex and lang.copulas and self.items[lex]["pos"] == "adj" and wi + 1 < len(words) \

@@ -27,6 +27,7 @@ void main() {
   for (final (id, expected, absent) in [
     ('it', ['à', 'è', 'é', 'ì', 'ò', 'ù'], ['ç', 'ñ', 'ö']),
     ('nl', ['é', 'ë', 'ï'], ['à', 'ç', 'ñ']),
+    ('es', ['á', 'é', 'í', 'ó', 'ú', 'ñ'], ['à', 'è', 'ç']),
   ]) {
     test('real pack $id', () {
       final course = loadCourseFile('assets/courses/$id.sqlite');

@@ -9,9 +9,10 @@ import 'package:tosk/core/core.dart';
 import 'package:tosk/data/course/course_file.dart';
 import 'package:tosk/engine/engine.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'real_packs.dart';
 
 void main() {
-  for (final id in ['it', 'nl']) {
+  for (final id in bundledPackIds()) {
     group('real pack $id stories', () {
       late CourseData course;
       setUpAll(() => course = loadCourseFile('assets/courses/$id.sqlite'));

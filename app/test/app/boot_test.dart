@@ -120,7 +120,7 @@ void main() {
     final boot = await bootApp(options: AppDataOptions(dataDirectory: dir.path));
     addTearDown(boot.close);
     final packs = await boot.app.availableCourses();
-    expect(packs.map((p) => p.id), containsAll(['it', 'nl']));
+    expect(packs.map((p) => p.id), containsAll(['es', 'it', 'nl']));
     expect(boot.demoMode, isFalse);
     final container = ProviderContainer.test(overrides: [...boot.overrides, clockProvider.overrideWithValue(() => testNow)]);
     for (final p in packs) {

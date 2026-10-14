@@ -15,6 +15,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'fakes/fakes.dart';
 import 'helpers.dart';
+import 'real_packs.dart';
 
 final _now = DateTime.utc(2026, 10, 13, 12);
 
@@ -35,7 +36,7 @@ double _pct(List<int> us, double p) {
 }
 
 void main() {
-  for (final id in ['it', 'nl']) {
+  for (final id in bundledPackIds()) {
     final path = 'assets/courses/$id.sqlite';
     group('real pack $id performance', () {
       late CourseData course;

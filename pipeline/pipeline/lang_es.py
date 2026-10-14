@@ -114,6 +114,9 @@ class Spanish(Lang):
             interrogatives={"qué", "cuánto", "cuánta", "cuántos", "cuántas", "cuál", "cuáles"},
             adverbial_nouns={"mañana", "tarde", "noche", "hoy", "ayer", "anoche", "domingo", "lunes", "sábado"},
             person_hint_verbs=True,
+            adj_over_first_person=True,
+            no_apostrophes=True,
+            degree_words={"muy", "tan", "más", "menos", "demasiado", "bastante", "poco"},
             third_person_clitics={"se"},
         )
 

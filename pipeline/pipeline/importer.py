@@ -67,7 +67,7 @@ _INVISIBLE = dict.fromkeys(map(ord, "​‌‍⁠﻿­"))
 def clean_text(text: str) -> str:
     """Tatoeba text without invisible characters (zero-width spaces, soft hyphens) and with single
     plain spaces: 'draagt ​​een' would not re-render from tokens."""
-    return " ".join(text.translate(_INVISIBLE).replace(" ", " ").split())
+    return " ".join(text.translate(_INVISIBLE).replace(" ", " ").replace("''", '"').split())   # ''quoted'' -> "quoted"
 
 
 def dedupe_key(text: str) -> str:
@@ -555,6 +555,8 @@ def run_import(code: str, content_root: str | None = None) -> None:
     tr_of: dict[int, dict[str, tuple[int, str]]] = {}
     for sid in sorted(trs):
         text = target[sid]
+        if lang.no_apostrophes and ("'" in text or "’" in text):
+            continue        # foreign words or quotes ("Stayin' Alive"): no tile/cloze re-renders them
         low = dedupe_key(text)
         if low in seen_text:
             continue

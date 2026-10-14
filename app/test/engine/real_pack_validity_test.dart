@@ -1,5 +1,5 @@
 // Runs the template validity suite on the real bundled packs
-// (app/assets/courses/*.sqlite, built by `python -m pipeline build it nl --install`).
+// (app/assets/courses/*.sqlite, built by `python -m pipeline build it nl es --install`).
 @TestOn('vm')
 library;
 
@@ -12,6 +12,7 @@ import 'package:tosk/engine/engine.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'template_validity.dart';
+import 'real_packs.dart';
 
 const _templates = [
   'flashcard', 'multiple_choice', 'match_pairs', 'conj_pick', 'conj_grid',
@@ -19,7 +20,7 @@ const _templates = [
 ];
 
 void main() {
-  for (final id in ['it', 'nl']) {
+  for (final id in bundledPackIds()) {
     final path = 'assets/courses/$id.sqlite';
     group('real pack $id', () {
       late CourseData course;
@@ -48,6 +49,11 @@ void main() {
             'plurals': ['conj_pick', 'cloze', 'spot_error'],
             'adjectives': ['conj_pick', 'conj_grid', 'cloze', 'spot_error'],
             'possessives': ['conj_pick', 'conj_grid', 'cloze', 'spot_error'],
+          },
+          'es': {
+            'plurals': ['conj_pick', 'cloze', 'spot_error'],
+            'adjectives': ['conj_pick', 'conj_grid', 'cloze', 'spot_error'],
+            'colours': ['conj_pick', 'cloze', 'spot_error'],
           },
           'nl': {
             'plurals': ['conj_pick', 'cloze', 'spot_error'],

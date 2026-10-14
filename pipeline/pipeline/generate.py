@@ -53,7 +53,7 @@ NAMES = {
            "Elena", "Lucia", "Tom", "Roma", "Milano", "Napoli", "Firenze", "Venezia", "Italia"},
     "nl": {"Tom", "Anna", "Sanne", "Daan", "Lieke", "Pieter", "Emma", "Bram", "Sophie", "Jan", "Eva", "Lisa",
            "Amsterdam", "Utrecht", "Rotterdam", "Nederland"},
-    "es": {"Juan", "María", "Carlos", "Ana", "Pedro", "Lucía", "Pablo", "Carmen", "Luis", "Sofía", "Javier",
+    "es": {"Juan", "María", "Carlos", "Ana", "Pedro", "Pablo", "Carmen", "Luis", "Sofía", "Javier",
            "Elena", "Tom", "Madrid", "Barcelona", "Sevilla", "Valencia", "España", "México"},
 }
 # Place names that English writes differently (not compared by the translation check).
