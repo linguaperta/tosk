@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../theme/tosk_palette.dart';
 import '../../core/core.dart';
 import '../../providers.dart';
 import '../routes.dart';
@@ -32,7 +33,7 @@ class NonStopScreen extends ConsumerWidget {
                 children: [
                   Icon(Icons.all_inclusive, size: 72, color: theme.colorScheme.primary),
                   const SizedBox(height: 12),
-                  Text('Non-stop', textAlign: TextAlign.center, style: theme.textTheme.headlineSmall),
+                  Text('Non-stop', textAlign: TextAlign.center, style: theme.textTheme.serifHeadline),
                   const SizedBox(height: 8),
                   Text(
                     'An endless mix of due reviews from every unlocked skill, with new words '

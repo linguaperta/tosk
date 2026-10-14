@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 
+import '../brand/tosk.dart';
 import '../../core/core.dart';
 import '../../device/device_providers.dart';
 import '../../device/onyx.dart';
@@ -630,7 +631,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.inbox_outlined, size: 48),
+                // Nothing due, no mistakes, no tough words: Tosk is asleep.
+                const ToskImage(pose: ToskPose.sleeping, height: 112),
                 const SizedBox(height: 12),
                 Text(widget.request.emptyMessage, key: const ValueKey('player-empty'), textAlign: TextAlign.center),
                 const SizedBox(height: 12),

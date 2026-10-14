@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../theme/tosk_palette.dart';
+import '../brand/tosk.dart';
 import '../../core/core.dart';
 import '../../providers.dart';
 import '../map/skill_sheet.dart' show itemLabel;
@@ -67,18 +69,14 @@ class SessionSummaryView extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Icon(
-                      summary.answered == 0
-                          ? Icons.flag_outlined
-                          : (pct >= 80 ? Icons.emoji_events : Icons.check_circle_outline),
-                      size: 64,
-                      color: theme.colorScheme.primary,
-                    ),
+                    // Tosk celebrates a finished session (and keeps reading
+                    // when nothing was answered).
+                    ToskImage(pose: summary.answered == 0 ? ToskPose.thinking : ToskPose.celebrating, height: 112),
                     const SizedBox(height: 8),
                     Text(
                       endless ? 'Run finished' : 'Session complete',
                       textAlign: TextAlign.center,
-                      style: theme.textTheme.headlineSmall,
+                      style: theme.textTheme.serifHeadline,
                     ),
                     const SizedBox(height: 20),
                     ?header,

@@ -7,6 +7,7 @@ library;
 import 'package:flutter/material.dart';
 
 import 'skin.dart';
+import 'tosk_palette.dart';
 
 const Color kBwBlack = Color(0xFF000000);
 const Color kBwWhite = Color(0xFFFFFFFF);
@@ -105,9 +106,26 @@ class BwSkin extends Skin {
     bandColors: [kBwWhite],
     bandTitleColor: kBwBlack,
     onNode: kBwBlack,
+    ink: kBwInk,
     monochrome: true,
   );
 }
+
+/// The map's ink colours in black & white: ink is black, every fill white
+/// (the painters keep the hierarchy with hatching, ring count and rays).
+const MapInk kBwInk = MapInk(
+  ink: kBwBlack,
+  paper: kBwWhite,
+  cream: kBwWhite,
+  bark: kBwWhite,
+  barkDark: kBwBlack,
+  leaf: kBwWhite,
+  leafDark: kBwBlack,
+  gold: kBwWhite,
+  silver: kBwWhite,
+  bronze: kBwWhite,
+  hatchOpacity: 1,
+);
 
 const _transparent = Color(0x00000000);
 const _side = BorderSide(color: kBwBlack, width: kBwBorder);
@@ -164,14 +182,18 @@ ThemeData bwTheme() {
       actionTextColor: kBwWhite,
       elevation: 0,
     ),
-    appBarTheme: const AppBarTheme(
+    appBarTheme: AppBarTheme(
       backgroundColor: kBwWhite,
       foregroundColor: kBwBlack,
       elevation: 0,
       scrolledUnderElevation: 0,
       surfaceTintColor: _transparent,
       shadowColor: _transparent,
-      shape: Border(bottom: _side),
+      shape: const Border(bottom: _side),
+      // Screen titles in the brand serif, as in the colour skin.
+      titleTextStyle: toskSerif(
+        Typography.material2021(platform: base.platform).englishLike.titleLarge!.merge(text.titleLarge),
+      )?.copyWith(color: kBwBlack),
     ),
     cardTheme: const CardThemeData(
       color: kBwWhite,

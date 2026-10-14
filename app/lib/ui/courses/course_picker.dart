@@ -14,6 +14,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../theme/tosk_palette.dart';
+import '../brand/tosk.dart';
 import '../../core/core.dart';
 import '../../providers.dart';
 import '../reference/reference_screen.dart' show wordLabel;
@@ -206,9 +208,24 @@ class _CoursePickerSheetState extends ConsumerState<CoursePickerSheet> {
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       children: [
-        Text(widget.firstRun ? 'Choose your course' : 'Courses', style: theme.textTheme.titleLarge),
-        const SizedBox(height: 4),
-        Text('Add the courses you want to learn. Removing one keeps its progress.', style: theme.textTheme.bodyMedium),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(widget.firstRun ? 'Choose your course' : 'Courses', style: theme.textTheme.serifTitle),
+                  const SizedBox(height: 4),
+                  Text('Add the courses you want to learn. Removing one keeps its progress.', style: theme.textTheme.bodyMedium),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            // Tosk greets the learner.
+            const ToskImage(pose: ToskPose.standing, height: 80),
+          ],
+        ),
         if (online) _UpdatesBar(state: updates, onCheck: () => ctl.check()),
         if (_notice case final notice?)
           _Notice(text: notice, error: _noticeIsError, onClose: () => _setNotice(null)),
