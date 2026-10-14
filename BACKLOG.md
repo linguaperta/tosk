@@ -135,7 +135,11 @@ Each item says what "done" means. Add newly discovered work at the bottom of its
 - [x] Preview 3 APK (v0.3.0, 14 October)
 
 
-## v0.4 candidates
+## v0.4 (in progress, started 14 October)
+
+- [~] GitHub pack source: index.json from GitHub Releases, download, update, sha256 check, atomic swap; publish tooling (`python -m pipeline publish`); "Add course from file" in the course picker
+- [-] Google Drive sync: skipped for now (user, 14 October); backup export/import covers it
+- [~] Inflection tables for any POS + `#infl:` facets: plurals, adjective agreement, possessives, split separable verbs
 
 - [ ] Bookmarks: star words, sentences or exercises; "Starred" practice session
 - [ ] Graded mini-stories per unit (pipeline-generated with only known vocab and grammar), with tap-for-translation and comprehension questions
@@ -148,8 +152,9 @@ Each item says what "done" means. Add newly discovered work at the bottom of its
 
 Each one at the expanded it/nl scale: 8–10 units, ~30 skills, ~1000 taught words, grammar-first gating, tr.en + tr.nl, grammar notes in en and nl, sentence floor via generation, a native-level sample review, and the real-pack validity and perf tests passing.
 
-- [ ] Spanish (`es`), built first as the pilot, to measure the per-language cost and fix generic pipeline gaps
-- [ ] Portuguese (`pt`): pick and document a variety (European or Brazilian)
+- [~] Spanish (`es`), built first as the pilot, to measure the per-language cost and fix generic pipeline gaps
+- [ ] Portuguese, Brazilian (`pt-BR`)
+- [ ] Portuguese, European (`pt-PT`) (user: add both varieties)
 - [ ] French (`fr`): elision, partitive articles, passé composé with être/avoir
 - [ ] Esperanto (`eo`)
 - [ ] Swedish (`sv`)
@@ -162,5 +167,5 @@ Each one at the expanded it/nl scale: 8–10 units, ~30 skills, ~1000 taught wor
 - [x] Phase 6: Sarnami (`hns`): 9 units, 35 skills, 394 taught words, 742 verb tables, 3,004 sentences. Sources: [source] dictionary, [source] 1991, [source]� 1985 (checking), [source], NT (checking only), plus Claude-drafted/generated material, with per-record `src` and a SOURCES manifest. Local-only (copyright), unverified; see `docs/sarnami.md`.
 - [ ] Sarnami: review by a speaker (open questions in `docs/sarnami.md`); [source]�'s past habitual/conditional not modelled; [source] readers blocked by a bot challenge
 - [-] Phase 7: `GitHubPackSource`, `DriveSyncBackend`. Interfaces only in v1.
-- [-] Phase 8: ink `AnswerInput` and Onyx pen SDK (v0.5). The AI explainer and the B/W e-ink mode moved up to v0.3.
+- [ ] v0.5: ink `AnswerInput` (ML Kit Digital Ink) + Onyx pen SDK behind an ONYX device check (user approved, 14 October); e-ink full refresh; listen_pick with on-device TTS. The AI explainer and the B/W e-ink mode moved up to v0.3.
 - [-] `listen_pick` exercise (needs audio/TTS)
