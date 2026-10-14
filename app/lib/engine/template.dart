@@ -174,3 +174,57 @@ bool stemsEndAlike(String a, String b) {
 /// Display name of a verb for hints: `mangiare (noi, present)`.
 String formHint(CourseMeta meta, Item verb, String person, String tense, String lang) =>
     '${verb.lemma} (${meta.personLabel(person, lang)}, ${meta.tenseLabel(tense, lang)})';
+
+final RegExp _glossParens = RegExp(r'\([^)]*\)');
+final RegExp _nonLetters = RegExp(r"[^\p{L}\p{N}']+", unicode: true);
+
+/// Function words ignored when matching a gloss against a translation
+/// (English and Dutch glosses), unless the gloss has nothing else (`it`, `the`).
+const Set<String> _glossStopWords = {
+  'to', 'a', 'an', 'the', 'of', 'be', 'one', "one's", 'someone', 'something', 'sb', 'sth', 'oneself',
+  'te', 'de', 'het', 'een', 'iets', 'iemand', 'zich',
+};
+
+List<String> _glossWords(String s) => [
+      for (final w in foldDiacritics(s.toLowerCase()).split(_nonLetters))
+        if (w.isNotEmpty) w,
+    ];
+
+bool _wordMatch(String g, String t) {
+  if (g == t) return true;
+  final short = g.length < t.length ? g : t;
+  final long = g.length < t.length ? t : g;
+  // eat/eats/eating, house/houses, werk/werken: an inflection of the same word.
+  if (short.length >= 3 && long.startsWith(short) && long.length - short.length <= 3) return true;
+  var p = 0;
+  while (p < short.length && short.codeUnitAt(p) == long.codeUnitAt(p)) {
+    p++;
+  }
+  return p >= 5;
+}
+
+/// The meaning of [item] to show as a hint for its use in [sentence]: the
+/// gloss (in [lang]) whose words best match the sentence's translation, so
+/// `lo` in "I know it" hints `it`, not `the`. When no gloss matches, all
+/// glosses (at most three) joined: `it, the`.
+String contextGloss(Item item, Sentence sentence, String lang) {
+  final glosses = [for (final g in item.glosses(lang)) if (g.trim().isNotEmpty) g];
+  if (glosses.isEmpty) return '';
+  if (glosses.length == 1) return glosses.first;
+  final translation = sentence.translation(lang);
+  final words = translation == null ? const <String>[] : _glossWords(translation);
+  var best = 0.0;
+  String? bestGloss;
+  for (final g in glosses) {
+    final all = _glossWords(g.replaceAll(_glossParens, ' '));
+    final content = [for (final w in all) if (!_glossStopWords.contains(w)) w];
+    final ws = content.isEmpty ? all : content;
+    if (ws.isEmpty) continue;
+    final hit = ws.where((w) => words.any((t) => _wordMatch(w, t))).length / ws.length;
+    if (hit > best) {
+      best = hit;
+      bestGloss = g;
+    }
+  }
+  return bestGloss ?? glosses.take(3).join(', ');
+}

@@ -150,6 +150,9 @@ class LessonSession extends EngineSession {
   int? get targetLength => _queue.isEmpty && lessonPlan.all.isEmpty ? 0 : _length;
 
   @override
+  Iterable<String> get currentSkillIds => {for (final f in lessonPlan.all) f.skillId};
+
+  @override
   SessionSlot? nextSlot() {
     if (_queue.isNotEmpty) return SessionSlot(_queue.removeAt(0));
     // The plan ran short (some facets could not be generated): cycle the plan.
@@ -253,6 +256,9 @@ class LabSession extends EngineSession {
 
   @override
   bool get ignoreSkillRestriction => true;
+
+  @override
+  Iterable<String> get currentSkillIds => {for (final f in _order) f.skillId};
 
   @override
   SessionSlot? nextSlot() {

@@ -5,6 +5,7 @@ library;
 export 'course_index.dart';
 export 'debug/exercise_printer.dart';
 export 'focus_presets.dart';
+export 'gating.dart';
 export 'gen_context.dart';
 export 'grading/rating.dart';
 export 'selector.dart';

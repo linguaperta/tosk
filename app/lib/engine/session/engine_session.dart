@@ -16,6 +16,7 @@ import '../../core/models/exercise.dart';
 import '../../core/models/facet.dart';
 import '../../core/models/progress.dart';
 import '../debug/exercise_printer.dart';
+import '../gating.dart';
 import '../gen_context.dart';
 import '../grading/rating.dart';
 import '../selector.dart';
@@ -142,7 +143,11 @@ abstract class EngineSession implements PracticeSession {
   int _servedPlanned = 0;
   int _requeuedTotal = 0;
   ExerciseType? _lastType;
+  final List<ExerciseType> _recentTypes = [];
   final List<String> _recentFacets = [];
+  Future<void>? _prepared;
+  SentenceGate? _gate;
+  SentenceHistory? _history;
 
   final Map<String, _Served> _served = {};
   final List<(int, SessionSlot)> _requeue = []; // (due exercise number, slot)
@@ -167,6 +172,48 @@ abstract class EngineSession implements PracticeSession {
 
   /// Lab: the chosen types override the skill's `exercises` restriction.
   bool get ignoreSkillRestriction => false;
+
+  /// Skills whose grammar and words count as known in this session besides
+  /// the started ones (grammar gating): the lesson's skill, the lab's skills.
+  /// Non-stop, fading and review sessions use started skills only.
+  Iterable<String> get currentSkillIds => const [];
+
+  /// Grammar gating for this session (null before [prepare], or when the
+  /// course carries no gating data).
+  SentenceGate? get gate => _gate;
+
+  /// Recently seen sentences (null before [prepare]).
+  SentenceHistory? get sentenceHistory => _history;
+
+  /// Loads what sentence choice needs: the started skills (every facet state
+  /// of the course) for grammar gating, and the recently seen sentences.
+  /// [next] calls it; call it yourself before using [genContext] directly.
+  Future<void> prepare() => _prepared ??= _prepare();
+
+  Future<void> _prepare() async {
+    final course = env.course;
+    _history = await SentenceHistory.load(env.store, course.meta.id);
+    if (!SentenceGate.supports(course)) return;
+    final reviewed = <String>{..._states.keys};
+    try {
+      for (final s in await env.store.allStates(courseId: course.meta.id)) {
+        reviewed.add(s.facetId);
+      }
+    } catch (_) {
+      // Without the full log, the session's own states still say something.
+    }
+    _gate = SentenceGate(
+      course,
+      started: SentenceGate.startedSkills(course, reviewed),
+      current: currentSkillIds,
+    );
+  }
+
+  /// Writes this session's sentences to the stored history (variety).
+  Future<void> saveSentenceHistory() async {
+    final h = _history;
+    if (h != null) await h.save(env.store, env.course.meta.id);
+  }
 
   /// Number of planned exercises served so far (re-asks excluded).
   int get servedPlanned => _servedPlanned;
@@ -199,6 +246,7 @@ abstract class EngineSession implements PracticeSession {
   @override
   Future<Exercise?> next() async {
     if (_stopped) return null;
+    await prepare();
     for (var attempt = 0; attempt < 60; attempt++) {
       final number = _servedTotal + 1;
       SessionSlot? slot;
@@ -211,17 +259,23 @@ abstract class EngineSession implements PracticeSession {
       if (slot == null && _requeue.isNotEmpty) {
         slot = _requeue.removeAt(0).$2;
       }
-      if (slot == null) return null;
+      if (slot == null) {
+        await saveSentenceHistory();
+        return null;
+      }
       final ex = _generate(slot);
       if (ex == null) continue;
       _servedTotal++;
       if (!slot.reask) _servedPlanned++;
       _lastType = ex.type;
+      _recentTypes.add(ex.type);
+      if (_recentTypes.length > 3) _recentTypes.removeAt(0);
       _recentFacets.add(slot.facet.facetId);
       if (_recentFacets.length > 6) _recentFacets.removeAt(0);
       _served[ex.id] = _Served(ex, slot);
       return ex;
     }
+    await saveSentenceHistory();
     return null;
   }
 
@@ -234,20 +288,27 @@ abstract class EngineSession implements PracticeSession {
       only: slot.only,
       ignoreSkillRestriction: ignoreSkillRestriction,
       avoid: slot.avoid ?? _lastType,
+      recent: _recentTypes,
     );
   }
 
   /// Generation context for [facet] at this moment.
-  GenContext genContext(SkillFacet facet) => GenContext(
-        course: env.course,
-        options: env.options,
-        random: env.random,
-        states: _states,
-        skill: env.course.skill(facet.skillId),
-        now: env.now(),
-        stagePolicy: env.stagePolicy,
-        nextId: () => '$id#${_servedTotal + 1}',
-      );
+  GenContext genContext(SkillFacet facet) {
+    final skill = env.course.skill(facet.skillId);
+    return GenContext(
+      course: env.course,
+      options: env.options,
+      random: env.random,
+      states: _states,
+      skill: skill,
+      now: env.now(),
+      stagePolicy: env.stagePolicy,
+      nextId: () => '$id#${_servedTotal + 1}',
+      gate: _gate,
+      history: _history,
+      wordCap: SentenceGate.capFor(focus, skill),
+    );
+  }
 
   @override
   Future<Result> submit(Exercise exercise, Answer answer, {required Duration elapsed}) async {
@@ -277,6 +338,8 @@ abstract class EngineSession implements PracticeSession {
     MistakeContext? mistake;
     for (final o in result.outcomes) {
       _practiced.add(o.facetId);
+      // An answered facet starts its skills: their grammar and words count as known from now on.
+      _gate?.markStarted(env.course.skillsForFacet(o.facetId));
       Rating? rating;
       if (!_mistaken.contains(o.facetId)) {
         rating = o.rating;
@@ -414,6 +477,7 @@ abstract class EngineSession implements PracticeSession {
     _stopped = true;
     _endedAt = env.now();
     _events.close();
+    unawaited(saveSentenceHistory());
   }
 
   @override

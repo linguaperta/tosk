@@ -9,7 +9,8 @@
 | `template.dart` | The `ExerciseTemplate` contract, `OptionPicker` (wrong-option filter), shared grading helpers |
 | `templates/*.dart` | The nine templates, plus `alterations.dart` (one-word sentence errors shared by spot-the-error and multiple choice) |
 | `course_index.dart` | Cached derived lookups: verb-form and article occurrences in sentences, auxiliary positions, synonyms (through gloss/spelling indexes), distractor pools, sentences by translation, pro-drop and compound-contiguity statistics, and `memo` for templates' `canGenerate` answers |
-| `gen_context.dart` | `GenContext` (course, options, seeded `Random`, facet states, skill) and `FacetStage` / `StagePolicy` |
+| `gen_context.dart` | `GenContext` (course, options, seeded `Random`, facet states, skill, gate, sentence history) and `FacetStage` / `StagePolicy` |
+| `gating.dart` | `SentenceGate` (grammar gating and the unknown-word cap) and `SentenceHistory` (recently seen sentences) |
 | `selector.dart` | Picks the exercise type for a facet (stage affinity × focus weight × restrictions) and generates it |
 | `focus_presets.dart` | Focus weights, parsed from `assets/config/focus_presets.json`, with identical embedded defaults |
 | `grading/rating.dart` | `RatingPolicy` (result → FSRS rating, fast-answer table) and `GradeOptions` |
@@ -42,7 +43,7 @@ UI notes on the exercise contract:
 
 - **Conjugation pick:** an empty ending (Dutch `ik werk` = `werk` + '') is shown as the option `–` (`kNoEnding`).
 - **Conjugation grid:** `tiles` holds one tile per asked cell, so a form shared by several cells (`werken` for wij, jullie and zij) appears once per cell, plus the distractors. A UI that consumes tiles works, and so does one that reuses them. Tapped tiles are graded with exact diacritics, typed ones by the accent setting. `cellCorrect` gives per-cell feedback.
-- **Cloze:** `options == null` means free text (a `TextAnswer`, which may carry ink `candidates`).
+- **Cloze:** `options == null` means free text (a `TextAnswer`, which may carry ink `candidates`). The hint of a `#prod` or `#article` gap is the gloss that matches the translation (`lo` in "I know it": `it`), or all glosses when none does (`it, the`).
 - **Spot the error:** render with `tokenPre[i] + tokens[i]`, or use `renderSpotError`.
 - **Article multiple choice:** the prompt is `___ ragazzo` and `hint` is the meaning.
 - **Lenient accents:** `Result.accentSlip` means "accepted, but watch the accent".
@@ -90,14 +91,38 @@ Every wrong option goes through `OptionPicker`. It rejects an option that is emp
   1. *Same word count:* the words are replaced in place, wherever they stand.
   2. *Compound → single word:* the finite (first) word is replaced and the rest removed. This is valid for V2 and subordinate clauses.
   3. *Single word → compound:* only when the course's own sentences show that tense's compound forms as contiguous (≥ 90 %, so Italian yes and Dutch no) or the verb ends the sentence, and no clitic pronoun precedes the verb.
-  4. *Person changes:* only in pro-drop sentences. The course must usually omit the subject pronoun for both persons (`dropsPronoun`, learned from the data, counting the pronouns of the person key and its labels, `jij/je`: never for Dutch), only adverbs, conjunctions and prepositions may precede the verb, and the sentence may contain no pronoun and no name (`Heeft Tom …`).
-  5. *Tense changes* only when every other verb in the sentence is in the source or the target tense and has a known form (`Wie was de filosoof die ooit geleefd heeft?` would mix tenses); not for an auxiliary verb next to a participle (`als ik nee had gezegd`), not into a compound form next to a participle (passive `gezegd werd`), and not from a form spelled like the infinitive (`vertellen` may be an infinitive after a modal). A form written out of order (`opgestaan ben`) is only rewritten into the same tense.
+  4. *Person changes:* only in pro-drop sentences. The course must usually omit the subject pronoun for both persons (`dropsPronoun`, learned from the data, counting the pronouns of the person key and its labels, `jij/je`: never for Dutch), only adverbs, conjunctions and prepositions may precede the verb, and the sentence may contain no pronoun and no name (`Heeft Tom …`). Also not:
+     - from a form another person shares (`sono`: io and loro, so `Dove sono i vostri nipoti?` may be misaligned);
+     - from a third person when the sentence has a noun (it may be the subject), or from the third person singular when a translation says "it", "there" or "het" (impersonal: `Sembra ieri`, `È ora di …`);
+     - singular ↔ plural when an adjective or participle may agree with the subject (`Dice di essere bravo`) or the verb is "to be" (`Non siamo parenti`).
+  5. *Tense changes* only when every other verb in the sentence is in the source or the target tense and has a known form (`Wie was de filosoof die ooit geleefd heeft?` would mix tenses); not for an auxiliary verb next to a participle (`als ik nee had gezegd`), not into a compound form next to a participle (passive `gezegd werd`), and not from a form spelled like the infinitive (`vertellen` may be an infinitive after a modal). A form written out of order (`opgestaan ben`) is only rewritten into the same tense. A form shared by another person is only rewritten when that person's target form is the same (`werken` → `werkten` yes, `sono` → `ero`/`erano` no).
+  6. *One finite verb:* the transformed verb (with its auxiliary) must be the sentence's only finite verb, or the other one keeps its tense or person (`Il dolore va e viene` → `va e è venuto`).
+  7. *Time adverbs* (course data: `meta.time_adverbs`, from course.yaml `time_adverbs`, adverb → the tenses it fits, matched as whole folded words, multi-word keys allowed): a tense change never produces a tense the sentence's adverbs don't fit (`Adesso mangio` never becomes a past, `Ieri ho mangiato` never the present).
+  8. A changed word after an elided one must start with a vowel or `h` (`l'ha fatto` → `l'faceva` is not built).
 
-  Gendered alternatives (`sono partito;sono partita`) become extra accepted answers.
+  Gendered alternatives (`sono partito;sono partita`) become extra accepted answers. A third-person target form with gendered alternatives is not built when the sentence has a noun or a translation with "it" (`Le cose succedono` → `sono successi`, `Come va?` → `è andato`).
 
-**Occurrences.** `CourseIndex.formOccurrences` matches aligned tokens against the cell's accepted forms, in any order (Dutch subordinate `gegeten heeft`). When only the participle is aligned, it finds the auxiliary nearby. A token whose text is not an accepted form of its aligned cell, such as Dutch inverted `Werk jij?` aligned to `jij: werkt`, is never used.
+**Grammar gating of wrong options.** Under a gate, wrong options and tiles never show a form of a tense the learner has not met (`SentenceGate.tenseShowable`: the tense is known, and so are its irregular forms when the course teaches them as a feature, `irregular:futuro`): cloze options of another tense, conjugation-grid distractors from the verb's other tenses, conjugation-pick endings of other tenses, sentence-builder tiles and multiple-choice sentence alterations swapped into another tense. Wrong target-language sentences in multiple choice use only known grammar features (their words may be new).
+
+**Occurrences.** `CourseIndex.formOccurrences` matches aligned tokens against the cell's accepted forms, in any order (Dutch subordinate `gegeten heeft`). When only the participle is aligned, it finds the auxiliary nearby. A token whose text is not an accepted form of its aligned cell, such as Dutch inverted `Werk jij?` aligned to `jij: werkt`, is never used, and neither is a compound form whose later word follows a determiner (`Hebben dieren een geweten?`: a noun).
 
 **Compound tenses.** The pipeline aligns a compound form on its participle (`mangiato` → `passato_prossimo.io`, the cell's form being `ho mangiato`) and the auxiliary separately to the auxiliary verb's present (`ho` → `avere`, `presente.io`). `CourseIndex.auxiliaryPositions(sentence)` finds those auxiliaries (the nearest token within 6 that reads the form's other word, for the first accepted spelling whose words are all present). They belong to the compound form: they are never an occurrence of the auxiliary verb's own present (`Zijn jullie … geweest?` is no `zijn` present exercise, and `Ho mangiato` no `avere` one), so cloze, spot the error and transform only touch them through the compound form. The validator applies the same convention independently (`_ownerCell`).
+
+## Grammar gating and sentence variety
+
+`gating.dart` implements the contract in docs/ARCHITECTURE.md ("Grammar gating"). Every session calls `prepare()` before its first exercise (`next()` does it):
+
+- **Gate** (`SentenceGate`, only when the course has `meta.base_features`; older packs are not gated):
+  - *Started skills*: every skill with a reviewed facet (`store.allStates(courseId)`), plus the skills of every facet answered during the session (`markStarted`, so non-stop opens a skill's grammar after its first answer).
+  - *Current skills* (`EngineSession.currentSkillIds`): the lesson's skill, the lab's skills; none for non-stop, fading and mistake review.
+  - `knownFeatures` = `base_features` ∪ the features of the started and current skills and of their prerequisites (transitively, like the pipeline's home-skill rule).
+  - `knownItems` = the items of the started and current skills.
+  - A sentence is allowed when its features ⊆ `knownFeatures` and its unknown words ≤ the cap: `SentenceGate.capFor(focus, skill)` = 1 for a grammar focus or a grammar skill, else 2. A word aligned to an unknown item counts 1. An unaligned word counts 0 when it is a name or a number (a capitalized word inside a sentence, a sentence-initial word that also appears capitalized inside one, or digits) and 2 otherwise: in the packs those are rare (125 it / 329 nl sentences) and often an untagged grammar form (passato remoto `Comprai`), so such a sentence never passes the grammar cap.
+  - Cloze, spot the error, transform, the sentence builder and sentence multiple choice only use allowed sentences; transform also needs its target tense and the facet skill's features to be known. `canGenerate` answers are memoized in the gate (`GenContext.memo`), so a template without an eligible sentence returns false and the selector picks another type. A lesson never falls back to ungated sentences: conjugation grids and picks, flashcards, word multiple choice and match pairs fill it.
+- **Variety** (`SentenceHistory`): a bounded LRU of the last 1000 sentence ids per course, stored as a JSON array in the settings key `engine.recent_sentences.{courseId}` (no schema change). `GenContext.prefer` ranks candidate sentences by 0.75 × unknown words + a recency penalty (0 unseen, 1–3 seen, higher when seen more recently) + a random jitter below 1. Sentences already shown in this session come last, so a session repeats a sentence only when the facet has nothing else. Templates record what they show (`GenContext.useSentence`). The session saves its sentences when `next()` runs out and on `stop()`: read, merge (moving re-seen ids to the end), trim, write, serialized per key, so concurrent sessions keep each other's exposures. A mistake re-ask is a new exercise and usually gets another sentence.
+- **Exercise types:** the selector tries the previous exercise's type (or the type a re-asked mistake was missed with) only after every other type of the same weight tier failed, and each of the last three types weighs 0.6× per occurrence.
+
+`test/engine/gated_validity.dart` checks gated exercises against an independent computation of the learner's knowledge. `real_pack_gating_test.dart` runs it on the bundled packs for a fresh learner and for learners who started units 1..k, plays full lessons (every unit-1 skill for a fresh learner, every unit-3 skill after units 1–3) and a non-stop run, and checks variety across lessons. `runTemplateValidity` stays the "everything known" check.
 
 ## Grading and recording
 
@@ -163,7 +188,7 @@ Generation is synchronous, so everything a template needs repeatedly is cached p
 
 ## Known limitations
 
-- **Transform** can produce a semantically odd sentence when a past-time adverb remains (`Ieri ho mangiato` → `Ieri mangio`). It is grammatical but odd, and it can't be detected without semantic tags. Person changes are rare by design (pro-drop only).
+- **Transform** relies on the course's `time_adverbs` list; an adverb missing from it, or a time implied by context, can still give an odd but grammatical sentence. Person changes are rare by design (pro-drop only). Imperatives aligned as present indicative (`Chiedi a un poliziotto!` → `chiedo a un poliziotto`) give a grammatical statement.
 - **Conjugation pick** needs stem/ending splits. Fully irregular tables (essere, avere, zijn, hebben) and compound tenses never get it; the grid and cloze cover them.
 - **Spot the error and cloze** rely on the translation for pro-drop person swaps.
 - **Person hints** come from the alignment. Where two persons share the form (Dutch `maakt` for jij and hij), a subject far from the verb can be missed; the pipeline then leaves the person open rather than guess, so such sentences are simply not used.

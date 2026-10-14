@@ -102,8 +102,10 @@ CREATE TABLE skill_features (skill_id TEXT NOT NULL, feature TEXT NOT NULL, PRIM
   - `course.yaml` lists `base_features`, and each skill can add an `introduces: [...]` list.
   - A grammar skill with `verbs: {tense: T}` introduces `tense:T` automatically.
 - **Pipeline:** tags every sentence with the features its tokens show. A compound form tags its tense, and the auxiliary is not tagged as present. The validator checks that every feature used by a skill's own sentences is introduced by that skill, one of its prerequisites (transitively), or the base set.
-- **Engine:**
-  - At session start, compute `knownFeatures` = base ∪ the features of every skill the learner has *started* ∪ the current skill's features.
-  - Sentence-based templates only use sentences whose features ⊆ `knownFeatures`.
-  - Unknown vocabulary is capped: counted over word tokens aligned to items outside the learner's started skills, at most 2 per sentence for vocab focus and 1 for grammar focus. Sentences with fewer unknown words are preferred.
-  - A template that finds no eligible sentence returns `canGenerate == false`, and another template is used.
+- **Engine** (`app/lib/engine/gating.dart`; details in docs/engine.md, "Grammar gating and sentence variety"):
+  - At session start, compute `knownFeatures` = base ∪ the features of every skill the learner has *started* ∪ the current skill's features (lesson: its skill; lab: the chosen skills; non-stop, fading, review: none). Prerequisites of started and current skills count too (their sentences are built on them), and a skill answered during the session counts as started from then on.
+  - Sentence-based templates only use sentences whose features ⊆ `knownFeatures`; transform's target tense must be known too, and wrong options never show forms of an unknown tense.
+  - Unknown vocabulary is capped: counted over word tokens aligned to items outside the learner's started (and current) skills, at most 2 per sentence for vocab focus and 1 for grammar focus or a grammar skill. An unaligned word counts 0 when it is a name or a number and 2 otherwise. Sentences with fewer unknown words are preferred.
+  - A template that finds no eligible sentence returns `canGenerate == false`, and another template is used. Packs without `base_features` are not gated.
+  - Variety: sentences not seen recently are preferred (a 1000-id LRU per course in the settings key `engine.recent_sentences.{course}`), a session never repeats a sentence while the facet has others, and the previous exercise type is avoided when another type can serve the facet.
+- **Time adverbs** (`meta.time_adverbs`, optional JSON `{adverb: [tense, ...]}` from course.yaml `time_adverbs`): the tenses a time adverb fits. The transform exercise never rewrites a sentence with one into another tense.

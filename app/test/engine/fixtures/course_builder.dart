@@ -20,7 +20,16 @@ class CourseBuilder {
   final Map<String, List<String>> _skillItems = {};
   final List<SkillFacet> _facets = [];
   final Map<String, Map<String, String>> _notes = {};
+  final Map<String, Set<String>> _sentenceFeatures = {};
+  final Map<String, Set<String>> _skillFeatures = {};
   String? _unit;
+
+  /// Grammar features of a sentence (`sentence_features`).
+  void sentenceFeatures(String sentenceId, Iterable<String> features) =>
+      (_sentenceFeatures[sentenceId] ??= {}).addAll(features);
+
+  /// Features a skill introduces (`skill_features`).
+  void skillFeatures(String skillId, Iterable<String> features) => (_skillFeatures[skillId] ??= {}).addAll(features);
 
   String get _c => meta.id;
 
@@ -240,5 +249,7 @@ class CourseBuilder {
         verbForms: _forms,
         sentences: _sentences,
         notes: _notes,
+        sentenceFeatures: _sentenceFeatures,
+        skillFeatures: _skillFeatures,
       );
 }

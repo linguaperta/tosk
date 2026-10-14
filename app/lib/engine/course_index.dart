@@ -444,7 +444,18 @@ class CourseIndex {
         }
       }
     }
+    // A later word of a compound form right after a determiner is a noun or
+    // an adjective, not a participle (`Hebben dieren een geweten?`: conscience).
+    out.removeWhere((o) => o.positions.skip(1).any((p) => _afterDeterminer(o.sentence, p)));
     return out;
+  }
+
+  bool _afterDeterminer(Sentence s, int p) {
+    if (p == 0) return false;
+    final prev = s.tokens[p - 1];
+    if (!prev.isWord) return false;
+    final lex = prev.lex;
+    return lex != null && course.item(lex)?.pos == 'det';
   }
 
   final Map<String, Set<int>> _auxPos = {};
@@ -690,6 +701,55 @@ class CourseIndex {
 
   /// Word tokens of a sentence (no punctuation).
   static List<Token> words(Sentence s) => [for (final t in s.tokens) if (t.isWord) t];
+
+  /// Spellings of unaligned capitalized words seen inside a sentence (not as
+  /// its first word) anywhere in the course: names (`Tom`, `Napels`). A
+  /// sentence-initial unaligned word counts as a name only when it is one
+  /// of these (`Tom è qui` yes, `Comprai il pane` no).
+  late final Set<String> properNames = () {
+    final out = <String>{};
+    for (final s in allSentences) {
+      var first = true;
+      for (final t in s.tokens) {
+        if (!t.isWord) continue;
+        if (!first && t.lex == null && t.t.isNotEmpty && t.t != lowerFirst(t.t)) out.add(t.t);
+        first = false;
+      }
+    }
+    return out;
+  }();
+
+  /// [CourseMeta.timeAdverbs] with folded keys.
+  late final Map<String, Set<String>> _timeAdverbs = {
+    for (final e in meta.timeAdverbs.entries)
+      if (foldAnswer(e.key).isNotEmpty) foldAnswer(e.key): e.value.toSet(),
+  };
+
+  final Map<String, List<Set<String>>> _adverbsIn = {};
+
+  /// For each time adverb in [s] ([CourseMeta.timeAdverbs], matched as whole
+  /// words after folding), the tenses it fits.
+  List<Set<String>> timeAdverbTenses(Sentence s) {
+    if (_timeAdverbs.isEmpty) return const [];
+    return _adverbsIn[s.id] ??= () {
+      final text = ' ${foldAnswer(s.text)} ';
+      return [
+        for (final e in _timeAdverbs.entries)
+          if (text.contains(' ${e.key} ')) e.value,
+      ];
+    }();
+  }
+
+  static final RegExp _digit = RegExp(r'^[0-9]');
+
+  /// Whether an unaligned word token is a name or a number (known to every
+  /// learner): a capitalized word inside the sentence, a sentence-initial
+  /// word in [properNames], or a word starting with a digit.
+  bool isNameOrNumber(Token t, {required bool first}) {
+    if (_digit.hasMatch(t.t)) return true;
+    if (t.t.isEmpty || t.t == lowerFirst(t.t)) return false;
+    return !first || properNames.contains(t.t);
+  }
 
   /// Display text of a sentence's word tokens for tiles: the first word is
   /// lower-cased unless it looks like a proper noun (unaligned, or aligned to

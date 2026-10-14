@@ -32,18 +32,20 @@ class SentenceBuilderTemplate extends ExerciseTemplate {
   @override
   Set<FacetKind> get kinds => const {FacetKind.prod};
 
+  /// Sentences of the facet's item that fit the tiles and the learner (grammar gating).
   List<Sentence> _pool(SkillFacet facet, GenContext ctx) => [
         for (final s in ctx.course.sentencesFor(facet.itemId))
           if ((s.translation(ctx.lang) ?? '').trim().isNotEmpty &&
               CourseIndex.words(s).length >= 2 &&
-              CourseIndex.words(s).length <= maxWords)
+              CourseIndex.words(s).length <= maxWords &&
+              ctx.sentenceOk(s))
             s,
       ];
 
   @override
   bool canGenerate(SkillFacet facet, GenContext ctx) =>
       supports(facet) &&
-      ctx.index.memo('sentence_builder/$maxWords/$distractorCount|${facet.facetId}|${ctx.lang}',
+      ctx.memo('sentence_builder/$maxWords/$distractorCount|${facet.facetId}|${ctx.lang}',
           () => _pool(facet, ctx).any((s) => _distractors(s, ctx, shuffle: false).isNotEmpty));
 
   List<String> _distractors(Sentence s, GenContext ctx, {bool shuffle = true}) {
@@ -72,7 +74,8 @@ class SentenceBuilderTemplate extends ExerciseTemplate {
     // Other persons' forms of the verbs (the word that differs).
     final verbSwaps = <String>[
       for (final o in ix.formOccurrencesInSentence(s))
-        for (final sw in formSwaps(ix, o)) lowerFirst(sw.newWord),
+        for (final sw in formSwaps(ix, o))
+          if (sw.replacement.tense == o.tense || ctx.tenseShowable(sw.replacement.tense)) lowerFirst(sw.newWord),
     ];
     // Wrong articles, when the sentence uses one.
     final usesArticle = words.any((t) => ix.articleKeys.contains(normalizeAnswer(t.t)));
@@ -103,7 +106,7 @@ class SentenceBuilderTemplate extends ExerciseTemplate {
   Exercise? generate(SkillFacet facet, GenContext ctx) {
     if (!supports(facet)) return null;
     final ix = ctx.index;
-    for (final s in ctx.shuffled(_pool(facet, ctx)).take(4)) {
+    for (final s in ctx.prefer(_pool(facet, ctx), (s) => s, take: 4)) {
       final distractors = _distractors(s, ctx);
       if (distractors.isEmpty) continue;
       final words = ix.tileWords(s);
@@ -116,6 +119,7 @@ class SentenceBuilderTemplate extends ExerciseTemplate {
         final tw = ix.tileWords(t);
         if (_fits(_bag(tw), tileBag)) answers.add(tw);
       }
+      ctx.useSentence(s.id);
       return SentenceBuilderExercise(
         id: ctx.nextId(),
         facetId: facet.facetId,

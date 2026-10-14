@@ -208,6 +208,21 @@ Sentence? _sentenceByText(CourseData c, String text) {
   return index[normalizeAnswer(text)];
 }
 
+final Expando<Map<String, List<Sentence>>> _allByText = Expando();
+
+/// Every course sentence with this text (a few courses have duplicates with
+/// different translations).
+List<Sentence> _sentencesByText(CourseData c, String text) {
+  final index = _allByText[c] ??= () {
+    final m = <String, List<Sentence>>{};
+    for (final s in CourseIndex.of(c).allSentences) {
+      (m[normalizeAnswer(s.text)] ??= []).add(s);
+    }
+    return m;
+  }();
+  return index[normalizeAnswer(text)] ?? const [];
+}
+
 /// The verb cell token [idx] of [s] belongs to, as (verb id, cell), by the
 /// pipeline's alignment convention: a compound form (`ho mangiato`, `heb …
 /// gegeten`) is aligned on one of its words (the participle) and its other
@@ -327,14 +342,17 @@ List<String> validateExercise(Exercise e, ExerciseTemplate t, CourseData c, Stri
           check(_k(e.prompt) == _k(item.gloss(lang)), 'prompt is not the gloss');
         }
       } else {
+        final same = _sentencesByText(c, e.direction == Direction.recognize ? e.prompt : e.options[e.correctIndex]);
+        // Among sentences sharing the text, the one whose translation is the prompt.
         final s = e.direction == Direction.recognize
             ? _sentenceByText(c, e.prompt)
-            : _sentenceByText(c, e.options[e.correctIndex]);
+            : same.where((x) => _k(x.translation(lang) ?? '') == _k(e.prompt)).firstOrNull ??
+                _sentenceByText(c, e.options[e.correctIndex]);
         check(s != null, 'sentence not found');
         if (s != null) {
           check(s.tokens.any((t) => t.lex == item.id), 'sentence does not contain the item');
           if (e.direction == Direction.recognize) {
-            final valid = {_k(s.translation(lang)!)};
+            final valid = {for (final x in same) _k(x.translation(lang)!)};
             choiceChecks(e.options, e.correctIndex, (o) => valid.contains(_k(o)));
           } else {
             // Any course sentence with the same translation would also be right.
@@ -496,7 +514,8 @@ List<String> validateExercise(Exercise e, ExerciseTemplate t, CourseData c, Stri
         check(g(TextAnswer(e.expected)).correct, 'free text expected rejected');
         check(g(TextAnswer('  ${e.expected.toUpperCase()}!  ')).correct, 'normalization');
         final folded = foldDiacritics(e.expected);
-        if (folded != e.expected) {
+        // Unless the folded spelling is itself accepted (Sarnami `baaṯie` / `baatie`).
+        if (folded != e.expected && !e.accepted.any((a) => normalizeAnswer(a) == normalizeAnswer(folded))) {
           final r = g(TextAnswer(folded));
           check(r.correct && r.accentSlip, 'lenient accent');
           check(!g(TextAnswer(folded), _strict).correct, 'strict accent accepted');
