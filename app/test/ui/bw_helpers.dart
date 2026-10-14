@@ -8,6 +8,7 @@ library;
 
 import 'dart:ui' as ui;
 
+import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -79,4 +80,56 @@ Future<ui.Color> pixelAt(WidgetTester tester, Offset at) async {
 Future<void> expectGrayscale(WidgetTester tester, String what, {Finder? root}) async {
   final bad = await colorPixels(tester, root: root);
   expect(bad, isEmpty, reason: '$what has colored pixels:\n${bad.join('\n')}');
+  expectReadableText(tester, what);
+}
+
+/// Text that the pixel scan can't judge:
+///
+/// * Every visible text must resolve a font family. A theme `TextStyle` built
+///   from scratch (no family, no size) replaces the theme's text style. Under
+///   `flutter test` that falls back to the test font, whose glyphs are solid
+///   blocks; with real fonts loaded, QA screenshots showed "Preview" as black
+///   bars. On a device it falls back to the engine default at the wrong size.
+/// * A button's label must differ in color from the button's own fill (its
+///   opaque `Material`), so no label is black on black or white on white.
+void expectReadableText(WidgetTester tester, String what) {
+  final bad = <String>[];
+  for (final e in find.byType(RichText).evaluate()) {
+    final ro = e.renderObject;
+    if (ro is! RenderBox || !ro.hasSize || ro.size.isEmpty) continue;
+    final text = (e.widget as RichText).text;
+    final plain = text.toPlainText().trim();
+    if (plain.isEmpty) continue;
+    final style = text.style;
+    if (style?.fontFamily == null) {
+      bad.add('"$plain": no font family (a theme text style without a base)');
+    }
+    final color = style?.color;
+    final fill = _buttonFill(e);
+    if (color != null && fill != null && color.a > 0.5 && fill.toARGB32() == color.withValues(alpha: 1).toARGB32()) {
+      bad.add('"$plain": label color equals the button fill #${fill.toARGB32().toRadixString(16)}');
+    }
+  }
+  expect(bad, isEmpty, reason: '$what has unreadable text:\n${bad.take(10).join('\n')}');
+}
+
+/// The opaque fill of the button [e] sits in (the `Material` a
+/// `ButtonStyleButton` paints), or null when the button is transparent or [e]
+/// is not in a button.
+Color? _buttonFill(Element e) {
+  Material? material;
+  var inButton = false;
+  e.visitAncestorElements((a) {
+    final w = a.widget;
+    if (w is Material && material == null) material = w;
+    if (w is ButtonStyleButton) {
+      inButton = true;
+      return false;
+    }
+    return true;
+  });
+  final m = material;
+  if (!inButton || m == null || m.type == MaterialType.transparency) return null;
+  final c = m.color;
+  return c != null && c.a > 0.99 ? c : null;
 }

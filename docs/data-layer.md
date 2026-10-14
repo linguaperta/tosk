@@ -69,6 +69,10 @@ The progress database is drift, defined in `progress/progress_db.dart` with gene
 | `facet_state` | Derived from the log. Columns: facet_id PK, stability, difficulty, due (indexed), last_review, reps, lapses, phase, step. |
 | `mistakes` | The `MistakeRecord` fields. Indexes: at and facet_id. |
 | `settings` | Key/value pairs. |
+| `ai_explanations` | Schema v2. Cached AI explanations. Columns: fingerprint, given and lang (together the primary key), body, facet_id, provider, model, created_at. |
+| `flags` | Schema v2. Flagged exercises: a full exercise snapshot (JSON), the answers, the reasons, the comment, the AI verdict, and the app and pack versions. Index on created_at. The format and the export are in `docs/feedback.md`. |
+
+`DriftFeedbackStore` (`progress/feedback_store.dart`, exposed as `AppData.feedback`) implements the core `ExplanationCache` and `FlagStore` over these two tables. `InMemoryFeedbackStore` has the same semantics, for tests and the defaults.
 
 `ProgressRepo` (`progress/progress_repo.dart`) implements both `ProgressStore` and `EventImporter`:
 
@@ -90,7 +94,7 @@ The connection comes from `progress/progress_connection.dart`:
 2. Bump `ProgressDb.currentSchemaVersion`.
 3. Add a step to `onUpgrade` in `migration`, one `if (from < N)` block per version, for example `await m.addColumn(mistakes, mistakes.newColumn);`.
 4. Run `dart run build_runner build` to regenerate `progress_db.g.dart`.
-5. Run `dart run drift_dev make-migrations` from `app/`. This dumps `drift_schemas/progress/drift_schema_vN.json` and generates migration test scaffolding in `test/drift/progress/`. The options are in `app/build.yaml`. Commit the schema dump and add the generated tests.
+5. Run `dart run drift_dev make-migrations` from `app/`. This dumps `drift_schemas/progress/drift_schema_vN.json` and generates migration test scaffolding in `test/drift/progress/`. The options are in `app/build.yaml`. Commit the schema dump and add the generated tests. The command also writes a `progress_db.steps.dart` helper for `stepByStep` migrations. Delete it: this database writes its steps by hand in `onUpgrade`. The v1 → v2 step (two new tables) is tested in `test/drift/progress/migration_test.dart`, including data integrity.
 6. Run `flutter test`.
 
 Rules for migrations:

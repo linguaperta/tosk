@@ -1,9 +1,9 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-/// Haptics and system sounds for feedback. Everything is a no-op when
-/// [enabled] is false (driven by the `reduceMotion` setting, which the future
-/// e-ink mode turns on).
+/// Haptics for feedback. Everything is a no-op when [enabled] is false
+/// (the "Reduce motion" setting). Sounds are separate: `audio/sound_service.dart`
+/// behind the "Sound effects" setting.
 class Fx {
   const Fx({required this.enabled});
   final bool enabled;
@@ -16,13 +16,11 @@ class Fx {
   void correct() {
     if (!enabled) return;
     HapticFeedback.lightImpact();
-    SystemSound.play(SystemSoundType.click);
   }
 
   void wrong() {
     if (!enabled) return;
     HapticFeedback.heavyImpact();
-    SystemSound.play(SystemSoundType.alert);
   }
 
   void finished() {

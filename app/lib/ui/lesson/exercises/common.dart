@@ -42,6 +42,7 @@ abstract class ExerciseWidget<E extends Exercise> extends StatefulWidget {
     required this.onChanged,
     this.onSubmit,
     this.onCheck,
+    this.onSelect,
     this.result,
     this.keys,
     this.reduceMotion = false,
@@ -53,6 +54,11 @@ abstract class ExerciseWidget<E extends Exercise> extends StatefulWidget {
 
   /// Asks the player to check the current draft (e.g. Enter in a text field).
   final VoidCallback? onCheck;
+
+  /// A tap selected something that doesn't change the draft answer (a match
+  /// pairs card): the player plays the select tick. Taps that change the
+  /// draft already arrive through [onChanged].
+  final VoidCallback? onSelect;
   final Result? result;
   final ExerciseKeys? keys;
   final bool reduceMotion;

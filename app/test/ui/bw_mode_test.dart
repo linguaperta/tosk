@@ -33,6 +33,35 @@ bool _isPalette(Color c) => c.a == 0 || kBwPalette.any((p) => p.toARGB32() == c.
 void main() {
   overflowGroup();
 
+  test('button themes keep the theme font: no bare TextStyle replacing it', () {
+    // A from-scratch TextStyle (no family, no size) in a button theme renders
+    // the label in the fallback font: solid blocks under the test font, the
+    // "Preview" bug in QA screenshots. expectGrayscale also checks every
+    // visible text (expectReadableText).
+    final t = bwTheme();
+    final label = t.textTheme.labelLarge!;
+    final styles = {
+      'text': t.textButtonTheme.style,
+      'filled': t.filledButtonTheme.style,
+      'outlined': t.outlinedButtonTheme.style,
+      'elevated': t.elevatedButtonTheme.style,
+      'segmented': t.segmentedButtonTheme.style,
+      'icon': t.iconButtonTheme.style,
+    };
+    for (final MapEntry(:key, :value) in styles.entries) {
+      for (final states in [
+        <WidgetState>{},
+        {WidgetState.disabled},
+        {WidgetState.selected},
+      ]) {
+        final ts = value?.textStyle?.resolve(states);
+        if (ts == null) continue;
+        expect(ts.fontFamily, label.fontFamily, reason: '$key button, $states');
+        expect(ts.fontSize, isNotNull, reason: '$key button, $states');
+      }
+    }
+  });
+
   group('palette', () {
     test('every ColorScheme color is black, white or the one gray', () {
       final s = bwTheme().colorScheme;

@@ -13,6 +13,7 @@ library;
 import '../core/core.dart';
 import 'course/course_repo.dart';
 import 'fsrs/fsrs_scheduler.dart';
+import 'progress/feedback_store.dart';
 import 'progress/progress_repo.dart';
 import 'stats/skill_stats.dart';
 import 'sync/review_log_sync.dart';
@@ -38,6 +39,9 @@ class AppData {
   final CoursePackLoader loadPack;
 
   late final SkillStatsService stats = SkillStatsService(progress, scheduler);
+
+  /// Cached AI explanations and exercise flags (tables in the progress database).
+  late final FeedbackStore feedback = DriftFeedbackStore(progress.db);
 
   final Map<String, Future<CourseRepo>> _courses = {};
 
