@@ -38,11 +38,15 @@ ExerciseIntro introFor(ExerciseType t) => switch (t) {
   ),
   ExerciseType.conjPick => const ExerciseIntro(
     title: 'Pick the ending',
-    body: 'Choose the ending that completes the verb for this person and tense.',
+    body:
+        'Choose the ending that completes the word: a verb for this person and tense, '
+        'or another form of a noun or adjective (plural, feminine).',
   ),
   ExerciseType.conjGrid => const ExerciseIntro(
     title: 'Fill in the table',
-    body: 'Tap an empty cell, then the tile with its form. Tap a filled cell to take its tile back.',
+    body:
+        'Fill in every form of the table (a verb\'s persons, or a word\'s forms): tap an empty cell, '
+        'then the tile with its form. Tap a filled cell to take its tile back.',
   ),
   ExerciseType.sentenceBuilder => const ExerciseIntro(
     title: 'Build the sentence',
