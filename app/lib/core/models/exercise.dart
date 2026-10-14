@@ -396,9 +396,14 @@ class SelfGradeAnswer extends Answer {
 
 class MatchAnswer extends Answer {
   /// left index -> right index as finally matched, plus left indices that had a wrong attempt.
-  const MatchAnswer(this.matches, {this.missed = const {}});
+  const MatchAnswer(this.matches, {this.missed = const {}, this.wrongPairs = const []});
   final Map<int, int> matches;
   final Set<int> missed;
+
+  /// Every wrong pair the learner tried, in order, as (left index, right
+  /// index): for display (both cards marked) and the stored answer text.
+  /// Grading uses [missed].
+  final List<(int, int)> wrongPairs;
 }
 
 class GridAnswer extends Answer {
