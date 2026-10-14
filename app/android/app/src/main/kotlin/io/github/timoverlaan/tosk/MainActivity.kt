@@ -31,20 +31,16 @@ class MainActivity : FlutterActivity() {
     private var onyxTried = false
     private var penChannel: MethodChannel? = null
 
-    private val prefs by lazy { getSharedPreferences("tosk_native", Context.MODE_PRIVATE) }
+    private val prefs by lazy { getSharedPreferences(PREFS, Context.MODE_PRIVATE) }
 
     /** The Onyx bridge, created on first use; null when unavailable or disabled. */
     private fun onyxBridge(): OnyxBridge? {
         if (onyxTried) return onyx
         onyxTried = true
+        // A previous Onyx call that never returned (native crash) is detected at
+        // app start by [ToskApplication], which sets KEY_DISABLED.
         if (!isOnyxDevice() || prefs.getBoolean(KEY_DISABLED, false)) return null
-        if (prefs.getBoolean(KEY_PENDING, false)) {
-            // The last init never finished: it crashed the app. Don't try again.
-            Log.w(TAG, "Onyx SDK crashed during a previous init; disabled")
-            prefs.edit().putBoolean(KEY_DISABLED, true).putBoolean(KEY_PENDING, false).commit()
-            return null
-        }
-        onyx = guarded {
+        onyx = guarded("init") {
             try {
                 OnyxBridge(this, penChannel!!)
             } catch (t: Throwable) {
@@ -59,12 +55,12 @@ class MainActivity : FlutterActivity() {
      * Runs an Onyx SDK call with the crash marker set, so a native crash inside
      * it (which no try/catch can see) disables the Onyx features on next start.
      */
-    private fun <T> guarded(block: () -> T): T {
-        prefs.edit().putBoolean(KEY_PENDING, true).commit()
+    private fun <T> guarded(op: String, block: () -> T): T {
+        prefs.edit().putString(KEY_PENDING, op).commit()
         try {
             return block()
         } finally {
-            prefs.edit().putBoolean(KEY_PENDING, false).commit()
+            prefs.edit().remove(KEY_PENDING).commit()
         }
     }
 
@@ -91,7 +87,7 @@ class MainActivity : FlutterActivity() {
         penChannel = pen
         epd.setMethodCallHandler { call, result ->
             when (call.method) {
-                "fullRefresh" -> result.success(onyxBridge()?.let { b -> guarded { b.fullRefresh() } } ?: false)
+                "fullRefresh" -> result.success(onyxBridge()?.let { b -> guarded("fullRefresh") { b.fullRefresh() } } ?: false)
                 else -> result.notImplemented()
             }
         }
@@ -101,7 +97,7 @@ class MainActivity : FlutterActivity() {
                 // Not an ONYX device (or the SDK failed): Dart uses its canvas.
                 result.success(false)
             } else {
-                guarded { bridge.handle(call, result) }
+                guarded("pen.${call.method}") { bridge.handle(call, result) }
             }
         }
     }
@@ -124,8 +120,9 @@ class MainActivity : FlutterActivity() {
 
     companion object {
         private const val TAG = "tosk"
-        private const val KEY_PENDING = "onyx_init_pending"
-        private const val KEY_DISABLED = "onyx_disabled"
+        const val PREFS = "tosk_native"
+        const val KEY_PENDING = "onyx_call_pending"
+        const val KEY_DISABLED = "onyx_disabled"
 
         fun isOnyxDevice(): Boolean {
             val m = (Build.MANUFACTURER ?: "").lowercase()

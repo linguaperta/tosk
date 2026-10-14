@@ -22,7 +22,7 @@
     <application
         tools:replace="android:label"
         android:label="tosk"
-        android:name="${applicationName}"
+        android:name=".ToskApplication"
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"
