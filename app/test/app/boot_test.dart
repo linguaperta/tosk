@@ -14,6 +14,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../fixtures/course_fixture.dart';
 import '../ui/helpers.dart';
 import 'app_fixture.dart';
 
@@ -61,6 +62,36 @@ void main() {
     expect(s.sourceLang, 'nl');
     expect(await container.read(activeCourseIdProvider.future), 'nl');
     expect(container.read(activeCourseIsDemoProvider), isTrue);
+  });
+
+  test('a Dutch-only pack copied into courses/ is listed; an English setting falls back to Dutch', () async {
+    // How the locally built Sarnami pack is loaded on desktop (docs/sarnami.md).
+    final dir = tempDir('tosk_boot_dropped');
+    Directory('${dir.path}/courses').createSync();
+    writeFixtureCourseFile('${dir.path}/courses/hns.sqlite', overrideMeta: {
+      'course_id': 'hns',
+      'target': 'hns',
+      'title': '{"nl":"Sarnami"}',
+      'translations': '["nl"]',
+      'unverified': '1',
+    });
+    final boot = await bootApp(options: AppDataOptions(dataDirectory: dir.path, bundled: fixtureBundledPacks()));
+    addTearDown(boot.close);
+    final container = ProviderContainer.test(overrides: boot.overrides);
+    final courses = await container.read(availableCoursesProvider.future);
+    expect(courses.map((c) => c.id), ['hns', 'it']);
+    expect(courses.first.unverified, isTrue);
+
+    await container.read(settingsProvider.future);
+    await container.read(settingsProvider.notifier).change((s) => s.copyWith(courseId: 'hns', sourceLang: 'en'));
+    final course = await container.read(courseDataProvider.future);
+    expect(course.meta.id, 'hns');
+    expect(container.read(sourceLangProvider), 'nl');
+    expect(container.read(sessionOptionsProvider).sourceLang, 'nl');
+    // The setting itself is kept, so Italian goes back to English.
+    expect((await container.read(settingsProvider.future)).sourceLang, 'en');
+    final factory = await container.read(sessionFactoryProvider.future);
+    expect(await (await factory.lesson(course.skills.first.id)).next(), isNotNull);
   });
 
   test('bundled packs: pack mode on the normal progress DB, used automatically', () async {

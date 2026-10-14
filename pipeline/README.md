@@ -25,7 +25,15 @@ python -m pipeline import it nl [--content-root DIR]           # cache -> conten
 python -m pipeline build it nl [--install] [--quiet]           # validate + compile + report + dist/index.json (offline)
 python -m pipeline validate it nl                              # validation only
 python -m pytest pipeline/tests                                # offline tests
+
+python -m pipeline fetch hns                 # Sarnami: scrape the [source] dictionary (1 req/s) + extra sources
+python -m pipeline import hns                # -> <main checkout>/local/content/hns (local only)
+python -m pipeline build hns --local [--desktop]   # -> local/dist/hns.sqlite (+ copy into the desktop app)
 ```
+
+Sarnami (`hns`) content is copyrighted and lives only in the git-ignored `local/` folder of the main
+checkout; the pipeline refuses to write it anywhere else (`pipeline/hns/safeguard.py`) and refuses
+`--install`. Details, sources and verification: `docs/sarnami.md`.
 
 * **Content root** (the folder with `it/`, `nl/`): `--content-root`, else `$TOSK_CONTENT`, else
   `../tosk-data/content` next to the repo root, else `C:/Users/timo/Repositories/tosk-data/content`
@@ -272,6 +280,22 @@ Notes: item-based grammar skills (pronouns, adjectives, possessives, preposition
 `#rec`/`#prod` of their words and come with a grammar note; no template drills adjective agreement,
 plurals or the split position of separable verbs yet (split forms like *sta ... op* are not aligned).
 Italian reflexive (pronominal) verbs are still excluded from the pool.
+
+**Sarnami 0.2.0 (local only, unverified)** — 35 skills, 394 taught items, 990 facets, 3004 sentences
+(1772 [source] examples, 1214 generated `claude-gen`, 18 [source]); 6284 items, 742 verb tables.
+Grammar first: `base_features` is empty, every tense and construct has its own skill.
+
+| Unit | Skills (items) | Introduces |
+|---|---|---|
+| u1 Eerste stappen | basics (22), pronouns (9), copula* (1), people (15) | `tense:present` |
+| u2 Familie | family (16), present* (20), negation (6), numbers (18) | `negation` |
+| u3 Vragen en bezit | questions (8), possessives (9), body (20), present-more* (20) | `question`, `possessive` |
+| u4 Eten en drinken | food (26), present-progressive* (15), adjectives (26) | `tense:present_progressive` |
+| u5 Thuis | home (24), clothes (16), past-tr* (20), past-intr* (15) | `tense:past` |
+| u6 Buiten | nature (22), animals (18), perfect* (20), places (17) | `tense:perfect` |
+| u7 Tijd | time (28), past-progressive* (12), future* (20), shopping (15) | `tense:past_progressive`, `tense:future` |
+| u8 Werk en gevoel | work (16), modal* (2), feelings (17), actions (30) | `modal` |
+| u9 Beleefd en wensen | polite (7), subjunctive* (15), travel (15), celebrations (15) | `polite`, `tense:subjunctive` |
 
 ## IDs
 

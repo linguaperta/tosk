@@ -14,6 +14,7 @@ items query (vocab skills, and grammar skills with `facet: article`):
 verbs query (grammar skills):
     tense: T            required; the verb must have a complete table for T (all persons)
     class: c | [..]     verb class ('are', 'ere', 'ire', 'isc', 'weak', 'strong', ...)
+    tags: [a, b]        verb item has any of these tags
     regular: bool       true: forms in T follow the regular pattern (T not in irregular_in); false: they don't
     aux: avere|essere|hebben|zijn   the verb's primary (first-listed) perfect auxiliary
     lemmas, exclude, top as above

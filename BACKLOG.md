@@ -36,7 +36,7 @@ Each item says what "done" means. Add newly discovered work at the bottom of its
 - [ ] Dutch separable verbs split in a sentence aren't aligned
 - [x] Compound-tense exercises are wrong on the real packs (auxiliary and participle tokens); generation is slow on the full packs. Fixed in the engine and the alignment; the validity suite went from 7 min to 5 s.
 - [x] Dutch sample review (`docs/samples/nl_exercises.txt`): clause rules, inversion, imperatives and passives fixed
-- [~] Curriculum expansion: 8–10 units, ~30 skills and ~1000 taught words per course (imperfetto, futuro, verleden tijd, possessives, …)
+- [x] Curriculum expansion: it 9 units, 40 skills, ~740 words; nl 8 units, 35 skills, ~710 words (packs 1.1.0)
 
 ## Phase 2: Local database layer (`app/lib/data`)
 
@@ -98,9 +98,9 @@ Each item says what "done" means. Add newly discovered work at the bottom of its
 
 ## v0.3 (user feedback, 13 October)
 
-- [~] Grammar-first curriculum: a construct is taught by its own skill before other exercises use it
-- [~] Grammar gating data: `sentence_features`, `skill_features` and `base_features` in the pipeline and compiler, with a validator check
-- [ ] Grammar gating in the engine: only sentences whose features are known; unknown vocabulary capped (≤1 for grammar focus, ≤2 for vocab)
+- [x] Grammar-first curriculum: a construct is taught by its own skill before other exercises use it
+- [x] Grammar gating data: `sentence_features`, `skill_features` and `base_features` in the pipeline and compiler, with a validator check (home-skill rule)
+- [~] Grammar gating in the engine: only sentences whose features are known; unknown vocabulary capped (≤1 for grammar focus, ≤2 for vocab)
 - [x] Bottom-aligned exercise controls (one-handed use)
 - [~] "Explain answer with AI" after every checked answer (Claude or OpenAI key in Settings; no button without a key), streamed and cached
 - [~] Flag an exercise (reason and comment); Submit saves locally with a `.jsonl` export; "Confer with AI" checks the complaint
@@ -117,11 +117,13 @@ Each item says what "done" means. Add newly discovered work at the bottom of its
 - [ ] Leech handling: facets with ≥4 lapses → "tough words" drill and mistake review (+ AI mnemonic when configured)
 - [ ] Session length options: quick (5) / normal (12) / long (20)
 - [ ] Pipeline: AI-generated example sentences for thin slots (verb × person × tense < 5 sentences), under gating constraints, validated by the aligner, `src: claude-gen`, reviewed in samples
-- [ ] Sentence variety: log the sentence id with each answer; the engine prefers unseen or least-recently-seen sentences
+- [~] Sentence variety: log the sentence id with each answer; the engine prefers unseen or least-recently-seen sentences
 - [ ] Sentence floor: generation tops up every verb×person×tense slot and every vocab topic to ≥8–10 distinct sentences
 - [ ] Course picker as a pop-up menu: +/- to add or remove each course, a preview per course (description, units/skills, sample words and sentences, unverified badge); the app only shows courses you've added
 - [x] Black & white (e-ink) mode for the Boox: pure B/W skin, nothing conveyed by color (icons, labels, patterns, inverted fills), reduce motion forced on. Tested: grayscale-only assertions on every screen and exercise type, goldens, overflow at Boox and phone sizes
 - [ ] QA leftovers: `ciao` MC offers "hello" as a distractor (synonym data); instruction can slide under the app bar on tall exercises; a "jump to current unit" button on long maps
+- [ ] Exercises for the item-only grammar skills (plurals, adjective agreement, split separable verbs): needs `#plural`/declension facets (see the declension extension) and alignment of split separable verbs
+- [ ] Italian reflexive/pronominal verbs (excluded by the pipeline today)
 - [ ] Preview 3 APK
 
 
@@ -149,7 +151,8 @@ Each one at the expanded it/nl scale: 8–10 units, ~30 skills, ~1000 taught wor
 
 ## Later (not v1)
 
-- [~] Phase 6: Sarnami (`hns`), a Dutch–Sarnami course from the [source] dictionary. Local-only data ([source] copyright): never committed, and loaded from a file.
+- [x] Phase 6: Sarnami (`hns`): 9 units, 35 skills, 394 taught words, 742 verb tables, 3,004 sentences. Sources: [source] dictionary, [source] 1991, [source]� 1985 (checking), [source], NT (checking only), plus Claude-drafted/generated material, with per-record `src` and a SOURCES manifest. Local-only (copyright), unverified; see `docs/sarnami.md`.
+- [ ] Sarnami: review by a speaker (open questions in `docs/sarnami.md`); [source]�'s past habitual/conditional not modelled; [source] readers blocked by a bot challenge
 - [-] Phase 7: `GitHubPackSource`, `DriveSyncBackend`. Interfaces only in v1.
 - [-] Phase 8: ink `AnswerInput` and Onyx pen SDK (v0.5). The AI explainer and the B/W e-ink mode moved up to v0.3.
 - [-] `listen_pick` exercise (needs audio/TTS)

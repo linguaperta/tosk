@@ -25,11 +25,28 @@ def sha256(path: Path) -> str:
     return h.hexdigest()
 
 
-def _validate(langs, root: Path) -> tuple[dict, bool]:
+def _roots(langs, content_root, local: bool) -> dict[str, Path]:
+    """Content root per course. Restricted courses (hns) always use the local root, unless an
+    explicit --content-root is given (which the safeguard then checks)."""
+    from .hns.safeguard import RESTRICTED_COURSES, check_destination, local_content_root
+    out = {}
+    for code in langs:
+        if content_root:
+            root = content_dir(content_root)
+        elif local or code in RESTRICTED_COURSES:
+            root = local_content_root()
+        else:
+            root = content_dir(None)
+        check_destination(code, root / code)
+        out[code] = root
+    return out
+
+
+def _validate(langs, roots: dict[str, Path]) -> tuple[dict, bool]:
     packs = {}
     ok = True
     for code in langs:
-        pack = load_pack(root / code)
+        pack = load_pack(roots[code] / code)
         errors = validate(pack)
         if errors:
             ok = False
@@ -44,8 +61,8 @@ def _validate(langs, root: Path) -> tuple[dict, bool]:
     return packs, ok
 
 
-def validate_only(langs, content_root=None) -> int:
-    _, ok = _validate(langs, content_dir(content_root))
+def validate_only(langs, content_root=None, local: bool = False) -> int:
+    _, ok = _validate(langs, _roots(langs, content_root, local))
     return 0 if ok else 1
 
 
@@ -68,15 +85,22 @@ def write_index(dist: Path, entries: dict[str, dict]) -> Path:
     return path
 
 
-def build(langs, content_root=None, install: bool = False, quiet: bool = False) -> int:
-    root = content_dir(content_root)
-    packs, ok = _validate(langs, root)
+def build(langs, content_root=None, install: bool = False, quiet: bool = False, local: bool = False,
+          desktop: bool = False) -> int:
+    from .hns.safeguard import RESTRICTED_COURSES, RestrictedContentError, check_destination
+    if install and RESTRICTED_COURSES & set(langs):
+        raise RestrictedContentError(
+            f"refusing --install for {sorted(RESTRICTED_COURSES & set(langs))}: restricted content must not be "
+            "bundled into app/assets (load it from a file instead, see docs/sarnami.md)")
+    roots = _roots(langs, content_root, local)
+    packs, ok = _validate(langs, roots)
     if not ok:
         return 1
-    dist = root.parent / "dist"
-    entries = {}
+    entries_by_dist: dict[Path, dict] = {}
     for code, pack in packs.items():
-        out = dist / f"{code}.sqlite"
+        dist = roots[code].parent / "dist"
+        out = check_destination(code, dist / f"{code}.sqlite")
+        entries = entries_by_dist.setdefault(dist, {})
         stats = compile_pack(pack, out)
         print(f"[{code}] compiled {out} ({out.stat().st_size // 1024} KB): {stats['items']} items, "
               f"{stats['verbs']} verbs, {stats['verb_forms']} forms, {stats['sentences']} sentences, "
@@ -95,6 +119,10 @@ def build(langs, content_root=None, install: bool = False, quiet: bool = False) 
             APP_COURSES_DIR.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(out, APP_COURSES_DIR / f"{code}.sqlite")
             print(f"[{code}] installed -> {APP_COURSES_DIR / f'{code}.sqlite'}", file=sys.stderr)
-    idx = write_index(dist, entries)
-    print(f"wrote {idx}", file=sys.stderr)
+        if desktop:
+            from .hns.install import install_desktop
+            print(f"[{code}] copied to the desktop app: {install_desktop(out)}", file=sys.stderr)
+    for dist, entries in entries_by_dist.items():
+        idx = write_index(dist, entries)
+        print(f"wrote {idx}", file=sys.stderr)
     return 0
