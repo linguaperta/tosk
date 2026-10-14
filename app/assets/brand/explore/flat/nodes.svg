@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 140" width="660" height="140">
+<title>Skill node states</title>
+<defs></defs>
+<circle cx="60" cy="60" r="34" fill="#D6CFC4" stroke="#9A9288" stroke-width="3" stroke-dasharray="6 6"/>
+<rect x="49" y="57" width="22" height="17" rx="4" fill="#9A9288"/>
+<path d="M53 57 V 51 A7 7 0 0 1 67 51 V 57" fill="none" stroke="#9A9288" stroke-width="4"/>
+<text x="60" y="126" font-family="Segoe UI, system-ui, sans-serif" font-size="15" text-anchor="middle" fill="#26190F">locked</text>
+<circle cx="168" cy="60" r="34" fill="#FFF0D2" stroke="#26190F" stroke-width="5"/>
+<path d="M168.0 41.0 L172.8 53.4 L186.1 54.1 L175.8 62.5 L179.2 75.4 L168.0 68.2 L156.8 75.4 L160.2 62.5 L149.9 54.1 L163.2 53.4Z" fill="#FFF0D2" stroke="#26190F" stroke-width="3.5" stroke-linejoin="round"/>
+<text x="168" y="126" font-family="Segoe UI, system-ui, sans-serif" font-size="15" text-anchor="middle" fill="#26190F">available</text>
+<circle cx="276" cy="60" r="34" fill="#FFF0D2" stroke="#26190F" stroke-width="5"/>
+<circle cx="276" cy="60" r="43" fill="none" stroke="#D6CFC4" stroke-width="5" opacity="1"/>
+<path d="M276.0 17.0 A43 43 0 1 1 250.7 94.8" fill="none" stroke="#F5B63A" stroke-width="6" stroke-linecap="round"/>
+<path d="M276.0 41.0 L280.8 53.4 L294.1 54.1 L283.8 62.5 L287.2 75.4 L276.0 68.2 L264.8 75.4 L268.2 62.5 L257.9 54.1 L271.2 53.4Z" fill="#FFF0D2" stroke="#26190F" stroke-width="3.5" stroke-linejoin="round"/>
+<text x="276" y="126" font-family="Segoe UI, system-ui, sans-serif" font-size="15" text-anchor="middle" fill="#26190F">in progress</text>
+<circle cx="384" cy="60" r="34" fill="#C77E4A" stroke="#26190F" stroke-width="5"/>
+<clipPath id="n108"><circle cx="384" cy="60" r="34"/></clipPath>
+<path d="M424.8 75.3C424.8 82.2 421.0 89.6 414.8 94.5C408.7 99.4 399.5 102.5 390.8 102.5C382.1 102.5 372.9 99.4 366.8 94.5C360.6 89.6 356.8 82.2 356.8 75.3C356.8 68.4 360.6 61.0 366.8 56.1C372.9 51.2 382.1 48.1 390.8 48.1C399.5 48.1 408.7 51.2 414.8 56.1C421.0 61.0 424.8 68.4 424.8 75.3Z" fill="#A5602F" clip-path="url(#n108)"/>
+<path d="M384.0 41.0 L388.8 53.4 L402.1 54.1 L391.8 62.5 L395.2 75.4 L384.0 68.2 L372.8 75.4 L376.2 62.5 L365.9 54.1 L379.2 53.4Z" fill="#FFF0D2" stroke="#26190F" stroke-width="3.5" stroke-linejoin="round"/>
+<circle cx="384" cy="61" r="4.896" fill="#26190F"/>
+<text x="384" y="126" font-family="Segoe UI, system-ui, sans-serif" font-size="15" text-anchor="middle" fill="#26190F">bronze</text>
+<circle cx="492" cy="60" r="34" fill="#BCC5CC" stroke="#26190F" stroke-width="5"/>
+<clipPath id="n109"><circle cx="492" cy="60" r="34"/></clipPath>
+<path d="M532.8 75.3C532.8 82.2 529.0 89.6 522.8 94.5C516.7 99.4 507.5 102.5 498.8 102.5C490.1 102.5 480.9 99.4 474.8 94.5C468.6 89.6 464.8 82.2 464.8 75.3C464.8 68.4 468.6 61.0 474.8 56.1C480.9 51.2 490.1 48.1 498.8 48.1C507.5 48.1 516.7 51.2 522.8 56.1C529.0 61.0 532.8 68.4 532.8 75.3Z" fill="#98A3AC" clip-path="url(#n109)"/>
+<clipPath id="h110"><rect x="458" y="26" width="34" height="68"/></clipPath>
+<path d="M492.0 41.0 L496.8 53.4 L510.1 54.1 L499.8 62.5 L503.2 75.4 L492.0 68.2 L480.8 75.4 L484.2 62.5 L473.9 54.1 L487.2 53.4Z" fill="#FFF0D2" stroke="#26190F" stroke-width="3.5" stroke-linejoin="round"/>
+<path d="M492.0 41.0 L496.8 53.4 L510.1 54.1 L499.8 62.5 L503.2 75.4 L492.0 68.2 L480.8 75.4 L484.2 62.5 L473.9 54.1 L487.2 53.4Z" fill="#26190F" clip-path="url(#h110)"/>
+<text x="492" y="126" font-family="Segoe UI, system-ui, sans-serif" font-size="15" text-anchor="middle" fill="#26190F">silver</text>
+<circle cx="600" cy="60" r="34" fill="#F5B63A" stroke="#26190F" stroke-width="7"/>
+<clipPath id="n111"><circle cx="600" cy="60" r="34"/></clipPath>
+<path d="M640.8 75.3C640.8 82.2 637.0 89.6 630.8 94.5C624.7 99.4 615.5 102.5 606.8 102.5C598.1 102.5 588.9 99.4 582.8 94.5C576.6 89.6 572.8 82.2 572.8 75.3C572.8 68.4 576.6 61.0 582.8 56.1C588.9 51.2 598.1 48.1 606.8 48.1C615.5 48.1 624.7 51.2 630.8 56.1C637.0 61.0 640.8 68.4 640.8 75.3Z" fill="#D98A1F" clip-path="url(#n111)"/>
+<circle cx="600" cy="60" r="43" fill="none" stroke="#F5B63A" stroke-width="3"/>
+<path d="M600.0 41.0 L604.8 53.4 L618.1 54.1 L607.8 62.5 L611.2 75.4 L600.0 68.2 L588.8 75.4 L592.2 62.5 L581.9 54.1 L595.2 53.4Z" fill="#26190F" stroke="#26190F" stroke-width="3.5" stroke-linejoin="round"/>
+<text x="600" y="126" font-family="Segoe UI, system-ui, sans-serif" font-size="15" text-anchor="middle" fill="#26190F">gold</text>
+</svg>

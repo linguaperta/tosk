@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+<defs>
+<pattern id="hatch" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(45)">
+  <rect width="7" height="7" fill="#fff"/><line x1="0" y1="0" x2="0" y2="7" stroke="#000" stroke-width="1.6"/></pattern>
+<pattern id="hatchv" patternUnits="userSpaceOnUse" width="6" height="6">
+  <rect width="6" height="6" fill="#fff"/><line x1="3" y1="0" x2="3" y2="6" stroke="#000" stroke-width="1.3"/></pattern>
+<pattern id="cross" patternUnits="userSpaceOnUse" width="6" height="6">
+  <rect width="6" height="6" fill="#fff"/><line x1="0" y1="3" x2="6" y2="3" stroke="#000" stroke-width="1.2"/>
+  <line x1="3" y1="0" x2="3" y2="6" stroke="#000" stroke-width="1.2"/></pattern>
+<pattern id="stipple" patternUnits="userSpaceOnUse" width="6" height="6">
+  <rect width="6" height="6" fill="#fff"/><circle cx="1.5" cy="1.5" r="1" fill="#000"/><circle cx="4.5" cy="4.5" r="1" fill="#000"/></pattern>
+</defs>
+<rect x="0" y="0" width="512" height="512" rx="112" fill="#ffffff"/>
+<rect x="10" y="10" width="492" height="492" rx="104" fill="none" stroke="#000" stroke-width="16"/>
+<circle cx="256" cy="256" r="214" fill="#ffffff" stroke="#000000" stroke-width="14"/>
+<path d="M232,392 C150,420 84,360 100,284 C84,250 104,210 128,196 C116,150 150,108 196,118 C216,80 282,84 294,130 C300,150 290,162 280,164 C258,150 234,160 224,186 C206,222 204,270 220,322 C226,350 232,372 232,392 Z" fill="#000000" stroke="#000000" stroke-width="11" stroke-linejoin="round" stroke-linecap="round" />
+<path d="M300,250 C330,250 356,290 356,336 C356,384 316,410 262,406 C222,402 206,370 220,330 C236,286 266,250 300,250 Z" fill="#000000" stroke="#000000" stroke-width="11" stroke-linejoin="round" stroke-linecap="round" />
+<path d="M268,252 C256,206 290,172 334,176 C364,180 380,200 384,222 C398,232 404,254 392,270 C380,284 360,286 348,282 C330,296 296,292 282,276 C272,268 268,260 268,252 Z" fill="#ffffff" stroke="#000000" stroke-width="11" stroke-linejoin="round" stroke-linecap="round" />
+<path d="M286,198 C288,176 296,160 306,150 L310,126 L322,150 L344,138 L336,160 L352,162 C344,174 334,190 326,200 Z" fill="#ffffff" stroke="#000000" stroke-width="11" stroke-linejoin="round" stroke-linecap="round" />
+<ellipse cx="352" cy="222" rx="17" ry="18" fill="#ffffff" stroke="#000000" stroke-width="7"/>
+<circle cx="356" cy="225" r="11" fill="#000000"/>
+<circle cx="351" cy="218" r="4" fill="#ffffff"/>
+<path d="M334,200 C346,192 364,194 372,204" fill="none" stroke="#000000" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+<circle cx="396" cy="256" r="7" fill="#000000"/>
+<path d="M388,270 C382,282 368,284 360,278" fill="none" stroke="#000000" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
+<g transform="rotate(-20 318 318)">
+<path d="M292,306 L344,306 L344,330 L292,330 Z" fill="#ffffff" stroke="#000000" stroke-width="7" stroke-linejoin="round" stroke-linecap="round" />
+<circle cx="292" cy="318" r="9" fill="#fff" stroke="#000000" stroke-width="6"/>
+<circle cx="344" cy="318" r="9" fill="#fff" stroke="#000000" stroke-width="6"/>
+</g>
+<path d="M306,282 C322,286 336,298 342,308 C344,316 336,320 330,316 C318,308 306,298 298,292 Z" fill="#ffffff" stroke="#000000" stroke-width="8.8" stroke-linejoin="round" stroke-linecap="round" />
+</svg>
