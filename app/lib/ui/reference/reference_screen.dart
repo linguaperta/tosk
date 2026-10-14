@@ -106,7 +106,8 @@ class _LookupViewState extends ConsumerState<LookupView> {
       onRetry: () => ref.invalidate(courseDataProvider),
       builder: (course) {
         final reference = CourseReference.of(course);
-        final hits = reference.search(_query.text, lang, verbsOnly: _verbsOnly);
+        // Everything (a few thousand rows build lazily); empty query: the whole course.
+        final hits = reference.search(_query.text, lang, verbsOnly: _verbsOnly, limit: 1 << 20);
         return Column(
           children: [
             Expanded(
@@ -170,7 +171,7 @@ class _LookupViewState extends ConsumerState<LookupView> {
                                 onSelected: (_) => setState(() => _verbsOnly = true),
                               ),
                               Text(
-                                '${hits.length}${hits.length >= 300 ? '+' : ''} found',
+                                '${hits.length} found',
                                 key: const ValueKey('lookup-count'),
                                 style: theme.textTheme.bodySmall,
                               ),

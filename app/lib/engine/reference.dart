@@ -85,8 +85,8 @@ WordGloss? glossForTokenRef(CourseData course, TokenRef t, String lang, {String?
 
 // ====================================================================== search
 
-/// How a search hit matched.
-enum ReferenceMatch { lemma, lemmaPrefix, form, gloss, glossPrefix, contains }
+/// How a search hit matched, best first: whole matches before prefixes.
+enum ReferenceMatch { lemma, form, gloss, lemmaPrefix, glossPrefix, contains }
 
 class ReferenceHit {
   const ReferenceHit(this.item, this.match, {this.matched});
@@ -183,8 +183,8 @@ class CourseReference {
 
   /// Searches lemmas, spelling variants, plurals and verb forms (target
   /// language) and glosses in [lang], ignoring case and accents. An empty
-  /// query lists everything. Best matches first: lemma, lemma prefix,
-  /// inflected form, gloss word, gloss prefix, anywhere.
+  /// query lists everything. Best matches first: lemma, inflected form,
+  /// gloss (or one of its words), lemma prefix, gloss prefix, anywhere.
   List<ReferenceHit> search(String query, String lang, {bool verbsOnly = false, int limit = 300}) {
     final pool = verbsOnly ? verbs : items;
     final q = foldAnswer(query);
