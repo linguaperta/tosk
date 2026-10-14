@@ -397,6 +397,24 @@ void main() {
       expect(ctx.prefer(sentences, (s) => s).last.id, 's:12', reason: 'used in this session: last resort');
     });
 
+    test('prefer: an unseen real sentence comes before a generated one with as many unknown words', () {
+      final c = _course(gated: false);
+      Sentence s(String id, String src) =>
+          Sentence(id: id, text: id, tr: const {'en': 'x'}, tokens: const [], src: src);
+      final gen = [s('g:it:1', 'claude-gen (food: pane)'), s('g:it:2', 'claude-gen (food)')];
+      final real = [s('s:101', 'tatoeba:101'), s('s:102', 'tatoeba:102')];
+      expect(isGeneratedSentence(gen.first), isTrue);
+      expect(isGeneratedSentence(real.first), isFalse);
+      for (var seed = 0; seed < 30; seed++) {
+        final order = [for (final x in _ctx(c, 'food', seed: seed).prefer([...gen, ...real], (x) => x)) x.id];
+        expect(order.take(2).toSet(), {'s:101', 's:102'});
+      }
+      // Once the real sentences were just seen, the generated ones give variety.
+      final history = SentenceHistory(recent: ['s:101', 's:102']);
+      final order = [for (final x in _ctx(c, 'food', history: history, seed: 3).prefer([...gen, ...real], (x) => x)) x.id];
+      expect(order.take(2).toSet(), {'g:it:1', 'g:it:2'});
+    });
+
     test('history: merge keeps the newest, bounded; save merges with what is stored', () async {
       expect(SentenceHistory.merge(['a', 'b', 'c'], ['b', 'd'], 3), ['c', 'b', 'd']);
       final store = InMemoryProgressStore();

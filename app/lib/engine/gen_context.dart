@@ -44,6 +44,15 @@ class StagePolicy {
 /// 1–3, see [SentenceHistory.penalty], plus a random jitter below 1).
 const double kUnknownWordWeight = 0.75;
 
+/// Score added in [GenContext.prefer] to a generated sentence (`src` starting
+/// with `claude-gen`): at least the jitter, so a real (Tatoeba) sentence with
+/// the same number of unknown words always comes first while it is unseen.
+const double kGeneratedSentenceWeight = 1.0;
+
+/// Whether [s] was written for the course (pipeline `generate.py`) rather
+/// than taken from a corpus.
+bool isGeneratedSentence(Sentence s) => s.src?.startsWith('claude-gen') ?? false;
+
 class GenContext {
   GenContext({
     required this.course,
@@ -143,7 +152,9 @@ class GenContext {
   /// The candidates whose sentence may be shown, best first, at most [take]:
   /// fewer unknown words, then sentences never seen (or least recently seen)
   /// first, with a random jitter so equal candidates come in random order.
-  /// Sentences already used in this session come last (only when nothing
+  /// A generated sentence ranks after the unseen real ones with as many
+  /// unknown words ([kGeneratedSentenceWeight]), about level with a real one
+  /// seen long ago. Sentences already used in this session come last (only when nothing
   /// else is left: a session never repeats a sentence while others remain).
   List<T> prefer<T>(Iterable<T> candidates, Sentence Function(T) sentenceOf, {int take = 1 << 30}) {
     final fresh = <(double, T)>[];
@@ -155,6 +166,7 @@ class GenContext {
       if (g != null && !g.allows(s, wordCap)) continue;
       final score = (g == null ? 0 : g.unknownWords(s) * kUnknownWordWeight) +
           (h == null ? 0 : h.penalty(s.id)) +
+          (isGeneratedSentence(s) ? kGeneratedSentenceWeight : 0) +
           random.nextDouble();
       (h != null && h.usedInSession(s.id) ? reused : fresh).add((score, c));
     }
