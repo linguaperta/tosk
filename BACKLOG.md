@@ -147,11 +147,12 @@ Each item says what "done" means. Add newly discovered work at the bottom of its
 - [x] First-time intro for every exercise type, re-openable via (?)
 - [x] Transform renamed "Change the tense" / "Change the person", with a from → to chip
 
-## v0.7: accounts and sync (proposed, awaiting user decision)
+## v0.7: accounts and sync (approved 14 October: Firebase, everything free)
 
-- [ ] Firebase: Google sign-in, Firestore per-user answer log (union merge, offline-first, per-event UTC offset, future-timestamp clamp), settings last-writer-wins, "Delete my cloud data"
-- [ ] Firebase Hosting: web app + pack mirror (fixes web CORS); GitHub Actions for tests, web deploy, and release APK/Windows builds
-- [ ] Decide on the name and domain ("tosk" is close to the Duolingo trademark)
+- [~] Firebase: Google sign-in, Firestore per-user answer log (union merge, offline-first, per-event UTC offset, future-timestamp clamp), settings last-writer-wins, "Delete my cloud data"
+- [~] Firebase Hosting: web app + pack mirror (fixes web CORS); GitHub Actions for tests, web deploy, and release APK/Windows builds
+- [~] iOS for free: PWA (Add to Home Screen) as the default; unsigned IPA from CI for AltStore/SideStore (7-day re-signing with a free Apple ID)
+- [-] Own domain: not now (free → `<project>.web.app`). Name stays "tosk" while personal; rename before any public listing (Duolingo trademark)
 
 ## v0.4 (in progress, started 14 October)
 
