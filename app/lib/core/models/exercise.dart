@@ -338,6 +338,9 @@ class SpotErrorExercise extends Exercise {
   ExerciseType get type => ExerciseType.spotError;
 }
 
+/// What a transform exercise asks to change.
+enum TransformChange { tense, person }
+
 @immutable
 class TransformExercise extends Exercise {
   const TransformExercise({
@@ -352,9 +355,22 @@ class TransformExercise extends Exercise {
     this.sentenceId,
     this.translation,
     this.sourceTokens,
+    this.change,
+    this.fromLabel,
+    this.toLabel,
   });
   final String source; // original sentence
   final String targetDescription; // e.g. "→ passato prossimo" or "→ noi"
+
+  /// What changes: the tense or the person (null from older snapshots).
+  final TransformChange? change;
+
+  /// The source sentence's tense or person (with its tense when both change),
+  /// in the course's labels and the source language: `present`, `io`.
+  final String? fromLabel;
+
+  /// The target tense or person: `present perfect (passato prossimo)`, `noi`.
+  final String? toLabel;
   final List<String> tiles;
   final List<List<String>> answers; // first is canonical
   final String? sentenceId;

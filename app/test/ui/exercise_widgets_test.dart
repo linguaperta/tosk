@@ -245,7 +245,12 @@ void main() {
       expect(find.byKey(const ValueKey('source-sentence')), findsOneWidget);
       expect(find.byKey(const ValueKey('word-3')), findsOneWidget); // mela
       expect(find.byKey(const ValueKey('word-1')), findsNothing); // mangio
-      expect(find.text(e.targetDescription), findsOneWidget);
+      // "Change the person": a prominent from → to chip.
+      expect(e.instruction, 'Change the person');
+      expect(find.text('Change the person'), findsOneWidget);
+      expect(find.descendant(of: find.byKey(const ValueKey('transform-target')), matching: find.text('io')), findsOneWidget);
+      expect(find.byKey(const ValueKey('transform-to')), findsOneWidget);
+      expect(tester.widget<Text>(find.byKey(const ValueKey('transform-to'))).data, 'noi');
       for (final w in e.answers.first) {
         await tap(tester, 'tile-${e.tiles.indexOf(w)}');
       }
