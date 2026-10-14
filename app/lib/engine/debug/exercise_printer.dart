@@ -8,6 +8,7 @@ import '../../core/interfaces/course_data.dart';
 import '../../core/interfaces/session.dart';
 import '../../core/models/exercise.dart';
 import '../../core/models/facet.dart';
+import '../gating.dart';
 import '../gen_context.dart';
 import '../template.dart';
 import '../templates/templates.dart';
@@ -89,6 +90,10 @@ String formatExercise(Exercise e) {
 /// Generates up to [perType] exercises per skill and template and renders
 /// them. Facets are cycled and seeds varied; templates that cannot serve a
 /// skill are listed as such.
+///
+/// With [startedSkills] (and a course with gating data), exercises are gated
+/// as in a lesson of each skill (mixed focus) for a learner who started those
+/// skills, and sentences are not repeated within a skill (variety).
 String sampleExercises(
   CourseData course, {
   int perType = 20,
@@ -96,6 +101,7 @@ String sampleExercises(
   int seed = 0,
   List<ExerciseTemplate>? templates,
   Iterable<String>? skillIds,
+  Set<String>? startedSkills,
 }) {
   final b = StringBuffer();
   final tpls = templates ?? defaultTemplates();
@@ -106,6 +112,10 @@ String sampleExercises(
     b.writeln('SKILL ${skill.id} (${skill.kind.name})  ${skill.title[lang] ?? skill.title['en'] ?? ''}');
     b.writeln('=' * 72);
     final facets = course.skillFacets(skill.id);
+    final gate = startedSkills != null && SentenceGate.supports(course)
+        ? SentenceGate(course, started: startedSkills, current: [skill.id])
+        : null;
+    final history = startedSkills != null ? SentenceHistory() : null;
     for (final t in tpls) {
       if (skill.exercises.isNotEmpty && !skill.exercises.contains(t.type.id)) continue;
       final usable = <SkillFacet>[for (final f in facets) if (t.supports(f)) f];
@@ -119,6 +129,9 @@ String sampleExercises(
           random: Random(seed * 7919 + i),
           skill: skill,
           nextId: () => '${skill.id}/${t.type.id}/$i',
+          gate: gate,
+          history: history,
+          wordCap: SentenceGate.capFor(LessonFocus.mixed, skill),
         );
         if (!t.canGenerate(f, ctx)) continue;
         final e = t.generate(f, ctx);
