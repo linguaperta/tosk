@@ -359,6 +359,10 @@ class SkillGraph:
         self.verb_skills: list[tuple[str, str, set[str]]] = [
             (sid, self.skill[sid]["verbs"]["tense"], set(resolved.get(sid, [])))
             for sid in self.order if "verbs" in self.skill[sid]]
+        # skills training inflection tables (course.yaml `inflections`), in course order
+        self.infl_skills: list[tuple[str, set[str], set[str]]] = [
+            (sid, set(query.infl_tables(self.skill[sid])), set(resolved.get(sid, [])))
+            for sid in self.order if query.infl_tables(self.skill[sid])]
         self.tagger = tagger
 
     def closure(self, sid: str) -> set[str]:
@@ -375,6 +379,13 @@ class SkillGraph:
     def grammar_skill(self, vid: str, tense: str) -> str | None:
         for sid, t, ids in self.verb_skills:
             if t == tense and vid in ids:
+                return sid
+        return None
+
+    def infl_skill(self, iid: str, table: str) -> str | None:
+        """The first skill training `table` of item `iid` (for the importer's sentence quotas)."""
+        for sid, tables, ids in self.infl_skills:
+            if table in tables and iid in ids:
                 return sid
         return None
 

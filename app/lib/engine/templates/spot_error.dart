@@ -8,6 +8,7 @@ import '../grading/rating.dart';
 import '../strings.dart';
 import '../template.dart';
 import 'alterations.dart';
+import 'inflection.dart';
 
 /// One planned error in a sentence.
 class _Plan {
@@ -37,7 +38,7 @@ class SpotErrorTemplate extends ExerciseTemplate {
   ExerciseType get type => ExerciseType.spotError;
 
   @override
-  Set<FacetKind> get kinds => const {FacetKind.form, FacetKind.article};
+  Set<FacetKind> get kinds => const {FacetKind.form, FacetKind.article, FacetKind.infl};
 
   @override
   bool canGenerate(SkillFacet facet, GenContext ctx) =>
@@ -66,6 +67,30 @@ class SpotErrorTemplate extends ExerciseTemplate {
           sw.render(),
           sw.tokenPos,
           o.sentence.tokens[sw.tokenPos].t,
+        ));
+      }
+    } else if (facet.kind == FacetKind.infl && facet.table != null) {
+      // One inflected word replaced: another cell of an agreement table (`La
+      // casa è bello`), or a wrong form that is no word (`twee katen`).
+      final spec = inflTableOf(ctx, facet);
+      final occ = [
+        for (final o in inflOccurrences(ix, facet.itemId, facet.table!))
+          if (inflAskable(spec, o.cell) && !(shuffle && ctx.shownRecently(o.sentence.id))) o,
+      ];
+      for (final o in order(occ, (o) => o.sentence)) {
+        if (out.length >= limit) break;
+        final pool = inflSentenceWrongs(ctx.course, o);
+        if (pool.isEmpty) continue;
+        final rep = shuffle ? ctx.pick(pool) : pool.first;
+        out.add(_Plan(
+          o.sentence.id,
+          o.sentence.translation(ctx.lang),
+          [
+            for (var i = 0; i < o.sentence.tokens.length; i++)
+              (o.sentence.tokens[i].pre, i == o.pos ? rep : o.sentence.tokens[i].t),
+          ],
+          o.pos,
+          o.text,
         ));
       }
     } else if (facet.kind == FacetKind.article) {

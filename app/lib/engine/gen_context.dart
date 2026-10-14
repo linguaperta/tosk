@@ -53,6 +53,9 @@ const double kGeneratedSentenceWeight = 1.0;
 /// than taken from a corpus.
 bool isGeneratedSentence(Sentence s) => s.src?.startsWith('claude-gen') ?? false;
 
+/// See [GenContext.shownRecently].
+const int kRecentSentenceWindow = 100;
+
 class GenContext {
   GenContext({
     required this.course,
@@ -179,6 +182,16 @@ class GenContext {
         for (final e in reused.take(take - fresh.length)) e.$2,
     ];
   }
+
+  /// Whether this session already showed sentence [id].
+  bool usedInSession(String id) => history?.usedInSession(id) ?? false;
+
+  /// Whether sentence [id] was shown in this session or among the last
+  /// [kRecentSentenceWindow] sentences before it. Templates whose facet can
+  /// always be served without a sentence (inflection facets: the ending
+  /// picker) skip such sentences instead of repeating them.
+  bool shownRecently(String id) =>
+      (history?.usedInSession(id) ?? false) || (history?.seenWithin(id, kRecentSentenceWindow) ?? false);
 
   /// Records that an exercise shows sentence [id] (for variety).
   void useSentence(String? id) {

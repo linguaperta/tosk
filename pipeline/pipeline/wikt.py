@@ -36,6 +36,12 @@ class Lexeme:
     aux: list[str] = field(default_factory=list)
     table_tags: str = ""
     n_senses: int = 0
+    # non-verbs: every (form, tags) of each Wiktionary entry, for the inflection tables (inflect.py)
+    entry_forms: list[list[tuple[str, frozenset[str]]]] = field(default_factory=list)
+    head: str = ""            # first head-template expansion ('uovo m (plural uova f, ...)')
+    uncountable: bool = False  # noun without a plural ('-' in the head template, every entry)
+    invariable: bool = False   # same form in every cell ('città f (invariable)', 'blu (invariable)')
+    plural_only: bool = False  # 'pantaloni m pl (plural only)'
 
 
 FRAGMENT_START = {"in", "with", "before", "after", "or", "and", "such", "as", "for", "of", "by", "especially",
@@ -151,6 +157,8 @@ def parse_entry(e: dict, lang: Lang) -> Lexeme | None:
                       if not (set(sn.get("tags") or []) & SKIP_SENSE_TAGS) and not sn.get("form_of"))
     if pos == "noun":
         lx.gender = entry_gender(e)
+    _head_info(e, lx)
+    tagged: list[tuple[str, frozenset[str]]] = []
     templates_seen = 0
     for f in e.get("forms") or []:
         tags = f.get("tags") or []
@@ -188,6 +196,9 @@ def parse_entry(e: dict, lang: Lang) -> Lexeme | None:
             if "auxiliary" in tags and f.get("source") != "conjugation":
                 continue
             continue
+        if pos != "verb" and form and "table-tags" not in tags and "inflection-template" not in tags:
+            sp = lang.spelling(form, f.get("link")) if lang.code == "it" else form
+            tagged.append((sp.replace("’", "'"), frozenset(tags)))
         if set(tags) & SKIP_INFL_TAGS:
             continue
         if pos == "pron" or (pos == "det" and lang.code == "nl"):
@@ -199,7 +210,26 @@ def parse_entry(e: dict, lang: Lang) -> Lexeme | None:
             cf = _clean_form(form)
             if cf:
                 lx.plural = cf[0]
+    if pos != "verb":
+        lx.entry_forms = [tagged]
     return lx
+
+
+def _head_info(e: dict, lx: Lexeme) -> None:
+    """Countability and invariability from the head template ('it-noun' / 'nl-noun' args)."""
+    heads = e.get("head_templates") or []
+    if not heads:
+        return
+    h = heads[0]
+    lx.head = h.get("expansion") or ""
+    args = h.get("args") or {}
+    exp = lx.head
+    if lx.pos == "noun":
+        lx.uncountable = args.get("2") == "-" or "(uncountable" in exp and "countable and" not in exp
+        lx.invariable = args.get("2") == "#" or "(invariable" in exp
+        lx.plural_only = "-p" in (args.get("1") or "") or "plural only" in exp
+    else:
+        lx.invariable = args.get("inv") == "1" or "(invariable" in exp
 
 
 def load_lexemes(path: Path, lang: Lang) -> dict[tuple[str, str], Lexeme]:
@@ -223,6 +253,11 @@ def load_lexemes(path: Path, lang: Lang) -> dict[tuple[str, str], Lexeme]:
             cur.n_senses += lx.n_senses
             cur.gender = cur.gender or lx.gender
             cur.plural = cur.plural or lx.plural
+            cur.entry_forms += lx.entry_forms
+            cur.head = cur.head or lx.head
+            cur.uncountable = cur.uncountable and lx.uncountable   # countable in any etymology: has a plural
+            cur.invariable = cur.invariable and lx.invariable
+            cur.plural_only = cur.plural_only and lx.plural_only
             if not cur.table and lx.table:
                 cur.table, cur.alts, cur.aux, cur.table_tags = lx.table, lx.alts, lx.aux, lx.table_tags
     return out

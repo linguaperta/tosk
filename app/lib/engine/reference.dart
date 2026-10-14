@@ -60,13 +60,27 @@ class WordGloss {
 WordGloss? glossForToken(CourseData course, {required String itemId, String? form, required String word, required String lang}) {
   final item = course.item(itemId);
   if (item == null) return null;
+  final meta = course.meta;
+  if (form != null && form.startsWith(kInflFormPrefix)) {
+    // An inflected noun or adjective: `gatti → il gatto · plural`.
+    final tok = Token(idx: 0, t: word, lex: itemId, form: form);
+    final table = meta.inflectionTables[tok.inflTable];
+    final cell = tok.inflCell;
+    final base = table?.base;
+    return WordGloss(
+      item: item,
+      word: word,
+      label: CourseIndex.of(course).withArticle(item),
+      glosses: item.glosses(lang),
+      tenseLabel: table == null || cell == null || cell == base ? null : table.cellLabel(cell, lang),
+    );
+  }
   String? tense, person;
   if (form != null) {
     final i = form.indexOf('.');
     tense = i < 0 ? form : form.substring(0, i);
     person = i < 0 ? null : form.substring(i + 1);
   }
-  final meta = course.meta;
   return WordGloss(
     item: item,
     word: word,
