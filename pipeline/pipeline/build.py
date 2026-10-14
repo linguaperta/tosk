@@ -85,7 +85,8 @@ def write_index(dist: Path, entries: dict[str, dict]) -> Path:
     return path
 
 
-def build(langs, content_root=None, install: bool = False, quiet: bool = False, local: bool = False) -> int:
+def build(langs, content_root=None, install: bool = False, quiet: bool = False, local: bool = False,
+          desktop: bool = False) -> int:
     from .hns.safeguard import RESTRICTED_COURSES, RestrictedContentError, check_destination
     if install and RESTRICTED_COURSES & set(langs):
         raise RestrictedContentError(
@@ -118,6 +119,9 @@ def build(langs, content_root=None, install: bool = False, quiet: bool = False, 
             APP_COURSES_DIR.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(out, APP_COURSES_DIR / f"{code}.sqlite")
             print(f"[{code}] installed -> {APP_COURSES_DIR / f'{code}.sqlite'}", file=sys.stderr)
+        if desktop:
+            from .hns.install import install_desktop
+            print(f"[{code}] copied to the desktop app: {install_desktop(out)}", file=sys.stderr)
     for dist, entries in entries_by_dist.items():
         idx = write_index(dist, entries)
         print(f"wrote {idx}", file=sys.stderr)

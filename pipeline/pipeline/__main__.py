@@ -24,6 +24,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--local", action="store_true",
                    help="use the git-ignored local/content and local/dist (always the case for hns)")
     p.add_argument("--install", action="store_true", help="copy packs to app/assets/courses/ (refused for hns)")
+    p.add_argument("--desktop", action="store_true",
+                   help="also copy the packs into this computer's app data courses/ folder (for local-only packs)")
     p.add_argument("--quiet", action="store_true", help="short report")
 
     p = sub.add_parser("validate", help="validate content only")
@@ -63,7 +65,7 @@ def _run(a) -> int:
         return 0
     if a.cmd == "build":
         from .build import build
-        return build(a.langs, a.content_root, install=a.install, quiet=a.quiet, local=a.local)
+        return build(a.langs, a.content_root, install=a.install, quiet=a.quiet, local=a.local, desktop=a.desktop)
     if a.cmd == "validate":
         from .build import validate_only
         return validate_only(a.langs, a.content_root, local=a.local)
