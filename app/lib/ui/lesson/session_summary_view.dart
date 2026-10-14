@@ -21,6 +21,7 @@ String facetLabel(String facetId, CourseData? course, String lang) {
     FacetKind.prod => 'produce',
     FacetKind.form => course?.meta.tenseLabel(f.tense!, lang) ?? f.tense!,
     FacetKind.article => 'article',
+    FacetKind.infl => course?.meta.inflectionTables[f.table!]?.titleIn(lang) ?? f.table!,
   };
   return '$name · $what';
 }

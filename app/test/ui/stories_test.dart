@@ -26,7 +26,7 @@ Future<void> practiceUnit(TestProgressStore store, CourseData course, String uni
     final facets = course.skillFacets(s.id);
     if (facets.isEmpty) continue;
     await store.record(ReviewEvent(
-      id: 'seed-${unitId}-${n++}',
+      id: 'seed-$unitId-${n++}',
       facetId: facets.first.facetId,
       at: testNow.subtract(const Duration(days: 1)),
       rating: Rating.good,

@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'fixtures/dutch_course.dart';
+import 'fixtures/inflection_course.dart';
 import 'fixtures/italian_course.dart';
 import 'template_validity.dart';
 
@@ -32,6 +33,19 @@ const _expectNl = {
   'transform': ['tt-regelmatig', 'tt-onregelmatig', 'perfectum'],
 };
 
+const _expectItInfl = {
+  'conj_pick': ['plurali', 'aggettivi', 'possessivi'],
+  'conj_grid': ['aggettivi', 'possessivi'],
+  'cloze': ['plurali', 'aggettivi', 'possessivi'],
+  'spot_error': ['plurali', 'aggettivi', 'possessivi'],
+};
+
+const _expectNlInfl = {
+  'conj_pick': ['meervoud', 'bijvoeglijk', 'verkleinwoorden'],
+  'cloze': ['meervoud', 'bijvoeglijk', 'verkleinwoorden'],
+  'spot_error': ['meervoud', 'bijvoeglijk', 'verkleinwoorden'],
+};
+
 void _run(String name, ValidityReport Function() run, Map<String, List<String>> expected) {
   group(name, () {
     late ValidityReport report;
@@ -59,4 +73,6 @@ void _run(String name, ValidityReport Function() run, Map<String, List<String>> 
 void main() {
   _run('Italian fixture', () => runTemplateValidity(italianCourse()), _expectIt);
   _run('Dutch fixture', () => runTemplateValidity(dutchCourse()), _expectNl);
+  _run('Italian inflection fixture', () => runTemplateValidity(italianInflectionCourse()), _expectItInfl);
+  _run('Dutch inflection fixture', () => runTemplateValidity(dutchInflectionCourse()), _expectNlInfl);
 }

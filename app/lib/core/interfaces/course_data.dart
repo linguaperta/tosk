@@ -42,6 +42,14 @@ abstract interface class CourseData {
   /// Forms of a verb in one tense, in [CourseMeta.persons] order (missing persons skipped).
   List<VerbForm> verbFormsInTense(String itemId, String tense);
 
+  /// A non-verb's inflection cells, keyed by `'{table}.{cell}'` (empty for packs
+  /// before schema minor 1 and for items without tables).
+  Map<String, InflectionForm> inflections(String itemId);
+
+  /// One inflection table of an item, cells in [InflectionTable.cells] order
+  /// (empty when the item has no such table).
+  List<InflectionForm> inflectionTable(String itemId, String table);
+
   /// Sentences containing a token aligned to [itemId] (optionally a given `'{tense}.{person}'` form or tense prefix).
   List<Sentence> sentencesFor(String itemId, {String? form, String? tense});
 
@@ -80,6 +88,7 @@ class InMemoryCourseData implements CourseData {
     Map<String, Set<String>> sentenceFeatures = const {}, // sentenceId -> features
     Map<String, Set<String>> skillFeatures = const {}, // skillId -> features
     List<Story> stories = const [],
+    List<InflectionForm> inflections = const [],
   }) : units = (List.of(units)..sort((a, b) => a.ord.compareTo(b.ord))) {
     _notes = notes;
     _sentenceFeatures = sentenceFeatures;
@@ -122,6 +131,9 @@ class InMemoryCourseData implements CourseData {
     for (final f in verbForms) {
       (_forms[f.itemId] ??= {})[f.key] = f;
     }
+    for (final f in inflections) {
+      (_infl[f.itemId] ??= {})[f.key] = f;
+    }
     for (final s in sentences) {
       _sentences[s.id] = s;
       final seen = <String>{};
@@ -148,6 +160,7 @@ class InMemoryCourseData implements CourseData {
   final Map<String, List<Item>> _byPos = {};
   late final Map<String, Verb> _verbs;
   final Map<String, Map<String, VerbForm>> _forms = {};
+  final Map<String, Map<String, InflectionForm>> _infl = {};
   final Map<String, Sentence> _sentences = {};
   final Map<String, List<Sentence>> _sentencesByItem = {};
   late final Map<String, Map<String, String>> _notes;
@@ -213,6 +226,21 @@ class InMemoryCourseData implements CourseData {
     return [
       for (final p in meta.persons)
         if (forms['$tense.$p'] != null) forms['$tense.$p']!,
+    ];
+  }
+
+  @override
+  Map<String, InflectionForm> inflections(String itemId) => _infl[itemId] ?? const {};
+
+  @override
+  List<InflectionForm> inflectionTable(String itemId, String table) {
+    final forms = _infl[itemId];
+    if (forms == null) return const [];
+    final cells = meta.inflectionTables[table]?.cells ??
+        [for (final f in forms.values) if (f.table == table) f.cell];
+    return [
+      for (final c in cells)
+        if (forms['$table.$c'] != null) forms['$table.$c']!,
     ];
   }
 

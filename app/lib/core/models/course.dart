@@ -29,6 +29,8 @@ class CourseMeta {
     this.baseFeatures = const [],
     this.timeAdverbs = const {},
     this.description = const {},
+    this.inflectionTables = const {},
+    this.schemaMinor = 0,
   });
 
   final String id; // 'it'
@@ -58,11 +60,93 @@ class CourseMeta {
   /// Optional one-line course description per source language (meta key `description`).
   final I18n description;
 
+  /// Inflection tables of non-verbs (`meta.inflection_tables`, schema minor 1): noun number,
+  /// adjective agreement, ... keyed by table name.
+  final Map<String, InflectionTable> inflectionTables;
+
+  /// `meta.schema_minor` (0 when absent).
+  final int schemaMinor;
+
   String tenseLabel(String tense, String lang) =>
       tenseLabels[tense] == null ? tense.replaceAll('_', ' ') : pickLang(tenseLabels[tense]!, lang);
 
   String personLabel(String person, String lang) =>
       personLabels[person] == null ? person : pickLang(personLabels[person]!, lang);
+}
+
+/// A non-verb inflection table of a course (`meta.inflection_tables`).
+@immutable
+class InflectionTable {
+  const InflectionTable({
+    required this.name,
+    required this.cells,
+    this.pos = const [],
+    this.base,
+    this.agreement = false,
+    this.title = const {},
+    this.labels = const {},
+  });
+
+  final String name; // 'number'
+  final List<String> cells; // display order: ['sg', 'pl'], ['m.sg', 'f.sg', 'm.pl', 'f.pl']
+  final List<String> pos;
+
+  /// The cell equal to the lemma: given, never asked by the ending picker.
+  final String? base;
+
+  /// The cell is chosen by agreement (adjective with its noun): in an aligned
+  /// sentence every other cell of the table is wrong. Otherwise the cells
+  /// differ in meaning and sentence exercises offer only `wrong` forms.
+  final bool agreement;
+  final I18n title;
+  final Map<String, I18n> labels;
+
+  String titleIn(String lang) => title.isEmpty ? name.replaceAll('_', ' ') : pickLang(title, lang);
+
+  String cellLabel(String cell, String lang) =>
+      labels[cell] == null ? cell.replaceAll('.', ' ') : pickLang(labels[cell]!, lang);
+}
+
+/// Prefix of [Token.form] for inflected non-verbs: `infl:{table}.{cell}`.
+const String kInflFormPrefix = 'infl:';
+
+/// The token form key of an inflection cell: `infl:number.pl`.
+String inflFormKey(String table, String cell) => '$kInflFormPrefix$table.$cell';
+
+/// One cell of a non-verb's inflection table (row of `inflections`).
+@immutable
+class InflectionForm {
+  const InflectionForm({
+    required this.itemId,
+    required this.table,
+    required this.cell,
+    required this.form,
+    this.stem,
+    this.ending,
+    this.alts = const [],
+    this.wrong = const [],
+  });
+  final String itemId;
+  final String table;
+  final String cell;
+  final String form;
+  final String? stem;
+  final String? ending;
+  final List<String> alts;
+
+  /// Plausible wrong forms that are no word of the language (`katen`, `wite`):
+  /// safe distractors in sentence exercises.
+  final List<String> wrong;
+
+  /// `'{table}.{cell}'`, the key in [CourseData.inflections].
+  String get key => '$table.$cell';
+
+  /// `'infl:{table}.{cell}'`, the format used in [Token.form].
+  String get tokenKey => inflFormKey(table, cell);
+
+  List<String> get accepted => [form, ...alts];
+
+  bool get hasSplit => stem != null && ending != null;
 }
 
 @immutable
@@ -200,15 +284,43 @@ class Token {
   final String pre; // whitespace before the token
   final bool isWord;
   final String? lex; // aligned item id
-  final String? form; // '{tense}.{person}' when the token is a verb form
 
-  String? get tense => form?.split('.').first;
+  /// `'{tense}.{person}'` when the token is a verb form; `'infl:{table}.{cell}'`
+  /// when it is an inflected non-verb (`infl:number.pl`, `infl:agreement.f.sg`).
+  final String? form;
+
+  /// Whether [form] is an inflection cell (`infl:...`), not a verb form.
+  bool get isInflection => form?.startsWith(kInflFormPrefix) ?? false;
+
+  /// Verb tense (null for inflection cells).
+  String? get tense => form == null || isInflection ? null : form!.split('.').first;
+
+  /// Verb person (null for inflection cells).
   String? get person {
     final f = form;
-    if (f == null) return null;
+    if (f == null || isInflection) return null;
     final i = f.indexOf('.');
     return i < 0 ? null : f.substring(i + 1);
   }
+
+  /// Inflection table of an `infl:` form (`number`).
+  String? get inflTable {
+    if (!isInflection) return null;
+    final rest = form!.substring(kInflFormPrefix.length);
+    final i = rest.indexOf('.');
+    return i < 0 ? null : rest.substring(0, i);
+  }
+
+  /// Inflection cell of an `infl:` form (`pl`, `f.sg`): everything after the table's dot.
+  String? get inflCell {
+    if (!isInflection) return null;
+    final rest = form!.substring(kInflFormPrefix.length);
+    final i = rest.indexOf('.');
+    return i < 0 ? null : rest.substring(i + 1);
+  }
+
+  /// The verb form key, or null for inflection cells and unaligned tokens.
+  String? get verbFormKey => isInflection ? null : form;
 }
 
 @immutable
