@@ -24,6 +24,10 @@ abstract interface class PackFileStore {
 
   Future<bool> delete(String courseId);
 
+  /// Course ids of every pack file present (`{id}.sqlite`), including files
+  /// copied in by hand that the manifest doesn't know yet.
+  Future<List<String>> installedIds();
+
   /// Small JSON manifest kept next to the packs (versions and origins).
   Future<String?> readManifest();
   Future<void> writeManifest(String json);
@@ -55,6 +59,9 @@ class MemoryPackFileStore implements PackFileStore {
 
   @override
   Future<bool> delete(String courseId) async => _packs.remove(courseId) != null;
+
+  @override
+  Future<List<String>> installedIds() async => _packs.keys.toList()..sort();
 
   @override
   Future<String?> readManifest() async => _manifest;

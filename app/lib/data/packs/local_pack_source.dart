@@ -7,6 +7,11 @@
 /// * Packs added by the user ([install], from a file picker in dev) are
 ///   validated (meta + schema version) and replace the installed pack of the
 ///   same course id. A newer bundled version later wins again.
+/// * Pack files copied into the store's folder by hand (`courses/{id}.sqlite`,
+///   e.g. a locally built pack that must not be bundled) are found when the
+///   packs are first listed, validated and registered with origin `local`. The
+///   file name must be the course id. A replaced file is re-read on the next
+///   start; a deleted one disappears from the list.
 /// * A small manifest (`packs.json`) records version, title and origin.
 library;
 
@@ -59,7 +64,7 @@ class LocalPackSource implements PackSource {
 
   Future<Map<String, _Entry>> _syncBundled() async {
     final manifest = await _readManifest();
-    var changed = false;
+    var changed = await _syncFolder(manifest);
     for (final key in await bundled.list()) {
       final Uint8List bytes;
       final CourseMeta meta;
@@ -80,6 +85,41 @@ class LocalPackSource implements PackSource {
     }
     if (changed) await _writeManifest(manifest);
     return manifest;
+  }
+
+  /// Registers pack files the manifest doesn't know (copied in by hand),
+  /// re-reads `local` packs whose file may have been replaced, and forgets
+  /// `local` packs whose file is gone. Returns whether [manifest] changed.
+  Future<bool> _syncFolder(Map<String, _Entry> manifest) async {
+    var changed = false;
+    final present = (await store.installedIds()).toSet();
+    for (final id in present) {
+      final known = manifest[id];
+      if (known != null && known.origin != PackOrigin.local) continue;
+      final CourseMeta meta;
+      try {
+        meta = await readMeta(await store.data(id));
+      } on Object catch (e) {
+        if (known == null) onWarning?.call('Skipping pack file $id.sqlite: $e');
+        continue;
+      }
+      if (meta.id != id) {
+        onWarning?.call('Skipping pack file $id.sqlite: it holds course "${meta.id}" (name it ${meta.id}.sqlite)');
+        continue;
+      }
+      final entry = _Entry.fromMeta(meta, PackOrigin.local);
+      if (known == null || !known.sameAs(entry)) {
+        manifest[id] = entry;
+        changed = true;
+      }
+    }
+    for (final id in manifest.keys.toList()) {
+      if (manifest[id]!.origin == PackOrigin.local && !present.contains(id)) {
+        manifest.remove(id);
+        changed = true;
+      }
+    }
+    return changed;
   }
 
   @override
@@ -191,6 +231,15 @@ class _Entry {
   final PackOrigin origin;
   final int schemaVersion;
   final bool unverified;
+
+  bool sameAs(_Entry o) =>
+      o.id == id &&
+      o.version == version &&
+      o.origin == origin &&
+      o.schemaVersion == schemaVersion &&
+      o.unverified == unverified &&
+      o.title.length == title.length &&
+      title.entries.every((e) => o.title[e.key] == e.value);
 
   Map<String, Object?> toJson() => {
         'version': version,

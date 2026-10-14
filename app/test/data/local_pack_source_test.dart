@@ -110,6 +110,42 @@ void main() {
     expect(await src.remove('it'), isFalse); // bundled packs stay
   });
 
+  test('pack files copied into courses/ by hand are listed, refreshed and forgotten', () async {
+    // E.g. the locally built Sarnami pack, which must never be bundled (docs/sarnami.md).
+    final dir = Directory('${tmp.path}/courses')..createSync(recursive: true);
+    Map<String, String> hnsMeta(String version) => {
+          'course_id': 'hns',
+          'target': 'hns',
+          'title': '{"nl":"Sarnami"}',
+          'translations': '["nl"]',
+          'unverified': '1',
+          'version': version,
+        };
+    writeFixtureCourseFile('${dir.path}/hns.sqlite', overrideMeta: hnsMeta('0.1.0'));
+    writeFixtureCourseFile('${dir.path}/Sarnami.sqlite', overrideMeta: hnsMeta('0.1.0'));
+    File('${dir.path}/junk.sqlite').writeAsStringSync('not a database');
+    final warnings = <String>[];
+    final bundled = FakeBundled({'a/it.sqlite': v1});
+
+    final packs = await source(bundled, NativePackFileStore(dir), warnings).available();
+    expect(packs.map((p) => '${p.id} ${p.version} ${p.origin.name} ${p.unverified}'),
+        ['hns 0.1.0 local true', 'it 0.1.0 bundled false']);
+    expect(warnings, hasLength(2));
+    expect(warnings.where((w) => w.contains('Sarnami.sqlite') && w.contains('name it hns.sqlite')), hasLength(1));
+    expect(warnings.where((w) => w.contains('junk.sqlite')), hasLength(1));
+    final src = source(bundled, NativePackFileStore(dir));
+    final course = await platform.loadCoursePack((await src.open('hns')).data);
+    expect(course.meta.translations, ['nl']);
+
+    // A rebuilt pack copied over the old file is picked up on the next start.
+    writeFixtureCourseFile('${dir.path}/hns.sqlite', overrideMeta: hnsMeta('0.2.0'));
+    expect((await source(bundled, NativePackFileStore(dir)).available()).first.version, '0.2.0');
+
+    // Deleting the file removes it from the list.
+    File('${dir.path}/hns.sqlite').deleteSync();
+    expect((await source(bundled, NativePackFileStore(dir)).available()).map((p) => p.id), ['it']);
+  });
+
   test('memory store (web path) works with bytes only', () async {
     final src = source(FakeBundled({'assets/courses/it.sqlite': v1}), MemoryPackFileStore());
     final h = await src.open('it');
