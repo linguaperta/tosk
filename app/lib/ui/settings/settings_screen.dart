@@ -43,6 +43,10 @@ class SettingsScreen extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 children: [
                   const _Section('Course'),
+                  // Courses are switched here (the map only shows the title).
+                  // TODO(courses): when pack downloads land, show the "update
+                  // available" indicator on these rows (it was planned for the
+                  // map's course switcher, which is gone).
                   for (final c in courses)
                     ListTile(
                       key: ValueKey('course-${c.id}'),

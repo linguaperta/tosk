@@ -92,10 +92,19 @@ void main() {
     expect(find.text("What's fading"), findsNothing); // title only shown on summary
   });
 
-  testWidgets('course switcher changes course and shows the unverified badge', (tester) async {
+  testWidgets('the map shows the course title (not a switcher); Settings switches the course', (tester) async {
     final store = await pumpApp(tester);
-    await tapKey(tester, 'course-switcher');
-    await tapIt(tester, find.text('Dutch').last);
+    expect(find.byKey(const ValueKey('course-switcher')), findsNothing);
+    expect(find.byKey(const ValueKey('course-title')), findsOneWidget);
+    expect(find.text('Italian'), findsOneWidget);
+    // Tapping the title does nothing.
+    await tester.tap(find.byKey(const ValueKey('course-title')));
+    await tester.pumpAndSettle();
+    expect(find.byType(PopupMenuItem<String>), findsNothing);
+    await goTab(tester, 'Settings');
+    await tapKey(tester, 'course-nl');
+    await goTab(tester, 'Map');
+    expect(find.text('Dutch'), findsOneWidget);
     expect(find.byKey(const ValueKey('skill-node-groeten')), findsOneWidget);
     expect(find.byKey(const ValueKey('skill-node-greetings')), findsNothing);
     expect(find.byKey(const ValueKey('unverified-badge')), findsOneWidget);

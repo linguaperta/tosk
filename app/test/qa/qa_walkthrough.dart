@@ -361,12 +361,12 @@ void main() {
       await tester.pumpAndSettle();
       await goTab(tester, 'Grammar');
       await shot(tester, '$p-42-grammar');
-      await goTab(tester, 'Map');
-      await tapKey(tester, 'course-switcher');
-      await tapKey(tester, 'manage-courses');
+      await goTab(tester, 'Settings');
+      await tapKey(tester, 'manage-courses-tile');
       await tapKey(tester, 'course-preview-${c.meta.id}');
       await shot(tester, '$p-43-course-picker');
       await tapKey(tester, 'course-picker-done');
+      await goTab(tester, 'Map');
       final grammar = c.skills.where((s) => s.kind == SkillKind.grammar).first;
       await tester.longPress(find.byKey(ValueKey('skill-node-${grammar.id}')));
       await tester.pumpAndSettle();

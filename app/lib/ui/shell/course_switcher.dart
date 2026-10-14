@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/core.dart';
 import '../../providers.dart';
-import '../courses/course_picker.dart';
 import '../theme/bw_skin.dart';
 
 /// Small chip warning that a course hasn't been checked by a speaker.
@@ -66,12 +65,11 @@ class DemoBadge extends StatelessWidget {
   }
 }
 
-/// Course title with a menu to switch between the user's courses, and
-/// "Add or remove courses" (the course picker).
-class CourseSwitcher extends ConsumerWidget {
-  const CourseSwitcher({super.key});
-
-  static const _manage = '\u0000manage';
+/// The active course's title on the map (with the Demo / Unverified
+/// badges). Not interactive: courses are switched, added and removed in
+/// Settings (the course section and "Add or remove courses").
+class CourseTitle extends ConsumerWidget {
+  const CourseTitle({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -86,50 +84,7 @@ class CourseSwitcher extends ConsumerWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Flexible(
-          child: PopupMenuButton<String>(
-            key: const ValueKey('course-switcher'),
-            tooltip: 'Switch course',
-            onSelected: (id) => id == _manage
-                ? showCoursePicker(context)
-                : ref.read(settingsProvider.notifier).change((s) => s.copyWith(courseId: id)),
-            itemBuilder: (context) => [
-              for (final c in courses)
-                CheckedPopupMenuItem<String>(
-                  value: c.id,
-                  checked: c.id == activeId,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Flexible(child: Text(pickLang(c.title, lang), overflow: TextOverflow.ellipsis)),
-                      if (c.unverified) ...[const SizedBox(width: 8), const UnverifiedBadge(compact: true)],
-                    ],
-                  ),
-                ),
-              const PopupMenuDivider(),
-              const PopupMenuItem<String>(
-                key: ValueKey('manage-courses'),
-                value: _manage,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.library_add_outlined),
-                    SizedBox(width: 12),
-                    Flexible(child: Text('Add or remove courses', overflow: TextOverflow.ellipsis)),
-                  ],
-                ),
-              ),
-            ],
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Flexible(child: Text(title, overflow: TextOverflow.ellipsis)),
-                  const Icon(Icons.arrow_drop_down),
-                ],
-              ),
-            ),
-          ),
+          child: Text(title, key: const ValueKey('course-title'), overflow: TextOverflow.ellipsis),
         ),
         if (demo) ...[const SizedBox(width: 8), const DemoBadge()],
         // Icon-only next to the demo chip, so both fit on phones.

@@ -64,7 +64,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const CourseSwitcher(),
+        // The active course, for orientation; switching is in Settings.
+        title: const CourseTitle(),
         actions: [
           IconButton(
             tooltip: 'Zoom out',
