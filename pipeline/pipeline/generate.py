@@ -54,6 +54,8 @@ NAMES = {
     "nl": {"Tom", "Anna", "Sanne", "Daan", "Lieke", "Pieter", "Emma", "Bram", "Sophie", "Jan", "Eva", "Lisa",
            "Amsterdam", "Utrecht", "Rotterdam", "Nederland"},
 }
+# Place names that English writes differently (not compared by the translation check).
+PLACES = {"Roma", "Milano", "Napoli", "Firenze", "Venezia", "Italia", "Nederland"}
 
 
 def is_generated(s: dict) -> bool:
@@ -131,7 +133,7 @@ class Generator:
                 if any(t["lex"] in ids and (t["form"] or "").startswith(tense + ".") for t in al):
                     return None
             return f"touches no item of {skill}"
-        parts = target.split()
+        parts = [target] if target in self.by_lemma else target.split()   # "per favore" is one lemma
         lemma = parts[0]
         cands = [i for i in self.by_lemma.get(lemma, []) if i in ids] or self.by_lemma.get(lemma, [])
         if not cands:
@@ -191,7 +193,7 @@ class Generator:
         key = dedupe_key(text)
         if key in self.keys and self.keys[key] != allow_existing:
             problems.append(f"duplicate of {self.keys[key]}")
-        names = set(self.names)
+        names = set(self.names) - PLACES                # Roma = Rome, Nederland = the Netherlands
         for l, v in tr.items():
             if v:
                 why = trcheck.mismatch(al, self.items, self.code, v, l, names if l == "en" else frozenset())

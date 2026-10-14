@@ -74,7 +74,8 @@ CALENDAR = {
 CALENDAR_IDX = {lang: {w: i for i, w in enumerate(words.split())} for lang, words in CALENDAR.items()}
 CALENDAR_IDX["en"].update({w + "s": i for w, i in list(CALENDAR_IDX["en"].items()) if i < 7})   # 'on Mondays'
 CALENDAR_IDX["nl"].update({w + sfx: i for w, i in list(CALENDAR_IDX["nl"].items()) if i < 7
-                           for sfx in ("s", "en")})                     # "'s zondags", 'op maandagen'
+                           for sfx in ("s", "en", "ochtend", "middag", "avond", "nacht", "morgen")})
+# "'s zondags", 'op maandagen', 'zaterdagavond'
 # English 'may' and 'march' are mostly verbs: they are months only when capitalized inside a sentence
 EN_VERB_MONTHS = {"may", "march"}
 _WORD = re.compile(r"[^\W\d_]+|\d+")      # apostrophes split: Sami's -> Sami, s; l'Australia

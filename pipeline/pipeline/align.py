@@ -181,7 +181,7 @@ class Aligner:
             for s in [it["lemma"], *(it.get("variants") or [])]:
                 if " " not in s:
                     self.lemma_index[norm(s)].append(it["id"])
-                    if it["pos"] in ("intj", "phrase"):
+                    if it["pos"] in ("intj", "phrase") or "greetings" in (it.get("tags") or []):
                         cur = self.intj.get(norm(s))
                         if cur is None or self.rank[it["id"]] < self.rank[cur]:
                             self.intj[norm(s)] = it["id"]
