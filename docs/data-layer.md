@@ -12,10 +12,11 @@ data/
   progress/              progress DB (drift), ProgressRepo, InMemoryProgressStore
   fsrs/                  FsrsScheduler (FSRS-6, port of py-fsrs 6.3.2, no fuzz)
   stats/                 SkillStats, SkillStatsService
-  packs/                 LocalPackSource, PackFileStore, AssetBundlePacks
+  packs/                 LocalPackSource, PackFileStore, AssetBundlePacks, GitHubPackSource (downloads)
   platform/              conditional imports: native (ffi, isolates) vs web (WASM)
   sync/                  review-log JSON lines, FileExportSyncBackend, syncReviewLog
 core/interfaces/packs.dart   PackSource, PackInfo, PackData (PackFile | PackBytes), PackHandle
+core/interfaces/remote_packs.dart   RemotePackSource, RemoteIndex, RemotePack, CourseOffer, combineOffers
 core/interfaces/sync.dart    SyncBackend, NullSyncBackend
 ui/debug/debug_screen.dart   debug screen; run it with `flutter run -t lib/main_debug.dart`
 ```
@@ -54,10 +55,32 @@ Tests and other agents can use `InMemoryProgressStore` (pure Dart, same semantic
 - **Bundled packs.** These are `assets/courses/*.sqlite`, found through the AssetManifest. On first use they are copied into the installed-pack store. A pack is copied again when its bundled `meta.version` is a newer semver than the installed copy, for example after an app update. A bundled pack that fails validation is skipped with a warning.
 - **Installed-pack store.** Natively this is `{app support dir}/courses/{id}.sqlite` plus a `packs.json` manifest. It uses the app support folder rather than Documents, so it stays out of the user's Documents folder on desktop. You can override the folder with `AppDataOptions.dataDirectory`. On the web, packs live in memory and are read from asset bytes on every start.
 - **Packs copied in by hand.** A `{id}.sqlite` file placed in the store's `courses/` folder is found when the packs are first listed, validated and registered with origin `local` (a misnamed or invalid file is skipped with a warning). A replaced file is re-read on the next start and a deleted one disappears from the list. This is how the locally built Sarnami pack, which may never be bundled, gets onto a desktop machine (`docs/sarnami.md`). On Windows the folder is `%APPDATA%\io.github.timoverlaan\tosk\courses`.
-- **`install(PackFile | PackBytes)`.** Used by the dev file picker, and later by downloads. It validates the pack, then replaces the installed pack with the same course id, with origin `local`.
+- **`install(PackFile | PackBytes)`.** Used by the course picker's "Add course from file…" and the debug screen. It validates the pack, then replaces the installed pack with the same course id, with origin `local`.
 - **`remove(id)`.** Deletes a `local` pack. A bundled pack for that course comes back the next time packs are listed, and bundled packs themselves can't be removed.
 
-A future `GitHubPackSource` implements the same interface, with `index.json`, checksums and an atomic swap.
+### Downloads: `GitHubPackSource` (`packs/github_pack_source.dart`, v0.4)
+
+`GitHubPackSource` implements `PackSource` (delegating to its `LocalPackSource`, so `available()` is always what opens offline) and the core `RemotePackSource` (`core/interfaces/remote_packs.dart`). `openAppData` wires it when `AppDataOptions.appVersion` is set (`main.dart` passes `kAppVersion`); `AppData.remote` exposes it and `AppData.downloadPack` downloads and evicts the cached course.
+
+- **Index.** `fetchIndex()` reads `index.json` from `kDefaultPackIndexUrl` = `https://github.com/timoverlaan/tosk-data/releases/latest/download/index.json` (GitHub's redirect to the newest release's asset; see docs/release.md, "Publishing course packs"), or from a `url` (the debug setting `packs.index_url`). Redirects are followed by hand natively (`followRedirects: false`, up to 5 hops: `releases/latest` → `releases/download/<tag>` → object storage), and by the browser on the web. Format (`index_version` 1, written by `pipeline/pipeline/publish.py`):
+
+  ```json
+  {"index_version": 1, "generated_at": "2026-10-14T10:00:00Z", "tag": "packs-20261014",
+   "courses": [{"id": "it", "version": "1.1.0", "title": {"en": "Italian", "nl": "Italiaans"},
+     "description": {"en": "..."}, "target": "it", "sources": ["en", "nl"], "unverified": false,
+     "schema_version": "1", "min_app_version": "0.3.0", "sha256": "…", "size": 17199104,
+     "url": "https://github.com/timoverlaan/tosk-data/releases/download/packs-20261014/it.sqlite"}]}
+  ```
+
+  A higher `index_version` is refused ("needs a newer app"); unknown fields are ignored.
+- **Offers.** `combineOffers(installed, index, appVersion, schemaMajor)` gives one `CourseOffer` per course: `installed`, `updateAvailable` (installed, the index has a newer semver the app can use), `downloadable`, or `needsAppUpdate` (the schema major differs from `kCourseDbSchemaVersion`, or `min_app_version` is newer than the app). An installed course whose newer version needs a newer app just stays `installed`.
+- **Download.** `download(pack, onProgress:, cancel:)` refuses incompatible packs before any request, then streams the asset into `PackFileStore.stage(id)` (natively `courses/{id}.sqlite.download`; memory on the web), hashing as it goes. It checks the size (a body larger than announced is cut off at once; a short one is "incomplete"), the sha256, and then `LocalPackSource.installStaged` validates the file's meta (course id, version, schema major) and swaps it in: `{id}.sqlite` → `{id}.sqlite.bak`, staged → `{id}.sqlite` (two renames; Windows can't rename over a file), opens the new file with `verify` (the app loads it fully, `platform.loadCoursePack`), and only then drops the backup and writes `packs.json` with origin `remote`. If opening fails, the backup is renamed back (rollback). A crash at any step is repaired on the next start (`NativePackFileStore` restores a leftover `.bak` and deletes `.download` files once per store), and since `packs.json` is written last, folder and manifest always agree.
+- **Errors** are `PackDownloadException(kind, message)` with kinds `network` (no connection, timeouts of 30 s per connect/idle, a dropped connection), `http` (404, 5xx), `corrupt` (size, checksum, wrong course/version, unreadable or newer-schema file, failed open), `incompatible` and `cancelled` (`DownloadCancel.cancel()`, which also aborts the request through `http.AbortableRequest`). Messages are short and polite; installed packs are never touched by a failure.
+- **Progress is never touched.** Item ids are permanent, so a newer pack keeps every id; facets of items a pack drops stay in the log and states but are no longer scheduled. Every session builder, the stats, mistakes and progression iterate the course's own facets, so orphaned states are ignored (`test/engine/removed_items_test.dart`).
+- **Bundled packs stay the fallback.** A downloaded pack wins while its version is at least the bundled one; after an app update with a newer bundled pack, the bundled pack is installed again. Removing a downloaded course (`remove`) falls back to the bundled pack.
+- **Web.** Downloads go into the in-memory pack store (the layer has no persistent pack storage on the web), so they last for the session; the bundled packs come back on reload. GitHub's release-asset redirect target may not send CORS headers, so web downloads can fail with a polite network error. Open issue: serve a CORS-friendly mirror for the web build (GitHub Pages or `raw.githubusercontent.com/.../dist/`, whose index `url`s the web build would use) and persist downloaded packs in IndexedDB.
+
+Tests: `test/data/github_pack_source_test.dart` (a fake GitHub with the release URLs and redirects via `MockClient`, plus a real local `HttpServer` with a dropped connection: index, offers, update with progress, 404, corrupted checksum, truncated, oversized, newer schema/app, wrong course/version in the file, network loss, cancel, rollback when the new pack fails to open, crash recovery, the in-memory store, `AppData.downloadPack` keeping the review log).
 
 ## Progress database
 

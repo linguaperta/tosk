@@ -6,6 +6,7 @@ export 'interfaces/feedback.dart';
 export 'interfaces/hooks.dart';
 export 'interfaces/packs.dart';
 export 'interfaces/progress_store.dart';
+export 'interfaces/remote_packs.dart';
 export 'interfaces/session.dart';
 export 'interfaces/sync.dart';
 export 'models/course.dart';
