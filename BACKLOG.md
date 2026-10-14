@@ -138,14 +138,20 @@ Each item says what "done" means. Add newly discovered work at the bottom of its
 ## v0.3.2: user testing feedback (14 October)
 
 - [x] Bottom controls hidden behind the Android nav bar on flashcards and match pairs (edge-to-edge inset); preview 3.1
-- [~] Match pairs: stale selection on fast taps, correct pairs dropped, both cards of a wrong pair shown red; stress tests
-- [~] Spot the error: tapping the error word shows correct (green), tapping a wrong token shows wrong
-- [~] Map: tapping a skill opens an info sheet first (description, tier, strength, what's needed for the next tier, then Start / Test out / Note / Words)
-- [~] Progress per course: XP, level, challenges, badges, verb collection, mistakes, best run. Account-wide: daily goal, streak, freezes, heatmap
-- [~] Remove the course switcher from the map (Settings only)
-- [~] All practice modes advance skills (non-stop introduces new facets; the map refreshes after every mode)
-- [~] First-time intro for every exercise type, re-openable via (?)
-- [~] Transform renamed "Change the tense" / "Change the person", with a from → to chip
+- [x] Match pairs: stale selection on fast taps, correct pairs dropped, both cards of a wrong pair shown red; stress tests
+- [x] Spot the error: tapping the error word shows correct (green), tapping a wrong token shows wrong
+- [x] Map: tapping a skill opens an info sheet first (description, tier, strength, what's needed for the next tier, then Start / Test out / Note / Words)
+- [x] Progress per course: XP, level, challenges, badges, verb collection, mistakes, best run. Account-wide: daily goal, streak, freezes, heatmap
+- [x] Remove the course switcher from the map (Settings only)
+- [x] All practice modes advance skills (non-stop introduces new facets; the map refreshes after every mode)
+- [x] First-time intro for every exercise type, re-openable via (?)
+- [x] Transform renamed "Change the tense" / "Change the person", with a from → to chip
+
+## v0.7: accounts and sync (proposed, awaiting user decision)
+
+- [ ] Firebase: Google sign-in, Firestore per-user answer log (union merge, offline-first, per-event UTC offset, future-timestamp clamp), settings last-writer-wins, "Delete my cloud data"
+- [ ] Firebase Hosting: web app + pack mirror (fixes web CORS); GitHub Actions for tests, web deploy, and release APK/Windows builds
+- [ ] Decide on the name and domain ("tosk" is close to the Duolingo trademark)
 
 ## v0.4 (in progress, started 14 October)
 
