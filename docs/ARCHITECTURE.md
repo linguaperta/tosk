@@ -54,6 +54,8 @@ Which facets a skill trains is decided by the pipeline:
 
 These ids appear in `course.yaml` (`exercises:`), in `skills.exercises`, in `review_log.exercise_type`, and in the focus-preset config (`app/assets/config/focus_presets.json`).
 
+`review_log.exercise_type` may also hold `test_out` (`kTestOutCreditType`): a **test-out credit**, not an answer. Passing a test out or a placement writes one per not-yet-learned facet of the credited skills (rating Easy, correct, mode `testOut` or `placement`). Credits graduate the facets (the skill is learned and what follows unlocks) and sync like any event; progression gives them no XP and doesn't count them as reviews. See `docs/engine.md`.
+
 ## FSRS ratings
 
 `1 = Again`, `2 = Hard`, `3 = Good`, `4 = Easy`. Auto-graded results: a wrong answer is Again, a right answer is Good, and a right answer faster than the type's fast-answer threshold is Easy. Flashcards use self-grade buttons (Again, Hard, Good, Easy).
@@ -63,7 +65,8 @@ These ids appear in `course.yaml` (`exercises:`), in `skills.exercises`, in `rev
 ```
 core/          domain models + interfaces shared by every layer (no Flutter imports, no drift)
   models/      Course, Unit, Skill, Item, Verb, VerbForm, Sentence, Token, FacetId, ...
-  interfaces/  PackSource, SyncBackend, AnswerInput, Explainer (+ MistakeContext)
+  interfaces/  PackSource, SyncBackend, AnswerInput, Explainer (+ ExplainContext, MistakeContext),
+               ExplanationCache, FlagStore (feedback.dart)
 data/          drift databases + repositories (Phase 2)
   course/      CourseDb (read-only), CourseRepo
   progress/    ProgressDb, ProgressRepo, settings
@@ -71,12 +74,15 @@ data/          drift databases + repositories (Phase 2)
   packs/       LocalPackSource (+ asset bootstrap)
 engine/        exercise engine, pure Dart (Phase 3): templates, distractors, normalization, sessions, grading
 progression/   XP, levels, tiers, streaks, challenges, combos, pure functions over the review log (Phase 5)
-ui/            Flutter screens and widgets (Phase 4): map, lesson player, lab, non-stop, settings, debug
+ai/            AI explanations (v0.3): ClaudeExplainer, OpenAiExplainer, CachingExplainer, prompts, AiConfig, SecretStore
+feedback/      exercise snapshots, answer context, flags JSON Lines export (v0.3)
+audio/         SoundService over audioplayers (v0.3); the sounds come from tool/make_sounds.py
+ui/            Flutter screens and widgets (Phase 4): map, lesson player, lab, non-stop, settings, debug, ai/, feedback/
   theme/       skins (default skin now, forest later)
 app.dart, main.dart, providers.dart (Riverpod wiring)
 ```
 
-Dependency direction: `ui → engine, progression, data → core`. `engine` and `progression` depend only on `core`, with data access through small interfaces such as `CourseData` and `ProgressReader`. That keeps them pure Dart and testable with in-memory fixtures. `data` implements those interfaces.
+Dependency direction: `ui → engine, progression, data → core`. `ai`, `feedback` and `audio` sit beside `data`: they use `core`, and `feedback` also uses the engine's `exercisePrompt`. `docs/feedback.md` describes AI explanations, flags and sounds. `engine` and `progression` depend only on `core`, with data access through small interfaces such as `CourseData` and `ProgressReader`. That keeps them pure Dart and testable with in-memory fixtures. `data` implements those interfaces.
 
 ## Testing
 

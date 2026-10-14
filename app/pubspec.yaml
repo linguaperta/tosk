@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 0.2.0+2
+version: 0.3.0+3
 
 environment:
   sdk: ^3.13.5
@@ -46,6 +46,9 @@ dependencies:
   meta: ^1.19.0
   typed_data: ^1.4.0
   file_picker: ^13.1.0
+  http: ^1.6.0
+  flutter_secure_storage: ^11.2.0
+  audioplayers: ^6.8.1
 
 dev_dependencies:
   flutter_test:
@@ -59,6 +62,16 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   drift_dev: ^2.35.1
   build_runner: ^2.16.2
+  integration_test:
+    sdk: flutter
+
+# The pub.dev flutter_secure_storage_windows builds a C++ plugin that needs ATL
+# (atlstr.h), which plain Visual Studio Build Tools lack. This local package
+# replaces it with a pure-Dart implementation (Windows Credential Manager via
+# FFI), so no C++ is compiled for it. See docs/release.md.
+dependency_overrides:
+  flutter_secure_storage_windows:
+    path: packages/secure_storage_windows_dart
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -76,6 +89,8 @@ flutter:
     # at runtime through the AssetManifest, so no per-file entries are needed.
     - assets/courses/
     - assets/config/focus_presets.json
+    # Sound effects, synthesized by tool/make_sounds.py (no third-party audio).
+    - assets/sounds/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

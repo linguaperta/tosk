@@ -9,14 +9,15 @@ import '../common/async_view.dart';
 import '../common/markdown.dart';
 import '../lesson/exercises/common.dart' show FeedbackColors;
 import '../lesson/session_summary_view.dart' show facetLabel;
-import '../lesson/why_sheet.dart';
+import '../ai/ai_explanation_sheet.dart';
 import '../routes.dart';
 import '../theme/bw_skin.dart';
 import '../settings/app_settings.dart' show exerciseTypeLabel;
 
 /// Open mistakes of the active course (route `/mistakes`): what was asked,
 /// the given and the expected answer, an excerpt of the skill's grammar note,
-/// and a "Why?" slot (hidden while the explainer is unavailable). The
+/// and "Explain with AI" (only when AI is configured; a cached explanation
+/// shows as "Explanation" even offline or without a key). The
 /// "Review mistakes" button at the bottom starts a mistake-review session.
 class MistakesScreen extends ConsumerWidget {
   const MistakesScreen({super.key});
@@ -25,6 +26,7 @@ class MistakesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final mistakes = ref.watch(openMistakesProvider);
     final n = mistakes.value?.length ?? 0;
+    final tough = ref.watch(toughWordsProvider).value?.length ?? 0;
     return Scaffold(
       appBar: AppBar(
         // Also reachable as a deep link (no back stack): back then goes to the map.
@@ -36,7 +38,7 @@ class MistakesScreen extends ConsumerWidget {
         onRetry: () => ref.invalidate(openMistakesProvider),
         builder: (list) => list.isEmpty ? const _Empty() : _MistakeList(mistakes: list),
       ),
-      bottomNavigationBar: n == 0
+      bottomNavigationBar: n == 0 && tough == 0
           ? null
           : SafeArea(
               child: Center(
@@ -45,17 +47,33 @@ class MistakesScreen extends ConsumerWidget {
                   constraints: const BoxConstraints(maxWidth: 680),
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: FilledButton.icon(
-                        key: const ValueKey('mistakes-review'),
-                        onPressed: () => context.push(Routes.review),
-                        icon: const Icon(Icons.replay),
-                        label: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          child: Text(n > 12 ? 'Review 12 of $n mistakes' : 'Review ${_count(n)}'),
-                        ),
-                      ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Words forgotten again and again: their own drill.
+                        if (tough > 0)
+                          OutlinedButton.icon(
+                            key: const ValueKey('mistakes-tough'),
+                            onPressed: () => context.push(Routes.tough),
+                            icon: const Icon(Icons.fitness_center),
+                            label: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              child: Text('Tough words ($tough)'),
+                            ),
+                          ),
+                        if (tough > 0 && n > 0) const SizedBox(height: 8),
+                        if (n > 0)
+                          FilledButton.icon(
+                            key: const ValueKey('mistakes-review'),
+                            onPressed: () => context.push(Routes.review),
+                            icon: const Icon(Icons.replay),
+                            label: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              child: Text(n > 12 ? 'Review 12 of $n mistakes' : 'Review ${_count(n)}'),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ),
@@ -146,6 +164,9 @@ class MistakeCard extends ConsumerWidget {
     final note = noteExcerpt(course?.note(skillId, lang) ?? m.note);
     final type = mistake.missedType;
     final explainer = ref.watch(explainerAvailableProvider);
+    final ctx = _context(m, ref.watch(explainLangProvider));
+    final cached = m.explanation ??
+        ref.watch(cachedExplanationProvider((ctx.fingerprint, ctx.given, ctx.replyLang))).value;
     final meta = [
       if (skill != null) pickLang(skill.title, lang),
       if (type != null) exerciseTypeLabel(type),
@@ -220,24 +241,38 @@ class MistakeCard extends ConsumerWidget {
                 ),
               ),
             ],
-            if (skill != null || explainer || m.explanation != null)
+            if (skill != null || explainer || cached != null)
               Wrap(
                 alignment: WrapAlignment.end,
                 spacing: 8,
                 children: [
-                  if (m.explanation != null)
+                  if (cached != null && !explainer)
                     TextButton.icon(
                       key: ValueKey('mistake-explanation-${m.facetId}'),
-                      onPressed: () => showWhySheet(context, Stream.value(m.explanation!)),
+                      onPressed: () => showAiExplanationSheet(
+                        context,
+                        request: () => Stream.value(cached),
+                        note: ctx.note,
+                      ),
                       icon: const Icon(Icons.lightbulb_outline),
                       label: const Text('Explanation'),
                     )
                   else if (explainer)
                     TextButton.icon(
                       key: ValueKey('mistake-why-${m.facetId}'),
-                      onPressed: () => showWhySheet(context, ref.read(explainerProvider).explain(_context(m))),
-                      icon: const Icon(Icons.help_outline),
-                      label: const Text('Why?'),
+                      onPressed: () {
+                        final x = ref.read(explainerProvider);
+                        final key = (ctx.fingerprint, ctx.given, ctx.replyLang);
+                        showAiExplanationSheet(
+                          context,
+                          request: () => x.explain(ctx),
+                          note: ctx.note,
+                        ).then((_) {
+                          if (context.mounted) ref.invalidate(cachedExplanationProvider(key));
+                        });
+                      },
+                      icon: const Icon(Icons.auto_awesome_outlined),
+                      label: Text(cached != null ? 'Explanation' : 'Explain with AI'),
                     ),
                   if (skill != null && note != null)
                     TextButton.icon(
@@ -254,10 +289,12 @@ class MistakeCard extends ConsumerWidget {
     );
   }
 
-  MistakeContext _context(MistakeRecord m) => MistakeContext(
+  /// The same context (and fingerprint) the player used when the mistake was
+  /// made, so its cached explanation is found.
+  MistakeContext _context(MistakeRecord m, String explainLang) => MistakeContext(
     courseId: course?.meta.id ?? '',
     facetId: m.facetId,
-    exerciseType: mistake.missedType ?? ExerciseType.flashcard,
+    exerciseType: ExerciseType.tryParse(m.exerciseType) ?? mistake.missedType ?? ExerciseType.flashcard,
     prompt: m.prompt,
     expected: m.expected,
     given: m.given,
@@ -266,6 +303,7 @@ class MistakeCard extends ConsumerWidget {
     skillId: mistake.facet.skillId,
     note: course?.note(mistake.facet.skillId, lang) ?? m.note,
     at: m.at,
+    explainLang: explainLang,
   );
 }
 

@@ -1,5 +1,7 @@
 import 'package:tosk/core/core.dart';
+
 import 'fakes/demo_exercises.dart';
+
 import 'package:tosk/ui/lesson/answer_input.dart';
 import 'package:tosk/ui/lesson/feedback_banner.dart';
 import 'package:tosk/ui/lesson/exercises/cloze_view.dart';
@@ -12,6 +14,7 @@ import 'package:tosk/ui/lesson/exercises/multiple_choice_view.dart';
 import 'package:tosk/ui/lesson/exercises/spot_error_view.dart';
 import 'package:tosk/ui/lesson/exercises/tile_builder_views.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 final _pool = demoExercises('it', 'en');
@@ -31,13 +34,17 @@ Future<void> host(WidgetTester tester, Widget child) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = const Size(400, 900);
   addTearDown(tester.view.reset);
+  // The default providers: the demo course (word popovers look words up there).
   await tester.pumpWidget(
-    MaterialApp(
-      home: Scaffold(
-        body: SingleChildScrollView(padding: const EdgeInsets.all(16), child: child),
+    ProviderScope(
+      child: MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(padding: const EdgeInsets.all(16), child: child),
+        ),
       ),
     ),
   );
+  await tester.pump();
 }
 
 Future<void> tap(WidgetTester tester, String key) async {
@@ -234,7 +241,10 @@ void main() {
       final e = _first<TransformExercise>();
       final p = Probe();
       await host(tester, TransformView(exercise: e, onChanged: p.onChanged));
-      expect(find.text(e.source), findsOneWidget);
+      // The source sentence, its words tappable (the asked verb only after checking).
+      expect(find.byKey(const ValueKey('source-sentence')), findsOneWidget);
+      expect(find.byKey(const ValueKey('word-3')), findsOneWidget); // mela
+      expect(find.byKey(const ValueKey('word-1')), findsNothing); // mangio
       expect(find.text(e.targetDescription), findsOneWidget);
       for (final w in e.answers.first) {
         await tap(tester, 'tile-${e.tiles.indexOf(w)}');
@@ -418,7 +428,9 @@ void main() {
       const r = Result(correct: true, expected: 'città', given: 'citta', outcomes: [], accentSlip: true);
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(body: FeedbackBanner(result: r, onContinue: () {}, reduceMotion: true)),
+          home: Scaffold(
+            body: FeedbackBanner(result: r, onContinue: () {}, reduceMotion: true),
+          ),
         ),
       );
       expect(find.text('Correct!'), findsOneWidget);

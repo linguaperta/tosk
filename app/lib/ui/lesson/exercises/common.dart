@@ -42,6 +42,7 @@ abstract class ExerciseWidget<E extends Exercise> extends StatefulWidget {
     required this.onChanged,
     this.onSubmit,
     this.onCheck,
+    this.onSelect,
     this.result,
     this.keys,
     this.reduceMotion = false,
@@ -53,6 +54,11 @@ abstract class ExerciseWidget<E extends Exercise> extends StatefulWidget {
 
   /// Asks the player to check the current draft (e.g. Enter in a text field).
   final VoidCallback? onCheck;
+
+  /// A tap selected something that doesn't change the draft answer (a match
+  /// pairs card): the player plays the select tick. Taps that change the
+  /// draft already arrive through [onChanged].
+  final VoidCallback? onSelect;
   final Result? result;
   final ExerciseKeys? keys;
   final bool reduceMotion;
@@ -206,9 +212,14 @@ class OptionButton extends StatelessWidget {
     this.onTap,
     this.large = false,
     this.center = false,
+    this.labelWidget,
   });
 
   final String label;
+
+  /// Replaces the label text (e.g. a sentence with tappable words); [label]
+  /// still names the option for semantics.
+  final Widget? labelWidget;
   final int? number;
   final OptionState state;
   final VoidCallback? onTap;
@@ -258,7 +269,9 @@ class OptionButton extends StatelessWidget {
                   const SizedBox(width: 10),
                 ],
                 Expanded(
-                  child: Text(label, textAlign: center ? TextAlign.center : TextAlign.start, style: look.style),
+                  child:
+                      labelWidget ??
+                      Text(label, textAlign: center ? TextAlign.center : TextAlign.start, style: look.style),
                 ),
                 if (mark != null) ...[const SizedBox(width: 6), Icon(mark, size: 22, color: fg)],
               ],

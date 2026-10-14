@@ -129,6 +129,7 @@ class SentenceBuilderTemplate extends ExerciseTemplate {
         tiles: tiles,
         answers: answers,
         sentenceId: s.id,
+        answerTokens: tokenRefsOf(s),
       );
     }
     return null;

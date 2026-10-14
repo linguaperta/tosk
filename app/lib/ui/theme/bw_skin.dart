@@ -195,8 +195,14 @@ ThemeData bwTheme() {
         iconColor: _states(kBwBlack, disabled: kBwGray),
         overlayColor: const WidgetStatePropertyAll(_transparent),
         splashFactory: NoSplash.splashFactory,
-        textStyle: const WidgetStatePropertyAll(
-          TextStyle(fontWeight: FontWeight.w700, decoration: TextDecoration.underline),
+        // Built on labelLarge: a bare TextStyle would replace the theme's
+        // style (no family, no size) and fall back to the default font.
+        textStyle: WidgetStatePropertyAll(
+          // ThemeData's textTheme has no sizes (Theme.of adds them later):
+          // take labelLarge's geometry from the typography explicitly.
+          Typography.material2021(platform: base.platform).englishLike.labelLarge!
+              .merge(text.labelLarge)
+              .copyWith(fontWeight: FontWeight.w700, decoration: TextDecoration.underline, decorationColor: kBwBlack),
         ),
       ),
     ),

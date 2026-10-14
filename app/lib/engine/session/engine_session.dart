@@ -462,6 +462,13 @@ abstract class EngineSession implements PracticeSession {
     );
   }
 
+  /// Records [event] outside of [submit] (test-out credits) and updates [states].
+  Future<FacetState> recordExtra(ReviewEvent event) async {
+    final st = await env.store.record(event);
+    _states[event.facetId] = st;
+    return st;
+  }
+
   /// Remembers [facetId] as served recently (for subclasses that pick facets).
   bool isRecent(String facetId, {int window = 3}) {
     final n = _recentFacets.length;

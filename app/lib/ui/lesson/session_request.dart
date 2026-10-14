@@ -13,23 +13,72 @@ sealed class SessionRequest {
   /// Shown when the session has nothing to serve.
   String get emptyMessage => 'Nothing to practice here right now.';
 
-  Future<PracticeSession> start(SessionFactory factory, {required LessonFocus defaultFocus});
+  /// [defaultLength]: the user's default lesson length (exercises).
+  Future<PracticeSession> start(SessionFactory factory, {required LessonFocus defaultFocus, int defaultLength = 12});
 }
 
 class LessonRequest extends SessionRequest {
-  const LessonRequest(this.skillId, {this.focus, this.skillTitle});
+  const LessonRequest(this.skillId, {this.focus, this.skillTitle, this.length});
   final String skillId;
 
   /// Null = the user's default focus setting.
   final LessonFocus? focus;
   final String? skillTitle;
 
+  /// Exercises; null = the user's default session length.
+  final int? length;
+
   @override
   String get title => skillTitle ?? 'Lesson';
 
   @override
-  Future<PracticeSession> start(SessionFactory factory, {required LessonFocus defaultFocus}) =>
-      factory.lesson(skillId, focus: focus ?? defaultFocus);
+  Future<PracticeSession> start(SessionFactory factory, {required LessonFocus defaultFocus, int defaultLength = 12}) =>
+      factory.lesson(skillId, focus: focus ?? defaultFocus, length: length ?? defaultLength);
+}
+
+/// Test out of a skill: a short quiz; passing marks the skill as learned.
+class TestOutRequest extends SessionRequest {
+  const TestOutRequest(this.skillId);
+  final String skillId;
+
+  @override
+  String get title => 'Test out';
+
+  @override
+  String get emptyMessage => 'This skill has nothing to test yet.';
+
+  @override
+  Future<PracticeSession> start(SessionFactory factory, {required LessonFocus defaultFocus, int defaultLength = 12}) =>
+      factory.testOut(skillId);
+}
+
+/// "Find my level": units in order until one is failed.
+class PlacementRequest extends SessionRequest {
+  const PlacementRequest();
+
+  @override
+  String get title => 'Find my level';
+
+  @override
+  Future<PracticeSession> start(SessionFactory factory, {required LessonFocus defaultFocus, int defaultLength = 12}) =>
+      factory.placement();
+}
+
+/// The "tough words" drill: facets with many lapses.
+class ToughWordsRequest extends SessionRequest {
+  const ToughWordsRequest({this.minLapses = 4, this.length = 12});
+  final int minLapses;
+  final int length;
+
+  @override
+  String get title => 'Tough words';
+
+  @override
+  String get emptyMessage => 'No tough words right now. Nice!';
+
+  @override
+  Future<PracticeSession> start(SessionFactory factory, {required LessonFocus defaultFocus, int defaultLength = 12}) =>
+      factory.toughWords(length: length, minLapses: minLapses);
 }
 
 class FadingRequest extends SessionRequest {
@@ -40,7 +89,7 @@ class FadingRequest extends SessionRequest {
   String get title => "What's fading";
 
   @override
-  Future<PracticeSession> start(SessionFactory factory, {required LessonFocus defaultFocus}) =>
+  Future<PracticeSession> start(SessionFactory factory, {required LessonFocus defaultFocus, int defaultLength = 12}) =>
       factory.fading(length: length);
 }
 
@@ -55,7 +104,7 @@ class ReviewRequest extends SessionRequest {
   String get emptyMessage => 'No mistakes to review. Nice!';
 
   @override
-  Future<PracticeSession> start(SessionFactory factory, {required LessonFocus defaultFocus}) =>
+  Future<PracticeSession> start(SessionFactory factory, {required LessonFocus defaultFocus, int defaultLength = 12}) =>
       factory.review(length: length);
 }
 
@@ -69,7 +118,7 @@ class LabRequest extends SessionRequest {
   String get title => 'Exercise lab';
 
   @override
-  Future<PracticeSession> start(SessionFactory factory, {required LessonFocus defaultFocus}) =>
+  Future<PracticeSession> start(SessionFactory factory, {required LessonFocus defaultFocus, int defaultLength = 12}) =>
       factory.lab(skillIds: skillIds, types: types, length: length);
 
   /// Parses `/play/lab?skills=a,b&types=cloze,flashcard&length=12`.
@@ -93,5 +142,6 @@ class NonStopRequest extends SessionRequest {
   bool get endless => true;
 
   @override
-  Future<PracticeSession> start(SessionFactory factory, {required LessonFocus defaultFocus}) => factory.nonStop();
+  Future<PracticeSession> start(SessionFactory factory, {required LessonFocus defaultFocus, int defaultLength = 12}) =>
+      factory.nonStop();
 }

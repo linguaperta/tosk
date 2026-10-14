@@ -99,10 +99,12 @@ void main() {
       await goTab(tester, 'Settings');
       expect(find.byType(SettingsScreen), findsOneWidget);
 
-      await tapKey(tester, 'setting-theme-Dark');
+      // Top to bottom: ensureVisible scrolls each control to the top of the
+      // lazy list, so rows above it may no longer be built.
+      await tapKey(tester, 'setting-source-lang-Nederlands');
       await tapKey(tester, 'setting-focus-Grammar');
       await tapKey(tester, 'setting-accents-Strict');
-      await tapKey(tester, 'setting-source-lang-Nederlands');
+      await tapKey(tester, 'setting-theme-Dark');
       await tapIt(tester, find.byKey(const ValueKey('reduce-motion')));
 
       expect(store.settings[SettingKeys.themeMode], 'dark');
@@ -154,7 +156,10 @@ void main() {
     });
 
     test('AppSettings load falls back to defaults for unknown values', () async {
-      final store = TestProgressStore(settings: {SettingKeys.themeMode: 'neon', SettingKeys.defaultFocus: ''});
+      final store = TestProgressStore(
+        fresh: true,
+        settings: {SettingKeys.themeMode: 'neon', SettingKeys.defaultFocus: '', SettingKeys.leechLapses: 'x'},
+      );
       final s = await AppSettings.load(store);
       expect(s, const AppSettings());
     });

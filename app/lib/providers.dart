@@ -7,16 +7,26 @@
 /// on the demo courses and an in-memory FSRS progress store. See `docs/ui.md`.
 library;
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 
+import 'ai/ai_config.dart';
+import 'ai/caching_explainer.dart';
+import 'ai/flag_reviewer.dart';
+import 'ai/llm_explainer.dart';
+import 'ai/secret_store.dart';
+import 'audio/sound_service.dart';
+import 'audio/test_env.dart';
 import 'core/core.dart';
 import 'data/app_data.dart';
+import 'data/progress/feedback_store.dart';
 import 'data/fsrs/fsrs_scheduler.dart';
 import 'data/progress/in_memory_progress_store.dart';
 import 'data/stats/skill_stats.dart' as data;
-import 'engine/engine.dart' show EngineSessionFactory, FocusPresets, OpenMistake, openMistakes;
+import 'engine/engine.dart' show CourseIndex, EngineSessionFactory, FocusPresets, OpenMistake, openMistakes;
 import 'progression/progression.dart';
 import 'ui/common/fx.dart';
 import 'ui/course_catalog.dart';
@@ -107,12 +117,98 @@ final availableCoursesProvider = FutureProvider<List<CourseMeta>>(
   (ref) => ref.watch(courseCatalogProvider).listCourses(),
 );
 
-/// The course in use: the saved choice when installed, else the first course.
+/// The user's courses ("my courses", added in the course picker) that are
+/// installed, in the order added. The rest of the app only shows these.
+final myCoursesProvider = FutureProvider<List<CourseMeta>>((ref) async {
+  final courses = await ref.watch(availableCoursesProvider.future);
+  final mine = await ref.watch(settingsProvider.selectAsync((s) => s.myCourseIds.join(',')));
+  final byId = {for (final c in courses) c.id: c};
+  return [for (final id in mine.split(',')) ?byId[id]];
+});
+
+/// True on a fresh install (no course added yet): the shell opens the course picker.
+final needsCoursePickerProvider = Provider<bool>((ref) {
+  final settings = ref.watch(settingsProvider).value;
+  final available = ref.watch(availableCoursesProvider).value;
+  final mine = ref.watch(myCoursesProvider).value;
+  return settings != null && available != null && available.isNotEmpty && mine != null && mine.isEmpty;
+});
+
+/// The course in use: the saved choice among the user's courses, else their
+/// first; before any course is added, the first installed course.
 final activeCourseIdProvider = FutureProvider<String>((ref) async {
   final courses = await ref.watch(availableCoursesProvider.future);
+  final mine = await ref.watch(myCoursesProvider.future);
   final wanted = await ref.watch(settingsProvider.selectAsync((s) => s.courseId));
   if (courses.isEmpty) throw StateError('No courses installed');
-  return courses.any((c) => c.id == wanted) ? wanted! : courses.first.id;
+  final pool = mine.isEmpty ? courses : mine;
+  return pool.any((c) => c.id == wanted) ? wanted! : pool.first.id;
+});
+
+/// What the course picker shows about a course before it is added.
+class CoursePreview {
+  const CoursePreview({
+    required this.meta,
+    required this.outline,
+    required this.words,
+    required this.verbs,
+    required this.sentences,
+    required this.sampleWords,
+    this.sampleSentence,
+  });
+
+  final CourseMeta meta;
+
+  /// Units in order with their skills.
+  final List<(Unit, List<Skill>)> outline;
+  final int words;
+  final int verbs;
+  final int sentences;
+
+  /// A few frequent words of the first skills.
+  final List<Item> sampleWords;
+  final Sentence? sampleSentence;
+}
+
+/// Opens [courseId] (without making it active) and summarizes it.
+final coursePreviewProvider = FutureProvider.family<CoursePreview, String>((ref, courseId) async {
+  final course = await ref.watch(courseCatalogProvider).open(courseId);
+  final lang = ref.watch(settingsProvider.select((s) => s.value?.sourceLang ?? 'en'));
+  final items = course.allItems.toList();
+  final sentences = CourseIndex.of(course).allSentences;
+  final samples = <Item>[];
+  for (final s in course.skills) {
+    for (final i in course.skillItems(s.id)) {
+      if (samples.length < 6 && !samples.contains(i) && i.glosses(lang).isNotEmpty) samples.add(i);
+    }
+    if (samples.length >= 6) break;
+  }
+  Sentence? sample;
+  for (final s in sentences) {
+    final words = s.tokens.where((t) => t.isWord).length;
+    if (words >= 3 && words <= 7 && (s.translation(lang) ?? '').isNotEmpty) {
+      sample = s;
+      break;
+    }
+  }
+  return CoursePreview(
+    meta: course.meta,
+    outline: [
+      for (final u in course.units)
+        (
+          u,
+          [
+            for (final s in course.skills)
+              if (s.unitId == u.id) s,
+          ],
+        ),
+    ],
+    words: items.length,
+    verbs: items.where((i) => i.isVerb).length,
+    sentences: sentences.length,
+    sampleWords: samples,
+    sampleSentence: sample,
+  );
 });
 
 final courseDataProvider = FutureProvider<CourseData>((ref) async {
@@ -176,9 +272,10 @@ final sessionFactoryProvider = FutureProvider<SessionFactory>((ref) async {
   );
 });
 
-/// "Why?" explanations (`core/interfaces/hooks.dart`). v1 ships [NullExplainer]:
-/// the button is hidden.
-final explainerProvider = Provider<Explainer>((ref) => const NullExplainer());
+/// Answer explanations (`core/interfaces/hooks.dart`): the cached AI
+/// explainer once a provider and key are configured in Settings, else
+/// [NullExplainer] (every explain button is hidden).
+final explainerProvider = Provider<Explainer>((ref) => ref.watch(aiExplainerProvider) ?? const NullExplainer());
 
 final explainerAvailableProvider = Provider<bool>((ref) => ref.watch(explainerProvider).isAvailable);
 
@@ -299,6 +396,16 @@ final openMistakesProvider = FutureProvider<List<OpenMistake>>((ref) async {
   );
 });
 
+/// "Tough words" of the active course: facets with at least the configured
+/// number of lapses (Settings), most lapses first.
+final toughWordsProvider = FutureProvider<List<ToughWord>>((ref) async {
+  ref.watch(progressRevisionProvider);
+  final course = await ref.watch(courseDataProvider.future);
+  final minLapses = await ref.watch(settingsProvider.selectAsync((s) => s.leechLapses));
+  final states = await ref.watch(progressStoreProvider).allStates(courseId: course.meta.id);
+  return toughWords(course, states, minLapses: minLapses);
+});
+
 /// Verb tables of the active course with their mastery.
 final verbCollectionProvider = FutureProvider<VerbCollection>((ref) async {
   ref.watch(progressRevisionProvider);
@@ -319,3 +426,109 @@ final sessionProgressSummaryProvider = FutureProvider.family<SessionProgressSumm
   final svc = await ref.watch(progressionServiceProvider.future);
   return svc.sessionSummary(sessionId);
 });
+
+// ------------------------------------------------------------------ AI, flags, sounds
+
+/// HTTP for AI providers (tests override it with `MockClient`).
+final httpClientProvider = Provider<http.Client>((ref) {
+  final client = http.Client();
+  ref.onDispose(client.close);
+  return client;
+});
+
+/// Where the AI API key is kept: the platform's secure storage (in memory
+/// under `flutter test`, which has no plugin).
+final secretStoreProvider = Provider<SecretStore>(
+  (ref) => runningInFlutterTest ? MemorySecretStore() : const SecureSecretStore(),
+);
+
+/// AI explanation settings (provider, model, base URL, reply language, key).
+final aiConfigProvider = AsyncNotifierProvider<AiConfigController, AiConfig>(AiConfigController.new);
+
+class AiConfigController extends AsyncNotifier<AiConfig> {
+  @override
+  Future<AiConfig> build() => AiConfig.load(ref.watch(progressStoreProvider), ref.watch(secretStoreProvider));
+
+  /// Applies [edit] and persists what changed (the key in the secret store).
+  Future<void> change(AiConfig Function(AiConfig c) edit) async {
+    final old = state.value ?? await future;
+    final next = edit(old);
+    if (next == old) return;
+    state = AsyncData(next);
+    await next.save(ref.read(progressStoreProvider), ref.read(secretStoreProvider), old: old);
+  }
+}
+
+/// AI explanation cache and flags: tables in the progress database (in
+/// memory on the defaults).
+final feedbackStoreProvider = Provider<FeedbackStore>(
+  (ref) => ref.watch(appDataProvider)?.feedback ?? InMemoryFeedbackStore(),
+);
+
+/// The configured provider's client, or null (AI not configured).
+final llmExplainerProvider = Provider<LlmExplainer?>((ref) {
+  final config = ref.watch(aiConfigProvider).value;
+  if (config == null) return null;
+  return llmExplainerFor(config, ref.watch(httpClientProvider), browser: kIsWeb);
+});
+
+/// [llmExplainerProvider] behind the explanation cache, with the reply
+/// language from the AI settings. Null when AI isn't configured.
+final aiExplainerProvider = Provider<CachingExplainer?>((ref) {
+  final llm = ref.watch(llmExplainerProvider);
+  if (llm == null) return null;
+  return CachingExplainer(
+    llm,
+    ref.watch(feedbackStoreProvider),
+    clock: ref.watch(clockProvider),
+    provider: llm.providerId,
+    model: llm.model,
+  );
+});
+
+/// A cached AI explanation by (fingerprint, given answer, reply language),
+/// or null. Works offline and without a configured provider.
+final cachedExplanationProvider = FutureProvider.autoDispose.family<String?, (String, String, String)>((ref, key) async {
+  final (fingerprint, given, lang) = key;
+  return (await ref.watch(feedbackStoreProvider).explanation(fingerprint, given, lang))?.text;
+});
+
+/// The language AI replies are written in (the setting, or the source language).
+final explainLangProvider = Provider<String>((ref) {
+  final config = ref.watch(aiConfigProvider).value;
+  final source = ref.watch(sourceLangProvider);
+  return config?.replyLang(source) ?? source;
+});
+
+/// "Confer with AI" on a flag; null when AI isn't configured.
+final flagReviewerProvider = Provider<FlagReviewer?>((ref) {
+  final llm = ref.watch(llmExplainerProvider);
+  return llm == null ? null : FlagReviewer(llm);
+});
+
+/// Bumped when flags are added or deleted.
+final flagsRevisionProvider = NotifierProvider<ProgressRevision, int>(ProgressRevision.new);
+
+/// Every flag on this device, most recent first.
+final flagsProvider = FutureProvider<List<FlagRecord>>((ref) {
+  ref.watch(flagsRevisionProvider);
+  return ref.watch(feedbackStoreProvider).flags();
+});
+
+/// Plays the sound files (silent under `flutter test`; tests override it with a fake).
+final audioBackendProvider = Provider<AudioBackend>((ref) {
+  final AudioBackend backend = runningInFlutterTest ? const SilentAudioBackend() : AudioplayersBackend();
+  ref.onDispose(() => backend.dispose());
+  return backend;
+});
+
+/// The "Sound effects" setting (on by default; separate from reduce motion).
+final soundEffectsProvider = Provider<bool>(
+  (ref) => ref.watch(settingsProvider.select((s) => s.value?.soundEffects ?? true)),
+);
+
+/// Sound effects for the UI: correct, wrong, lesson complete, level up, bonus
+/// round and the select tick.
+final soundServiceProvider = Provider<SoundService>(
+  (ref) => SoundService(ref.watch(audioBackendProvider), enabled: ref.watch(soundEffectsProvider)),
+);

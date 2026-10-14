@@ -127,6 +127,13 @@ List<Exercise> _italian(String lang) {
       errorIndex: 0,
       correction: 'Il',
       translation: t('The bread is good.', 'Het brood is lekker.'),
+      tokenRefs: const [
+        TokenRef('La'),
+        TokenRef('pane', pre: ' ', itemId: 'it:pane'),
+        TokenRef('è', pre: ' ', itemId: 'it:essere', form: 'presente.lui/lei'),
+        TokenRef('buono', pre: ' '),
+        TokenRef('.', isWord: false),
+      ],
     ),
     // --- family
     FlashcardExercise(
@@ -151,6 +158,13 @@ List<Exercise> _italian(String lang) {
       correctIndex: 0,
       direction: Direction.recognize,
       isSentence: true,
+      sentenceTokens: const [
+        TokenRef('Mio'),
+        TokenRef('padre', pre: ' ', itemId: 'it:padre'),
+        TokenRef('parla', pre: ' ', itemId: 'it:parlare', form: 'presente.lui/lei'),
+        TokenRef('italiano', pre: ' '),
+        TokenRef('.', isWord: false),
+      ],
     ),
     // --- present -are
     ConjPickExercise(
@@ -211,6 +225,13 @@ List<Exercise> _italian(String lang) {
       tiles: const ['mela', 'Noi', 'mangiate', 'la', 'mangiamo', 'il'],
       answers: const [
         ['Noi', 'mangiamo', 'la', 'mela'],
+      ],
+      sourceTokens: const [
+        TokenRef('Io'),
+        TokenRef('mangio', pre: ' ', itemId: 'it:mangiare', form: 'presente.io'),
+        TokenRef('la', pre: ' '),
+        TokenRef('mela', pre: ' ', itemId: 'it:mela'),
+        TokenRef('.', isWord: false),
       ],
     ),
     // --- essere & avere
@@ -285,6 +306,12 @@ List<Exercise> _italian(String lang) {
       answers: const [
         ['Leggo', 'un', 'libro'],
       ],
+      answerTokens: const [
+        TokenRef('Leggo', itemId: 'it:leggere', form: 'presente.io'),
+        TokenRef('un', pre: ' '),
+        TokenRef('libro', pre: ' '),
+        TokenRef('.', isWord: false),
+      ],
     ),
     ConjPickExercise(
       id: 'it-cp-dormono',
@@ -328,6 +355,16 @@ List<Exercise> _italian(String lang) {
       correctIndex: 0,
       hint: 'avere (io)',
       translation: t('Yesterday I ate pizza.', 'Gisteren heb ik pizza gegeten.'),
+      tokens: const [
+        TokenRef('Ieri', itemId: 'it:ieri'),
+        TokenRef('ho', pre: ' ', itemId: 'it:mangiare', form: 'passato_prossimo.io'),
+        TokenRef('mangiato', pre: ' ', itemId: 'it:mangiare', form: 'passato_prossimo.io'),
+        TokenRef('la', pre: ' '),
+        TokenRef('pizza', pre: ' '),
+        TokenRef('.', isWord: false),
+      ],
+      gapFrom: 1,
+      gapTo: 1,
     ),
     // --- time
     FlashcardExercise(

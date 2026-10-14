@@ -1,4 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- AI explanations call the provider the user configured (optional feature). -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="tosk"
         android:name="${applicationName}"

@@ -44,6 +44,16 @@ enum ExerciseType {
       tryParse(id) ?? (throw FormatException('Unknown exercise type: $id'));
 }
 
+/// [ReviewEvent.exerciseType] of a *test-out credit*: when a test-out quiz or a
+/// placement test is passed, every facet of the skills it covers that is not
+/// yet learned gets one event with this type, rating [Rating.easy], `correct`,
+/// `responseMs` 0 and the session's id and mode (`testOut` / `placement`).
+/// Easy graduates a new facet straight into review, so the skill reaches
+/// bronze and what follows unlocks; being ordinary log events, credits sync
+/// like any answer. Progression gives them no XP and doesn't count them as
+/// reviews (see docs/progression.md).
+const String kTestOutCreditType = 'test_out';
+
 /// One graded answer. Append-only; never edited. Facet ids embed the course id.
 @immutable
 class ReviewEvent {
@@ -71,7 +81,10 @@ class ReviewEvent {
   final bool correct;
   final String? answer; // the answer given (for mistake review)
   final String? sessionId;
-  final String? mode; // 'lesson' | 'lab' | 'nonstop' | 'review'
+  final String? mode; // 'lesson' | 'lab' | 'nonstop' | 'review' | 'testOut' | 'placement'
+
+  /// A test-out credit rather than an answer (see [kTestOutCreditType]).
+  bool get isCredit => exerciseType == kTestOutCreditType;
 }
 
 /// FSRS learning phase.

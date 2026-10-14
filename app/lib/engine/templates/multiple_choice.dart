@@ -193,6 +193,7 @@ class MultipleChoiceTemplate extends ExerciseTemplate {
         correctIndex: idx,
         direction: rec ? Direction.recognize : Direction.produce,
         isSentence: true,
+        sentenceTokens: tokenRefsOf(s),
       );
     }
     return null;

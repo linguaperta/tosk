@@ -5,8 +5,10 @@ import 'package:go_router/go_router.dart';
 import '../../core/core.dart';
 import '../../providers.dart';
 import '../common/async_view.dart';
+import '../courses/course_picker.dart';
 import '../routes.dart';
 import '../shell/course_switcher.dart';
+import 'ai_settings_section.dart';
 import 'app_settings.dart';
 
 /// Settings, persisted through the progress store (see `setting_keys.dart`).
@@ -16,7 +18,7 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsProvider);
-    final courses = ref.watch(availableCoursesProvider).value ?? const <CourseMeta>[];
+    final courses = ref.watch(myCoursesProvider).value ?? const <CourseMeta>[];
     final activeId = ref.watch(activeCourseIdProvider).value;
     // The opened course's meta (listing metas from packs carry no translations).
     final meta = ref.watch(courseDataProvider).value?.meta ?? courses.where((c) => c.id == activeId).firstOrNull;
@@ -54,6 +56,12 @@ class SettingsScreen extends ConsumerWidget {
                       selected: c.id == activeId,
                       onTap: () => ctl.change((s) => s.copyWith(courseId: c.id)),
                     ),
+                  ListTile(
+                    key: const ValueKey('manage-courses-tile'),
+                    leading: const Icon(Icons.library_add_outlined),
+                    title: const Text('Add or remove courses'),
+                    onTap: () => showCoursePicker(context),
+                  ),
                   const _Section('Learning'),
                   _Choice<String>(
                     keyName: 'source-lang',
@@ -113,11 +121,32 @@ class SettingsScreen extends ConsumerWidget {
                     title: const Text('Reduce motion'),
                     subtitle: Text(
                       s.bw
-                          ? 'No haptics or sounds (animations are always off in black & white)'
-                          : 'No animations, haptics or sounds',
+                          ? 'No haptics (animations are always off in black & white)'
+                          : 'No animations or haptics',
                     ),
                     value: s.reduceMotion,
                     onChanged: (v) => ctl.change((s) => s.copyWith(reduceMotion: v)),
+                  ),
+                  SwitchListTile(
+                    key: const ValueKey('sound-effects'),
+                    title: const Text('Sound effects'),
+                    subtitle: const Text('Short sounds for answers, taps and finishing a lesson'),
+                    value: s.soundEffects,
+                    onChanged: (v) => ctl.change((s) => s.copyWith(soundEffects: v)),
+                  ),
+                  const _Section('AI explanations'),
+                  const AiSettingsSection(),
+                  const _Section('Feedback & flags'),
+                  ListTile(
+                    key: const ValueKey('open-flags'),
+                    leading: const Icon(Icons.outlined_flag),
+                    title: const Text('Flagged exercises'),
+                    subtitle: Text(switch (ref.watch(flagsProvider).value?.length ?? 0) {
+                      0 => 'None yet. Export them here for the developer',
+                      1 => '1 flag on this device · export',
+                      final n => '$n flags on this device · export',
+                    }),
+                    onTap: () => context.push(Routes.flags),
                   ),
                   const _Section('About'),
                   if (meta != null && meta.attribution.isNotEmpty)
@@ -132,6 +161,25 @@ class SettingsScreen extends ConsumerWidget {
                     title: const Text('Debug'),
                     subtitle: const Text('Courses, skills and strength'),
                     onTap: () => context.push(Routes.debug),
+                  ),
+                  const _Section('Practice'),
+                  _Choice<SessionLength>(
+                    keyName: 'length',
+                    title: 'Default lesson length',
+                    subtitle: '${s.defaultLength.exercises} exercises; the lesson sheet offers the others',
+                    values: SessionLength.values,
+                    selected: s.defaultLength,
+                    label: sessionLengthLabel,
+                    onChanged: (v) => ctl.change((s) => s.copyWith(defaultLength: v)),
+                  ),
+                  _Choice<int>(
+                    keyName: 'leech',
+                    title: 'Tough word after this many lapses',
+                    subtitle: 'Words forgotten this often (after you knew them) go to the "Tough words" drill',
+                    values: const [3, 4, 5, 6],
+                    selected: s.leechLapses,
+                    label: (n) => '$n',
+                    onChanged: (v) => ctl.change((s) => s.copyWith(leechLapses: v)),
                   ),
                 ],
               ),

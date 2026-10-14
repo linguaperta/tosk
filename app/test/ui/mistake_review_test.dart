@@ -12,11 +12,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'helpers.dart';
 
 class _FakeExplainer implements Explainer {
-  MistakeContext? last;
+  ExplainContext? last;
   @override
   bool get isAvailable => true;
   @override
-  Stream<String> explain(MistakeContext context) {
+  Stream<String> explain(ExplainContext context) {
     last = context;
     return Stream.value('Because noi takes -iamo.');
   }

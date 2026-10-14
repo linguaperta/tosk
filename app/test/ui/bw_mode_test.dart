@@ -33,6 +33,35 @@ bool _isPalette(Color c) => c.a == 0 || kBwPalette.any((p) => p.toARGB32() == c.
 void main() {
   overflowGroup();
 
+  test('button themes keep the theme font: no bare TextStyle replacing it', () {
+    // A from-scratch TextStyle (no family, no size) in a button theme renders
+    // the label in the fallback font: solid blocks under the test font, the
+    // "Preview" bug in QA screenshots. expectGrayscale also checks every
+    // visible text (expectReadableText).
+    final t = bwTheme();
+    final label = t.textTheme.labelLarge!;
+    final styles = {
+      'text': t.textButtonTheme.style,
+      'filled': t.filledButtonTheme.style,
+      'outlined': t.outlinedButtonTheme.style,
+      'elevated': t.elevatedButtonTheme.style,
+      'segmented': t.segmentedButtonTheme.style,
+      'icon': t.iconButtonTheme.style,
+    };
+    for (final MapEntry(:key, :value) in styles.entries) {
+      for (final states in [
+        <WidgetState>{},
+        {WidgetState.disabled},
+        {WidgetState.selected},
+      ]) {
+        final ts = value?.textStyle?.resolve(states);
+        if (ts == null) continue;
+        expect(ts.fontFamily, label.fontFamily, reason: '$key button, $states');
+        expect(ts.fontSize, isNotNull, reason: '$key button, $states');
+      }
+    }
+  });
+
   group('palette', () {
     test('every ColorScheme color is black, white or the one gray', () {
       final s = bwTheme().colorScheme;
@@ -152,6 +181,13 @@ void main() {
 
   testWidgets('settings: Display switches to black & white and persists', (tester) async {
     final store = await pumpApp(tester, initialLocation: Routes.settings);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('setting-display-Black & white')),
+      200,
+      scrollable: find
+          .descendant(of: find.byKey(const ValueKey('settings-list')), matching: find.byType(Scrollable))
+          .first,
+    );
     await tapKey(tester, 'setting-display-Black & white');
     expect(store.settings[SettingKeys.display], 'bw');
     expect(find.byKey(const ValueKey('setting-theme')), findsNothing); // always light
@@ -177,7 +213,7 @@ void main() {
     await expectGrayscale(tester, 'skill sheet (note)');
     await tester.tapAt(const Offset(10, 10));
     await tester.pumpAndSettle();
-    for (final tab in ['Lab', 'Non-stop', 'Progress', 'Settings']) {
+    for (final tab in ['Lab', 'Non-stop', 'Lookup', 'Grammar', 'Progress', 'Settings']) {
       await goTab(tester, tab);
       await expectGrayscale(tester, tab);
     }
@@ -329,9 +365,9 @@ void overflowGroup() {
           await tester.drag(find.byKey(const ValueKey('map-scroll')), const Offset(0, -500));
           await tester.pumpAndSettle();
         }
-        for (final tab in ['Lab', 'Non-stop', 'Settings', 'Progress']) {
-          await tester.tap(find.text(tab).first);
-          await tester.pumpAndSettle();
+        for (final tab in ['Lab', 'Non-stop', 'Lookup', 'Grammar', 'Settings', 'Progress']) {
+          await goTab(tester, tab);
+          await expectGrayscale(tester, tab);
         }
         await expectGrayscale(tester, 'progress');
         for (var i = 0; i < 6; i++) {

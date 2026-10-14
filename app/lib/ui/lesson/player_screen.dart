@@ -7,18 +7,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/core.dart';
+import '../../feedback/answer_context.dart';
 import '../../progression/nonstop.dart';
 import '../../providers.dart';
+import '../ai/ai_explanation_sheet.dart';
 import '../common/async_view.dart';
+import '../feedback/flag_sheet.dart';
 import '../routes.dart';
 import '../slots/progression_slots.dart';
 import 'exercises/exercise_view.dart';
+import 'assessment_result.dart';
 import 'feedback_banner.dart';
 import '../../data/progress/replay.dart' show toStoredTime;
 import '../../engine/engine.dart';
 import 'session_request.dart';
 import 'session_summary_view.dart';
-import 'why_sheet.dart';
 
 enum PlayerPhase { loading, playing, empty, summary, error }
 
@@ -44,6 +47,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   Result? _result;
   bool _busy = false;
   SessionSummary? _summary;
+
+  /// The current exercise was flagged (the Report action shows "Reported").
+  bool _flagged = false;
 
   /// Non-stop scoring (combo, multiplier, bonus rounds), fed one graded
   /// exercise at a time with the `at` the session recorded.
@@ -77,12 +83,17 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     try {
       final factory = await ref.read(sessionFactoryProvider.future);
       final settings = await ref.read(settingsProvider.future);
-      final session = await widget.request.start(factory, defaultFocus: settings.defaultFocus);
+      final session = await widget.request.start(
+        factory,
+        defaultFocus: settings.defaultFocus,
+        defaultLength: settings.defaultLength.exercises,
+      );
       if (!mounted) {
         session.stop();
         return;
       }
       _session = session;
+      ref.read(soundServiceProvider).warmUp();
       // The engine reports every graded answer with the events it recorded;
       // non-stop scoring is fed from there (same `at` as the review log).
       if (_endless && session is EngineSession) _answers = session.results.listen(_onAnswer);
@@ -121,6 +132,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       _counter++;
       _draft = null;
       _result = null;
+      _flagged = false;
       _phase = PlayerPhase.playing;
     });
     _watch
@@ -139,7 +151,14 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       final r = await s.submit(ex, answer, elapsed: _watch.elapsed);
       if (!mounted) return;
       final fx = ref.read(fxProvider);
-      r.correct ? fx.correct() : fx.wrong();
+      final sound = ref.read(soundServiceProvider);
+      if (r.correct) {
+        fx.correct();
+        sound.correct();
+      } else {
+        fx.wrong();
+        sound.wrong();
+      }
       // Sessions without a result stream (test fakes) feed the run here.
       if (_endless && s is! EngineSession) _feedRun(ex, r, ref.read(clockProvider)().toUtc());
       if (ex is FlashcardExercise) {
@@ -171,6 +190,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     _run = _run.applyResult(ex, r, at: at);
     final s = _session;
     final round = _run.bonusRound;
+    if (round != null && _run.lastSignals.contains(NonStopSignal.bonusRoundStarted)) {
+      ref.read(soundServiceProvider).bonus();
+    }
     if (round != null && _run.lastSignals.contains(NonStopSignal.bonusRoundStarted) && s is NonStopSession) {
       final types = {
         for (final id in _run.preferredTypes)
@@ -197,10 +219,34 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     final summary = s.summary();
     ref.read(progressRevisionProvider.notifier).bump();
     ref.read(fxProvider).finished();
+    unawaited(_celebrate(summary.sessionId));
     setState(() {
       _summary = summary;
       _phase = PlayerPhase.summary;
     });
+  }
+
+  /// The end-of-session sound: the level-up fanfare when this session gained
+  /// a level, else the lesson-complete arpeggio.
+  Future<void> _celebrate(String sessionId) async {
+    var levelUp = false;
+    try {
+      final p = await ref
+          .read(sessionProgressSummaryProvider(sessionId).future)
+          .timeout(const Duration(milliseconds: 800));
+      levelUp = p?.leveledUp ?? false;
+    } catch (_) {
+      // No progression summary (yet): just the lesson sound.
+    }
+    if (!mounted) return;
+    final sound = ref.read(soundServiceProvider);
+    levelUp ? sound.levelUp() : sound.complete();
+  }
+
+  /// Select tick and haptic for taps on options, tiles, chips and cards.
+  void _selectTick() {
+    ref.read(soundServiceProvider).select();
+    ref.read(fxProvider).tap();
   }
 
   void _close() {
@@ -249,31 +295,42 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     }
   }
 
-  void _why() {
-    final ex = _exercise, r = _result;
-    if (ex == null || r == null) return;
+  /// The checked answer's context (engine mistake context when there is one,
+  /// so the cached explanation is shared with mistake review).
+  ExplainContext _answerContext(Exercise ex, Result r) {
     final s = _session;
-    // The engine keeps the context of every wrong answer; other sessions get one built here.
-    final ctx = (s is EngineSession ? s.mistakeContext(ex.id) : null) ?? _fallbackContext(ex, r);
-    showWhySheet(context, ref.read(explainerProvider).explain(ctx));
+    return buildExplainContext(
+      exercise: ex,
+      result: r,
+      sourceLang: ref.read(sourceLangProvider),
+      course: ref.read(courseDataProvider).value,
+      explainLang: ref.read(explainLangProvider),
+      at: ref.read(clockProvider)().toUtc(),
+      mistake: s is EngineSession ? s.mistakeContext(ex.id) : null,
+    );
   }
 
-  MistakeContext _fallbackContext(Exercise ex, Result r) {
-    final course = ref.read(courseDataProvider).value;
-    final lang = ref.read(sourceLangProvider);
-    return MistakeContext(
-      courseId: course?.meta.id ?? '',
-      facetId: ex.facetId,
-      exerciseType: ex.type,
-      prompt: exercisePrompt(ex),
-      expected: r.expected,
-      given: r.given,
-      sourceLang: lang,
-      targetLang: course?.meta.target ?? '',
-      skillId: ex.skillId,
-      note: ex.skillId == null ? null : course?.note(ex.skillId!, lang),
-      at: ref.read(clockProvider)().toUtc(),
+  /// "Explain answer with AI" (right or wrong answers).
+  void _explain() {
+    final ex = _exercise, r = _result;
+    if (ex == null || r == null) return;
+    final ctx = _answerContext(ex, r);
+    final explainer = ref.read(explainerProvider);
+    unawaited(showAiExplanationSheet(context, request: () => explainer.explain(ctx), note: ctx.note));
+  }
+
+  /// "Report": the flag sheet for the checked exercise.
+  Future<void> _flag() async {
+    final ex = _exercise, r = _result;
+    if (ex == null || r == null) return;
+    final draft = FlagDraft(
+      exercise: ex,
+      result: r,
+      context: _answerContext(ex, r),
+      packVersion: ref.read(courseDataProvider).value?.meta.version,
     );
+    final saved = await showFlagSheet(context, draft);
+    if (saved == true && mounted && _exercise == ex) setState(() => _flagged = true);
   }
 
   bool _editingText() {
@@ -416,7 +473,14 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       case PlayerPhase.summary:
         final summary = _summary;
         if (summary == null) return const SizedBox.shrink();
-        return SessionSummaryView(summary: summary, endless: _endless, onDone: _close);
+        final s = _session;
+        final outcome = s is AssessmentSession ? s.outcome : null;
+        return SessionSummaryView(
+          summary: summary,
+          endless: _endless,
+          onDone: _close,
+          header: outcome == null ? null : AssessmentResultCard(outcome: outcome, mode: summary.mode),
+        );
       case PlayerPhase.playing:
         return _playing(context);
     }
@@ -426,7 +490,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     final ex = _exercise!;
     final result = _result;
     final reduce = ref.watch(reduceMotionProvider);
-    final whyAvailable = ref.watch(explainerAvailableProvider);
+    final aiAvailable = ref.watch(explainerAvailableProvider);
     return Column(
       children: [
         if (_endless) NonStopHudSlot(run: _run),
@@ -451,6 +515,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                     onChanged: (a) => setState(() => _draft = a),
                     onSubmit: (a) => unawaited(_submit(a)),
                     onCheck: _check,
+                    onSelect: _selectTick,
                   ),
                 ),
               );
@@ -463,7 +528,22 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
             result: result,
             reduceMotion: reduce,
             onContinue: _continue,
-            onWhy: whyAvailable && !result.correct ? _why : null,
+            extraActions: [
+              // Only exists when an AI provider and key are configured.
+              if (aiAvailable)
+                FeedbackAction(
+                  key: const ValueKey('ai-explain-button'),
+                  icon: Icons.auto_awesome_outlined,
+                  label: 'Explain answer with AI',
+                  onPressed: _explain,
+                ),
+              FeedbackAction(
+                key: const ValueKey('flag-button'),
+                icon: _flagged ? Icons.flag : Icons.outlined_flag,
+                label: _flagged ? 'Reported' : 'Report',
+                onPressed: _flagged ? null : () => unawaited(_flag()),
+              ),
+            ],
           )
         else if (!selfSubmitting(ex.type))
           SafeArea(
