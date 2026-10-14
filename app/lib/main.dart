@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/misc.dart' show Override;
 
 import 'app.dart';
 import 'app_bootstrap.dart';
+import 'app_version.dart';
 import 'data/bootstrap.dart' show AppDataOptions;
 
 /// Optional data directory for QA and development runs, so they don't touch
@@ -18,9 +19,10 @@ Future<void> main() async {
   // courses while none is installed) and the FSRS scheduler.
   var overrides = <Override>[];
   try {
+    // appVersion turns on course downloads (GitHubPackSource).
     final options = _dataDirOverride.isEmpty
-        ? const AppDataOptions()
-        : const AppDataOptions(dataDirectory: _dataDirOverride);
+        ? const AppDataOptions(appVersion: kAppVersion)
+        : const AppDataOptions(dataDirectory: _dataDirOverride, appVersion: kAppVersion);
     if (_dataDirOverride.isNotEmpty) debugPrint('[boot] data directory override: $_dataDirOverride');
     overrides = (await bootApp(options: options)).overrides;
   } catch (e, st) {

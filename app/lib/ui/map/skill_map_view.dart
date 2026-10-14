@@ -66,7 +66,17 @@ class SkillMapView extends StatelessWidget {
     this.onTap,
     this.onLongPress,
     this.unitKeys = const {},
+    this.storyCounts = const {},
+    this.storyUnitsOpen = const {},
+    this.onUnitStories,
   });
+
+  /// Stories per unit id: units with stories get a book button in their band
+  /// header ([onUnitStories]); [storyUnitsOpen] are the units whose stories
+  /// are unlocked (a closed book outline otherwise).
+  final Map<String, int> storyCounts;
+  final Set<String> storyUnitsOpen;
+  final void Function(String unitId)? onUnitStories;
 
   /// Keys put on each unit band (by unit id), so the map can scroll to one.
   final Map<String, GlobalKey> unitKeys;
@@ -128,7 +138,8 @@ class SkillMapView extends StatelessWidget {
               for (final b in layout.bands)
                 Positioned(
                   left: 4,
-                  right: 4,
+                  // Room for the stories button on the right.
+                  right: (storyCounts[b.unitId] ?? 0) > 0 && onUnitStories != null ? 4 + _storyButtonWidth : 4,
                   top: g.bandTop[b.index],
                   child: Align(
                     alignment: Alignment.topLeft,
@@ -152,6 +163,26 @@ class SkillMapView extends StatelessWidget {
                     ),
                   ),
                 ),
+              // The unit's stories: a book and the count at the right end of
+              // the band header: the header plus the gap above the nodes (44 px).
+              if (onUnitStories != null)
+                for (final b in layout.bands)
+                  if ((storyCounts[b.unitId] ?? 0) > 0)
+                    Positioned(
+                      right: 8,
+                      top: g.bandTop[b.index],
+                      width: _storyButtonWidth,
+                      height: _storyButtonHeight,
+                      child: _UnitStoriesButton(
+                        key: ValueKey('unit-stories-${b.unitId}'),
+                        count: storyCounts[b.unitId]!,
+                        open: storyUnitsOpen.contains(b.unitId),
+                        unitTitle: unitTitles[b.unitId] ?? b.unitId,
+                        background: style.bandColor(b.index),
+                        foreground: style.bandTitleColor,
+                        onTap: () => onUnitStories!(b.unitId),
+                      ),
+                    ),
               for (final n in layout.nodes)
                 if (course.skill(n.skillId) case final skill?)
                   Positioned(
@@ -282,4 +313,64 @@ class MapEdgesPainter extends CustomPainter {
       old.geometry.width != geometry.width ||
       old.style != style ||
       old.lockedSkills.length != lockedSkills.length;
+}
+
+const double _storyButtonWidth = 64;
+const double _storyButtonHeight = MapGeometry.bandHeader + 8;
+
+/// The book button of a unit band: an open book when the unit's stories are
+/// unlocked, an outline otherwise, plus the number of stories.
+class _UnitStoriesButton extends StatelessWidget {
+  const _UnitStoriesButton({
+    super.key,
+    required this.count,
+    required this.open,
+    required this.unitTitle,
+    required this.background,
+    required this.foreground,
+    required this.onTap,
+  });
+  final int count;
+  final bool open;
+  final String unitTitle;
+  final Color background;
+  final Color foreground;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final mono = isBw(context);
+    return Semantics(
+      button: true,
+      label: '$count ${count == 1 ? 'story' : 'stories'}, $unitTitle${open ? '' : ', locked'}',
+      excludeSemantics: true,
+      child: Tooltip(
+        message: 'Stories',
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(8),
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: Container(
+              margin: const EdgeInsets.only(top: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: background,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: mono ? kBwBlack : foreground.withValues(alpha: 0.5), width: mono ? kBwBorder : 1),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(open ? Icons.menu_book : Icons.menu_book_outlined, size: 18, color: foreground),
+                  const SizedBox(width: 4),
+                  Text('$count', style: Theme.of(context).textTheme.labelLarge?.copyWith(color: foreground)),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

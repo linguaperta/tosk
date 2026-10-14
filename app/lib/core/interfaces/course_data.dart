@@ -9,6 +9,7 @@ import 'package:collection/collection.dart';
 
 import '../models/course.dart';
 import '../models/facet.dart';
+import '../models/story.dart';
 
 abstract interface class CourseData {
   CourseMeta get meta;
@@ -41,6 +42,14 @@ abstract interface class CourseData {
   /// Forms of a verb in one tense, in [CourseMeta.persons] order (missing persons skipped).
   List<VerbForm> verbFormsInTense(String itemId, String tense);
 
+  /// A non-verb's inflection cells, keyed by `'{table}.{cell}'` (empty for packs
+  /// before schema minor 1 and for items without tables).
+  Map<String, InflectionForm> inflections(String itemId);
+
+  /// One inflection table of an item, cells in [InflectionTable.cells] order
+  /// (empty when the item has no such table).
+  List<InflectionForm> inflectionTable(String itemId, String table);
+
   /// Sentences containing a token aligned to [itemId] (optionally a given `'{tense}.{person}'` form or tense prefix).
   List<Sentence> sentencesFor(String itemId, {String? form, String? tense});
 
@@ -55,6 +64,12 @@ abstract interface class CourseData {
 
   /// Grammar features a skill introduces (its tense for a verb skill, plus declared constructs).
   Set<String> skillFeatures(String skillId);
+
+  /// Graded mini-stories in unit order, then story order; empty for packs
+  /// without stories. Their sentences are not in [sentencesFor] / [sentence].
+  List<Story> get stories;
+
+  Story? story(String id);
 }
 
 /// Straightforward indexed implementation used by both the data layer and tests.
@@ -72,11 +87,19 @@ class InMemoryCourseData implements CourseData {
     Map<String, Map<String, String>> notes = const {}, // skillId -> lang -> md
     Map<String, Set<String>> sentenceFeatures = const {}, // sentenceId -> features
     Map<String, Set<String>> skillFeatures = const {}, // skillId -> features
+    List<Story> stories = const [],
+    List<InflectionForm> inflections = const [],
   }) : units = (List.of(units)..sort((a, b) => a.ord.compareTo(b.ord))) {
     _notes = notes;
     _sentenceFeatures = sentenceFeatures;
     _skillFeatures = skillFeatures;
     final unitOrd = {for (final u in this.units) u.id: u.ord};
+    this.stories = List.unmodifiable(List.of(stories)
+      ..sort((a, b) {
+        final c = (unitOrd[a.unitId] ?? 1 << 20).compareTo(unitOrd[b.unitId] ?? 1 << 20);
+        return c != 0 ? c : a.ord.compareTo(b.ord);
+      }));
+    _stories = {for (final s in this.stories) s.id: s};
     this.skills = List.of(skills)
       ..sort((a, b) {
         final c = (unitOrd[a.unitId] ?? 0).compareTo(unitOrd[b.unitId] ?? 0);
@@ -108,6 +131,9 @@ class InMemoryCourseData implements CourseData {
     for (final f in verbForms) {
       (_forms[f.itemId] ??= {})[f.key] = f;
     }
+    for (final f in inflections) {
+      (_infl[f.itemId] ??= {})[f.key] = f;
+    }
     for (final s in sentences) {
       _sentences[s.id] = s;
       final seen = <String>{};
@@ -134,11 +160,15 @@ class InMemoryCourseData implements CourseData {
   final Map<String, List<Item>> _byPos = {};
   late final Map<String, Verb> _verbs;
   final Map<String, Map<String, VerbForm>> _forms = {};
+  final Map<String, Map<String, InflectionForm>> _infl = {};
   final Map<String, Sentence> _sentences = {};
   final Map<String, List<Sentence>> _sentencesByItem = {};
   late final Map<String, Map<String, String>> _notes;
   late final Map<String, Set<String>> _sentenceFeatures;
   late final Map<String, Set<String>> _skillFeatures;
+  @override
+  late final List<Story> stories;
+  late final Map<String, Story> _stories;
 
   @override
   Skill? skill(String id) => _skills[id];
@@ -200,6 +230,21 @@ class InMemoryCourseData implements CourseData {
   }
 
   @override
+  Map<String, InflectionForm> inflections(String itemId) => _infl[itemId] ?? const {};
+
+  @override
+  List<InflectionForm> inflectionTable(String itemId, String table) {
+    final forms = _infl[itemId];
+    if (forms == null) return const [];
+    final cells = meta.inflectionTables[table]?.cells ??
+        [for (final f in forms.values) if (f.table == table) f.cell];
+    return [
+      for (final c in cells)
+        if (forms['$table.$c'] != null) forms['$table.$c']!,
+    ];
+  }
+
+  @override
   List<Sentence> sentencesFor(String itemId, {String? form, String? tense}) {
     final all = _sentencesByItem[itemId] ?? const <Sentence>[];
     if (form == null && tense == null) return all;
@@ -226,4 +271,7 @@ class InMemoryCourseData implements CourseData {
 
   @override
   Set<String> skillFeatures(String skillId) => _skillFeatures[skillId] ?? const {};
+
+  @override
+  Story? story(String id) => _stories[id];
 }

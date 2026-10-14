@@ -7,6 +7,7 @@ import '../grading/rating.dart';
 import '../strings.dart';
 import '../template.dart';
 import '../text/normalize.dart';
+import 'inflection.dart';
 
 /// How an empty ending (Dutch `ik werk` = `werk` + '') is shown as an option.
 const String kNoEnding = '–';
@@ -27,7 +28,7 @@ class ConjPickTemplate extends ExerciseTemplate {
   ExerciseType get type => ExerciseType.conjPick;
 
   @override
-  Set<FacetKind> get kinds => const {FacetKind.form};
+  Set<FacetKind> get kinds => const {FacetKind.form, FacetKind.infl};
 
   List<VerbForm> _cells(SkillFacet facet, GenContext ctx) {
     final tense = facet.tense;
@@ -124,13 +125,66 @@ class ConjPickTemplate extends ExerciseTemplate {
   @override
   bool canGenerate(SkillFacet facet, GenContext ctx) {
     if (!supports(facet)) return false;
+    if (facet.kind == FacetKind.infl) {
+      return ctx.memo('conj_pick/$optionCount|${facet.facetId}',
+          () => inflPickCells(ctx, facet).any((c) => _inflDistractors(facet, c, ctx, shuffle: false).length >= 2));
+    }
     return ctx.memo('conj_pick/$optionCount|${facet.facetId}',
         () => _cells(facet, ctx).any((c) => _distractors(facet, c, ctx, shuffle: false).length >= 2));
+  }
+
+  /// Wrong endings for an inflection cell (see [inflPickGroups]).
+  List<String> _inflDistractors(SkillFacet facet, InflectionForm cell, GenContext ctx, {bool shuffle = true}) {
+    final accepted = inflAcceptedKeys(cell);
+    final seen = <String>{_endingKey(cell.ending!)};
+    final out = <String>[];
+    for (final g in inflPickGroups(ctx, facet, cell)) {
+      for (final e in shuffle ? ctx.shuffled(g) : g) {
+        if (out.length >= optionCount - 1) return out;
+        if (accepted.contains(foldAnswer(cell.stem! + e))) continue;
+        if (!seen.add(_endingKey(e))) continue;
+        out.add(e);
+      }
+    }
+    return out;
+  }
+
+  Exercise? _generateInfl(SkillFacet facet, GenContext ctx) {
+    final item = ctx.course.item(facet.itemId);
+    final spec = inflTableOf(ctx, facet);
+    if (item == null || spec == null) return null;
+    for (final cell in ctx.shuffled(inflPickCells(ctx, facet))) {
+      final d = _inflDistractors(facet, cell, ctx);
+      if (d.length < 2) continue;
+      final shown = [for (final e in d) e.isEmpty ? kNoEnding : e];
+      final correct = cell.ending!.isEmpty ? kNoEnding : cell.ending!;
+      final (options, idx) = placeOptions(correct, shown, ctx.random);
+      return ConjPickExercise(
+        id: ctx.nextId(),
+        facetId: facet.facetId,
+        skillId: ctx.skill?.id,
+        instruction: instruction('conj_pick', ctx.lang),
+        lemma: item.lemma,
+        gloss: item.gloss(ctx.lang),
+        tense: spec.name,
+        tenseLabel: spec.titleIn(ctx.lang),
+        person: cell.cell,
+        personLabel: spec.cellLabel(cell.cell, ctx.lang),
+        stem: cell.stem!,
+        endings: options,
+        correctIndex: idx,
+        fullForm: cell.form,
+        accepted: cell.accepted,
+        inflection: true,
+      );
+    }
+    return null;
   }
 
   @override
   Exercise? generate(SkillFacet facet, GenContext ctx) {
     if (!supports(facet)) return null;
+    if (facet.kind == FacetKind.infl) return _generateInfl(facet, ctx);
     final verb = ctx.course.item(facet.itemId);
     if (verb == null) return null;
     for (final cell in ctx.shuffled(_cells(facet, ctx))) {

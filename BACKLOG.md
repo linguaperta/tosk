@@ -122,7 +122,7 @@ Each item says what "done" means. Add newly discovered work at the bottom of its
 - [x] Course picker as a pop-up menu: +/- to add or remove each course, a preview per course (description, units/skills, sample words and sentences, unverified badge); the app only shows courses you've added
 - [x] Black & white (e-ink) mode for the Boox: pure B/W skin, nothing conveyed by color (icons, labels, patterns, inverted fills), reduce motion forced on. Tested: grayscale-only assertions on every screen and exercise type, goldens, overflow at Boox and phone sizes
 - [x] QA leftovers: `ciao` MC offers "hello" as a distractor (synonym data); instruction can slide under the app bar on tall exercises; a "jump to current unit" button on long maps
-- [ ] Exercises for the item-only grammar skills (plurals, adjective agreement, split separable verbs): needs `#plural`/declension facets (see the declension extension) and alignment of split separable verbs
+- [x] Exercises for the item-only grammar skills (plurals, adjective agreement, split separable verbs): needs `#plural`/declension facets (see the declension extension) and alignment of split separable verbs
 - [ ] Italian reflexive/pronominal verbs (excluded by the pipeline today)
 - [x] B/W bug: some TextButton labels render as black blocks (course picker "Preview")
 - [x] Windows build needs ATL because of flutter_secure_storage_windows; replace it with a Dart-only Credential Manager implementation
@@ -135,21 +135,41 @@ Each item says what "done" means. Add newly discovered work at the bottom of its
 - [x] Preview 3 APK (v0.3.0, 14 October)
 
 
-## v0.4 candidates
+## v0.3.2: user testing feedback (14 October)
+
+- [x] Bottom controls hidden behind the Android nav bar on flashcards and match pairs (edge-to-edge inset); preview 3.1
+- [~] Match pairs: stale selection on fast taps, correct pairs dropped, both cards of a wrong pair shown red; stress tests
+- [~] Spot the error: tapping the error word shows correct (green), tapping a wrong token shows wrong
+- [~] Map: tapping a skill opens an info sheet first (description, tier, strength, what's needed for the next tier, then Start / Test out / Note / Words)
+- [~] Progress per course: XP, level, challenges, badges, verb collection, mistakes, best run. Account-wide: daily goal, streak, freezes, heatmap
+- [~] Remove the course switcher from the map (Settings only)
+- [~] All practice modes advance skills (non-stop introduces new facets; the map refreshes after every mode)
+- [~] First-time intro for every exercise type, re-openable via (?)
+- [~] Transform renamed "Change the tense" / "Change the person", with a from → to chip
+
+## v0.4 (in progress, started 14 October)
+
+- [x] GitHub pack source: index.json from GitHub Releases, download, update, sha256 check, atomic swap; publish tooling (`python -m pipeline publish`); "Add course from file" in the course picker
+- [x] Repos pushed to GitHub (tosk private, tosk-data public); first pack release `packs-20261014` (it/nl 1.2.0, min app 0.4.0); stable index URL verified end to end
+- [ ] Web: pack downloads probably blocked by CORS on GitHub release redirects; needs a CORS-friendly mirror (Pages) and persistent web pack storage
+- [ ] nl: generated sentences for diminutives; a skill for the `comparison` table; drill split separable verbs (#form facets on the separable skill)
+- [-] Google Drive sync: skipped for now (user, 14 October); backup export/import covers it
+- [x] Inflection tables for any POS + `#infl:` facets: plurals, adjective agreement, possessives, split separable verbs
 
 - [ ] Bookmarks: star words, sentences or exercises; "Starred" practice session
-- [ ] Graded mini-stories per unit (pipeline-generated with only known vocab and grammar), with tap-for-translation and comprehension questions
+- [x] Graded mini-stories per unit (it 18, nl 16; Practice → Stories + book button on unit bands) (pipeline-generated with only known vocab and grammar), with tap-for-translation and comprehension questions
 - [ ] Pronunciation button (on-device TTS); review forecast and stats (accuracy per type and tense)
 - [ ] AI conversation practice limited to unlocked grammar and vocab (needs an API key)
-- [ ] Schema: generalize `verb_forms` into inflection tables for any POS, with a declension facet kind (unlocks German and Slavic noun/adjective cases)
+- [x] Schema: generalize `verb_forms` into inflection tables for any POS, with a declension facet kind (unlocks German and Slavic noun/adjective cases)
 - [-] Optional on-the-fly AI sentences in the lab ("more like this"), clearly labelled as unvalidated
 
 ## v0.6: new full-size courses (the "easy" languages)
 
 Each one at the expanded it/nl scale: 8–10 units, ~30 skills, ~1000 taught words, grammar-first gating, tr.en + tr.nl, grammar notes in en and nl, sentence floor via generation, a native-level sample review, and the real-pack validity and perf tests passing.
 
-- [ ] Spanish (`es`), built first as the pilot, to measure the per-language cost and fix generic pipeline gaps
-- [ ] Portuguese (`pt`): pick and document a variety (European or Brazilian)
+- [~] Spanish (`es`), built first as the pilot, to measure the per-language cost and fix generic pipeline gaps
+- [ ] Portuguese, Brazilian (`pt-BR`)
+- [ ] Portuguese, European (`pt-PT`) (user: add both varieties)
 - [ ] French (`fr`): elision, partitive articles, passé composé with être/avoir
 - [ ] Esperanto (`eo`)
 - [ ] Swedish (`sv`)
@@ -162,5 +182,5 @@ Each one at the expanded it/nl scale: 8–10 units, ~30 skills, ~1000 taught wor
 - [x] Phase 6: Sarnami (`hns`): 9 units, 35 skills, 394 taught words, 742 verb tables, 3,004 sentences. Sources: [source] dictionary, [source] 1991, [source]� 1985 (checking), [source], NT (checking only), plus Claude-drafted/generated material, with per-record `src` and a SOURCES manifest. Local-only (copyright), unverified; see `docs/sarnami.md`.
 - [ ] Sarnami: review by a speaker (open questions in `docs/sarnami.md`); [source]�'s past habitual/conditional not modelled; [source] readers blocked by a bot challenge
 - [-] Phase 7: `GitHubPackSource`, `DriveSyncBackend`. Interfaces only in v1.
-- [-] Phase 8: ink `AnswerInput` and Onyx pen SDK (v0.5). The AI explainer and the B/W e-ink mode moved up to v0.3.
+- [ ] v0.5: ink `AnswerInput` (ML Kit Digital Ink) + Onyx pen SDK behind an ONYX device check (user approved, 14 October); e-ink full refresh; listen_pick with on-device TTS. The AI explainer and the B/W e-ink mode moved up to v0.3.
 - [-] `listen_pick` exercise (needs audio/TTS)

@@ -9,6 +9,7 @@
   "properties": {
     "id": {"type": "string", "pattern": "^[a-z]{2,3}$"},
     "version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
+    "min_app_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$", "description": "oldest app that can use the pack (meta.min_app_version); default: 0.4.0 for packs with inflection facets"},
     "title": {"$ref": "#/$defs/i18n"},
     "description": {"$ref": "#/$defs/i18n"},
     "target": {"type": "string", "pattern": "^[a-z]{2,3}$"},
@@ -55,6 +56,22 @@
       "description": "time adverbs (one or more words) -> the tenses they fit; the app never rewrites a sentence with one into another tense",
       "additionalProperties": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/key"}}
     },
+    "inflection_tables": {
+      "type": "object", "propertyNames": {"$ref": "#/$defs/key"},
+      "description": "non-verb inflection tables (docs/ARCHITECTURE.md, Inflection tables; pipeline/pipeline/inflect.py builds them per language)",
+      "additionalProperties": {
+        "type": "object", "required": ["pos", "cells"], "additionalProperties": false,
+        "properties": {
+          "title": {"$ref": "#/$defs/i18n"},
+          "pos": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}},
+          "cells": {"type": "array", "minItems": 2, "uniqueItems": true,
+                    "items": {"type": "string", "pattern": "^[a-z0-9_]+([.][a-z0-9_]+)*$"}},
+          "base": {"type": "string", "description": "the cell equal to the lemma (given, never asked)"},
+          "agreement": {"type": "boolean", "description": "cells chosen by agreement: other cells are wrong in an aligned sentence"},
+          "labels": {"type": "object", "additionalProperties": {"$ref": "#/$defs/i18n"}}
+        }
+      }
+    },
     "units": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/unit"}}
   },
   "$defs": {
@@ -88,7 +105,10 @@
         "note": {"type": "string", "description": "path of the English grammar note relative to the course folder; the Dutch one is the same path with .nl.md"},
         "items": {"$ref": "#/$defs/itemsQuery"},
         "verbs": {"$ref": "#/$defs/verbsQuery"},
-        "facet": {"enum": ["article"], "description": "train this facet of the selected items instead of #rec/#prod"},
+        "facet": {"enum": ["article", "infl"], "description": "train this facet of the selected items instead of #rec/#prod ('infl': only the #infl:{table} facets of `inflections`)"},
+        "inflections": {"type": "object", "required": ["table"], "additionalProperties": false,
+                        "description": "train #infl:{table} of the items that inflect (in addition to #rec/#prod unless facet: infl)",
+                        "properties": {"table": {"$ref": "#/$defs/strOrList"}}},
         "exercises": {"type": "array", "uniqueItems": true, "items": {"enum": [
           "flashcard", "multiple_choice", "match_pairs", "conj_pick", "conj_grid",
           "sentence_builder", "cloze", "spot_error", "transform"]}},

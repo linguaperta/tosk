@@ -26,7 +26,7 @@
           "pre": {"type": "string", "pattern": "^\\s*$"},
           "is_word": {"type": "boolean", "description": "default true; false for punctuation"},
           "lex": {"type": "string", "pattern": "^[a-z]{2,3}:[^\\s#]+$"},
-          "form": {"type": "string", "pattern": "^[a-z][a-z0-9_]*\\.[^.\\s]+$", "description": "'{tense}.{person}', e.g. 'presente.noi' or 'participle._'"}
+          "form": {"type": "string", "pattern": "^([a-z][a-z0-9_]*\\.[^.\\s]+|infl:[a-z][a-z0-9_]*\\.[a-z0-9_]+([.][a-z0-9_]+)*)$", "description": "'{tense}.{person}' for verb forms, e.g. 'presente.noi' or 'participle._'; 'infl:{table}.{cell}' for inflected non-verbs, e.g. 'infl:number.pl', 'infl:agreement.f.sg'"}
         },
         "dependentRequired": {"form": ["lex"]}
       }

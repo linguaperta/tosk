@@ -56,6 +56,9 @@ Future<AppBoot> bootApp({AppDataOptions options = const AppDataOptions(), DateTi
       progressDbName: '${options.progressDbName}$demoProgressDbSuffix',
       bundled: options.bundled,
       sync: options.sync,
+      appVersion: options.appVersion,
+      httpClient: options.httpClient,
+      packIndexUrl: options.packIndexUrl,
     ),
   );
   final demo = DemoCourseCatalog();

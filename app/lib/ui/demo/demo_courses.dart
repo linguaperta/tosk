@@ -146,7 +146,7 @@ Map<String, I18n> _labels(Map<String, (String, String)> m) => {
 
 const _itPersons = ['io', 'tu', 'lui/lei', 'noi', 'voi', 'loro'];
 
-CourseData buildDemoItalian() {
+CourseData buildDemoItalian({List<Story> stories = const []}) {
   final b = _Builder('it');
   b.item('ciao', 'intj', 'hi / bye', 'hoi / doei', freq: 40, unit: 'u1', tags: ['greetings']);
   b.item('buongiorno', 'intj', 'good morning', 'goedemorgen', freq: 300, unit: 'u1', tags: ['greetings']);
@@ -368,6 +368,7 @@ CourseData buildDemoItalian() {
       'articles': {'en': _articlesEn, 'nl': _articlesNl},
       'passato': {'en': _passatoEn},
     },
+    stories: stories,
   );
 }
 

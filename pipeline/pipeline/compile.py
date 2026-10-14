@@ -16,6 +16,14 @@ from .content import Pack
 from .paths import DDL_PATH
 
 COURSE_DB_SCHEMA_VERSION = 1
+# Additive changes within major version 1 (meta.schema_minor; absent = 0):
+#   1: inflection tables (`inflections`, meta.inflection_tables, facet kind 'infl', token forms
+#      'infl:{table}.{cell}'). An app that knows only minor 0 skips the unknown facet kind.
+COURSE_DB_SCHEMA_MINOR = 1
+# Apps before this version fail on facet kind 'infl' (FacetKind.parse threw on unknown kinds), so a
+# pack that trains inflection tables carries meta.min_app_version (publish.py puts it in the index;
+# the app offers such a pack only to newer apps).
+MIN_APP_VERSION_INFL = "0.4.0"
 
 SOURCE_ATTRIBUTION = {
     "wiktionary": "Wiktionary (en.wiktionary.org), via kaikki.org/wiktextract — CC BY-SA 4.0 (and GFDL)",
@@ -57,6 +65,8 @@ def skill_query_json(skill: dict) -> str:
     out = {kind: q}
     if skill.get("facet"):
         out["facet"] = skill["facet"]
+    if skill.get("inflections"):
+        out["inflections"] = skill["inflections"]
     return _j(out)
 
 
@@ -65,9 +75,18 @@ def resolve_all(pack: Pack) -> dict[str, list[str]]:
     return {skill["id"]: query.resolve(skill, pack.items, pack.verbs, persons) for _, _, _, skill in pack.skills()}
 
 
-def facets_for(skill: dict, item_ids: list[str]) -> list[tuple[str, str, str, str | None, int]]:
-    """(facet_id, item_id, kind, tense, ord) per the ARCHITECTURE facet table."""
+def facets_for(skill: dict, item_ids: list[str], items: dict[str, dict] | None = None
+               ) -> list[tuple[str, str, str, str | None, int]]:
+    """(facet_id, item_id, kind, tense, ord) per the ARCHITECTURE facet table. For 'infl' facets the
+    tense column holds the table name."""
     out = []
+    tables = query.infl_tables(skill)
+
+    def infl(i: int, iid: str) -> None:
+        for t in tables:
+            if items is not None and query.inflects(items.get(iid) or {}, t):
+                out.append((f"{iid}#infl:{t}", iid, "infl", t, i))
+
     if "verbs" in skill:
         tense = skill["verbs"]["tense"]
         for i, iid in enumerate(item_ids):
@@ -75,10 +94,30 @@ def facets_for(skill: dict, item_ids: list[str]) -> list[tuple[str, str, str, st
     elif skill.get("facet") == "article":
         for i, iid in enumerate(item_ids):
             out.append((f"{iid}#article", iid, "article", None, i))
+    elif skill.get("facet") == "infl":
+        for i, iid in enumerate(item_ids):
+            infl(i, iid)
     else:
         for i, iid in enumerate(item_ids):
             out.append((f"{iid}#rec", iid, "rec", None, i))
             out.append((f"{iid}#prod", iid, "prod", None, i))
+            infl(i, iid)
+    return out
+
+
+def inflection_tables_meta(spec: dict) -> dict:
+    """meta.inflection_tables: {table: {pos, cells, base, agreement, title, labels}}."""
+    out = {}
+    for name in spec:
+        t = spec[name]
+        rec = {"pos": list(t.get("pos") or []), "cells": list(t["cells"]), "agreement": bool(t.get("agreement"))}
+        if t.get("base"):
+            rec["base"] = t["base"]
+        if t.get("title"):
+            rec["title"] = t["title"]
+        if t.get("labels"):
+            rec["labels"] = {k: t["labels"][k] for k in t["cells"] if k in t["labels"]}
+        out[name] = rec
     return out
 
 
@@ -107,6 +146,7 @@ def compile_pack(pack: Pack, out: Path, built_at: str | None = None) -> dict:
         built_at = built_at or datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
         meta = {
             "schema_version": str(COURSE_DB_SCHEMA_VERSION),
+            "schema_minor": str(COURSE_DB_SCHEMA_MINOR),
             "course_id": c["id"],
             "version": c["version"],
             "title": _j(c["title"]),
@@ -125,6 +165,8 @@ def compile_pack(pack: Pack, out: Path, built_at: str | None = None) -> dict:
         if c.get("description"):
             meta["description"] = _j(c["description"])
         meta["base_features"] = _j(sorted(c.get("base_features") or []))
+        if c.get("inflection_tables"):
+            meta["inflection_tables"] = _j(inflection_tables_meta(c["inflection_tables"]))
         if c.get("time_adverbs"):
             meta["time_adverbs"] = _j({k: list(v) for k, v in sorted(c["time_adverbs"].items())})
         con.executemany("INSERT INTO meta(key, value) VALUES (?, ?)", sorted(meta.items()))
@@ -174,6 +216,18 @@ def compile_pack(pack: Pack, out: Path, built_at: str | None = None) -> dict:
                         (vid, tense, person, val["form"], val.get("stem"), val.get("ending"), _j(val.get("alts") or [])))
                     n_forms += 1
 
+        n_infl = 0
+        for it in sorted(pack.items, key=lambda r: r["id"]):
+            for table, cells in (it.get("infl") or {}).items():
+                cell_order = list((c.get("inflection_tables") or {}).get(table, {}).get("cells") or cells)
+                for cell in sorted(cells, key=lambda x: (cell_order.index(x) if x in cell_order else 99, x)):
+                    val = cells[cell]
+                    con.execute(
+                        "INSERT INTO inflections(item_id, tbl, cell, form, stem, ending, alts, wrong) VALUES (?,?,?,?,?,?,?,?)",
+                        (it["id"], table, cell, val["form"], val.get("stem"), val.get("ending"),
+                         _j(val.get("alts") or []), _j(val.get("wrong") or [])))
+                    n_infl += 1
+
         n_tokens = 0
         for s in sorted(pack.sentences, key=lambda r: r["id"]):
             con.execute("INSERT INTO sentences(id, text, tr, src, unit_id) VALUES (?,?,?,?,?)",
@@ -196,18 +250,28 @@ def compile_pack(pack: Pack, out: Path, built_at: str | None = None) -> dict:
             for f in sorted(graph.introduces[skill["id"]]):
                 con.execute("INSERT INTO skill_features(skill_id, feature) VALUES (?, ?)", (skill["id"], f))
         n_facets = 0
+        items_by_id = {it["id"]: it for it in pack.items}
         for _, _, _, skill in pack.skills():
             ids = resolved[skill["id"]]
             for i, iid in enumerate(ids):
                 con.execute("INSERT INTO skill_items(skill_id, item_id, ord) VALUES (?,?,?)", (skill["id"], iid, i))
-            for fid, iid, kind, tense, o in facets_for(skill, ids):
+            for fid, iid, kind, tense, o in facets_for(skill, ids, items_by_id):
                 con.execute("INSERT INTO skill_facets(skill_id, facet_id, item_id, kind, tense, ord) VALUES (?,?,?,?,?,?)",
                             (skill["id"], fid, iid, kind, tense, o))
                 n_facets += 1
+                if kind == "infl" and not c.get("min_app_version"):
+                    con.execute("INSERT OR REPLACE INTO meta(key, value) VALUES ('min_app_version', ?)",
+                                (MIN_APP_VERSION_INFL,))
+        if c.get("min_app_version"):
+            con.execute("INSERT OR REPLACE INTO meta(key, value) VALUES ('min_app_version', ?)",
+                        (str(c["min_app_version"]),))
+        from .stories import compile_stories
+        story_stats = compile_stories(con, pack)
         con.commit()
         con.execute("VACUUM")
     finally:
         con.close()
-    return {"items": len(pack.items), "verbs": len(pack.verbs), "verb_forms": n_forms,
+    return {"items": len(pack.items), "verbs": len(pack.verbs), "verb_forms": n_forms, "inflections": n_infl,
             "sentences": len(pack.sentences), "tokens": n_tokens, "facets": n_facets, "sentence_features": n_features,
+            **story_stats,
             "built_at": built_at}
