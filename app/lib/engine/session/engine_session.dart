@@ -459,6 +459,7 @@ abstract class EngineSession implements PracticeSession, OverridableSession {
       ClozeExercise() => e.sentenceId,
       SpotErrorExercise() => e.sentenceId,
       TransformExercise() => e.sentenceId,
+      ListenPickExercise() => e.sentenceId,
       _ => null,
     };
     return MistakeContext(

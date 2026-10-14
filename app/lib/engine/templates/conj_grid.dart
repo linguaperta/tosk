@@ -304,7 +304,9 @@ class ConjGridTemplate extends ExerciseTemplate {
         perCell.add(true);
         continue;
       }
-      final m = matchAnswer(answer.cells[i], c.accepted.isEmpty ? [c.expected] : c.accepted, strictness);
+      // Ink: the cell is right when any recognizer candidate matches.
+      final alts = i < answer.candidates.length ? answer.candidates[i] : const <String>[];
+      final m = matchAnswer(answer.cells[i], c.accepted.isEmpty ? [c.expected] : c.accepted, strictness, candidates: alts);
       perCell.add(m.correct);
       all &= m.correct;
       slip |= m.accentSlip;

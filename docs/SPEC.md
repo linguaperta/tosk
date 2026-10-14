@@ -161,7 +161,7 @@ Every exercise is generated from pack data by a template, so a new language gets
 | Cloze | Fill a gap in a real sentence, with choices at first and handwriting later | Tap or handwrite | Produce, verb forms |
 | Spot the error | Tap the wrong word in a sentence | Tap | Grammar |
 | Transform | Rebuild a sentence in another tense or person from tiles | Tap | Grammar |
-| Listen and pick | Later, not in v1: on-device text-to-speech reads a sentence; pick what you heard | Tap | Recognize |
+| Listen and pick | Since v0.5 (not in v1): on-device text-to-speech reads a sentence or word; pick what you heard (only where the device has a voice for the language) | Tap | Recognize |
 
 Wrong answer options are chosen to be plausible: other persons of the same tense, words with the same tag, and words with a similar frequency rank.
 

@@ -48,7 +48,7 @@ EngineSessionFactory _factory(CourseData c, ProgressStore store, {int seed = 7})
       course: c,
       store: store,
       scheduler: const FakeScheduler(),
-      options: SessionOptions(sourceLang: c.meta.translations.first, seed: seed),
+      options: SessionOptions(sourceLang: c.meta.translations.first, seed: seed, listening: true),
       clock: () => _now,
     );
 

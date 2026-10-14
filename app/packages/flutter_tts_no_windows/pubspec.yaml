@@ -1,0 +1,33 @@
+name: flutter_tts
+description: >-
+  tosk's copy of flutter_tts 4.2.5 (MIT, https://github.com/dlutton/flutter_tts)
+  without its Windows part: the upstream Windows plugin builds C++ that needs
+  ATL (atlstr.h) and nuget.exe, which this toolchain lacks. Dart, Android, iOS,
+  macOS and web code are unchanged. See docs/release.md.
+version: 4.2.5+tosk.1
+publish_to: none
+homepage: https://github.com/dlutton/flutter_tts
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_web_plugins:
+    sdk: flutter
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: com.eyedeadevelopment.fluttertts
+        pluginClass: FlutterTtsPlugin
+      ios:
+        pluginClass: FlutterTtsPlugin
+      macos:
+        pluginClass: FlutterTtsPlugin
+      web:
+        pluginClass: FlutterTtsPlugin
+        fileName: flutter_tts_web.dart
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+  flutter: ">=1.22.0"

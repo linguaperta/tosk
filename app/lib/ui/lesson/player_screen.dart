@@ -8,6 +8,8 @@ import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../core/core.dart';
+import '../../device/device_providers.dart';
+import '../../device/onyx.dart';
 import '../../feedback/answer_context.dart';
 import '../../progression/nonstop.dart';
 import '../../providers.dart';
@@ -82,6 +84,20 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
   bool get _endless => widget.request.endless;
 
+  /// E-ink (ONYX): a full refresh after the summary and when leaving the
+  /// player, against ghosting (Settings → E-reader). Read up front: `ref`
+  /// can't be used in [dispose].
+  EinkScreen _eink = const NoEinkScreen();
+
+  void _fullRefresh() {
+    if (!_refreshOnLeave) return;
+    final eink = _eink;
+    // After the next screen has been drawn.
+    unawaited(Future<void>.delayed(const Duration(milliseconds: 350), eink.fullRefresh));
+  }
+
+  bool _refreshOnLeave = false;
+
   /// Kept for [dispose], where `ref` can no longer be used.
   late final ProgressRevision _revision;
 
@@ -91,6 +107,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   @override
   void initState() {
     super.initState();
+    // Kept current (the device and settings may still be loading).
+    ref.listenManual(einkScreenProvider, (_, v) => _eink = v, fireImmediately: true);
+    ref.listenManual(fullRefreshAfterLessonsProvider, (_, v) => _refreshOnLeave = v, fireImmediately: true);
     _revision = ref.read(progressRevisionProvider.notifier);
     unawaited(_start());
   }
@@ -104,6 +123,10 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
   @override
   void dispose() {
+    if (_refreshOnLeave) {
+      final eink = _eink;
+      unawaited(Future<void>.delayed(const Duration(milliseconds: 350), eink.fullRefresh));
+    }
     // Left some other way (the route was replaced or removed) with answers
     // recorded: the map and progress pages must still see them.
     final s = _session;
@@ -314,6 +337,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       _summary = summary;
       _phase = PlayerPhase.summary;
     });
+    _fullRefresh();
   }
 
   /// The end-of-session sound: the level-up fanfare when this session gained

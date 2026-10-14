@@ -14,6 +14,7 @@ import 'answer_input_section.dart';
 import 'app_settings.dart';
 import 'backup_section.dart';
 import 'daily_goal_section.dart';
+import 'device_section.dart';
 
 /// Settings, persisted through the progress store (see `setting_keys.dart`).
 class SettingsScreen extends ConsumerWidget {
@@ -212,6 +213,7 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                   // v0.3 practice extras (their own settings and widgets).
                   const AnswerInputSection(),
+                  const DeviceSection(),
                   const DailyGoalSection(),
                   const BackupSection(),
                 ],

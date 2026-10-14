@@ -259,6 +259,9 @@ Future<bool> answerCurrentNoContinue(WidgetTester tester, {bool wrong = false}) 
       final idx = wrong ? (e.errorIndex == 0 ? 1 : 0) : e.errorIndex;
       await tapKey(tester, 'token-$idx');
       await check();
+    case ListenPickExercise e:
+      await tapKey(tester, 'option-${wrong ? (e.correctIndex + 1) % e.options.length : e.correctIndex}');
+      await check();
   }
   return true;
 }

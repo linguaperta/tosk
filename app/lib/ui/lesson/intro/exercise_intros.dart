@@ -1,4 +1,4 @@
-/// First-time explanations of the nine exercise types: the texts (all in this
+/// First-time explanations of the ten exercise types: the texts (all in this
 /// file), the examples built from the course's own data, and which intros the
 /// learner has seen (the setting `intro.seen`, account-wide).
 ///
@@ -65,6 +65,12 @@ ExerciseIntro introFor(ExerciseType t) => switch (t) {
     body:
         'Rewrite the sentence as the banner asks: in another tense (present → past) '
         'or for another person (I → we). Build the new sentence from the tiles.',
+  ),
+  ExerciseType.listenPick => const ExerciseIntro(
+    title: 'Listen and pick',
+    body:
+        'Listen: the sentence (or word) plays by itself. Tap the speaker to hear it again, '
+        'or Slower. Then pick what you heard and tap Check.',
   ),
 };
 
@@ -177,6 +183,11 @@ List<IntroLine> introExample(ExerciseType type, CourseData? course, String lang,
         out.add(IntroLine('${person(forms[0].person)}: ${forms[0].form}', '${person(forms[3].person)}: ${forms[3].form}'));
       }
       return out;
+    case ExerciseType.listenPick:
+      // What you hear, as the right option reads (never the current answer).
+      final s = _sampleSentence(course, lang, verb?.$1);
+      if (s != null) return [IntroLine('You hear', '✓ ${s.text}')];
+      return [if (words.isNotEmpty) IntroLine('You hear', '✓ ${words[0].$1}')];
   }
 }
 

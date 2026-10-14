@@ -20,12 +20,14 @@ const Map<LessonFocus, Map<ExerciseType, double>> kDefaultFocusWeights = {
     ExerciseType.cloze: 1.0,
     ExerciseType.spotError: 0.7,
     ExerciseType.transform: 0.7,
+    ExerciseType.listenPick: 0.8,
   },
   LessonFocus.vocab: {
     ExerciseType.flashcard: 1.0,
     ExerciseType.multipleChoice: 1.0,
     ExerciseType.matchPairs: 1.0,
     ExerciseType.sentenceBuilder: 1.0,
+    ExerciseType.listenPick: 1.0,
   },
   LessonFocus.grammar: {
     ExerciseType.conjPick: 1.0,

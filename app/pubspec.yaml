@@ -52,6 +52,8 @@ dependencies:
   crypto: ^3.0.7
   flutter_secure_storage: ^11.2.0
   audioplayers: ^6.8.1
+  google_mlkit_digital_ink_recognition: ^0.16.1
+  flutter_tts: ^4.2.5
 
 dev_dependencies:
   flutter_test:
@@ -80,6 +82,12 @@ dependency_overrides:
   # a copy without the native part (registerWith is a no-op) stands in.
   flutter_local_notifications_windows:
     path: packages/local_notifications_windows_noop
+  # flutter_tts (listening exercises, v0.5) is not federated, and its Windows
+  # part builds C++ that needs ATL and nuget.exe: this copy is the same
+  # package without the Windows plugin (no voice on Windows; the app hides
+  # listening and pronounce buttons there).
+  flutter_tts:
+    path: packages/flutter_tts_no_windows
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

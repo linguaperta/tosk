@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/core.dart';
 import '../../common/word_popover.dart';
+import '../../ink/ink_pad.dart';
 import '../../theme/bw_skin.dart';
 import '../typing.dart';
 import 'common.dart';
@@ -135,10 +136,14 @@ class SentenceBuilderView extends ExerciseWidget<SentenceBuilderExercise> {
     super.reduceMotion,
     super.onCheck,
     this.typed = false,
+    this.ink = false,
   });
 
   /// Typing mode: type the sentence instead of building it from tiles.
   final bool typed;
+
+  /// Handwriting: write the sentence on the pad (in parts: "Next word").
+  final bool ink;
 
   @override
   State<SentenceBuilderView> createState() => _SentenceBuilderViewState();
@@ -173,7 +178,13 @@ class _SentenceBuilderViewState extends State<SentenceBuilderView> {
           ],
         ],
       ),
-      controls: widget.typed
+      controls: widget.ink
+          ? InkSentenceArea(
+              locked: widget.locked,
+              correct: widget.result?.correct,
+              onChanged: widget.onChanged,
+            )
+          : widget.typed
           ? TypedSentenceArea(
               locked: widget.locked,
               correct: widget.result?.correct,
@@ -247,6 +258,51 @@ class TypedSentenceArea extends StatelessWidget {
   }
 }
 
+/// Handwriting for the sentence builder and transform: the whole sentence
+/// on the pad, word by word or in a few parts ("Next word" commits a part),
+/// reported as an ink `TextAnswer` with combined candidates.
+class InkSentenceArea extends StatelessWidget {
+  const InkSentenceArea({super.key, required this.locked, required this.onChanged, this.correct});
+
+  final bool locked;
+  final bool? correct;
+  final ValueChanged<Answer?> onChanged;
+
+  /// Sentences are written in parts; more combinations of the parts' readings count.
+  static const int topK = 5;
+
+  @override
+  Widget build(BuildContext context) {
+    final fb = FeedbackColors.of(context);
+    final mark = correct;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        InkPad(
+          key: const ValueKey('sentence-ink'),
+          enabled: !locked,
+          segmented: true,
+          hintText: 'Write a word or a few',
+          onChanged: (r) => onChanged(r?.toAnswer(topK: topK)),
+        ),
+        if (mark != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Row(
+              key: const ValueKey('typed-verdict'),
+              children: [
+                Icon(mark ? Icons.check : Icons.close, size: 18, color: mark ? fb.correct : fb.wrong),
+                const SizedBox(width: 6),
+                Text(mark ? 'Right' : 'Not quite', style: Theme.of(context).textTheme.bodyMedium),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
 /// Rebuild a sentence in another tense or person from tiles.
 class TransformView extends ExerciseWidget<TransformExercise> {
   const TransformView({
@@ -258,10 +314,14 @@ class TransformView extends ExerciseWidget<TransformExercise> {
     super.reduceMotion,
     super.onCheck,
     this.typed = false,
+    this.ink = false,
   });
 
   /// Typing mode: type the sentence instead of building it from tiles.
   final bool typed;
+
+  /// Handwriting: write the sentence on the pad (in parts: "Next word").
+  final bool ink;
 
   @override
   State<TransformView> createState() => _TransformViewState();
@@ -294,7 +354,13 @@ class _TransformViewState extends State<TransformView> {
           TransformTargetChip(exercise: e),
         ],
       ),
-      controls: widget.typed
+      controls: widget.ink
+          ? InkSentenceArea(
+              locked: widget.locked,
+              correct: widget.result?.correct,
+              onChanged: widget.onChanged,
+            )
+          : widget.typed
           ? TypedSentenceArea(
               locked: widget.locked,
               correct: widget.result?.correct,

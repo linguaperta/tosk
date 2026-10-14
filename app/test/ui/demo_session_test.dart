@@ -22,12 +22,13 @@ Answer correctAnswer(Exercise ex) => switch (ex) {
   ClozeExercise e => e.options != null ? ChoiceAnswer(e.correctIndex!) : TextAnswer(e.expected),
   SpotErrorExercise e => TokenAnswer(e.errorIndex),
   TransformExercise e => TilesAnswer(e.answers.first),
+  ListenPickExercise e => ChoiceAnswer(e.correctIndex),
 };
 
 void main() {
   const grader = DemoGrader();
 
-  test('demo pools cover all 9 exercise types in both courses', () {
+  test('demo pools cover all 10 exercise types in both courses', () {
     for (final course in ['it', 'nl']) {
       final types = demoExercises(course, 'en').map((e) => e.type).toSet();
       expect(types, ExerciseType.values.toSet(), reason: course);
