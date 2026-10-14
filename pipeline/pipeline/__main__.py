@@ -33,6 +33,16 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--content-root")
     p.add_argument("--local", action="store_true", help="use local/content (always the case for hns)")
 
+    p = sub.add_parser("gen", help="generated example sentences (it/nl): gaps, context, check, add, refresh")
+    p.add_argument("action", choices=["gaps", "context", "check", "add", "refresh"])
+    p.add_argument("lang")
+    p.add_argument("files", nargs="*", help="draft JSONL files (check, add)")
+    p.add_argument("--skill", help="context: the skill to write for")
+    p.add_argument("--out", help="context: write to this file")
+    p.add_argument("--drop", action="store_true", help="refresh: drop sentences that no longer pass")
+    p.add_argument("--quiet", action="store_true", help="gaps: summary lines only")
+    p.add_argument("--content-root")
+
     p = sub.add_parser("flags", help="triage exercise flags exported from the app")
     fsub = p.add_subparsers(dest="flags_cmd", required=True)
     q = fsub.add_parser("summarize", help="print flags grouped by course/skill/type with the exercise")
@@ -74,6 +84,9 @@ def _run(a) -> int:
     if a.cmd == "build":
         from .build import build
         return build(a.langs, a.content_root, install=a.install, quiet=a.quiet, local=a.local, desktop=a.desktop)
+    if a.cmd == "gen":
+        from .generate import run
+        return run(a.action, a.lang, a.content_root, a)
     if a.cmd == "validate":
         from .build import validate_only
         return validate_only(a.langs, a.content_root, local=a.local)

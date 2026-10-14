@@ -24,6 +24,11 @@ python -m pipeline fetch [it nl] [--force] [--skip-english]   # downloads into t
 python -m pipeline import it nl [--content-root DIR]           # cache -> content/{course}/*.jsonl
 python -m pipeline build it nl [--install] [--quiet]           # validate + compile + report + dist/index.json (offline)
 python -m pipeline validate it nl                              # validation only
+python -m pipeline gen gaps it nl                              # thin spots (grammar slots, items, unit 1)
+python -m pipeline gen context it --skill present-are          # what a sentence for that skill may use
+python -m pipeline gen check it drafts.jsonl                   # check Claude-written drafts (dry run)
+python -m pipeline gen add it drafts.jsonl                     # ... and add the accepted ones
+python -m pipeline gen refresh it [--drop]                     # re-align generated sentences after an import
 python -m pytest pipeline/tests                                # offline tests
 
 python -m pipeline fetch hns                 # Sarnami: scrape the [source] dictionary (1 req/s) + extra sources
@@ -63,6 +68,8 @@ checkout; the pipeline refuses to write it anywhere else (`pipeline/hns/safeguar
 | `lexicon/{unit}.jsonl`, `lexicon/pool.jsonl` | importer | `schema/lexicon.schema.json` |
 | `verbs/{unit}.jsonl`, `verbs/pool.jsonl` | importer | `schema/verbs.schema.json` |
 | `sentences/{unit}.jsonl` | importer | `schema/sentences.schema.json` |
+| `sentences/gen-{unit}.jsonl` | `gen add` (Claude-written, kept by the importer) | `schema/sentences.schema.json` |
+| `sentence_ids.tsv` | `gen add` (append-only) | `id, key` (generated sentence id, normalized text) |
 | `grammar/{skill}.md` (en), `grammar/{skill}.nl.md` (nl) | hand | — |
 | `ids.tsv` | importer (append-only) | `id, lemma, pos, sense_key` |
 
@@ -122,11 +129,16 @@ time_adverbs:
 
 ```yaml
 exclude: [coso, sulla/noun]              # never in the frequency pool
+uncountable: [burro, latte]              # mass nouns: no plural in the lexicon (no 'burri' option)
 items:
   - {lemma: ciao, pos: intj, tags: [greetings], en: [hi, bye], nl: [hoi, doei]}
   - {lemma: del, pos: prep, en: [of the], nl: [van de], inflections: [della, dei]}
   - {lemma: pensare, pos: verb, nl: [denken]}      # gloss override only
+  - {lemma: mens, pos: noun, article: "de|het", tags: [people]}   # both articles are right
 ```
+
+A noun with two articles (`de|het`: *de mens* / *het mens*, *de/het soort*) is never asked or
+swapped as an article error by the app; keep it out of article skills (`exclude`).
 
 `tags` put the word in vocab skills; glosses written here get `tr_src: claude`.
 
@@ -165,9 +177,14 @@ items:
    taught (pool or unlinked), and it only counts for a skill item (verb tense) when the item's skill
    (the verb's grammar skill) allows all its features and at most 2 (1) of its words are taught after
    that skill. Greedy selection, fewest unknown words first, then shortest/cleanest, while a quota is
-   open: 25 sentences per skill item, 24 per (grammar verb, tense) and up to 5 per (verb, tense,
+   open: 25 sentences per skill item, 48 per (grammar verb, tense) and up to 8 per (verb, tense,
    person), always accepting up to 2 per person. `unit` = the latest unit among the skill items in
-   the sentence.
+   the sentence. Translation check (`trcheck.py`): a pair whose numbers, weekdays/months or names
+   (only names both languages write alike: Tom, Boston) differ is a link to another variant of the
+   sentence; the sentence is dropped (Dutch translation of an Italian sentence: only that
+   translation). 2026-10: 643 it / 266 nl candidates dropped, 25 Dutch translations dropped.
+   Generated sentences (`sentences/gen-*.jsonl`) are kept, and a Tatoeba sentence with the same
+   text is skipped.
 
 ### Tokenizer (`pipeline/tokens.py`)
 
@@ -203,8 +220,17 @@ conjugation tables. Rules:
   *loro*, else *io*; otherwise 3rd singular, 3rd plural, first person in order.
 * Dutch inversion (`werk jij`, `wil je`, `kwam je`), imperatives and other clause-initial verbs
   without a subject pronoun after them (`Laat me …`, `Werkt Tom …?`), verbs next to polite *u*
-  (`u bent` / `u is`), forms of two different verbs (`was`: zijn or wassen) and conditional *zou*
-  keep `lex` but get no `form`.
+  (`u bent` / `u is`), forms of two different verbs (`was` as *ik was*: zijn or wassen, unless no
+  object follows: *Ik was moe*; *hij was* is only zijn) and conditional *zou* keep `lex` but get no
+  `form`.
+* Italian imperatives look like present forms: a clause-initial tu/lui/noi/voi form (after *non* or
+  clitics at most) without a subject pronoun, not of essere/avere, in a sentence with `!` or whose
+  English translation starts with an imperative (*Ask …*, *Please …*, *Don't …*, *Let's …*) keeps
+  `lex` but gets no `form` (`Chiedi a un poliziotto!` is no `tu chiedi`).
+* An interjection item at the start of a clause wins over a homograph (*Prego.*, *Scusa, …*, *Dag
+  Anna!*, *Bedankt!*); multi-word phrase items link every word (*per favore*, *tot ziens*).
+* Dutch adjective/verb homographs before a copula are the adjective (*dat ik laat ben*, *of het open
+  is*).
 * Dutch clauses (`Lang.clause_starters`, `coordinators`, …): one finite verb per clause, so a later
   infinitive homograph is the infinitive (`Ik zal jullie vertellen`, `Wat kan ik voor jullie doen?`)
   and an adjective homograph the adjective (`te laat`, `hoe laat`); a subordinate clause starts over
@@ -227,6 +253,10 @@ every skill with the features it **introduces**; the compiler writes them to `se
   participle and its auxiliary is not tagged as present; a participle without an auxiliary
   (passive, adjectival) tags the compound tense too. A verb token without a `form` is looked up by
   its spelling (only a spelling that is no present form and no infinitive counts: *Kwam je?*).
+  A Dutch perfect with a double infinitive (*Ik heb Tom niet zien vallen*, *Hij heeft Japans willen
+  leren*, *Ik ben gaan zwemmen*: a finite auxiliary and two adjacent infinitives later in its
+  clause, the first not after *te*/*om*) tags `tense:perfectum` too, plus `aux:zijn` with *zijn*
+  and `modal` when the first infinitive is a modal.
 * Construct features from `course.yaml` `feature_detectors`: `compound_aux` (a compound form with
   that auxiliary: *sono andato*), `modal_infinitive` (a finite modal plus a later infinitive, also an
   Italian clitic infinitive matching `infinitive_pattern`: *posso farlo*), `words` (any of these
@@ -249,7 +279,7 @@ every skill with the features it **introduces**; the compiler writes them to `se
 Units, skills (items; `*` = grammar) and the features each unit introduces. Every unit's skills
 require the previous unit's grammar, so a later skill allows everything taught before it.
 
-**Italian 1.1.0** — 40 skills, 738 taught items, 1541 facets, 16 111 sentences.
+**Italian 1.1.0** — 40 skills, 738 taught items, 1547 facets, 20 314 sentences (2113 generated).
 
 | Unit | Skills (items) | Introduces |
 |---|---|---|
@@ -263,7 +293,7 @@ require the previous unit's grammar, so a later skill allows everything taught b
 | u8 Plans for the future | leisure (23), shopping (20), futuro* (18), futuro-irregular* (16) | `tense:futuro`, `irregular:futuro` |
 | u9 Talking about life | more-verbs (30), ideas (28) | |
 
-**Dutch 1.1.0** — 35 skills, 712 taught items, 1504 facets, 13 222 sentences.
+**Dutch 1.1.0** — 35 skills, 712 taught items, 1511 facets, 14 767 sentences (762 generated).
 
 | Unit | Skills (items) | Introduces |
 |---|---|---|
@@ -297,11 +327,36 @@ Grammar first: `base_features` is empty, every tense and construct has its own s
 | u8 Werk en gevoel | work (16), modal* (2), feelings (17), actions (30) | `modal` |
 | u9 Beleefd en wensen | polite (7), subjunctive* (15), travel (15), celebrations (15) | `polite`, `tense:subjunctive` |
 
+## Generated sentences (`pipeline/generate.py`, `pipeline/gaps.py`)
+
+Real Tatoeba sentences come first. Where a skill still has too few **easy** sentences (allowed at the
+skill, at most one word taught later; the report's `easy` column), Claude writes short everyday
+sentences with their translations (`src: "claude-gen (skill: target)"`, `tr_src: claude-gen`):
+
+* **Gaps** (`gen gaps`): grammar slots (verb × person of the skill's tense) with fewer than 8 easy
+  sentences (impersonal verbs, `succedere` / `gebeuren`: third persons only), vocabulary items with
+  fewer than 3, skills with fewer than 40 (unit-1 skills: 150).
+* **Drafts** (JSON lines): `{"skill", "target", "text", "en", "nl"}`, where `target` is `LEMMA
+  TENSE.PERSON` (the verb form the sentence must show), `LEMMA` (an item) or absent (any item of
+  the skill). `gen context` prints a skill's allowed features, slots and known vocabulary.
+* **Checks** (`gen check` / `gen add`): tokenizes and aligns like the importer (with the English
+  translation, for imperatives); every word links to an item except the allowed names
+  (`generate.NAMES`, not sentence-initial) and digits; the target is aligned to the intended item
+  and form; the features are allowed at the skill and the home-skill rule accepts the sentence; at
+  most one word is taught after the skill; translations exist and pass `trcheck.py`; the text is
+  new. Failures are reported with a reason and not added.
+* **Files**: accepted sentences get permanent ids `g:{course}:{n}` from `sentence_ids.tsv`
+  (append-only, keyed by the normalized text) and go to `sentences/gen-{unit}.jsonl`. The importer
+  keeps them; after an import, `gen refresh` re-aligns them (a sentence that no longer passes is
+  reported, and dropped with `--drop`).
+* The app ranks a generated sentence after unseen Tatoeba sentences with as many unknown words
+  (`kGeneratedSentenceWeight`, docs/engine.md).
+
 ## IDs
 
 `{course}:{lemma}` (spaces → `_`), homographs `{course}:{lemma}.{n}`; the most frequent homograph
 gets the plain id on first import. `ids.tsv` maps (lemma, POS) → id, is append-only, and is reused
-by every import, so ids never change or get reused. Sentence ids: `s:{tatoebaId}`.
+by every import, so ids never change or get reused. Sentence ids: `s:{tatoebaId}` (Tatoeba), `g:{course}:{n}` (generated, `sentence_ids.tsv`).
 
 ## Compiler, validator, report
 

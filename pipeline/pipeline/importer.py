@@ -19,9 +19,9 @@ from pathlib import Path
 
 import yaml
 
-from . import features, query
+from . import features, query, trcheck
 from .align import Aligner
-from .content import load_course_yaml, write_jsonl
+from .content import load_course_yaml, read_jsonl, write_jsonl
 from .fetch import load_freq_words
 from .ids import IdRegistry
 from .lang import Lang, get_lang
@@ -36,8 +36,8 @@ SINGLE_LETTER_OK ={"prep", "conj", "pron", "det", "intj", "adv", "verb"}
 MAX_WORDS = 10
 MIN_WORDS = 2
 ITEM_QUOTA = 25          # sentences per skill item
-VT_QUOTA = 24            # sentences per (grammar verb, tense)
-VTP_QUOTA = 5            # sentences per (grammar verb, tense, person)
+VT_QUOTA = 48            # sentences per (grammar verb, tense)
+VTP_QUOTA = 8            # sentences per (grammar verb, tense, person): gaps.SLOT_TARGET
 VTP_MIN = 2              # ... always accepted up to this many, even when the verb+tense quota is full
 # Grammar gating: words a learner at the item's skill does not know yet (later skills, pool words,
 # unlinked words; names and numbers don't count). The engine caps them at runtime (2 for vocabulary
@@ -328,6 +328,8 @@ def run_import(code: str, content_root: str | None = None) -> None:
     # ---- seed (curated) entries
     seed_entries = [s for s in (seed.get("items") or [])]
     excluded = set(seed.get("exclude") or [])   # 'lemma' or 'lemma/pos': never in the pool
+    # mass nouns: no plural in the lexicon, so the app never offers 'boters' or 'herfsten'
+    uncountable = set(seed.get("uncountable") or [])
     by_lemma = defaultdict(list)
     for key in lexemes:
         by_lemma[key[0]].append(key)
@@ -450,7 +452,7 @@ def run_import(code: str, content_root: str | None = None) -> None:
                 rec["article"] = article
             if gender:
                 rec["gender"] = gender
-            if s.get("plural") or lx.plural:
+            if (s.get("plural") or lx.plural) and lx.lemma not in uncountable:
                 rec["plural"] = s.get("plural") or lx.plural
         rec["freq"] = rank_of.get(key)
         rec["tr"] = tr
@@ -504,7 +506,12 @@ def run_import(code: str, content_root: str | None = None) -> None:
     skill_pos = graph.pos
     item_pos = {iid: skill_pos[s] for iid, s in graph.item_skill.items()}
     cands = []
-    seen_text = set()
+    # generated sentences (generate.py) are kept; a Tatoeba sentence with the same text is skipped
+    seen_text = {dedupe_key(r["text"]) for p in sorted((root / "sentences").glob("gen-*.jsonl"))
+                 for _, r in read_jsonl(p)} if (root / "sentences").exists() else set()
+    tr_dropped: Counter = Counter()
+    names = trcheck.invariant_names((target[s], tr["en"][1]) for s, tr in trs.items())
+    tr_of: dict[int, dict[str, tuple[int, str]]] = {}
     for sid in sorted(trs):
         text = target[sid]
         low = dedupe_key(text)
@@ -515,7 +522,7 @@ def run_import(code: str, content_root: str | None = None) -> None:
             toks = tokenize(text, code)
         except ValueError:
             continue
-        al = aligner.align(toks)
+        al = aligner.align(toks, translation=trs[sid]["en"][1])
         words = [t for t in al if t["is_word"]]
         if not words or len(words) > MAX_WORDS:
             continue
@@ -533,6 +540,15 @@ def run_import(code: str, content_root: str | None = None) -> None:
         touched = {t["lex"] for t in al if t["lex"] in skill_items}
         if not touched:
             continue
+        # translations that belong to another variant of the sentence (trcheck.py)
+        tr = dict(trs[sid])
+        if trcheck.mismatch(al, item_by_id, code, tr["en"][1], "en", names):
+            tr_dropped["en"] += 1
+            continue
+        if "nl" in tr and code != "nl" and trcheck.mismatch(al, item_by_id, code, tr["nl"][1], "nl", names):
+            tr_dropped["nl"] += 1
+            del tr["nl"]
+        tr_of[sid] = tr
         feats = tagger.tag(al)
         if graph.problems(al, feats):
             continue
@@ -586,7 +602,7 @@ def run_import(code: str, content_root: str | None = None) -> None:
             vt_count[(v, t)] += 1
             vtp_count[(v, t, p)] += 1
         unit_idx = max(unit_order.index(item_by_id[i]["unit"]) for i in touched)
-        tr = trs[sid]
+        tr = tr_of[sid]
         toks_out = []
         for t in al:
             o: dict = {"t": t["t"]}
@@ -608,14 +624,16 @@ def run_import(code: str, content_root: str | None = None) -> None:
             "unit": unit_order[unit_idx],
             "tokens": toks_out,
         })
-    log(f"[{code}] {len(cands)} candidate sentences, {len(sentences)} selected")
+    log(f"[{code}] {len(cands)} candidate sentences, {len(sentences)} selected; translation check: "
+        f"{tr_dropped['en']} sentences dropped (English), {tr_dropped['nl']} Dutch translations dropped")
 
     # ---- write
     for kind in ("lexicon", "verbs", "sentences"):
         d = root / kind
         if d.exists():
             for p in d.glob("*.jsonl"):
-                p.unlink()
+                if not p.name.startswith("gen-"):      # generated sentences are maintained by generate.py
+                    p.unlink()
     groups: dict[str, list[dict]] = defaultdict(list)
     for rec in sorted(items, key=lambda r: r["id"]):
         groups[rec.get("unit") or "pool"].append(rec)
