@@ -41,6 +41,14 @@ android {
         versionName = flutter.versionName
     }
 
+    // Compress native libraries inside the APK (smaller download for sideloaded
+    // previews; Android extracts them at install time).
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
+
     signingConfigs {
         if (keystorePropertiesFile.exists()) {
             create("release") {
