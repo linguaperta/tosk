@@ -195,6 +195,17 @@ Each one at the expanded it/nl scale: 8â€“10 units, ~30 skills, ~1000 taught wor
 - [ ] Danish (`da`)
 - [ ] `index.json` listing all courses (the course picker itself is in v0.3)
 
+## v0.8: pack toolkit (the pack format is the product; see docs/VISION.md)
+
+- [ ] Publish the pack format as a versioned spec (`docs/pack-format.md`) from schema/course_db.sql, the JSON schemas and the conventions
+- [ ] Pipeline as a reusable toolkit (`pack` CLI, pip-installable): `new`, generic importers, `validate` / `build` / `publish`
+- [ ] Move source-specific importers for copyrighted sources (Sarnami [source], [source]©, [source]) into a private module or repo before any repo goes public
+- [ ] Extension packs: `extends: <course> >= <version>`, reuse of base item IDs (shared progress), a base-pack check in the app
+- [ ] `pack from-text <book>`: lemmatise with the base course tables, per-chapter frequency, drop known words (from an exported progress log), chapter units, sentences from the text, AI glosses for missing/dialect words (labelled), reading readiness per chapter. First target: Montalbano (Camilleri, Sicilian vigatese)
+- [ ] `pack draft --ai`: AI drafts (glosses, sentences, tables, notes), always `src: claude-*`
+- [ ] App: custom catalog URLs (any index.json); the course preview shows license, sources and authors; reading readiness view for book packs
+- [ ] Claude Code skill: "make a pack for this book / language"
+
 ## Later (not v1)
 
 - [x] Phase 6: Sarnami (`hns`): 9 units, 35 skills, 394 taught words, 742 verb tables, 3,004 sentences. Sources: [source] dictionary, [source] 1991, [source]© 1985 (checking), [source], NT (checking only), plus Claude-drafted/generated material, with per-record `src` and a SOURCES manifest. Local-only (copyright), unverified; see `docs/sarnami.md`.

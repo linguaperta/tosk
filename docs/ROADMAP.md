@@ -1,5 +1,7 @@
 # Roadmap
 
+Direction (14 October 2026): the app is a **player for language packs**, and the pack format plus a tool suite for making packs is the product. See [VISION.md](VISION.md).
+
 The detailed task list lives in [BACKLOG.md](../BACKLOG.md). This page is the release-level view.
 
 | Release | Theme | Status |
@@ -10,7 +12,8 @@ The detailed task list lives in [BACKLOG.md](../BACKLOG.md). This page is the re
 | v0.4 | Content downloads and sync | planned |
 | v0.5 | Handwriting and e-ink (Boox), listening | built; device testing pending ([checklist](device-testing.md)) |
 | v0.6 | New full-size courses: Spanish, Portuguese, French, Esperanto, Swedish, Norwegian, Danish | planned |
-| Later | RPG/forest layer, personalized vocabulary, reading readiness, ghost race | parked |
+| v0.8 | Pack toolkit: open pack spec, `pack new` / `from-text` / `draft --ai`, extension packs (`extends`), custom catalog URLs, license and sources in the course preview, a "read a book" pack (Montalbano) | planned |
+| Later | RPG/forest layer, ghost race | parked |
 
 ## v0.3
 
