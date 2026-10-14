@@ -7,6 +7,7 @@ import '../common/async_view.dart';
 import '../routes.dart';
 import '../shell/course_switcher.dart';
 import '../slots/progression_slots.dart';
+import '../stories/story_providers.dart';
 import 'skill_map_view.dart';
 import 'skill_stats.dart';
 
@@ -150,6 +151,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                       : context.push(Routes.lesson(skill.id, focus: defaultFocus)),
                   onLongPress: (skill) => context.push(Routes.skill(skill.id)),
                   unitKeys: {for (final u in course.units) u.id: _unitKey(u.id)},
+                  // Units with graded stories get a book button in their band.
+                  storyCounts: {
+                    for (final s in course.stories) s.unitId: 0,
+                  }..updateAll((unit, _) => course.stories.where((s) => s.unitId == unit).length),
+                  storyUnitsOpen: ref.watch(storyUnitsUnlockedProvider).value ?? const {},
+                  onUnitStories: (unitId) => context.push(Routes.unitStories(unitId)),
                 ),
               ],
             ),

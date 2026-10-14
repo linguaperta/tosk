@@ -29,6 +29,7 @@ python -m pipeline gen context it --skill present-are          # what a sentence
 python -m pipeline gen check it drafts.jsonl                   # check Claude-written drafts (dry run)
 python -m pipeline gen add it drafts.jsonl                     # ... and add the accepted ones
 python -m pipeline gen refresh it [--drop]                     # re-align generated sentences after an import
+python -m pipeline stories it [--show u3|all]                  # check the graded stories (+ print their alignment)
 python -m pipeline publish it nl [--tag packs-YYYYMMDD] [--dry-run]   # dist/index.json + GitHub Release (gh; never hns)
 python -m pytest pipeline/tests                                # offline tests
 
@@ -78,6 +79,7 @@ checkout; the pipeline refuses to write it anywhere else (`pipeline/hns/safeguar
 | `sentences/{unit}.jsonl` | importer | `schema/sentences.schema.json` |
 | `sentences/gen-{unit}.jsonl` | `gen add` (Claude-written, kept by the importer) | `schema/sentences.schema.json` |
 | `sentence_ids.tsv` | `gen add` (append-only) | `id, key` (generated sentence id, normalized text) |
+| `stories/u{n}.yaml` | Claude (graded stories, see [Stories](#graded-stories-pipelinestoriespy)) | checked by `stories.py` |
 | `grammar/{skill}.md` (en), `grammar/{skill}.nl.md` (nl) | hand | — |
 | `ids.tsv` | importer (append-only) | `id, lemma, pos, sense_key` |
 
@@ -360,6 +362,49 @@ sentences with their translations (`src: "claude-gen (skill: target)"`, `tr_src:
 * The app ranks a generated sentence after unseen Tatoeba sentences with as many unknown words
   (`kGeneratedSentenceWeight`, docs/engine.md).
 
+## Graded stories (`pipeline/stories.py`)
+
+2–3 short stories per unit (5–10 sentences, 3–5 comprehension questions), written by Claude
+(`src: claude-gen`), using only the vocabulary taught up to the unit and only the grammar allowed
+there (docs/ARCHITECTURE.md, "Stories"). One YAML list per unit:
+
+```yaml
+- id: u3-chiavi                       # permanent, unique in the course
+  unit: u3                            # whose words and grammar it uses; the app unlocks it there
+  new_words: [ritardo]                # at most one lemma taught later (or never), glossed in the reader
+  names: [Rex]                        # extra names besides generate.NAMES
+  title: {it: "Dove sono le chiavi?", en: "Where are the keys?", nl: "Waar zijn de sleutels?"}
+  sentences:
+    - {it: "È lunedì mattina e Paolo è in ritardo.", en: "It's Monday morning and Paolo is late.", nl: "..."}
+  questions:
+    - q: {en: "Where are the keys?", nl: "Waar liggen de sleutels?"}   # source language (required)
+      prompt: "Dove sono le chiavi?"          # optional target-language question (checked like a sentence)
+      options: ["in giardino", "in cucina", "in bagno"]   # target-language strings (checked) ...
+      # options: [{en: "The keys", nl: "De sleutels"}, ...]   # ... or source-language i18n
+      answer: 0                               # the correct index (the app shuffles the options)
+      why: {en: "Sentence 5.", nl: "Zin 5."}  # optional explanation
+```
+
+* **Checks** (part of `validate`, so `build` fails on them; `python -m pipeline stories it` runs only
+  these): every title, sentence, target prompt and target option tokenizes and aligns like the
+  importer; every word is aligned to an item or is a name (`generate.NAMES` + `names`, anywhere in
+  the sentence, even when it is also an item: *Roma*) or a number; every item is taught in the
+  story's unit or earlier (the unit of the first skill selecting it), except at most one distinct
+  lemma per story, which must be declared in `new_words`; the features (`features.py`) are allowed at
+  the unit (base ∪ everything introduced by this or an earlier unit); 5–10 sentences of at most 14
+  words with every course translation, passing `trcheck.py`; 3–5 questions with 3–4 options,
+  non-empty and distinct after folding case, punctuation and accents (like the engine's
+  `OptionPicker`), not mixing target and translated options, `answer` in range, i18n complete.
+* `--show u3` (or `all`) prints each story's tokens as `word/lemma[tense.person]`, for reviewing the
+  alignment the reader's word popovers will show (the aligner's limits apply: *sono* without a
+  subject reads as *io*, a noun right after *e* may read as a verb (*sale* → *salire*): rephrase).
+* **Compiled** into `stories`, `story_sentences` and `story_questions`; the sentences go into
+  `sentences` + `tokens` + `sentence_features` with ids `st:{storyId}.{n}` and src
+  `claude-gen (story: {storyId})` (the app keeps them out of the exercise pool). Tokens are aligned at
+  build time (nothing is stored in the YAML), so an import that changes the lexicon re-aligns them,
+  and a story that no longer passes fails the build.
+* 2026-10: it 18 stories (132 sentences, 61 questions), nl 16 (117 sentences, 51 questions), 2 per unit.
+
 ## IDs
 
 `{course}:{lemma}` (spaces → `_`), homographs `{course}:{lemma}.{n}`; the most frequent homograph
@@ -377,7 +422,7 @@ by every import, so ids never change or get reused. Sentence ids: `s:{tatoebaId}
   items, articles outside `meta.articles`, stem+ending ≠ form, undeclared tenses/persons, tokens that
   don't re-render the text, unknown token lex, token forms missing from the verb table, missing
   en/nl grammar notes, base features/`introduces` that are no tense and have no detector, and
-  sentences whose features their home skill does not allow.
+  sentences whose features their home skill does not allow, and stories that fail the story checks.
 * `report.py` prints per skill: items, facets, sentences touching the skill (`sents`), the ones whose
   features the skill allows (`fit`) and of those the ones with at most one word taught later
   (`easy`), the features it introduces, and for verb skills the number of complete tables and fit

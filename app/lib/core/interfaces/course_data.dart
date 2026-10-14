@@ -9,6 +9,7 @@ import 'package:collection/collection.dart';
 
 import '../models/course.dart';
 import '../models/facet.dart';
+import '../models/story.dart';
 
 abstract interface class CourseData {
   CourseMeta get meta;
@@ -55,6 +56,12 @@ abstract interface class CourseData {
 
   /// Grammar features a skill introduces (its tense for a verb skill, plus declared constructs).
   Set<String> skillFeatures(String skillId);
+
+  /// Graded mini-stories in unit order, then story order; empty for packs
+  /// without stories. Their sentences are not in [sentencesFor] / [sentence].
+  List<Story> get stories;
+
+  Story? story(String id);
 }
 
 /// Straightforward indexed implementation used by both the data layer and tests.
@@ -72,11 +79,18 @@ class InMemoryCourseData implements CourseData {
     Map<String, Map<String, String>> notes = const {}, // skillId -> lang -> md
     Map<String, Set<String>> sentenceFeatures = const {}, // sentenceId -> features
     Map<String, Set<String>> skillFeatures = const {}, // skillId -> features
+    List<Story> stories = const [],
   }) : units = (List.of(units)..sort((a, b) => a.ord.compareTo(b.ord))) {
     _notes = notes;
     _sentenceFeatures = sentenceFeatures;
     _skillFeatures = skillFeatures;
     final unitOrd = {for (final u in this.units) u.id: u.ord};
+    this.stories = List.unmodifiable(List.of(stories)
+      ..sort((a, b) {
+        final c = (unitOrd[a.unitId] ?? 1 << 20).compareTo(unitOrd[b.unitId] ?? 1 << 20);
+        return c != 0 ? c : a.ord.compareTo(b.ord);
+      }));
+    _stories = {for (final s in this.stories) s.id: s};
     this.skills = List.of(skills)
       ..sort((a, b) {
         final c = (unitOrd[a.unitId] ?? 0).compareTo(unitOrd[b.unitId] ?? 0);
@@ -139,6 +153,9 @@ class InMemoryCourseData implements CourseData {
   late final Map<String, Map<String, String>> _notes;
   late final Map<String, Set<String>> _sentenceFeatures;
   late final Map<String, Set<String>> _skillFeatures;
+  @override
+  late final List<Story> stories;
+  late final Map<String, Story> _stories;
 
   @override
   Skill? skill(String id) => _skills[id];
@@ -226,4 +243,7 @@ class InMemoryCourseData implements CourseData {
 
   @override
   Set<String> skillFeatures(String skillId) => _skillFeatures[skillId] ?? const {};
+
+  @override
+  Story? story(String id) => _stories[id];
 }
