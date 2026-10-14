@@ -3,14 +3,22 @@ import 'package:flutter/material.dart';
 import '../../core/core.dart';
 import 'typing.dart';
 
-/// Free-text answer input for production exercises (cloze without options now,
-/// grids in free-input mode later).
+/// Free-text answer input for production exercises (cloze without options).
 ///
-/// The keyboard implementation ships in v1. The handwriting one (ML Kit Digital
-/// Ink, Phase 8) implements this same widget and reports recognizer alternatives
-/// in [TextAnswer.candidates]; it plugs in through `answerInputBuilderProvider`.
+/// [KeyboardAnswerField] types; the handwriting pad (`InkAnswerInput` in
+/// `ui/ink/ink_answer_input.dart`, ML Kit Digital Ink, v0.5) implements the
+/// same widget and reports recognizer alternatives in
+/// [TextAnswer.candidates]. `answerInputBuilderProvider` picks one from the
+/// Answer input setting.
 abstract class AnswerInputWidget extends StatefulWidget {
-  const AnswerInputWidget({super.key, required this.onChanged, this.onSubmitted, this.enabled = true, this.hintText});
+  const AnswerInputWidget({
+    super.key,
+    required this.onChanged,
+    this.onSubmitted,
+    this.enabled = true,
+    this.hintText,
+    this.preContext,
+  });
 
   /// The current answer, or null when empty.
   final ValueChanged<TextAnswer?> onChanged;
@@ -19,6 +27,10 @@ abstract class AnswerInputWidget extends StatefulWidget {
   final VoidCallback? onSubmitted;
   final bool enabled;
   final String? hintText;
+
+  /// Text just before the answer (the words before a cloze gap): context for
+  /// a handwriting recognizer; a keyboard ignores it.
+  final String? preContext;
 
   InputMode get inputMode;
 }
@@ -29,6 +41,7 @@ typedef AnswerInputBuilder = AnswerInputWidget Function({
   VoidCallback? onSubmitted,
   bool enabled,
   String? hintText,
+  String? preContext,
 });
 
 AnswerInputWidget keyboardAnswerInputBuilder({
@@ -37,6 +50,7 @@ AnswerInputWidget keyboardAnswerInputBuilder({
   VoidCallback? onSubmitted,
   bool enabled = true,
   String? hintText,
+  String? preContext,
 }) =>
     KeyboardAnswerField(key: key, onChanged: onChanged, onSubmitted: onSubmitted, enabled: enabled, hintText: hintText);
 

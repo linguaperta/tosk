@@ -30,7 +30,7 @@ import 'review_log_sync.dart';
 const String kBackupFormat = 'tosk-backup/1';
 
 /// Settings that belong to one device and are never imported.
-const Set<String> kDeviceOnlySettings = {'reminder.enabled', 'reminder.time'};
+const Set<String> kDeviceOnlySettings = {'reminder.enabled', 'reminder.time', 'eink.full_refresh', 'eink.onyx_pen'};
 
 /// The setting "my courses" (comma-separated ids), merged as a union.
 const String kCoursesAddedKey = 'courses.added';

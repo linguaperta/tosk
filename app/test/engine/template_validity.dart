@@ -57,6 +57,8 @@ Map<String, ExerciseTemplate> validityTemplates() => {
       for (final t in defaultTemplates()) t.type.id: t,
       'multiple_choice/sentence': const MultipleChoiceTemplate(sentenceShare: 1),
       'multiple_choice/word': const MultipleChoiceTemplate(sentenceShare: 0),
+      'listen_pick/sentence': const ListenPickTemplate(sentenceShare: 1),
+      'listen_pick/word': const ListenPickTemplate(sentenceShare: 0),
     };
 
 /// Runs the checks; returns a report (callers assert on it).
@@ -86,7 +88,12 @@ ValidityReport runTemplateValidity(
           };
           return GenContext(
             course: course,
-            options: SessionOptions(sourceLang: lang, preferredInput: i % 7 == 6 ? InputMode.keyboard : InputMode.tap),
+            // Text-to-speech assumed available, so listen_pick is checked too.
+            options: SessionOptions(
+              sourceLang: lang,
+              preferredInput: i % 7 == 6 ? InputMode.keyboard : InputMode.tap,
+              listening: true,
+            ),
             random: Random(i * 31 + lang.hashCode),
             states: states,
             skill: skill,
@@ -566,6 +573,32 @@ List<String> validateExercise(Exercise e, ExerciseTemplate t, CourseData c, Stri
       check(g(TokenAnswer(ei)).correct, 'error index graded wrong');
       for (var i = 0; i < e.tokens.length; i++) {
         if (i != ei && e.tokenIsWord[i]) check(!g(TokenAnswer(i)).correct, 'token $i graded correct');
+      }
+
+    case ListenPickExercise():
+      check(e.text.trim().isNotEmpty, 'nothing to speak');
+      check(e.languageCode == c.meta.target, 'language ${e.languageCode} is not the course target');
+      check(facet.kind == FacetKind.rec, 'listen_pick on a ${facet.kind.name} facet');
+      // Exactly one option sounds like what is spoken (and it is the text).
+      final heard = soundKey(e.text);
+      choiceChecks(e.options, e.correctIndex, (o) => soundKey(o) == heard);
+      if (e.correctIndex >= 0 && e.correctIndex < e.options.length) {
+        check(e.options[e.correctIndex] == e.text, 'correct option is not the spoken text');
+      }
+      check(_dupes([for (final o in e.options) soundKey(o)]).isEmpty, 'two options sound alike');
+      if (e.isSentence) {
+        final s = c.sentence(e.sentenceId ?? '');
+        check(s != null && s.text == e.text, 'spoken text is not the sentence');
+        if (s != null) {
+          check(s.tokens.any((t) => t.lex == item.id), 'sentence does not contain the item');
+          check(e.translation == s.translation(lang), 'translation is not the sentence translation');
+        }
+      } else {
+        check(_k(e.text) == _k(item.lemma), 'spoken word is not the lemma');
+        final spellings = {for (final x in item.spellings) _k(x)};
+        for (var i = 0; i < e.options.length; i++) {
+          if (i != e.correctIndex) check(!spellings.contains(_k(e.options[i])), 'option "${e.options[i]}" spells the item');
+        }
       }
 
     case TransformExercise():

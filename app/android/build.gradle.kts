@@ -2,6 +2,16 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+        // Onyx (Boox) e-reader SDK: pen raw drawing and e-ink refresh (v0.5,
+        // only used on ONYX devices). See docs/release.md. The repository also
+        // mirrors mmkv 1.0.19, an SDK dependency that was only ever on JCenter.
+        maven {
+            url = uri("https://repo.boox.com/repository/maven-public/")
+            content {
+                includeGroup("com.onyx.android.sdk")
+                includeGroup("com.tencent") // mmkv 1.0.19
+            }
+        }
     }
 }
 

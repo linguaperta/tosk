@@ -8,6 +8,8 @@ import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../core/core.dart';
+import '../../device/device_providers.dart';
+import '../../device/onyx.dart';
 import '../../feedback/answer_context.dart';
 import '../../progression/nonstop.dart';
 import '../../providers.dart';
@@ -76,14 +78,34 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
   bool get _endless => widget.request.endless;
 
+  /// E-ink (ONYX): a full refresh after the summary and when leaving the
+  /// player, against ghosting (Settings → E-reader). Read up front: `ref`
+  /// can't be used in [dispose].
+  EinkScreen _eink = const NoEinkScreen();
+
+  void _fullRefresh() {
+    if (!ref.read(fullRefreshAfterLessonsProvider)) return;
+    final eink = _eink;
+    // After the next screen has been drawn.
+    unawaited(Future<void>.delayed(const Duration(milliseconds: 350), eink.fullRefresh));
+  }
+
+  bool _refreshOnLeave = false;
+
   @override
   void initState() {
     super.initState();
+    _eink = ref.read(einkScreenProvider);
+    _refreshOnLeave = ref.read(fullRefreshAfterLessonsProvider);
     unawaited(_start());
   }
 
   @override
   void dispose() {
+    if (_refreshOnLeave) {
+      final eink = _eink;
+      unawaited(Future<void>.delayed(const Duration(milliseconds: 350), eink.fullRefresh));
+    }
     unawaited(_answers?.cancel());
     _exerciseScroll.dispose();
     _keys.dispose();
@@ -244,6 +266,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       _summary = summary;
       _phase = PlayerPhase.summary;
     });
+    _fullRefresh();
   }
 
   /// The end-of-session sound: the level-up fanfare when this session gained

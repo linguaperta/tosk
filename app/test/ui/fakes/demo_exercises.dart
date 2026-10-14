@@ -1,4 +1,4 @@
-/// Hand-made exercises of all 9 types for the demo courses. The real engine
+/// Hand-made exercises of all 10 types for the demo courses. The real engine
 /// generates these from pack data.
 library;
 
@@ -385,6 +385,23 @@ List<Exercise> _italian(String lang) {
       correctIndex: 2,
       direction: Direction.recognize,
     ),
+    ListenPickExercise(
+      id: 'it-lp-domani',
+      facetId: 'it:domani#rec',
+      skillId: 'time',
+      instruction: t('What do you hear?', 'Wat hoor je?'),
+      text: 'Ci vediamo domani.',
+      languageCode: 'it',
+      options: const ['Ci vediamo domani.', 'Ci vediamo dopo.', 'Ci vedremo domani.'],
+      correctIndex: 0,
+      translation: t('See you tomorrow.', 'Tot morgen.'),
+      tokens: const [
+        TokenRef('Ci'),
+        TokenRef('vediamo', pre: ' '),
+        TokenRef('domani', pre: ' ', itemId: 'it:domani'),
+        TokenRef('.', isWord: false),
+      ],
+    ),
   ];
 }
 
@@ -511,5 +528,17 @@ List<Exercise> _dutch(String lang) => const [
     accepted: ['loopt'],
     hint: 'lopen (hij, present)',
     translation: 'He walks home.',
+  ),
+  ListenPickExercise(
+    id: 'nl-lp-hallo',
+    facetId: 'nl:hallo#rec',
+    skillId: 'groeten',
+    instruction: 'Which word do you hear?',
+    text: 'hallo',
+    languageCode: 'nl',
+    options: ['hallo', 'dag', 'doei'],
+    correctIndex: 0,
+    isSentence: false,
+    translation: 'hello',
   ),
 ];

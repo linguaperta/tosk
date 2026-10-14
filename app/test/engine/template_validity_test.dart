@@ -17,6 +17,8 @@ const _expectIt = {
   'cloze': ['persone', 'cibo', 'verbi', 'cose', 'presente-are', 'presente-ere-ire', 'essere-avere', 'passato-prossimo', 'articoli'],
   'spot_error': ['presente-are', 'presente-ere-ire', 'essere-avere', 'passato-prossimo', 'articoli'],
   'transform': ['presente-are', 'presente-ere-ire', 'essere-avere', 'passato-prossimo'],
+  'listen_pick': ['saluti', 'persone', 'cibo', 'verbi', 'cose', 'aggettivi'],
+  'listen_pick/sentence': ['saluti', 'persone', 'cibo', 'verbi', 'cose'],
 };
 
 const _expectNl = {
@@ -30,6 +32,8 @@ const _expectNl = {
   'cloze': ['mensen', 'eten-drinken', 'werkwoorden', 'dingen', 'tt-regelmatig', 'tt-onregelmatig', 'perfectum', 'de-het'],
   'spot_error': ['tt-regelmatig', 'tt-onregelmatig', 'perfectum', 'de-het'],
   'transform': ['tt-regelmatig', 'tt-onregelmatig', 'perfectum'],
+  'listen_pick': ['groeten', 'mensen', 'eten-drinken', 'werkwoorden', 'dingen', 'bijwoorden'],
+  'listen_pick/sentence': ['groeten', 'mensen', 'eten-drinken', 'werkwoorden', 'dingen'],
 };
 
 void _run(String name, ValidityReport Function() run, Map<String, List<String>> expected) {

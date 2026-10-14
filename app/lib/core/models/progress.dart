@@ -28,7 +28,12 @@ enum ExerciseType {
   sentenceBuilder('sentence_builder'),
   cloze('cloze'),
   spotError('spot_error'),
-  transform('transform');
+  transform('transform'),
+
+  /// Listen and pick (v0.5): on-device text-to-speech reads a sentence or a
+  /// word; pick what you heard. Only generated when the course language has a
+  /// voice ([SessionOptions.listening]).
+  listenPick('listen_pick');
 
   const ExerciseType(this.id);
   final String id;

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/core.dart';
+import '../../common/pronounce_button.dart';
 import 'common.dart';
 
 /// See the front, reveal the back, grade yourself (Again / Hard / Good / Easy).
@@ -54,6 +55,8 @@ class _FlashcardViewState extends State<FlashcardView> with ExerciseKeysMixin<Fl
                 textAlign: TextAlign.center,
                 style: theme.textTheme.headlineSmall?.copyWith(color: theme.colorScheme.primary),
               ),
+              // Producing: the target word is the back; hear it once revealed.
+              if (e.direction == Direction.produce) PronounceButton(text: e.back),
             ],
           )
         : const SizedBox(width: double.infinity);
@@ -69,6 +72,8 @@ class _FlashcardViewState extends State<FlashcardView> with ExerciseKeysMixin<Fl
               child: Column(
                 children: [
                   Text(e.front, textAlign: TextAlign.center, style: theme.textTheme.headlineMedium),
+                  // Recognizing: the target word is the front (v0.5 pronounce).
+                  if (e.direction == Direction.recognize) PronounceButton(text: e.front),
                   if (e.hint != null) ...[
                     const SizedBox(height: 6),
                     Text(

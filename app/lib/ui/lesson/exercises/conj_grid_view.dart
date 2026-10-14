@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/core.dart';
+import '../../ink/ink_pad.dart';
 import '../../theme/bw_skin.dart';
 import '../typing.dart';
 import 'common.dart';
@@ -17,10 +18,15 @@ class ConjGridView extends ExerciseWidget<ConjGridExercise> {
     super.reduceMotion,
     super.onCheck,
     this.typed = false,
+    this.ink = false,
   });
 
   /// Typing mode: every asked cell is a text field (no tile bank).
   final bool typed;
+
+  /// Handwriting: tap a cell (or start at the first), write its form on the
+  /// pad below the table, "Next cell" moves on. No tile bank.
+  final bool ink;
 
   @override
   State<ConjGridView> createState() => _ConjGridViewState();
@@ -37,6 +43,10 @@ class _ConjGridViewState extends State<ConjGridView> with ExerciseKeysMixin<Conj
 
   /// The cell the accent bar types into (the focused one, or the last one).
   int? _activeInput;
+
+  /// Handwriting: what the pad read per cell (best first).
+  final Map<int, List<String>> _written = {};
+  final _pad = GlobalKey<InkPadState>();
 
   @override
   void initState() {
@@ -95,6 +105,68 @@ class _ConjGridViewState extends State<ConjGridView> with ExerciseKeysMixin<Conj
 
   List<GridCell> get _cells => widget.exercise.cells;
 
+  // ------------------------------------------------------------ handwriting
+
+  int? _nextUnwritten(int after) {
+    for (var k = 1; k <= _cells.length; k++) {
+      final i = (after + k) % _cells.length;
+      if (!_cells[i].prefilled && !_written.containsKey(i)) return i;
+    }
+    return null;
+  }
+
+  void _onWritten(InkResult? r) {
+    final cell = _selectedCell;
+    if (widget.locked || cell == null) return;
+    setState(() {
+      if (r == null) {
+        _written.remove(cell);
+      } else {
+        _written[cell] = r.candidates;
+      }
+    });
+    _reportWritten();
+  }
+
+  void _reportWritten() {
+    final asked = [for (var i = 0; i < _cells.length; i++) if (!_cells[i].prefilled) i];
+    final complete = asked.every(_written.containsKey);
+    widget.onChanged(
+      complete
+          ? GridAnswer(
+              [for (var i = 0; i < _cells.length; i++) _cells[i].prefilled ? '' : _written[i]!.first],
+              inputMode: InputMode.ink,
+              candidates: [
+                for (var i = 0; i < _cells.length; i++)
+                  _cells[i].prefilled ? const <String>[] : _written[i]!.skip(1).take(kInkTopK - 1).toList(),
+              ],
+            )
+          : null,
+    );
+  }
+
+  /// "Next cell": the next cell without writing (or Check when all are written).
+  void _nextCell() {
+    final cell = _selectedCell ?? -1;
+    final next = _nextUnwritten(cell);
+    if (next == null) {
+      widget.onCheck?.call();
+      return;
+    }
+    _pad.currentState?.reset();
+    setState(() => _selectedCell = next);
+  }
+
+  void _tapWrittenCell(int i) {
+    if (widget.locked || _cells[i].prefilled) return;
+    _pad.currentState?.reset();
+    setState(() {
+      _written.remove(i);
+      _selectedCell = i;
+    });
+    _reportWritten();
+  }
+
   int? _nextEmpty(int after) {
     for (var k = 1; k <= _cells.length; k++) {
       final i = (after + k) % _cells.length;
@@ -137,7 +209,7 @@ class _ConjGridViewState extends State<ConjGridView> with ExerciseKeysMixin<Conj
 
   @override
   void onDigit(int n) {
-    if (widget.typed) return;
+    if (widget.typed || widget.ink) return;
     if (n >= 1 && n <= widget.exercise.tiles.length) _tapTile(n - 1);
   }
 
@@ -202,7 +274,22 @@ class _ConjGridViewState extends State<ConjGridView> with ExerciseKeysMixin<Conj
                 ),
             ],
           ),
-          if (widget.typed) ...[
+          if (widget.ink) ...[
+            if (!widget.locked) ...[
+              const SizedBox(height: 8),
+              InkPad(
+                key: _pad,
+                padKey: const ValueKey('grid-ink-pad'),
+                height: 150,
+                hintText: _selectedCell == null ? 'Write here' : 'Write: ${_cells[_selectedCell!].personLabel}',
+                preContext: _selectedCell == null ? null : _cells[_selectedCell!].personLabel.split(RegExp(r'[ /(]')).first,
+                actionLabel: _nextUnwritten(_selectedCell ?? -1) == null ? 'Done' : 'Next cell',
+                actionIcon: Icons.arrow_downward,
+                onAction: _nextCell,
+                onChanged: _onWritten,
+              ),
+            ],
+          ] else if (widget.typed) ...[
             if (!widget.locked)
               Padding(
                 padding: const EdgeInsets.only(top: 4),
@@ -247,12 +334,17 @@ class _ConjGridViewState extends State<ConjGridView> with ExerciseKeysMixin<Conj
     if (widget.typed && !widget.locked && !c.prefilled) return _typedCell(context, i);
     final selected = !widget.locked && _selectedCell == i && !widget.typed;
     final String text;
+    final ink = widget.ink;
     final TextStyle? style;
     if (c.prefilled) {
       text = c.expected;
       style = theme.textTheme.bodyLarge?.copyWith(color: scheme.outline, fontStyle: FontStyle.italic);
     } else {
-      text = widget.typed ? _typedText(i) : (tile == null ? '' : widget.exercise.tiles[tile]);
+      text = ink
+          ? (_written[i]?.first ?? '')
+          : widget.typed
+          ? _typedText(i)
+          : (tile == null ? '' : widget.exercise.tiles[tile]);
       // Black & white: a wrong form is struck through, a right one bold.
       style = theme.textTheme.bodyLarge?.copyWith(
         decoration: fb.mono && mark == false ? TextDecoration.lineThrough : null,
@@ -289,7 +381,7 @@ class _ConjGridViewState extends State<ConjGridView> with ExerciseKeysMixin<Conj
         child: InkWell(
           key: ValueKey('grid-cell-$i'),
           borderRadius: BorderRadius.circular(10),
-          onTap: c.prefilled || widget.locked ? null : () => _tapCell(i),
+          onTap: c.prefilled || widget.locked ? null : () => ink ? _tapWrittenCell(i) : _tapCell(i),
           child: ConstrainedBox(
             constraints: const BoxConstraints(minHeight: 48),
             child: Padding(

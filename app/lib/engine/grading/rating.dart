@@ -22,6 +22,7 @@ class RatingPolicy {
     ExerciseType.cloze: 5000,
     ExerciseType.spotError: 6000,
     ExerciseType.transform: 12000,
+    ExerciseType.listenPick: 8000, // includes listening to the audio
   };
 
   final Map<ExerciseType, int> fastMs;

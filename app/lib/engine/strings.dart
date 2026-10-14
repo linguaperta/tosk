@@ -21,6 +21,8 @@ const Map<String, Map<String, String>> _strings = {
     'cloze.article': 'Fill in the right article',
     'spot_error': 'Tap the wrong word',
     'transform': 'Rewrite the sentence',
+    'listen_pick': 'What do you hear?',
+    'listen_pick.word': 'Which word do you hear?',
   },
   'nl': {
     'flashcard.rec': 'Wat betekent dit?',
@@ -40,6 +42,8 @@ const Map<String, Map<String, String>> _strings = {
     'cloze.article': 'Vul het juiste lidwoord in',
     'spot_error': 'Tik op het foute woord',
     'transform': 'Herschrijf de zin',
+    'listen_pick': 'Wat hoor je?',
+    'listen_pick.word': 'Welk woord hoor je?',
   },
 };
 

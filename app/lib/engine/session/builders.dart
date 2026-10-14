@@ -239,6 +239,7 @@ abstract final class ExerciseSelectorTypes {
         ExerciseType.cloze => const {FacetKind.form, FacetKind.prod, FacetKind.article},
         ExerciseType.spotError => const {FacetKind.form, FacetKind.article},
         ExerciseType.transform => const {FacetKind.form},
+        ExerciseType.listenPick => const {FacetKind.rec},
       };
 }
 
