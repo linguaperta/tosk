@@ -125,6 +125,8 @@ def compile_pack(pack: Pack, out: Path, built_at: str | None = None) -> dict:
         if c.get("description"):
             meta["description"] = _j(c["description"])
         meta["base_features"] = _j(sorted(c.get("base_features") or []))
+        if c.get("time_adverbs"):
+            meta["time_adverbs"] = _j({k: list(v) for k, v in sorted(c["time_adverbs"].items())})
         con.executemany("INSERT INTO meta(key, value) VALUES (?, ?)", sorted(meta.items()))
 
         for ui, unit in enumerate(c["units"]):

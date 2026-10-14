@@ -98,6 +98,10 @@ def validate(pack: Pack, check_notes: bool = True) -> list[str]:
     persons = list(c["persons"])
     tenses = list(c["tenses"])
     translations = list(c["translations"])
+    for adverb, fits in sorted((c.get("time_adverbs") or {}).items()):
+        for t in fits:
+            if t not in tenses:
+                errors.append(f"{code}: time adverb {adverb!r} lists undeclared tense {t!r}")
 
     # ---- ids
     items: dict[str, dict] = {}

@@ -99,6 +99,17 @@ units:
         introduces: ["aux:essere"]                # a verbs skill also introduces tense:{T}
 ```
 
+Time adverbs (optional; compiled to `meta.time_adverbs`, the validator checks the tenses): the tenses
+each adverb fits. The app never rewrites a sentence containing one (whole words, case-insensitive)
+into another tense in the transform exercise.
+
+```yaml
+time_adverbs:
+  ieri: [passato_prossimo, imperfetto]
+  la settimana scorsa: [passato_prossimo, imperfetto]   # multi-word keys are fine
+  adesso: [presente]
+```
+
 ### seed.yaml (curation)
 
 ```yaml

@@ -35,6 +35,9 @@ CREATE TABLE meta (
 --   description      i18n JSON
 --   base_features    JSON array of grammar features allowed from the start, e.g. ["tense:presente"]
 --                    (see sentence_features / skill_features)
+--   time_adverbs     JSON {adverb: [tense, ...]}: time adverbs (one or more words) and the tenses they fit,
+--                    e.g. {"ieri":["passato_prossimo","imperfetto"]}; the app never rewrites a sentence
+--                    containing one into another tense (transform exercise)
 
 CREATE TABLE units (
   id     TEXT PRIMARY KEY,           -- 'u1'

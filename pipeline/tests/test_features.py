@@ -205,6 +205,22 @@ def test_compiler_writes_feature_tables(mini_pack_dir, tmp_path):
         con.close()
 
 
+def test_time_adverbs_are_validated_and_compiled(mini_pack_dir, tmp_path):
+    adverbs = {"ieri": ["passato_prossimo"], "adesso": ["presente"]}
+    _set_base(mini_pack_dir, ["tense:presente"], time_adverbs=adverbs)
+    assert validate(load_pack(mini_pack_dir)) == []
+    out = tmp_path / "it.sqlite"
+    compile_pack(load_pack(mini_pack_dir), out, built_at="2026-01-01T00:00:00Z")
+    con = sqlite3.connect(out)
+    try:
+        raw = con.execute("SELECT value FROM meta WHERE key='time_adverbs'").fetchone()[0]
+        assert raw == '{"adesso":["presente"],"ieri":["passato_prossimo"]}'
+    finally:
+        con.close()
+    _set_base(mini_pack_dir, ["tense:presente"], time_adverbs={"domani": ["futuro"]})
+    assert any("time adverb 'domani' lists undeclared tense 'futuro'" in e for e in validate(load_pack(mini_pack_dir)))
+
+
 def test_importer_drops_sentences_with_unintroduced_features(import_env, monkeypatch):
     import pipeline.importer as imp
     # the fixture teaches few words; lift the unknown-word caps to test the feature rule alone
