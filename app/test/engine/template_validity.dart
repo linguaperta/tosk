@@ -133,19 +133,23 @@ const _strict = GradeOptions(accents: AccentStrictness.strict);
 
 String _k(String s) => foldAnswer(s);
 
+/// Per-course caches of the checker's own (generator-independent) lookups.
+final Expando<Map<String, List<Item>>> _synonymCache = Expando();
+final Expando<Map<String, Sentence>> _textIndex = Expando();
+
 /// Items that share a folded gloss (any language) or spelling with [item].
-List<Item> _synonyms(CourseData c, Item item) {
-  String strip(String g) => g.replaceAll(RegExp(r'\([^)]*\)'), ' ');
-  final g = {for (final gs in item.tr.values) for (final x in gs) ...[_k(x), _k(strip(x))]}..remove('');
-  final sp = {for (final s in item.spellings) _k(s)};
-  return [
-    for (final o in c.allItems)
-      if (o.id != item.id &&
-          ({for (final gs in o.tr.values) for (final x in gs) ...[_k(x), _k(strip(x))]}.any(g.contains) ||
-              o.spellings.any((s) => sp.contains(_k(s)))))
-        o,
-  ];
-}
+List<Item> _synonyms(CourseData c, Item item) => (_synonymCache[c] ??= {})[item.id] ??= () {
+      String strip(String g) => g.replaceAll(RegExp(r'\([^)]*\)'), ' ');
+      final g = {for (final gs in item.tr.values) for (final x in gs) ...[_k(x), _k(strip(x))]}..remove('');
+      final sp = {for (final s in item.spellings) _k(s)};
+      return [
+        for (final o in c.allItems)
+          if (o.id != item.id &&
+              ({for (final gs in o.tr.values) for (final x in gs) ...[_k(x), _k(strip(x))]}.any(g.contains) ||
+                  o.spellings.any((s) => sp.contains(_k(s)))))
+            o,
+      ];
+    }();
 
 /// Folded accepted forms of [cell] and of the same tense's cells whose
 /// person shares a pronoun with it (Dutch `hij/zij` and `zij`).
@@ -194,11 +198,68 @@ List<String> _bagMinus(List<String> tiles, List<String> answer) {
 }
 
 Sentence? _sentenceByText(CourseData c, String text) {
-  final key = normalizeAnswer(text);
-  for (final s in CourseIndex.of(c).allSentences) {
-    if (normalizeAnswer(s.text) == key) return s;
+  final index = _textIndex[c] ??= () {
+    final m = <String, Sentence>{};
+    for (final s in CourseIndex.of(c).allSentences) {
+      m.putIfAbsent(normalizeAnswer(s.text), () => s);
+    }
+    return m;
+  }();
+  return index[normalizeAnswer(text)];
+}
+
+/// The verb cell token [idx] of [s] belongs to, as (verb id, cell), by the
+/// pipeline's alignment convention: a compound form (`ho mangiato`, `heb …
+/// gegeten`) is aligned on one of its words (the participle) and its other
+/// words (the auxiliary, aligned separately to the auxiliary verb's present,
+/// or not at all) are the nearest tokens (within 6) reading those words. Such
+/// an auxiliary belongs to the compound form, not to its own alignment.
+(String, VerbForm)? _ownerCell(CourseData c, Sentence s, int idx) {
+  final tokens = s.tokens;
+  for (var j = 0; j < tokens.length; j++) {
+    final t = tokens[j];
+    if (!t.isWord || t.lex == null || t.form == null) continue;
+    final cell = c.verbForms(t.lex!)[t.form!];
+    if (cell == null) continue;
+    for (final a in cell.accepted) {
+      final w = splitWords(a).map(_k).toList();
+      final k = w.indexOf(_k(t.t));
+      if (w.length < 2 || k < 0) continue;
+      if (j == idx) return (t.lex!, cell);
+      // The first accepted spelling whose other words are all present.
+      final taken = <int>{j};
+      for (var m = 0; m < w.length; m++) {
+        if (m == k) continue;
+        int? best;
+        for (var q = 0; q < tokens.length; q++) {
+          if (taken.contains(q) || !tokens[q].isWord || (q - j).abs() > 6 || _k(tokens[q].t) != w[m]) continue;
+          final lex = tokens[q].lex;
+          if (lex != null && c.verbForms(lex).isEmpty) continue;
+          if (best == null || (q - j).abs() < (best - j).abs()) best = q;
+        }
+        if (best != null) taken.add(best);
+      }
+      if (taken.length < w.length) continue;
+      if (taken.contains(idx)) return (t.lex!, cell);
+      break;
+    }
   }
-  return null;
+  final t = tokens[idx];
+  final cell = t.lex == null || t.form == null ? null : c.verbForms(t.lex!)[t.form!];
+  return cell == null ? null : (t.lex!, cell);
+}
+
+/// Indices of the tokens of [s] overlapping the characters [from, to).
+List<int> _tokensInRange(Sentence s, int from, int to) {
+  final out = <int>[];
+  var pos = 0;
+  for (var i = 0; i < s.tokens.length; i++) {
+    pos += s.tokens[i].pre.length;
+    final end = pos + s.tokens[i].t.length;
+    if (pos < to && end > from) out.add(i);
+    pos = end;
+  }
+  return out;
 }
 
 /// Problems with one exercise (empty when valid).
@@ -392,10 +453,17 @@ List<String> validateExercise(Exercise e, ExerciseTemplate t, CourseData c, Stri
       final acc = {for (final a in e.accepted) _k(a)};
       check(acc.contains(_k(e.expected)), 'expected not accepted');
       if (facet.kind == FacetKind.form || (facet.kind == FacetKind.prod && item.isVerb)) {
-        // Independent check: the accepted answers belong to the gapped cell.
-        final tok = s?.tokens.firstWhere((t) => t.lex == item.id && t.form != null, orElse: () => const Token(idx: -1, t: ''));
-        final cell = tok == null || tok.form == null ? null : c.verbForms(item.id)[tok.form!];
+        // Independent check: the gap is (part of) a form of this verb, in the
+        // facet's tense; an auxiliary counts as part of its compound form.
+        final gapTokens = s == null ? const <int>[] : _tokensInRange(s, e.before.length, e.before.length + e.expected.length);
+        final owners = [
+          for (final i in gapTokens)
+            if (_ownerCell(c, s!, i) case (final v, final cell) when v == item.id) cell,
+        ];
+        if (facet.kind == FacetKind.form) check(owners.isNotEmpty, 'gap is not on the verb');
+        final cell = owners.firstOrNull;
         if (cell != null && facet.kind == FacetKind.form) {
+          check(owners.every((x) => x.key == cell.key), 'gap spans several forms');
           check(cell.tense == facet.tense, 'gap is in the wrong tense');
           // Wrong options are not right for the cell nor for a person sharing its pronoun.
           final ctxForms = _contextForms(c, item.id, cell);
@@ -453,12 +521,10 @@ List<String> validateExercise(Exercise e, ExerciseTemplate t, CourseData c, Stri
       final orig = s.tokens[ei];
       check(orig.t == e.correction, 'correction is not the original token');
       if (facet.kind == FacetKind.form) {
-        // The changed word belongs to the verb form (it may be an unaligned
-        // auxiliary of a partially aligned compound form).
-        final aligned = orig.lex == item.id && orig.form != null
-            ? orig
-            : s.tokens.where((t) => t.lex == item.id && t.form != null).firstOrNull;
-        final cell = aligned == null ? null : c.verbForms(item.id)[aligned.form!];
+        // The changed word belongs to the verb form (it may be the auxiliary
+        // of a compound form aligned on its participle).
+        final owner = _ownerCell(c, s, ei);
+        final cell = owner != null && owner.$1 == item.id ? owner.$2 : null;
         check(cell != null, 'error is not on the verb');
         if (cell != null) {
           check(cell.tense == facet.tense, 'error in wrong tense');

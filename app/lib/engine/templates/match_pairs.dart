@@ -26,7 +26,9 @@ class MatchPairsTemplate extends ExerciseTemplate {
 
   @override
   bool canGenerate(SkillFacet facet, GenContext ctx) =>
-      supports(facet) && _choose(facet, ctx, shuffle: false) != null;
+      supports(facet) &&
+      ctx.index.memo('match_pairs/$pairs|${facet.facetId}|${_skillId(facet, ctx)}|${ctx.lang}',
+          () => _choose(facet, ctx, shuffle: false) != null);
 
   /// The skill whose facets fill the board.
   String _skillId(SkillFacet facet, GenContext ctx) => ctx.skill?.id ?? facet.skillId;

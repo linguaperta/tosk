@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../progression/progression.dart';
+import '../theme/bw_skin.dart';
 import 'progression_colors.dart';
 
 IconData challengeIcon(ChallengeMetric m) => switch (m) {
@@ -119,7 +120,7 @@ class ChallengeTile extends StatelessWidget {
           minHeight: 8,
           borderRadius: BorderRadius.circular(4),
           color: accent,
-          backgroundColor: cs.surfaceContainerHighest,
+          backgroundColor: isMonochrome(cs) ? kBwGray : cs.surfaceContainerHighest,
         );
     final shown = challenge.progress > challenge.target ? challenge.target : challenge.progress;
     return Card(
@@ -129,7 +130,7 @@ class ChallengeTile extends StatelessWidget {
         child: Row(
           children: [
             CircleAvatar(
-              backgroundColor: accent.withValues(alpha: 0.15),
+              backgroundColor: ProgressionColors.tint(accent, 0.15, cs),
               foregroundColor: accent,
               child: Icon(done ? Icons.emoji_events : challengeIcon(challenge.template.metric)),
             ),
@@ -188,7 +189,7 @@ class BadgeChip extends StatelessWidget {
       child: Chip(
         avatar: Icon(badgeIcon(badge), size: 18, color: gold),
         label: Text(badge.title),
-        side: BorderSide(color: gold.withValues(alpha: 0.6)),
+        side: BorderSide(color: ProgressionColors.soft(gold, 0.6, cs), width: isMonochrome(cs) ? kBwBorder : 1),
         visualDensity: VisualDensity.compact,
       ),
     );

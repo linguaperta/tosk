@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../theme/bw_skin.dart';
+
 /// Top-level destinations. Order matches the shell branches in `router.dart`.
 const _destinations = [
   (icon: Icons.map_outlined, selected: Icons.map, label: 'Map'),
@@ -27,14 +29,29 @@ class AppShell extends StatelessWidget {
     if (width < railBreakpoint) {
       return Scaffold(
         body: shell,
-        bottomNavigationBar: NavigationBar(
-          key: const ValueKey('bottom-nav'),
-          selectedIndex: shell.currentIndex,
-          onDestinationSelected: _go,
-          destinations: [
-            for (final d in _destinations)
-              NavigationDestination(icon: Icon(d.icon), selectedIcon: Icon(d.selected), label: d.label),
-          ],
+        // Five labels of up to ~8 letters: on narrow phones larger text would
+        // wrap them ("Non-/stop"), so the bar caps its own text scale.
+        bottomNavigationBar: MediaQuery.withClampedTextScaling(
+          maxScaleFactor: width < 400 ? 1.0 : 1.2,
+          // Black & white: a rule above the bar (it has no tint or shadow there).
+          child: DecoratedBox(
+            decoration: isBw(context)
+                ? const BoxDecoration(
+                    border: Border(
+                      top: BorderSide(color: kBwBlack, width: kBwBorder),
+                    ),
+                  )
+                : const BoxDecoration(),
+            child: NavigationBar(
+              key: const ValueKey('bottom-nav'),
+              selectedIndex: shell.currentIndex,
+              onDestinationSelected: _go,
+              destinations: [
+                for (final d in _destinations)
+                  NavigationDestination(icon: Icon(d.icon), selectedIcon: Icon(d.selected), label: d.label),
+              ],
+            ),
+          ),
         ),
       );
     }

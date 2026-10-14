@@ -10,6 +10,9 @@ abstract final class Routes {
   static const verbs = '/progress/verbs';
   static const debug = '/debug';
 
+  /// Open mistakes of the active course, with "Review mistakes".
+  static const mistakes = '/mistakes';
+
   /// Skill detail bottom sheet (grammar note, items, start with a focus).
   static String skill(String skillId) => '/skill/${Uri.encodeComponent(skillId)}';
 
@@ -19,6 +22,7 @@ abstract final class Routes {
   ).toString();
 
   static const fading = '/play/fading';
+  static const review = '/play/review';
   static const nonstopPlay = '/play/nonstop';
 
   static String labPlay({required List<String> skills, required List<ExerciseType> types, required int length}) => Uri(

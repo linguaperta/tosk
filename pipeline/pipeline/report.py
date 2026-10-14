@@ -1,12 +1,17 @@
 """Per-skill content report: items, facets, verbs with complete tables, sentences touching the
 skill, and (for verb grammar skills) how many sentences carry an aligned form of each verb in
-the skill's tense — the material cloze / spot-the-error / transform exercises are built from."""
+the skill's tense — the material cloze / spot-the-error / transform exercises are built from.
+
+Grammar gating: 'fit' counts the sentences touching the skill whose grammar features are all
+allowed at the skill (features.py), i.e. the ones a learner who just reached it may see; 'easy'
+are the fit ones with at most one word taught after the skill (or never); the per-verb counts are
+fit sentences too. The summary lists how many sentences use each feature."""
 from __future__ import annotations
 
 from collections import defaultdict
 from statistics import median
 
-from . import query
+from . import features, query
 from .compile import facets_for
 from .content import Pack
 
@@ -34,19 +39,36 @@ def build_report(pack: Pack) -> dict:
                 by_form[(lex, tense)].add(s["id"])
                 by_person[(lex, tense, person)] += 1
     lemma = {it["id"]: it["lemma"] for it in pack.items}
+    tagger, graph = features.build(pack.course, pack.items, pack.verbs)
+    feats = {s["id"]: tagger.tag(s["tokens"]) for s in pack.sentences}
+    never = len(graph.order)
+    known_at = {s["id"]: [graph.pos[graph.item_skill[t["lex"]]] if t.get("lex") in graph.item_skill else never
+                          for t in s["tokens"]
+                          if t.get("is_word", True) is not False and (t.get("lex") or not t["t"][:1].isupper())
+                          and not t["t"][:1].isdigit()]
+                for s in pack.sentences}
+    feature_counts: dict[str, int] = defaultdict(int)
+    for fs in feats.values():
+        for f in fs:
+            feature_counts[f] += 1
     skills = []
     for _, unit, _, s in pack.skills():
         ids = query.resolve(s, pack.items, pack.verbs, persons)
         sents = set()
         for iid in ids:
             sents |= by_lex.get(iid, set())
+        allowed = graph.allowed[s["id"]]
+        fit = {x for x in sents if feats[x] <= allowed}
+        here = graph.pos[s["id"]]
+        easy = sum(1 for x in fit if sum(1 for k in known_at[x] if k > here) <= 1)
         row = {"skill": s["id"], "unit": unit["id"], "kind": s["kind"], "items": len(ids),
-               "facets": len(facets_for(s, ids)), "sentences": len(sents)}
+               "facets": len(facets_for(s, ids)), "sentences": len(sents), "fit": len(fit), "easy": easy,
+               "introduces": sorted(graph.introduces[s["id"]])}
         if "verbs" in s:
             tense = s["verbs"]["tense"]
             row["tense"] = tense
             row["complete_verbs"] = sum(1 for i in ids if query.complete_tense(pack.verbs.get(i), tense, persons))
-            per_verb = {lemma[i]: len(by_form.get((i, tense), ())) for i in ids}
+            per_verb = {lemma[i]: len([x for x in by_form.get((i, tense), ()) if feats[x] <= allowed]) for i in ids}
             counts = list(per_verb.values()) or [0]
             pairs = [(i, p) for i in ids for p in persons]
             row["coverage"] = {
@@ -66,6 +88,8 @@ def build_report(pack: Pack) -> dict:
         "sentences": len(pack.sentences),
         "words": n_words, "linked_words": n_linked, "form_tokens": n_formed,
         "skills": skills,
+        "base_features": sorted(graph.base),
+        "features": dict(sorted(feature_counts.items())),
     }
 
 
@@ -73,7 +97,10 @@ def format_report(r: dict, verbose: bool = True) -> str:
     lines = [f"== {r['course']}: {r['items']} items ({r['skill_items']} in skills), {r['verbs']} verbs, "
              f"{r['sentences']} sentences; {r['linked_words']}/{r['words']} word tokens linked "
              f"({100 * r['linked_words'] / max(1, r['words']):.0f}%), {r['form_tokens']} verb-form tokens"]
-    lines.append(f"{'skill':<20} {'unit':<4} {'kind':<7} {'items':>5} {'facets':>6} {'sents':>5}  verb-form coverage")
+    lines.append(f"base features {r['base_features']}; sentences per feature: "
+                 + ", ".join(f"{k} {v}" for k, v in r["features"].items()))
+    lines.append(f"{'skill':<24} {'unit':<4} {'kind':<7} {'items':>5} {'facets':>6} {'sents':>5} {'fit':>5} {'easy':>5}  "
+                 "introduces / verb-form coverage (fit sentences)")
     for s in r["skills"]:
         cov = ""
         if "coverage" in s:
@@ -81,7 +108,9 @@ def format_report(r: dict, verbose: bool = True) -> str:
             cov = (f"{s['tense']}: {s['complete_verbs']} complete tables; verbs with >=1 sentence "
                    f"{c['verbs_with_sentence']}/{s['items']}, >=5 {c['verbs_with_5']}/{s['items']}, "
                    f"min {c['min']}, median {c['median']}; person slots {c['person_slots_covered']}/{c['person_slots']}")
-        lines.append(f"{s['skill']:<20} {s['unit']:<4} {s['kind']:<7} {s['items']:>5} {s['facets']:>6} {s['sentences']:>5}  {cov}")
+        intro = f"[{', '.join(s['introduces'])}] " if s["introduces"] else ""
+        lines.append(f"{s['skill']:<24} {s['unit']:<4} {s['kind']:<7} {s['items']:>5} {s['facets']:>6} {s['sentences']:>5} "
+                     f"{s['fit']:>5} {s['easy']:>5}  {intro}{cov}")
         if verbose and "coverage" in s:
             pv = s["coverage"]["per_verb"]
             lines.append("      " + ", ".join(f"{k} {v}" for k, v in pv.items()))

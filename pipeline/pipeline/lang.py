@@ -47,6 +47,31 @@ class Lang:
     skip_between: set[str] = field(default_factory=set)  # words skipped when looking for a subject pronoun
     third_sg: str = ""
     third_pl: str = ""
+    # subject pronouns that take the forms of several persons interchangeably (Dutch polite 'u':
+    # 'u bent' / 'u is', 'u hebt' / 'u heeft'); a verb next to one gets no person
+    vague_pronouns: set[str] = field(default_factory=set)
+    # lemmas of modal verbs that take a (perfect) infinitive: 'zou ... geweest zijn'
+    modals: set[str] = field(default_factory=set)
+    # auxiliary that also forms the passive: when a verb lists it only as its second auxiliary,
+    # aux + participle is not linked to the compound tense
+    passive_aux: str = ""
+    # words that start a new (sub)clause, after which a new finite verb may follow
+    clause_starters: set[str] = field(default_factory=set)
+    # coordinating conjunctions: a new clause when a subject pronoun follows ('en jullie werken')
+    coordinators: set[str] = field(default_factory=set)
+    # degree words before an adjective that is also a verb form ('hoe laat', not 'laten')
+    degree_words: set[str] = field(default_factory=set)
+    # relative/interrogative pronouns that start a clause ('wat er gebeurt')
+    relatives: set[str] = field(default_factory=set)
+    # subject pronouns that are also object pronouns ('je', 'ze', 'het')
+    object_pronouns: set[str] = field(default_factory=set)
+    # demonstratives that are also pronoun subjects at the start of a clause ('Dat moest je ...')
+    demonstratives: set[str] = field(default_factory=set)
+    # dummy subjects ('dat er iets gebeurt')
+    dummy_subjects: set[str] = field(default_factory=set)
+    # (lemma, tense) forms that are not linked because their use differs from the tense label
+    # (Dutch 'zou' is nearly always a conditional, not the past of 'zullen')
+    unlinked_forms: set[tuple[str, str]] = field(default_factory=set)
 
     @property
     def tenses(self) -> list[str]:
@@ -209,12 +234,31 @@ class Italian(Lang):
         actual = [pres.get(p) for p in self.persons]
         if not paradigms or actual not in paradigms:
             irr.append("presente")
-        part = forms.get("participle", {}).get("_")
         stem = lemma[:-3]
+        for tense in ("imperfetto", "futuro"):
+            actual = [forms.get(tense, {}).get(p) for p in self.persons]
+            if all(actual) and actual not in self.regular_simple(lemma, cls, tense):
+                irr.append(tense)
+        part = forms.get("participle", {}).get("_")
         reg_part = {"are": stem + "ato", "ere": stem + "uto", "ire": stem + "ito", "isc": stem + "ito"}.get(cls or "")
         if part is None or part != reg_part:
             irr.append("passato_prossimo")
         return irr
+
+    def regular_simple(self, lemma: str, cls: str | None, tense: str) -> list[list[str]]:
+        """Regular imperfetto/futuro paradigms (spelling variants included): parlavo, cercherò,
+        mangerò (-ciare/-giare drop the i), studierò (a stressed i stays)."""
+        if cls not in IT_ENDINGS.get(tense, {}):
+            return []
+        stem = lemma[:-3]
+        ends = IT_ENDINGS[tense][cls]
+        out = [[stem + e for e in ends]]
+        if tense == "futuro" and cls == "are":
+            if stem.endswith(("c", "g")):
+                out.append([stem + "h" + e for e in ends])
+            if stem.endswith("i"):
+                out.append([stem[:-1] + e for e in ends])
+        return out
 
     def split(self, lemma, cls, tense, person, form, regular, table=None):
         """Italian: ending = the class ending for the person (falling back to other classes);
@@ -315,6 +359,19 @@ class Dutch(Lang):
             skip_between={"niet", "ook", "nog", "al", "graag", "altijd", "nooit", "vaak", "dan", "toch"},
             third_sg="hij/zij",
             third_pl="zij",
+            vague_pronouns={"u"},
+            modals={"zullen", "kunnen", "moeten", "willen", "mogen", "hoeven"},
+            passive_aux="zijn",
+            clause_starters={"dat", "omdat", "wanneer", "toen", "terwijl", "zodat", "voordat", "nadat", "totdat",
+                             "hoewel", "tenzij", "waar", "waarom", "hoe", "waarmee", "waarover", "zodra", "alsof",
+                             "indien"},
+            coordinators={"en", "maar", "want", "of", "dus"},
+            relatives={"wat", "wie", "die", "welke"},
+            object_pronouns={"je", "ze", "het", "jullie"},
+            demonstratives={"dat", "die", "dit", "deze"},
+            dummy_subjects={"er"},
+            degree_words={"hoe", "zo", "te", "heel", "erg", "nogal", "vrij", "best", "even"},
+            unlinked_forms={("zullen", "verleden_tijd")},
         )
 
     def slot(self, tags):

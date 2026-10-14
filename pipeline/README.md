@@ -83,6 +83,22 @@ Skills select items with queries (resolved identically by importer and compiler,
 * Order = frequency rank (an explicit `lemmas` list without `top` keeps its own order).
 * Minimum (validator): `min`, else for verb queries `len(lemmas)` or `min(15, top)`, else 5 items.
 
+Grammar gating keys (see [Grammar gating](#grammar-gating-pipelinefeaturespy)):
+
+```yaml
+base_features: ["tense:presente"]                 # allowed from the start
+feature_detectors:                                # construct features and how to find them
+  "aux:essere": {type: compound_aux, aux: essere}
+  modal: {type: modal_infinitive, verbs: [potere, dovere, volere, sapere], infinitive_pattern: "..."}
+  "prep:articulated": {type: words, words: [del, della, nel, ...]}
+  "irregular:futuro": {type: irregular_tense, tense: futuro}
+  separable: {type: separable, particles: [op, mee, weg, terug, ...]}     # Dutch
+units:
+  - skills:
+      - id: passato-prossimo-essere
+        introduces: ["aux:essere"]                # a verbs skill also introduces tense:{T}
+```
+
 ### seed.yaml (curation)
 
 ```yaml
@@ -103,7 +119,10 @@ items:
    are dropped. Italian pronunciation accents on non-final vowels are stripped (`màngio` → `mangio`).
 2. Frequency rank per (lemma, POS): count of the lemma plus its inflected forms. Homographs: the full
    lemma count goes to the function word / verb / entry with most senses; others get 0.5 %; a lemma
-   that is also a form of another word gets 10 % (1 % for verbs, e.g. Dutch *waren*).
+   that is also a form of another word gets 10 % (1 % for verbs, e.g. Dutch *waren*). A **tagged**
+   seed item (a taught word) takes the highest score of its non-verb homographs, which drop to 0.5 %,
+   so the alignment links the word to the taught item (*madre* noun, not the adjective; *solo* adverb,
+   not the conjunction). Verbs keep their own score.
 3. Pool = top 3000 eligible lexemes (has English glosses, lowercase, no digits, no Italian pronominal
    verbs) plus every seed item. IDs come from `ids.tsv` (see below).
 4. Translations: `tr.en` from Wiktionary (or seed); Italian `tr.nl` from seed (Claude) > Dutch
@@ -120,10 +139,16 @@ items:
    `werk+te`, `werk+ten`. The Dutch ik-form has an **empty ending** (stem = form).
 7. Units: every skill query is resolved in unit order; an item belongs to the first unit that selects it.
 8. Sentences (Tatoeba): 2–10 words, an English translation required (Dutch added for Italian when
-   linked), duplicates removed, at most one unlinked word (names and numbers don't count) and ≥ 80 %
-   linked. Greedy selection, shortest/cleanest first, while a quota is open: 25 sentences per skill
-   item, 24 per (grammar verb, tense) and up to 5 per (verb, tense, person), always accepting up to 2
-   per person. `unit` = the latest unit among the skill items in the sentence.
+   linked), invisible characters removed (zero-width spaces), duplicates removed (same text after
+   folding case, punctuation and spacing: *Grazie mille!* = *Grazie mille.*), at most one unlinked
+   word (names and numbers don't count) and ≥ 80 % linked. With grammar gating (a course with
+   `base_features`): the sentence must be valid at its home skill, at most one word that is never
+   taught (pool or unlinked), and it only counts for a skill item (verb tense) when the item's skill
+   (the verb's grammar skill) allows all its features and at most 2 (1) of its words are taught after
+   that skill. Greedy selection, fewest unknown words first, then shortest/cleanest, while a quota is
+   open: 25 sentences per skill item, 24 per (grammar verb, tense) and up to 5 per (verb, tense,
+   person), always accepting up to 2 per person. `unit` = the latest unit among the skill items in
+   the sentence.
 
 ### Tokenizer (`pipeline/tokens.py`)
 
@@ -141,16 +166,101 @@ conjugation tables. Rules:
 * Noun vs verb: verb reading unless the previous word is a determiner/preposition (`la porta`), or
   (Dutch) the only verb reading is an ik-form without *ik* next to it (`waar`).
 * **Compound tenses**: a participle plus a present form of its auxiliary in the same clause
-  (Italian: within 4 words before; Dutch: anywhere in the clause, not after *te*) → the participle
+  (Italian: within 4 words before, with only adverbs or subject pronouns in between: *ho già
+  mangiato*, but not *Sono sicura del suo successo*; Dutch: anywhere in the clause, not after *te*) → the participle
   token gets `form = passato_prossimo.{person}` / `perfectum.{person}` and the auxiliary token gets
   its own present form. *The participle token's text is only part of the multi-word form in
   `verb_forms`* (`mangiato` vs `ho mangiato`). Participles without auxiliary → `participle._`.
+  Not linked (both words keep `lex`, no compound `form`), because an exercise built on them would be
+  wrong: an auxiliary whose adjacent subject pronoun fits none of its persons (inversion `Heb je
+  gegeten?`, `io e lui abbiamo`) or is polite *u*; Dutch modal + perfect infinitive (`zou … geweest
+  zijn`: `zijn` is an infinitive); *zijn* + participle of a verb that lists *zijn* only as its second
+  auxiliary (nl.wiktionary does that for transitive verbs because of the passive: `is gezien`);
+  possessive *zijn* before a noun. Italian: after a form of *essere*, a participle/finite homograph
+  is the participle (`sono state costruite`).
 * Ambiguous persons: an adjacent subject pronoun decides; a pronoun that fits no form (subjunctive)
   leaves `form` unset; Dutch infinitive after *te* or a finite verb in the clause; a name/noun subject
   requires a 3rd-person form (else unset); Italian *sono*: following -i/-e adjective/participle =
   *loro*, else *io*; otherwise 3rd singular, 3rd plural, first person in order.
-* Dutch inversion (`werk jij`) and imperatives keep `lex` but get no `form`.
+* Dutch inversion (`werk jij`, `wil je`, `kwam je`), imperatives and other clause-initial verbs
+  without a subject pronoun after them (`Laat me …`, `Werkt Tom …?`), verbs next to polite *u*
+  (`u bent` / `u is`), forms of two different verbs (`was`: zijn or wassen) and conditional *zou*
+  keep `lex` but get no `form`.
+* Dutch clauses (`Lang.clause_starters`, `coordinators`, …): one finite verb per clause, so a later
+  infinitive homograph is the infinitive (`Ik zal jullie vertellen`, `Wat kan ik voor jullie doen?`)
+  and an adjective homograph the adjective (`te laat`, `hoe laat`); a subordinate clause starts over
+  when a pronoun, name or *er* directly follows its conjunction (`Ik weet dat jullie werken`), not
+  after a demonstrative *dat* (`Kun je me dat laten weten?`). In a verb-final clause where several
+  persons share the form (`maakt`: jij/hij), only an unambiguous subject pronoun earlier in the clause
+  decides (`dat ik weg moet`); `je`/`ze`/`het` may be objects, so with them the person stays open.
+  A clause-initial noun or a noun after an inflected adjective is not a verb (`Leven is …`, `het
+  eeuwige leven`).
 * Unmatched tokens stay unlinked.
+
+### Grammar gating (`pipeline/features.py`)
+
+A learner should not meet a grammar construct before the skill that teaches it
+(`docs/ARCHITECTURE.md`, "Grammar gating"). The pipeline tags every sentence with **features** and
+every skill with the features it **introduces**; the compiler writes them to `sentence_features`,
+`skill_features` and `meta.base_features`.
+
+* `tense:{T}` for every verb token in tense T. A compound form tags its compound tense on the
+  participle and its auxiliary is not tagged as present; a participle without an auxiliary
+  (passive, adjectival) tags the compound tense too. A verb token without a `form` is looked up by
+  its spelling (only a spelling that is no present form and no infinitive counts: *Kwam je?*).
+* Construct features from `course.yaml` `feature_detectors`: `compound_aux` (a compound form with
+  that auxiliary: *sono andato*), `modal_infinitive` (a finite modal plus a later infinitive, also an
+  Italian clitic infinitive matching `infinitive_pattern`: *posso farlo*), `words` (any of these
+  spellings), `irregular_tense` (a form of a tense in the verb's `irregular_in`: *andrò*, *ging*),
+  `separable` (a separable verb in any form, or a finite verb with a clause-final particle that
+  together form one: *Hij komt morgen terug.*).
+* A skill introduces its `introduces` list, plus `tense:{T}` for a `verbs: {tense: T}` skill.
+* **Home skill** of a sentence: the last skill (course order) among the skills introducing its
+  aligned items, the verb skills whose tense it shows for one of their verbs, and the first skill
+  introducing each non-base feature. Valid = every feature is introduced by the home skill, one of
+  its prerequisites (transitively) or the base set. The importer selects only valid sentences and the
+  validator checks every sentence again. Courses without `base_features` are tagged but not gated.
+* Features per course: it `tense:{imperfetto,futuro,passato_prossimo}`, `aux:essere`, `modal`,
+  `prep:articulated`, `irregular:futuro` (base `tense:presente`); nl `tense:{verleden_tijd,
+  perfectum}`, `aux:zijn`, `modal`, `separable`, `irregular:verleden_tijd` (base
+  `tense:tegenwoordige_tijd`).
+
+## Courses
+
+Units, skills (items; `*` = grammar) and the features each unit introduces. Every unit's skills
+require the previous unit's grammar, so a later skill allows everything taught before it.
+
+**Italian 1.1.0** — 40 skills, 738 taught items, 1541 facets, 16 111 sentences.
+
+| Unit | Skills (items) | Introduces |
+|---|---|---|
+| u1 Basics | greetings (19), little-words (31), people (33), essere-avere* (2) | |
+| u2 The present tense | food (30), numbers (23), present-are* (20), articles* (55), present-ere* (18), present-ire* (18) | |
+| u3 Everyday life | time (30), home (29), family (16), everyday-verbs (28), irregular-present* (14), pronouns* (9), modal-verbs* (4) | `modal` |
+| u4 Describing things | adjectives* (31), body (28), adverbs (18), colours (13), possessives* (5) | |
+| u5 Around town | city (28), travel (23), kitchen (29), prepositions* (19) | `prep:articulated` |
+| u6 The past | work (28), feelings (23), passato-prossimo* (20), passato-prossimo-essere* (16) | `tense:passato_prossimo`, `aux:essere` |
+| u7 Memories | weather (26), animals (21), clothes (22), imperfetto* (20) | `tense:imperfetto` |
+| u8 Plans for the future | leisure (23), shopping (20), futuro* (18), futuro-irregular* (16) | `tense:futuro`, `irregular:futuro` |
+| u9 Talking about life | more-verbs (30), ideas (28) | |
+
+**Dutch 1.1.0** — 35 skills, 712 taught items, 1504 facets, 13 222 sentences.
+
+| Unit | Skills (items) | Introduces |
+|---|---|---|
+| u1 Basics | greetings (20), little-words (39), people (29), present-regular* (20) | |
+| u2 Daily life | food (23), numbers (25), present-irregular* (15), home (28), de-het* (69) | `modal` |
+| u3 Everyday life | time (32), family (17), everyday-verbs (30), pronouns* (12), separable* (21) | `separable` |
+| u4 The perfect tense | work (27), feelings (22), perfectum-hebben* (20), perfectum-zijn* (16) | `tense:perfectum`, `aux:zijn` |
+| u5 Describing things | adjectives* (31), body (27), adverbs (21), colours (12), possessives* (7) | |
+| u6 Around town | city (26), travel (22), kitchen (29), shopping (18) | |
+| u7 The simple past | weather (25), animals (21), clothes (22), verleden-tijd-weak* (20), verleden-tijd-strong* (20) | `tense:verleden_tijd`, `irregular:verleden_tijd` |
+| u8 Free time and ideas | leisure (22), more-verbs (31), ideas (27) | |
+
+Notes: item-based grammar skills (pronouns, adjectives, possessives, prepositions, separable) train
+`#rec`/`#prod` of their words and come with a grammar note; no template drills adjective agreement,
+plurals or the split position of separable verbs yet (split forms like *sta ... op* are not aligned).
+Italian reflexive (pronominal) verbs are still excluded from the pool.
 
 ## IDs
 
@@ -168,6 +278,9 @@ by every import, so ids never change or get reused. Sentence ids: `s:{tatoebaId}
   cyclic prerequisites, too few items / verbs with complete tables, missing translations on skill
   items, articles outside `meta.articles`, stem+ending ≠ form, undeclared tenses/persons, tokens that
   don't re-render the text, unknown token lex, token forms missing from the verb table, missing
-  en/nl grammar notes.
-* `report.py` prints per skill: items, facets, sentences touching the skill, and for verb skills the
-  number of complete tables and sentences with an aligned form per verb (min/median, person slots).
+  en/nl grammar notes, base features/`introduces` that are no tense and have no detector, and
+  sentences whose features their home skill does not allow.
+* `report.py` prints per skill: items, facets, sentences touching the skill (`sents`), the ones whose
+  features the skill allows (`fit`) and of those the ones with at most one word taught later
+  (`easy`), the features it introduces, and for verb skills the number of complete tables and fit
+  sentences with an aligned form per verb (min/median, person slots); plus sentences per feature.

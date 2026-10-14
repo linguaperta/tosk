@@ -155,7 +155,26 @@ String normalizeApostrophes(String s) => s.replaceAll(_apostrophes, "'");
 /// removed (apostrophes and word-internal hyphens kept), whitespace collapsed,
 /// and the space after an elided word removed (`l' acqua` == `l'acqua`).
 /// Diacritics are kept.
-String normalizeAnswer(String s) {
+String normalizeAnswer(String s) => _memo(_normCache, s, _normalizeAnswer);
+
+/// Lenient comparison key: [normalizeAnswer] with diacritics folded.
+String foldAnswer(String s) => _memo(_foldCache, s, (x) => foldDiacritics(normalizeAnswer(x)));
+
+// Both keys are pure functions of the input, and the engine computes them for
+// the same words (verb forms, tokens, glosses) over and over, so they are
+// memoized in bounded caches (cleared when full).
+const int _kMemoMax = 50000;
+final Map<String, String> _normCache = {};
+final Map<String, String> _foldCache = {};
+
+String _memo(Map<String, String> cache, String s, String Function(String) f) {
+  final hit = cache[s];
+  if (hit != null) return hit;
+  if (cache.length >= _kMemoMax) cache.clear();
+  return cache[s] = f(s);
+}
+
+String _normalizeAnswer(String s) {
   final t = normalizeApostrophes(nfc(s)).toLowerCase();
   final chars = t.runes.toList();
   final b = StringBuffer();
@@ -180,9 +199,6 @@ String normalizeAnswer(String s) {
       .trim()
       .replaceAllMapped(_elisionSpace, (m) => "${m[1]}'");
 }
-
-/// Lenient comparison key: [normalizeAnswer] with diacritics folded.
-String foldAnswer(String s) => foldDiacritics(normalizeAnswer(s));
 
 /// Comparison key for the given strictness.
 String answerKey(String s, AccentStrictness strictness) =>

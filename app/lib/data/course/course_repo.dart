@@ -112,4 +112,8 @@ class CourseRepo implements CourseData {
   Sentence? sentence(String id) => data.sentence(id);
   @override
   String? note(String skillId, String lang) => data.note(skillId, lang);
+  @override
+  Set<String> sentenceFeatures(String sentenceId) => data.sentenceFeatures(sentenceId);
+  @override
+  Set<String> skillFeatures(String skillId) => data.skillFeatures(skillId);
 }

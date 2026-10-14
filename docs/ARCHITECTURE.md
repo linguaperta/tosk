@@ -83,3 +83,27 @@ Dependency direction: `ui → engine, progression, data → core`. `engine` and 
 - `pipeline/`: pytest. Tests use small fixture JSONL and dump snippets checked into `pipeline/tests/fixtures`, never the network.
 - `app/`: `flutter test`. Engine and progression tests run on in-memory fixtures, data tests use in-memory SQLite, and there are integration tests against the real bundled packs in `app/assets/courses/`.
 - Every phase ends with tests passing and `flutter analyze` clean.
+
+## Grammar gating: learn a concept before meeting it (added for v0.3)
+
+The rule: a learner should not meet a grammar construct in exercises (for example *ho mangiato*) before starting the skill that teaches it. Some new **vocabulary** is fine, even in grammar exercises, but only a little, since the focus there is grammar.
+
+Contract (additive to `schema/course_db.sql`, schema version stays 1.x):
+
+```sql
+-- Grammar features each sentence uses, derived by the pipeline from token alignment plus language rules.
+CREATE TABLE sentence_features (sentence_id TEXT NOT NULL, feature TEXT NOT NULL, PRIMARY KEY (sentence_id, feature));
+-- Features a skill introduces. Grammar skills introduce their tense or construct.
+CREATE TABLE skill_features (skill_id TEXT NOT NULL, feature TEXT NOT NULL, PRIMARY KEY (skill_id, feature));
+-- meta key 'base_features': JSON array of features allowed from the start (e.g. the present tense of very common verbs).
+```
+
+- **Feature names:** these are course data, not app code: `tense:{tense}` (`tense:passato_prossimo`, `tense:imperfetto`, `tense:verleden_tijd`, …) plus construct features the course declares (`aux:essere`, `reflexive`, `modal`, `prep:articulated`, `separable`, …).
+  - `course.yaml` lists `base_features`, and each skill can add an `introduces: [...]` list.
+  - A grammar skill with `verbs: {tense: T}` introduces `tense:T` automatically.
+- **Pipeline:** tags every sentence with the features its tokens show. A compound form tags its tense, and the auxiliary is not tagged as present. The validator checks that every feature used by a skill's own sentences is introduced by that skill, one of its prerequisites (transitively), or the base set.
+- **Engine:**
+  - At session start, compute `knownFeatures` = base ∪ the features of every skill the learner has *started* ∪ the current skill's features.
+  - Sentence-based templates only use sentences whose features ⊆ `knownFeatures`.
+  - Unknown vocabulary is capped: counted over word tokens aligned to items outside the learner's started skills, at most 2 per sentence for vocab focus and 1 for grammar focus. Sentences with fewer unknown words are preferred.
+  - A template that finds no eligible sentence returns `canGenerate == false`, and another template is used.

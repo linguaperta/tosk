@@ -42,12 +42,19 @@ class SentenceBuilderTemplate extends ExerciseTemplate {
 
   @override
   bool canGenerate(SkillFacet facet, GenContext ctx) =>
-      supports(facet) && _pool(facet, ctx).any((s) => _distractors(s, ctx, shuffle: false).isNotEmpty);
+      supports(facet) &&
+      ctx.index.memo('sentence_builder/$maxWords/$distractorCount|${facet.facetId}|${ctx.lang}',
+          () => _pool(facet, ctx).any((s) => _distractors(s, ctx, shuffle: false).isNotEmpty));
 
   List<String> _distractors(Sentence s, GenContext ctx, {bool shuffle = true}) {
     final ix = ctx.index;
     final course = ctx.course;
-    final words = CourseIndex.words(s);
+    // The words of every sentence with the same translation: those may be
+    // accepted answers too (`Come stai?` / `Come sta?` for "How are you?").
+    final words = [
+      for (final x in [s, ...ix.sentencesWithTranslation(ctx.lang, s.translation(ctx.lang) ?? '')])
+        ...CourseIndex.words(x),
+    ];
     final aligned = <Item>[
       for (final t in words)
         if (t.lex != null && course.item(t.lex!) != null) course.item(t.lex!)!,
@@ -104,9 +111,8 @@ class SentenceBuilderTemplate extends ExerciseTemplate {
       final translation = s.translation(ctx.lang)!;
       final answers = <List<String>>[words];
       final tileBag = _bag(tiles);
-      for (final t in ix.allSentences) {
-        if (t.id == s.id || t.translation(ctx.lang) == null) continue;
-        if (normalizeAnswer(t.translation(ctx.lang)!) != normalizeAnswer(translation)) continue;
+      for (final t in ix.sentencesWithTranslation(ctx.lang, translation)) {
+        if (t.id == s.id) continue;
         final tw = ix.tileWords(t);
         if (_fits(_bag(tw), tileBag)) answers.add(tw);
       }

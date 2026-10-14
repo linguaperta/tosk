@@ -19,7 +19,7 @@ from pathlib import Path
 
 import yaml
 
-from . import query
+from . import features, query
 from .align import Aligner
 from .content import load_course_yaml, write_jsonl
 from .fetch import load_freq_words
@@ -39,12 +39,41 @@ ITEM_QUOTA = 25          # sentences per skill item
 VT_QUOTA = 24            # sentences per (grammar verb, tense)
 VTP_QUOTA = 5            # sentences per (grammar verb, tense, person)
 VTP_MIN = 2              # ... always accepted up to this many, even when the verb+tense quota is full
+# Grammar gating: words a learner at the item's skill does not know yet (later skills, pool words,
+# unlinked words; names and numbers don't count). The engine caps them at runtime (2 for vocabulary
+# focus, 1 for grammar focus); pool and unlinked words never become known, so at most one of those.
+MAX_UNKNOWN = 2
+MAX_UNKNOWN_GRAMMAR = 1
+MAX_NEVER_KNOWN = 1
+NEVER = 1 << 30
 # Perfect auxiliaries for Dutch verbs whose nl.wiktionary page has no perfect table (Claude-curated).
 NL_AUX_OVERRIDES = {"zijn": ["zijn"], "hebben": ["hebben"], "worden": ["zijn"], "blijven": ["zijn"]}
+# nl.wiktionary lists 'zijn' as a second auxiliary for most transitive verbs because of the passive
+# ('het is gedaan'); for these course verbs only 'hebben' forms an active perfect ('ik heb gedaan',
+# never 'ik ben gedaan'), so 'ben gedaan' must not be an accepted alternative.
+NL_AUX_OVERRIDES.update({v: ["hebben"] for v in (
+    "bedoelen", "brengen", "denken", "doen", "helpen", "houden", "laten", "maken", "proberen", "vinden",
+    "zeggen", "zien", "geven", "horen", "kennen", "krijgen", "leven", "nemen", "praten", "vertellen")})
 
 
 def log(msg: str) -> None:
     print(msg, file=sys.stderr, flush=True)
+
+
+_INVISIBLE = dict.fromkeys(map(ord, "​‌‍⁠﻿­"))
+
+
+def clean_text(text: str) -> str:
+    """Tatoeba text without invisible characters (zero-width spaces, soft hyphens) and with single
+    plain spaces: 'draagt ​​een' would not re-render from tokens."""
+    return " ".join(text.translate(_INVISIBLE).replace(" ", " ").split())
+
+
+def dedupe_key(text: str) -> str:
+    """Sentences that differ only in case, punctuation or spacing are duplicates ('Grazie mille!'
+    and 'Grazie mille.'): the app compares sentences by their normalized text."""
+    s = re.sub(r"[^\w\s'’]", " ", text.lower())
+    return " ".join(s.replace("’", "'").split())
 
 
 # --------------------------------------------------------------------------------------- frequency
@@ -245,7 +274,7 @@ def load_tatoeba(code: str, cache: Path) -> tuple[dict[int, str], dict[int, dict
     for parts in _read_tsv_bz2(tdir / f"{t3}_sentences.tsv.bz2"):
         if len(parts) < 3:
             continue
-        text = parts[2].strip()
+        text = clean_text(parts[2])
         n = len(text.split())
         if MIN_WORDS <= n <= MAX_WORDS:
             target[int(parts[0])] = text
@@ -268,7 +297,7 @@ def load_tatoeba(code: str, cache: Path) -> tuple[dict[int, str], dict[int, dict
         tx = {}
         for parts in _read_tsv_bz2(tdir / fname):
             if len(parts) >= 3 and int(parts[0]) in need[lang]:
-                tx[int(parts[0])] = parts[2].strip()
+                tx[int(parts[0])] = clean_text(parts[2])
         texts[lang] = tx
     trs: dict[int, dict[str, tuple[int, str]]] = {}
     for sid in target:
@@ -331,12 +360,28 @@ def run_import(code: str, content_root: str | None = None) -> None:
         if key in chosen:
             prev = chosen[key]
             prev["tags"] = sorted(set(prev.get("tags", [])) | set(s.get("tags", [])))
+            for k in ("en", "nl", "gender", "article", "plural"):
+                if s.get(k) and not prev.get(k):
+                    prev[k] = s[k]      # a later entry fills in what an earlier gloss-only one lacks
             continue
         chosen[key] = s
         if s.get("inflections"):
             new = {x.lower() for x in s["inflections"]} - lexemes[key].inflections
             lexemes[key].inflections |= new
             scores[key] = scores.get(key, 0) + sum(counts.get(x, 0) for x in new)
+
+    # A tagged (taught) seed item takes the frequency of its lemma from the homographs that Wiktionary
+    # lists with more senses ('madre' adj vs noun, 'bene' noun vs adv, 'solo' conj vs adv), so the
+    # alignment links the word to the taught item. Verbs and other seed items keep their own score.
+    for key, s in chosen.items():
+        if not s.get("tags"):
+            continue
+        others = [k for k in by_lemma.get(key[0], []) if k != key and k not in chosen and k[1] != "verb"]
+        top = max([scores.get(k, 0) for k in others], default=0)
+        if top > scores.get(key, 0):
+            scores[key] = top
+            for k in others:
+                scores[k] = scores.get(k, 0) * 0.005
 
     # ---- pool by frequency
     def eligible(key, lx: Lexeme) -> bool:
@@ -452,11 +497,17 @@ def run_import(code: str, content_root: str | None = None) -> None:
                 t = skill["verbs"]["tense"]
                 for iid in query.resolve(skill, items, verbs, course["persons"]):
                     grammar_targets.add((iid, t))
+    # grammar gating (features.py): a sentence is only selected when its grammar features are
+    # allowed at its home skill, and it only counts for an item (verb tense) whose introducing
+    # (grammar) skill allows them and knows nearly all its words
+    tagger, graph = features.build(course, items, verbs)
+    skill_pos = graph.pos
+    item_pos = {iid: skill_pos[s] for iid, s in graph.item_skill.items()}
     cands = []
     seen_text = set()
     for sid in sorted(trs):
         text = target[sid]
-        low = text.lower()
+        low = dedupe_key(text)
         if low in seen_text:
             continue
         seen_text.add(low)
@@ -482,27 +533,56 @@ def run_import(code: str, content_root: str | None = None) -> None:
         touched = {t["lex"] for t in al if t["lex"] in skill_items}
         if not touched:
             continue
-        cands.append((unlinked, len(words), sid, al, touched))
-    cands.sort(key=lambda c: (c[0], abs(c[1] - 6), c[2]))
-    item_count: Counter = Counter()
-    vt_count: Counter = Counter()
-    vtp_count: Counter = Counter()
-    sentences = []
-    for unlinked, nw, sid, al, touched in cands:
+        feats = tagger.tag(al)
+        if graph.problems(al, feats):
+            continue
+        # skill position at which each word becomes known (NEVER: pool words, unlinked words)
+        known_at = []
+        for t in al:
+            if not t["is_word"] or (not t["lex"] and (t["t"][:1].isdigit() or t["t"][:1].isupper())):
+                continue
+            known_at.append(item_pos.get(t["lex"], NEVER) if t["lex"] else NEVER)
+        if graph.enforced and known_at.count(NEVER) > MAX_NEVER_KNOWN:
+            continue
         vts = set()
         for t in al:
             if t["lex"] and t["form"] and "." in t["form"]:
                 tense, person = t["form"].split(".", 1)
                 if (t["lex"], tense) in grammar_targets:
                     vts.add((t["lex"], tense, person))
-        useful = any(item_count[i] < ITEM_QUOTA for i in touched) or any(
+
+        def usable(skill_id: str | None, limit: int) -> int | None:
+            """Unknown words for a learner at skill_id, or None when the sentence doesn't fit."""
+            if skill_id is None or (graph.enforced and not feats <= graph.allowed[skill_id]):
+                return None
+            unknown = sum(1 for k in known_at if k > skill_pos[skill_id])
+            return unknown if unknown <= limit or not graph.enforced else None
+
+        ok_items = {i: usable(graph.item_skill.get(i), MAX_UNKNOWN) for i in touched}
+        ok_items = {i: u for i, u in ok_items.items() if u is not None}
+        ok_vts = {}
+        for v, t, p in vts:
+            u = usable(graph.grammar_skill(v, t), MAX_UNKNOWN_GRAMMAR)
+            if u is not None:
+                ok_vts[(v, t, p)] = u
+        if not ok_items and not ok_vts:
+            continue
+        best = min([*ok_items.values(), *ok_vts.values()])
+        cands.append((best, unlinked, len(words), sid, al, touched, ok_items, ok_vts))
+    cands.sort(key=lambda c: (c[0], c[1], abs(c[2] - 6), c[3]))
+    item_count: Counter = Counter()
+    vt_count: Counter = Counter()
+    vtp_count: Counter = Counter()
+    sentences = []
+    for _best, unlinked, nw, sid, al, touched, ok_items, ok_vts in cands:
+        useful = any(item_count[i] < ITEM_QUOTA for i in ok_items) or any(
             vtp_count[(v, t, p)] < VTP_QUOTA and (vt_count[(v, t)] < VT_QUOTA or vtp_count[(v, t, p)] < VTP_MIN)
-            for v, t, p in vts)
+            for v, t, p in ok_vts)
         if not useful:
             continue
-        for i in touched:
+        for i in ok_items:
             item_count[i] += 1
-        for v, t, p in vts:
+        for v, t, p in ok_vts:
             vt_count[(v, t)] += 1
             vtp_count[(v, t, p)] += 1
         unit_idx = max(unit_order.index(item_by_id[i]["unit"]) for i in touched)

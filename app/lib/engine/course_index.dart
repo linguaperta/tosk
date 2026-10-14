@@ -97,9 +97,16 @@ class CourseIndex {
 
   // ------------------------------------------------------------ persons
 
+  /// Subject pronouns of each person: the parts of the person key (`hij/zij`)
+  /// and of its labels outside parentheses (`jij/je (you)` adds `je`), so
+  /// `Je werkt` counts as having its pronoun.
   late final Map<String, Set<String>> _personComponents = {
     for (final p in meta.persons)
-      p: {for (final c in p.split('/')) if (foldAnswer(c).isNotEmpty) foldAnswer(c)},
+      p: {
+        for (final c in p.split('/')) foldAnswer(c),
+        for (final label in (meta.personLabels[p] ?? const <String, String>{}).values)
+          for (final c in label.replaceAll(_parens, ' ').split('/')) foldAnswer(c),
+      }..remove(''),
   };
 
   /// Persons other than [person] that share a pronoun with it, e.g. Dutch
@@ -183,8 +190,10 @@ class CourseIndex {
           for (final g in gs) ...[foldAnswer(g), foldAnswer(g.replaceAll(_parens, ' '))],
       }..remove('');
 
+  final Map<String, Set<String>> _glossKeysIn = {};
+
   /// Folded glosses of [item] in [lang] (with fallback, as displayed).
-  Set<String> glossKeysIn(Item item, String lang) => {
+  Set<String> glossKeysIn(Item item, String lang) => _glossKeysIn['$lang\u0000${item.id}'] ??= {
         for (final g in item.glosses(lang)) ...[foldAnswer(g), foldAnswer(g.replaceAll(_parens, ' '))],
       }..remove('');
 
@@ -204,22 +213,73 @@ class CourseIndex {
     return b.spellings.any((s) => sa.contains(foldAnswer(s)));
   }
 
+  final Map<String, Set<String>> _meaningKeys = {};
+
   /// Folded meanings (in [lang]) of [item] and of all its synonyms: every
   /// meaning a learner may reasonably give for [item].
-  Set<String> meaningKeys(Item item, String lang) => {
+  Set<String> meaningKeys(Item item, String lang) => _meaningKeys['$lang\u0000${item.id}'] ??= {
         ...glossKeysIn(item, lang),
         for (final s in synonymsOf(item)) ...glossKeysIn(s, lang),
       };
 
+  /// Position of each item in [CourseData.allItems] (the order of every list
+  /// derived from it).
+  late final Map<String, int> _itemOrder = {
+    for (final (i, item) in course.allItems.indexed) item.id: i,
+  };
+
+  /// Inverted indexes for [synonymsOf]: folded gloss (any language) and
+  /// folded spelling -> items.
+  late final Map<String, List<Item>> _byGlossKey = () {
+    final m = <String, List<Item>>{};
+    for (final i in course.allItems) {
+      for (final k in glossKeys(i)) {
+        (m[k] ??= []).add(i);
+      }
+    }
+    return m;
+  }();
+
+  late final Map<String, List<Item>> _bySpellingKey = () {
+    final m = <String, List<Item>>{};
+    for (final i in course.allItems) {
+      for (final k in {for (final s in i.spellings) foldAnswer(s)}) {
+        (m[k] ??= []).add(i);
+      }
+    }
+    return m;
+  }();
+
   final Map<String, List<Item>> _synonyms = {};
 
-  /// All items that [overlaps] with [item] (excluding itself).
-  List<Item> synonymsOf(Item item) => _synonyms[item.id] ??= [
-        for (final o in course.allItems)
-          if (o.id != item.id && overlaps(item, o)) o,
-      ];
+  /// All items that [overlaps] with [item] (excluding itself), in
+  /// [CourseData.allItems] order.
+  List<Item> synonymsOf(Item item) => _synonyms[item.id] ??= () {
+        final found = <String, Item>{};
+        for (final k in glossKeys(item)) {
+          for (final o in _byGlossKey[k] ?? const <Item>[]) {
+            found[o.id] = o;
+          }
+        }
+        for (final s in item.spellings) {
+          for (final o in _bySpellingKey[foldAnswer(s)] ?? const <Item>[]) {
+            found[o.id] = o;
+          }
+        }
+        found.remove(item.id);
+        return found.values.toList()..sort((a, b) => (_itemOrder[a.id] ?? 0).compareTo(_itemOrder[b.id] ?? 0));
+      }();
 
   // ------------------------------------------------------------ pools
+
+  /// Items of one part of speech, in [CourseData.allItems] order.
+  late final Map<String, List<Item>> _itemsByPos = () {
+    final m = <String, List<Item>>{};
+    for (final i in course.allItems) {
+      (m[i.pos] ??= []).add(i);
+    }
+    return m;
+  }();
 
   /// Candidate distractor items for [item], in priority groups: same POS and
   /// a shared tag; same POS near in frequency; any other item of the same POS.
@@ -235,7 +295,7 @@ class CourseIndex {
           if (ok(o)) o,
     ];
     final near = [for (final o in course.itemsNearFreq(p, item.freq, limit: 40)) if (ok(o)) o];
-    final rest = [for (final o in course.allItems) if (ok(o)) o];
+    final rest = [for (final o in _itemsByPos[p] ?? const <Item>[]) if (ok(o)) o];
     return [tagged, near, rest];
   }
 
@@ -245,12 +305,62 @@ class CourseIndex {
       if (course.verbForms(i.id).isNotEmpty) i,
   ];
 
+  /// Lemmas of the perfect auxiliaries named by the verbs (`avere`, `essere`;
+  /// `hebben`, `zijn`).
+  late final Set<String> auxiliaryLemmas = {
+    for (final v in verbs)
+      for (final a in (course.verb(v.id)?.auxiliary ?? '').split('|'))
+        if (a.trim().isNotEmpty) a.trim(),
+  };
+
+  final Map<VerbForm, Set<String>> _acceptedKeys = Map.identity();
+
   /// Folded keys of every accepted spelling of a form.
-  Set<String> acceptedKeys(VerbForm f) => {for (final a in f.accepted) foldAnswer(a)}..remove('');
+  Set<String> acceptedKeys(VerbForm f) =>
+      _acceptedKeys[f] ??= {for (final a in f.accepted) foldAnswer(a)}..remove('');
+
+  final Map<String, List<VerbForm>> _finite = {};
 
   /// Finite forms (person != '_') of [verbId] in [tense], in person order.
-  List<VerbForm> finiteForms(String verbId, String tense) =>
-      [for (final f in course.verbFormsInTense(verbId, tense)) if (f.person != kNoPerson) f];
+  List<VerbForm> finiteForms(String verbId, String tense) => _finite['$tense\u0000$verbId'] ??= List.unmodifiable(
+      [for (final f in course.verbFormsInTense(verbId, tense)) if (f.person != kNoPerson) f]);
+
+  final Map<String, List<String>> _words = {};
+
+  /// [splitWords], cached (verb forms are split over and over).
+  List<String> wordsOf(String s) => _words[s] ??= List.unmodifiable(splitWords(s));
+
+  // ------------------------------------------------------------ memo
+
+  final Map<String, Object?> _memo = {};
+
+  /// Memoizes a deterministic, course-derived value under [key] (templates
+  /// cache their `canGenerate` answers here; the key must contain everything
+  /// the value depends on).
+  T memo<T>(String key, T Function() compute) {
+    if (_memo.containsKey(key)) return _memo[key] as T;
+    final v = compute();
+    _memo[key] = v;
+    return v;
+  }
+
+  // ------------------------------------------------------------ translations
+
+  final Map<String, Map<String, List<Sentence>>> _byTranslation = {};
+
+  /// Sentences whose translation in [lang] (with the usual fallback) equals
+  /// [translation] after [normalizeAnswer].
+  List<Sentence> sentencesWithTranslation(String lang, String translation) {
+    final m = _byTranslation[lang] ??= () {
+      final out = <String, List<Sentence>>{};
+      for (final s in allSentences) {
+        final t = s.translation(lang);
+        if (t != null) (out[normalizeAnswer(t)] ??= []).add(s);
+      }
+      return out;
+    }();
+    return m[normalizeAnswer(translation)] ?? const [];
+  }
 
   // ------------------------------------------------------------ occurrences
 
@@ -272,6 +382,7 @@ class CourseIndex {
     if (forms.isEmpty) return const [];
     final out = <FormOccurrence>[];
     for (final s in course.sentencesFor(verbId)) {
+      final aux = auxiliaryPositions(s);
       final byKey = <String, List<int>>{};
       for (var i = 0; i < s.tokens.length; i++) {
         final t = s.tokens[i];
@@ -287,6 +398,10 @@ class CourseIndex {
           final free = [for (final p in e.value) if (!used.contains(p)) p];
           if (w.length == 1) {
             for (final p in free) {
+              // The auxiliary of another word's compound form (`ho` in `ho
+              // mangiato`, `Zijn` in `Zijn jullie … geweest?`) is part of that
+              // form, not an instance of its own present tense.
+              if (aux.contains(p)) continue;
               if (_same(s.tokens[p], w[0])) {
                 out.add(FormOccurrence(s, verbId, cell, a, [p]));
                 used.add(p);
@@ -315,15 +430,7 @@ class CourseIndex {
               var ok = true;
               for (var j = 0; j < w.length && ok; j++) {
                 if (j == k) continue;
-                int? best;
-                for (var q = 0; q < s.tokens.length; q++) {
-                  final tq = s.tokens[q];
-                  if (q == p || !tq.isWord || used.contains(q) || pos.contains(q)) continue;
-                  if ((q - p).abs() > 6 || !_same(tq, w[j])) continue;
-                  final lex = tq.lex;
-                  if (lex != null && lex != verbId && course.verbForms(lex).isEmpty) continue;
-                  if (best == null || (q - p).abs() < (best - p).abs()) best = q;
-                }
+                final best = _nearestWord(s, p, w[j], {...used, ...pos.nonNulls}, verbId);
                 if (best == null) ok = false;
                 pos[j] = best;
               }
@@ -338,6 +445,66 @@ class CourseIndex {
       }
     }
     return out;
+  }
+
+  final Map<String, Set<int>> _auxPos = {};
+
+  /// Token positions in [s] that are the other words of a compound form
+  /// aligned on a single token: the pipeline aligns the participle of `ho
+  /// mangiato` to `passato_prossimo.io` and the auxiliary `ho` separately to
+  /// `avere`'s present. Such an auxiliary belongs to the compound form; it is
+  /// never an occurrence of the auxiliary verb's own (present) facet.
+  Set<int> auxiliaryPositions(Sentence s) => _auxPos[s.id] ??= () {
+        final out = <int>{};
+        final tokens = s.tokens;
+        for (var j = 0; j < tokens.length; j++) {
+          final t = tokens[j];
+          final lex = t.lex;
+          final key = t.form;
+          if (!t.isWord || lex == null || key == null) continue;
+          final cell = course.verbForms(lex)[key];
+          if (cell == null) continue;
+          for (final a in cell.accepted) {
+            final w = splitWords(a);
+            if (w.length < 2) continue;
+            final k = w.indexWhere((x) => _same(t, x));
+            if (k < 0) continue;
+            // Only when this token is the form's only aligned word.
+            if (tokens.where((x) => x.lex == lex && x.form == key).length > 1) break;
+            // The first accepted spelling whose other words are all found
+            // (`heeft gezien` / `is gezien`).
+            final taken = <int>{j};
+            var all = true;
+            for (var m = 0; m < w.length && all; m++) {
+              if (m == k) continue;
+              final q = _nearestWord(s, j, w[m], taken, lex);
+              if (q == null) {
+                all = false;
+              } else {
+                taken.add(q);
+              }
+            }
+            if (!all) continue;
+            out.addAll(taken..remove(j));
+            break;
+          }
+        }
+        return out;
+      }();
+
+  /// The word token nearest to [p] (within 6 tokens) that reads [word], is not
+  /// in [exclude], and is unaligned or aligned to a verb.
+  int? _nearestWord(Sentence s, int p, String word, Set<int> exclude, String verbId) {
+    int? best;
+    for (var q = 0; q < s.tokens.length; q++) {
+      final tq = s.tokens[q];
+      if (q == p || !tq.isWord || exclude.contains(q)) continue;
+      if ((q - p).abs() > 6 || !_same(tq, word)) continue;
+      final lex = tq.lex;
+      if (lex != null && lex != verbId && course.verbForms(lex).isEmpty) continue;
+      if (best == null || (q - p).abs() < (best - p).abs()) best = q;
+    }
+    return best;
   }
 
   List<int>? _assign(Sentence s, List<int> chunk, List<String> words) {
@@ -458,6 +625,9 @@ class CourseIndex {
     ];
   }();
 
+  final Map<String, Map<String, List<FormOccurrence>>> _formOccBySentence = {};
+  final Map<String, Map<String, List<ArticleOccurrence>>> _artOccBySentence = {};
+
   /// Verb form occurrences of any verb inside [s].
   List<FormOccurrence> formOccurrencesInSentence(Sentence s) {
     final verbsHere = <String>{
@@ -466,8 +636,7 @@ class CourseIndex {
     };
     return [
       for (final v in verbsHere)
-        for (final o in formOccurrences(v))
-          if (o.sentence.id == s.id) o,
+        ...?(_formOccBySentence[v] ??= _groupBySentence(formOccurrences(v), (o) => o.sentence.id))[s.id],
     ];
   }
 
@@ -479,9 +648,16 @@ class CourseIndex {
     };
     return [
       for (final n in nouns)
-        for (final o in articleOccurrences(n))
-          if (o.sentence.id == s.id) o,
+        ...?(_artOccBySentence[n] ??= _groupBySentence(articleOccurrences(n), (o) => o.sentence.id))[s.id],
     ];
+  }
+
+  static Map<String, List<T>> _groupBySentence<T>(List<T> list, String Function(T) id) {
+    final m = <String, List<T>>{};
+    for (final x in list) {
+      (m[id(x)] ??= []).add(x);
+    }
+    return m;
   }
 
   /// Whether two sentences say the same thing as far as the alignment shows:
@@ -518,18 +694,32 @@ class CourseIndex {
   /// Display text of a sentence's word tokens for tiles: the first word is
   /// lower-cased unless it looks like a proper noun (unaligned, or aligned to
   /// an item whose lemma is capitalized).
+  ///
+  /// The same goes for a word that starts a later sentence of the text
+  /// (`"Was Bill in Japan?" "Ja, inderdaad."`): capitals would give the
+  /// sentence boundaries away.
   List<String> tileWords(Sentence s) {
-    final ws = words(s);
-    final out = [for (final t in ws) t.t];
-    if (out.isEmpty) return out;
-    final first = ws.first;
-    final lex = first.lex;
-    final item = lex == null ? null : course.item(lex);
-    final lowerOk = (item != null && item.lemma.isNotEmpty && item.lemma == lowerFirst(item.lemma)) ||
-        articleKeys.contains(normalizeAnswer(first.t)) ||
-        pronounKeys.contains(foldAnswer(first.t));
-    if (lowerOk) out[0] = lowerFirst(out[0]);
+    final out = <String>[];
+    var start = true;
+    for (final t in s.tokens) {
+      if (!t.isWord) {
+        if (_sentenceEnd.hasMatch(t.t)) start = true;
+        continue;
+      }
+      out.add(start && _lowerOk(t) ? lowerFirst(t.t) : t.t);
+      start = false;
+    }
     return out;
+  }
+
+  static final RegExp _sentenceEnd = RegExp(r'[.!?…]');
+
+  bool _lowerOk(Token t) {
+    final lex = t.lex;
+    final item = lex == null ? null : course.item(lex);
+    return (item != null && item.lemma.isNotEmpty && item.lemma == lowerFirst(item.lemma)) ||
+        articleKeys.contains(normalizeAnswer(t.t)) ||
+        pronounKeys.contains(foldAnswer(t.t));
   }
 }
 
