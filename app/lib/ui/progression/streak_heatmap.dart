@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../progression/progression.dart';
+import '../theme/bw_skin.dart';
 import 'progression_colors.dart';
 
 /// GitHub-style practice heatmap: one column per week (Monday on top), months
@@ -40,16 +41,20 @@ class StreakHeatmap extends StatelessWidget {
       final count = data.countOn(d);
       final frozen = data.isFrozen(d) && count == 0;
       final color = frozen
-          ? ProgressionColors.freeze(cs).withValues(alpha: 0.55)
+          ? ProgressionColors.tint(ProgressionColors.freeze(cs), 0.55, cs)
           : ProgressionColors.heat(data.bucketOf(d), data.maxBucket, cs);
+      final mono = isMonochrome(cs);
       final decoration = BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(cellSize / 5),
-        border: d == data.today ? Border.all(color: cs.onSurface, width: 1.2) : null,
+        border: d == data.today
+            ? Border.all(color: cs.onSurface, width: mono ? 2 : 1.2)
+            : (mono ? Border.all(color: kBwGray, width: 0.8) : null),
       );
       final label = '$d: $count review${count == 1 ? '' : 's'}${frozen ? ' (streak freeze)' : ''}';
-      final box = reduceMotion
-          ? Container(width: cellSize, height: cellSize, decoration: decoration)
+      final dot = mono && !frozen ? HeatDot(bucket: data.bucketOf(d), maxBucket: data.maxBucket, size: cellSize) : null;
+      final box = reduceMotion || mono
+          ? Container(width: cellSize, height: cellSize, decoration: decoration, child: dot)
           : AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               width: cellSize,
@@ -67,10 +72,13 @@ class StreakHeatmap extends StatelessWidget {
             key: ValueKey('heat-$d'),
             onTap: onDayTap == null ? null : () => onDayTap!(d),
             child: frozen
-                ? Stack(alignment: Alignment.center, children: [
-                    box,
-                    Icon(Icons.ac_unit, size: cellSize * 0.75, color: cs.surface),
-                  ])
+                ? Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      box,
+                      Icon(Icons.ac_unit, size: cellSize * 0.75, color: mono ? kBwBlack : cs.surface),
+                    ],
+                  )
                 : box,
           ),
         ),
@@ -97,31 +105,41 @@ class StreakHeatmap extends StatelessWidget {
     for (var w = 0; w < weeks; w++) {
       final monday = start.addDays(7 * w);
       final month = labels[w];
-      monthLabels.add(SizedBox(
-        width: step,
-        height: 14,
-        child: month == null
-            ? null
-            : OverflowBox(
-                alignment: Alignment.centerLeft,
-                maxWidth: step * 4,
-                child: Text(month, style: labelStyle, softWrap: false),
-              ),
-      ));
-      columns.add(Padding(
-        padding: EdgeInsets.only(right: gap),
-        child: Column(
-          children: [
-            for (var i = 0; i < 7; i++)
-              Padding(padding: EdgeInsets.only(bottom: i == 6 ? 0 : gap), child: cell(monday.addDays(i))),
-          ],
+      monthLabels.add(
+        SizedBox(
+          width: step,
+          height: 14,
+          child: month == null
+              ? null
+              : OverflowBox(
+                  alignment: Alignment.centerLeft,
+                  maxWidth: step * 4,
+                  child: Text(month, style: labelStyle, softWrap: false),
+                ),
         ),
-      ));
+      );
+      columns.add(
+        Padding(
+          padding: EdgeInsets.only(right: gap),
+          child: Column(
+            children: [
+              for (var i = 0; i < 7; i++)
+                Padding(
+                  padding: EdgeInsets.only(bottom: i == 6 ? 0 : gap),
+                  child: cell(monday.addDays(i)),
+                ),
+            ],
+          ),
+        ),
+      );
     }
 
     final content = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [Row(children: monthLabels), Row(children: columns)],
+      children: [
+        Row(children: monthLabels),
+        Row(children: columns),
+      ],
     );
     // Fits: left-aligned next to the weekday labels. Too wide: scroll, opened at the latest week.
     final grid = LayoutBuilder(
@@ -143,7 +161,10 @@ class StreakHeatmap extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   for (var i = 0; i < 7; i++)
-                    SizedBox(height: i == 6 ? cellSize : step, child: Text(_weekdayLabels[i], style: labelStyle)),
+                    SizedBox(
+                      height: i == 6 ? cellSize : step,
+                      child: Text(_weekdayLabels[i], style: labelStyle),
+                    ),
                 ],
               ),
             ),
@@ -158,34 +179,64 @@ class StreakHeatmap extends StatelessWidget {
             crossAxisAlignment: WrapCrossAlignment.center,
             runSpacing: 4,
             children: [
-              Row(mainAxisSize: MainAxisSize.min, children: [
-              Text('Less', style: labelStyle),
-              const SizedBox(width: 4),
-              for (var b = 0; b <= data.maxBucket; b++)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 1.5),
-                  child: Container(
-                    width: cellSize,
-                    height: cellSize,
-                    decoration: BoxDecoration(
-                      color: ProgressionColors.heat(b, data.maxBucket, cs),
-                      borderRadius: BorderRadius.circular(cellSize / 5),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Less', style: labelStyle),
+                  const SizedBox(width: 4),
+                  for (var b = 0; b <= data.maxBucket; b++)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 1.5),
+                      child: Container(
+                        width: cellSize,
+                        height: cellSize,
+                        decoration: BoxDecoration(
+                          color: ProgressionColors.heat(b, data.maxBucket, cs),
+                          borderRadius: BorderRadius.circular(cellSize / 5),
+                          border: isMonochrome(cs) ? Border.all(color: kBwGray, width: 0.8) : null,
+                        ),
+                        child: isMonochrome(cs) ? HeatDot(bucket: b, maxBucket: data.maxBucket, size: cellSize) : null,
+                      ),
                     ),
-                  ),
-                ),
-              const SizedBox(width: 4),
-              Text('More', style: labelStyle),
-              ]),
+                  const SizedBox(width: 4),
+                  Text('More', style: labelStyle),
+                ],
+              ),
               const SizedBox(width: 10),
-              Row(mainAxisSize: MainAxisSize.min, children: [
-                Icon(Icons.ac_unit, size: cellSize, color: ProgressionColors.freeze(cs)),
-                const SizedBox(width: 2),
-                Text('Freeze', style: labelStyle),
-              ]),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.ac_unit, size: cellSize, color: ProgressionColors.freeze(cs)),
+                  const SizedBox(width: 2),
+                  Text('Freeze', style: labelStyle),
+                ],
+              ),
             ],
           ),
         ],
       ],
+    );
+  }
+}
+
+/// Black & white heatmap level: a black square growing with [bucket]
+/// (nothing at 0, the whole cell at the top bucket).
+class HeatDot extends StatelessWidget {
+  const HeatDot({super.key, required this.bucket, required this.maxBucket, required this.size});
+  final int bucket;
+  final int maxBucket;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    if (bucket <= 0 || maxBucket <= 0) return const SizedBox.shrink();
+    final f = bucket >= maxBucket ? 1.0 : 0.3 + 0.55 * (bucket / maxBucket);
+    return Center(
+      child: Container(
+        width: size * f,
+        height: size * f,
+        decoration: BoxDecoration(color: kBwBlack, borderRadius: BorderRadius.circular(size * f / 5)),
+      ),
     );
   }
 }
@@ -203,14 +254,17 @@ class StreakCounter extends StatelessWidget {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final lit = streak.practicedToday;
+    final mono = isMonochrome(cs);
     final flame = Icon(
-      Icons.local_fire_department,
+      // Black & white: a filled flame when practiced today, an outline when not.
+      lit || !mono ? Icons.local_fire_department : Icons.local_fire_department_outlined,
       key: ValueKey(lit),
       size: 28,
-      color: lit ? ProgressionColors.flame(cs) : cs.outline,
+      color: lit ? ProgressionColors.flame(cs) : (mono ? kBwBlack : cs.outline),
     );
     return Semantics(
-      label: '${streak.current} day streak, ${streak.freezes} streak freeze${streak.freezes == 1 ? '' : 's'}'
+      label:
+          '${streak.current} day streak, ${streak.freezes} streak freeze${streak.freezes == 1 ? '' : 's'}'
           '${lit ? '' : ', not practiced today'}',
       excludeSemantics: true,
       child: Row(

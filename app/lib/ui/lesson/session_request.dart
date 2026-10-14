@@ -10,6 +10,9 @@ sealed class SessionRequest {
   /// Endless sessions show a running count instead of a progress bar and end with Stop.
   bool get endless => false;
 
+  /// Shown when the session has nothing to serve.
+  String get emptyMessage => 'Nothing to practice here right now.';
+
   Future<PracticeSession> start(SessionFactory factory, {required LessonFocus defaultFocus});
 }
 
@@ -39,6 +42,21 @@ class FadingRequest extends SessionRequest {
   @override
   Future<PracticeSession> start(SessionFactory factory, {required LessonFocus defaultFocus}) =>
       factory.fading(length: length);
+}
+
+class ReviewRequest extends SessionRequest {
+  const ReviewRequest({this.length = 12});
+  final int length;
+
+  @override
+  String get title => 'Mistake review';
+
+  @override
+  String get emptyMessage => 'No mistakes to review. Nice!';
+
+  @override
+  Future<PracticeSession> start(SessionFactory factory, {required LessonFocus defaultFocus}) =>
+      factory.review(length: length);
 }
 
 class LabRequest extends SessionRequest {

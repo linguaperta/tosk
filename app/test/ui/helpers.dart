@@ -14,6 +14,9 @@ import 'fakes/demo_session.dart';
 
 final testNow = DateTime.utc(2026, 10, 13, 12);
 
+/// Wraps the app in `pumpApp`, for screenshots and pixel checks of the whole screen.
+const appRootKey = ValueKey('app-root');
+
 /// The data layer's in-memory FSRS store with preset settings and a readable
 /// settings map (what `progressStoreProvider` defaults to, minus the presets).
 class TestProgressStore extends InMemoryProgressStore {
@@ -79,7 +82,7 @@ Future<TestProgressStore> pumpApp(
           routerProvider.overrideWith((ref) => buildRouter(initialLocation: initialLocation)),
         ...overrides,
       ],
-      child: const ToskApp(),
+      child: const RepaintBoundary(key: appRootKey, child: ToskApp()),
     ),
   );
   await tester.pumpAndSettle();
@@ -114,13 +117,22 @@ int _freeTile(List<String> tiles, String word, Set<int> used) {
 /// Answers the current exercise in the player correctly (or wrongly with [wrong]),
 /// checks it, and continues past the feedback.
 Future<void> answerCurrent(WidgetTester tester, {bool wrong = false}) async {
+  if (await answerCurrentNoContinue(tester, wrong: wrong)) {
+    expect(find.byKey(const ValueKey('feedback-banner')), findsOneWidget);
+    await tapKey(tester, 'continue-button');
+  }
+}
+
+/// Answers and checks the current exercise, leaving the feedback banner up.
+/// Returns false for self-submitting types (flashcard, match pairs), which advance by themselves.
+Future<bool> answerCurrentNoContinue(WidgetTester tester, {bool wrong = false}) async {
   final ex = currentExercise(tester);
   Future<void> check() => tapKey(tester, 'check-button');
   switch (ex) {
     case FlashcardExercise():
       await tapKey(tester, 'flashcard-reveal');
       await tapKey(tester, wrong ? 'grade-again' : 'grade-good');
-      return; // flashcards advance by themselves
+      return false; // flashcards advance by themselves
     case MultipleChoiceExercise e:
       await tapKey(tester, 'option-${wrong ? (e.correctIndex + 1) % e.options.length : e.correctIndex}');
       await check();
@@ -135,6 +147,7 @@ Future<void> answerCurrent(WidgetTester tester, {bool wrong = false}) async {
         await tapKey(tester, 'match-left-$i');
         await tapKey(tester, 'match-right-${e.solution[i]}');
       }
+      return find.byKey(const ValueKey('continue-button')).evaluate().isNotEmpty;
     case ConjPickExercise e:
       await tapKey(tester, 'ending-${wrong ? (e.correctIndex + 1) % e.endings.length : e.correctIndex}');
       await check();
@@ -176,8 +189,7 @@ Future<void> answerCurrent(WidgetTester tester, {bool wrong = false}) async {
       await tapKey(tester, 'token-$idx');
       await check();
   }
-  expect(find.byKey(const ValueKey('feedback-banner')), findsOneWidget);
-  await tapKey(tester, 'continue-button');
+  return true;
 }
 
 /// Answers until the summary shows (with a safety cap).

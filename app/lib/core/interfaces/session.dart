@@ -84,4 +84,9 @@ abstract interface class SessionFactory {
 
   /// "What's fading": due facets across all skills.
   Future<PracticeSession> fading({int length = 12});
+
+  /// Mistake review (mode [SessionMode.review]): the facets of recent,
+  /// still-open mistakes, preferring the exercise type that was missed.
+  /// Empty (`plannedLength == 0`) when nothing is open. See docs/engine.md.
+  Future<PracticeSession> review({int length = 12});
 }

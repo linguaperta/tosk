@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/core.dart';
+import '../../theme/bw_skin.dart';
 import 'common.dart';
 
 /// Answer line plus word bank: tap a tile to append it, tap a placed tile to remove it.
@@ -140,20 +141,21 @@ class _SentenceBuilderViewState extends State<SentenceBuilderView> {
   @override
   Widget build(BuildContext context) {
     final e = widget.exercise;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        InstructionText(e.instruction),
-        _SpeechBubble(text: e.prompt),
-        const SizedBox(height: 16),
-        TileAnswerArea(
-          tiles: e.tiles,
-          locked: widget.locked,
-          correct: widget.result?.correct,
-          keys: widget.keys,
-          onChanged: (words) => widget.onChanged(words == null ? null : TilesAnswer(words)),
-        ),
-      ],
+    return ExerciseLayout(
+      prompt: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          InstructionText(e.instruction),
+          _SpeechBubble(text: e.prompt),
+        ],
+      ),
+      controls: TileAnswerArea(
+        tiles: e.tiles,
+        locked: widget.locked,
+        correct: widget.result?.correct,
+        keys: widget.keys,
+        onChanged: (words) => widget.onChanged(words == null ? null : TilesAnswer(words)),
+      ),
     );
   }
 }
@@ -178,34 +180,40 @@ class _TransformViewState extends State<TransformView> {
   Widget build(BuildContext context) {
     final e = widget.exercise;
     final scheme = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        InstructionText(e.instruction),
-        _SpeechBubble(text: e.source),
-        if (e.translation != null) ...[
-          const SizedBox(height: 6),
-          SubtleText(e.translation!, key: const ValueKey('transform-translation'), italic: true, icon: Icons.translate),
-        ],
-        const SizedBox(height: 10),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Chip(
-            key: const ValueKey('transform-target'),
-            avatar: Icon(Icons.swap_horiz, size: 18, color: scheme.onTertiaryContainer),
-            backgroundColor: scheme.tertiaryContainer,
-            label: Text(e.targetDescription, style: TextStyle(color: scheme.onTertiaryContainer)),
+    return ExerciseLayout(
+      prompt: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          InstructionText(e.instruction),
+          _SpeechBubble(text: e.source),
+          if (e.translation != null) ...[
+            const SizedBox(height: 6),
+            SubtleText(
+              e.translation!,
+              key: const ValueKey('transform-translation'),
+              italic: true,
+              icon: Icons.translate,
+            ),
+          ],
+          const SizedBox(height: 10),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Chip(
+              key: const ValueKey('transform-target'),
+              avatar: Icon(Icons.swap_horiz, size: 18, color: scheme.onTertiaryContainer),
+              backgroundColor: scheme.tertiaryContainer,
+              label: Text(e.targetDescription, style: TextStyle(color: scheme.onTertiaryContainer)),
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        TileAnswerArea(
-          tiles: e.tiles,
-          locked: widget.locked,
-          correct: widget.result?.correct,
-          keys: widget.keys,
-          onChanged: (words) => widget.onChanged(words == null ? null : TilesAnswer(words)),
-        ),
-      ],
+        ],
+      ),
+      controls: TileAnswerArea(
+        tiles: e.tiles,
+        locked: widget.locked,
+        correct: widget.result?.correct,
+        keys: widget.keys,
+        onChanged: (words) => widget.onChanged(words == null ? null : TilesAnswer(words)),
+      ),
     );
   }
 }
@@ -219,7 +227,11 @@ class _SpeechBubble extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: scheme.surfaceContainerHigh, borderRadius: BorderRadius.circular(14)),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(14),
+        border: isMonochrome(scheme) ? Border.all(color: kBwBlack, width: kBwBorder) : null,
+      ),
       child: Text(text, style: Theme.of(context).textTheme.titleLarge),
     );
   }

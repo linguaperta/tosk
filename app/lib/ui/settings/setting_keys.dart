@@ -22,5 +22,8 @@ abstract final class SettingKeys {
   /// `'true'` disables animations, haptics and sounds (the future e-ink mode builds on it).
   static const reduceMotion = 'ui.reduce_motion';
 
-  static const all = [course, sourceLang, defaultFocus, accents, themeMode, reduceMotion];
+  /// [DisplayMode] name: `color` or `bw` (black & white for e-ink; forces reduced motion).
+  static const display = 'ui.display';
+
+  static const all = [course, sourceLang, defaultFocus, accents, themeMode, reduceMotion, display];
 }

@@ -412,6 +412,13 @@ void main() {
       expect(sampleExercises(it, perType: 20, skillIds: ['presente-are']), contains('--- conj_pick: 20 example(s)'));
     });
 
+    test('exercisePrompt joins a question instruction without a colon', () {
+      const q = FlashcardExercise(id: 'x', facetId: 'it:ciao#rec', instruction: 'What does this mean?', front: 'ciao', back: 'hi', direction: Direction.recognize);
+      expect(exercisePrompt(q), 'What does this mean? ciao');
+      const t = FlashcardExercise(id: 'y', facetId: 'it:ciao#rec', instruction: 'Translate', front: 'ciao', back: 'hi', direction: Direction.recognize);
+      expect(exercisePrompt(t), 'Translate: ciao');
+    });
+
     test('exercisePrompt is non-empty for every type', () {
       for (final skill in it.skills) {
         for (final t in defaultTemplates()) {

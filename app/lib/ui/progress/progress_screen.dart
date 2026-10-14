@@ -9,7 +9,7 @@ import '../progression/progression_widgets.dart';
 import '../routes.dart';
 
 /// Progress / profile page: level and XP, streak and heatmap, the verb
-/// collection, weekly and monthly challenges, and badges.
+/// collection, open mistakes, weekly and monthly challenges, and badges.
 class ProgressScreen extends ConsumerWidget {
   const ProgressScreen({super.key});
 
@@ -19,6 +19,7 @@ class ProgressScreen extends ConsumerWidget {
     final heatmap = ref.watch(heatmapProvider).value;
     final board = ref.watch(challengeBoardProvider).value;
     final verbs = ref.watch(verbCollectionProvider).value;
+    final mistakes = ref.watch(openMistakesProvider).value;
     final reduce = ref.watch(reduceMotionProvider);
     final theme = Theme.of(context);
 
@@ -78,6 +79,26 @@ class ProgressScreen extends ConsumerWidget {
                           : Text('${verbs.count(VerbMastery.mastered)} mastered · ${verbs.verbs.length} verbs'),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () => context.go(Routes.verbs),
+                    ),
+                  ),
+                ),
+                section(
+                  'Mistakes',
+                  Card(
+                    margin: EdgeInsets.zero,
+                    child: ListTile(
+                      key: const ValueKey('open-mistakes'),
+                      leading: const Icon(Icons.replay),
+                      title: Text(
+                        mistakes == null
+                            ? 'Mistakes to review'
+                            : mistakes.isEmpty
+                            ? 'No mistakes to review'
+                            : 'Review mistakes (${mistakes.length})',
+                      ),
+                      subtitle: const Text('Wrong answers, until you get them right in a later session'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => context.push(Routes.mistakes),
                     ),
                   ),
                 ),

@@ -91,51 +91,48 @@ class _MatchPairsViewState extends State<MatchPairsView> {
   @override
   Widget build(BuildContext context) {
     final e = widget.exercise;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        InstructionText(e.instruction),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Column(
-                children: [
-                  for (var i = 0; i < e.left.length; i++)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: OptionButton(
-                        key: ValueKey('match-left-$i'),
-                        label: e.left[i],
-                        center: true,
-                        state: _leftState(i),
-                        onTap: () => _tapLeft(i),
-                      ),
+    return ExerciseLayout(
+      prompt: InstructionText(e.instruction),
+      controls: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              children: [
+                for (var i = 0; i < e.left.length; i++)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: OptionButton(
+                      key: ValueKey('match-left-$i'),
+                      label: e.left[i],
+                      center: true,
+                      state: _leftState(i),
+                      onTap: () => _tapLeft(i),
                     ),
-                ],
-              ),
+                  ),
+              ],
             ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                children: [
-                  for (var j = 0; j < e.right.length; j++)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: OptionButton(
-                        key: ValueKey('match-right-$j'),
-                        label: e.right[j],
-                        center: true,
-                        state: _rightState(j),
-                        onTap: () => _tapRight(j),
-                      ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              children: [
+                for (var j = 0; j < e.right.length; j++)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: OptionButton(
+                      key: ValueKey('match-right-$j'),
+                      label: e.right[j],
+                      center: true,
+                      state: _rightState(j),
+                      onTap: () => _tapRight(j),
                     ),
-                ],
-              ),
+                  ),
+              ],
             ),
-          ],
-        ),
-      ],
+          ),
+        ],
+      ),
     );
   }
 }

@@ -56,77 +56,83 @@ class _ClozeViewState extends State<ClozeView> with ExerciseKeysMixin<ClozeView>
     }
     final gapColor = result == null ? theme.colorScheme.secondary : (result.correct ? fb.correct : fb.wrong);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        InstructionText(e.instruction),
-        Text.rich(
-          key: const ValueKey('cloze-sentence'),
-          TextSpan(
-            children: [
-              TextSpan(text: e.before),
-              WidgetSpan(
-                alignment: PlaceholderAlignment.baseline,
-                baseline: TextBaseline.alphabetic,
-                child: Container(
-                  constraints: const BoxConstraints(minWidth: 56),
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  decoration: BoxDecoration(
-                    border: Border(bottom: BorderSide(color: gapColor, width: 2)),
-                  ),
-                  child: Text(
-                    gapText.isEmpty ? ' ' : gapText,
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.headlineSmall?.copyWith(color: gapColor),
-                  ),
-                ),
-              ),
-              TextSpan(text: e.after),
-            ],
-          ),
-          style: theme.textTheme.headlineSmall,
-        ),
-        if (e.hint != null) ...[const SizedBox(height: 12), SubtleText(e.hint!, icon: Icons.lightbulb_outline)],
-        if (e.translation != null) ...[
-          const SizedBox(height: 8),
-          SubtleText(e.translation!, italic: true, icon: Icons.translate),
-        ],
-        const SizedBox(height: 24),
-        if (options != null)
-          Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              for (var i = 0; i < options.length; i++)
-                SizedBox(
-                  width: 140,
-                  child: OptionButton(
-                    key: ValueKey('cloze-option-$i'),
-                    number: i + 1,
-                    label: options[i],
-                    state: choiceState(
-                      index: i,
-                      selected: _selected,
-                      correctIndex: e.correctIndex ?? -1,
-                      result: result,
+    return ExerciseLayout(
+      prompt: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          InstructionText(e.instruction),
+          Text.rich(
+            key: const ValueKey('cloze-sentence'),
+            TextSpan(
+              children: [
+                TextSpan(text: e.before),
+                WidgetSpan(
+                  alignment: PlaceholderAlignment.baseline,
+                  baseline: TextBaseline.alphabetic,
+                  child: Container(
+                    constraints: const BoxConstraints(minWidth: 56),
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    decoration: BoxDecoration(
+                      border: Border(bottom: BorderSide(color: gapColor, width: 2)),
                     ),
-                    onTap: widget.locked ? null : () => _select(i),
+                    child: Text(
+                      gapText.isEmpty ? ' ' : gapText,
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.headlineSmall?.copyWith(color: gapColor),
+                    ),
                   ),
                 ),
-            ],
-          )
-        else
-          widget.inputBuilder(
-            enabled: !widget.locked,
-            hintText: 'Type the missing word',
-            onChanged: (answer) {
-              setState(() => _typed = answer?.text.trim() ?? '');
-              widget.onChanged(answer);
-            },
-            onSubmitted: widget.onCheck,
+                TextSpan(text: e.after),
+              ],
+            ),
+            style: theme.textTheme.headlineSmall,
           ),
-      ],
+          if (e.hint != null) ...[const SizedBox(height: 12), SubtleText(e.hint!, icon: Icons.lightbulb_outline)],
+          if (e.translation != null) ...[
+            const SizedBox(height: 8),
+            SubtleText(e.translation!, italic: true, icon: Icons.translate),
+          ],
+        ],
+      ),
+      controls: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (options != null)
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                for (var i = 0; i < options.length; i++)
+                  SizedBox(
+                    width: 140,
+                    child: OptionButton(
+                      key: ValueKey('cloze-option-$i'),
+                      number: i + 1,
+                      label: options[i],
+                      state: choiceState(
+                        index: i,
+                        selected: _selected,
+                        correctIndex: e.correctIndex ?? -1,
+                        result: result,
+                      ),
+                      onTap: widget.locked ? null : () => _select(i),
+                    ),
+                  ),
+              ],
+            )
+          else
+            widget.inputBuilder(
+              enabled: !widget.locked,
+              hintText: 'Type the missing word',
+              onChanged: (answer) {
+                setState(() => _typed = answer?.text.trim() ?? '');
+                widget.onChanged(answer);
+              },
+              onSubmitted: widget.onCheck,
+            ),
+        ],
+      ),
     );
   }
 }

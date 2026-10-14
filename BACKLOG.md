@@ -81,8 +81,8 @@ Each item says what "done" means. Add newly discovered work at the bottom of its
 - [x] Full-lesson integration tests: engine with an on-disk `ProgressRepo`, non-stop with a bonus round, boot on the real bundled packs (`test/app/`)
 - [x] Replace demo fakes with real data, engine and progression (integration); demo course only as a no-packs fallback
 - [x] Builds: Windows, web, and a signed release APK (split per ABI; preview 1 sent on 13 October). iOS needs a Mac and is documented only.
-- [~] Mistake review mode: practice saved `MistakeRecord`s (`SessionMode.review`), with an entry point on the map or progress page
-- [~] Exploratory QA pass on the running app (Windows/web): full flows on both courses, UX polish
+- [x] Mistake review mode: practice saved `MistakeRecord`s (`SessionMode.review`), with an entry point on the map or progress page
+- [x] Exploratory QA pass on the running app (Windows/web): full flows on both courses, UX polish
 
 ## Phase 5: Progression (`app/lib/progression`)
 
@@ -96,9 +96,60 @@ Each item says what "done" means. Add newly discovered work at the bottom of its
 - [x] Recomputing from the log gives the same XP and tiers (test)
 - [x] Wire progression into the map, summary, non-stop HUD, profile and verb-collection screens (integration)
 
+## v0.3 (user feedback, 13 October)
+
+- [~] Grammar-first curriculum: a construct is taught by its own skill before other exercises use it
+- [~] Grammar gating data: `sentence_features`, `skill_features` and `base_features` in the pipeline and compiler, with a validator check
+- [ ] Grammar gating in the engine: only sentences whose features are known; unknown vocabulary capped (≤1 for grammar focus, ≤2 for vocab)
+- [x] Bottom-aligned exercise controls (one-handed use)
+- [~] "Explain answer with AI" after every checked answer (Claude or OpenAI key in Settings; no button without a key), streamed and cached
+- [~] Flag an exercise (reason and comment); Submit saves locally with a `.jsonl` export; "Confer with AI" checks the complaint
+- [~] Sounds: correct, wrong, lesson complete, muted select tick; toggle in Settings
+- [ ] Tap a word in any exercise sentence for its gloss; verbs show lemma, person and tense
+- [ ] Progress backup: export and import the review log (Settings), until Drive sync in v0.4
+- [ ] Test out of a skill (short quiz marks it learned and unlocks what follows) + optional placement at course start
+- [ ] Conjugation and word lookup: searchable reference of all pack verbs (full tables) and words; extends the verb collection
+- [ ] Daily goal (lessons or XP) + local reminder notification at a chosen time; goal line on the heatmap
+- [ ] Typing mode toggle ("challenge mode": production exercises take typed answers)
+- [ ] "I was right" override after a wrong verdict: re-rates as correct and auto-creates a flag
+- [ ] Accent keyboard bar for typing mode (letters from course data)
+- [ ] Grammar library tab: all notes browsable, each with "practice this"
+- [ ] Leech handling: facets with ≥4 lapses → "tough words" drill and mistake review (+ AI mnemonic when configured)
+- [ ] Session length options: quick (5) / normal (12) / long (20)
+- [ ] Pipeline: AI-generated example sentences for thin slots (verb × person × tense < 5 sentences), under gating constraints, validated by the aligner, `src: claude-gen`, reviewed in samples
+- [ ] Sentence variety: log the sentence id with each answer; the engine prefers unseen or least-recently-seen sentences
+- [ ] Sentence floor: generation tops up every verb×person×tense slot and every vocab topic to ≥8–10 distinct sentences
+- [ ] Course picker as a pop-up menu: +/- to add or remove each course, a preview per course (description, units/skills, sample words and sentences, unverified badge); the app only shows courses you've added
+- [x] Black & white (e-ink) mode for the Boox: pure B/W skin, nothing conveyed by color (icons, labels, patterns, inverted fills), reduce motion forced on. Tested: grayscale-only assertions on every screen and exercise type, goldens, overflow at Boox and phone sizes
+- [ ] QA leftovers: `ciao` MC offers "hello" as a distractor (synonym data); instruction can slide under the app bar on tall exercises; a "jump to current unit" button on long maps
+- [ ] Preview 3 APK
+
+
+## v0.4 candidates
+
+- [ ] Bookmarks: star words, sentences or exercises; "Starred" practice session
+- [ ] Graded mini-stories per unit (pipeline-generated with only known vocab and grammar), with tap-for-translation and comprehension questions
+- [ ] Pronunciation button (on-device TTS); review forecast and stats (accuracy per type and tense)
+- [ ] AI conversation practice limited to unlocked grammar and vocab (needs an API key)
+- [ ] Schema: generalize `verb_forms` into inflection tables for any POS, with a declension facet kind (unlocks German and Slavic noun/adjective cases)
+- [-] Optional on-the-fly AI sentences in the lab ("more like this"), clearly labelled as unvalidated
+
+## v0.6: new full-size courses (the "easy" languages)
+
+Each one at the expanded it/nl scale: 8–10 units, ~30 skills, ~1000 taught words, grammar-first gating, tr.en + tr.nl, grammar notes in en and nl, sentence floor via generation, a native-level sample review, and the real-pack validity and perf tests passing.
+
+- [ ] Spanish (`es`), built first as the pilot, to measure the per-language cost and fix generic pipeline gaps
+- [ ] Portuguese (`pt`): pick and document a variety (European or Brazilian)
+- [ ] French (`fr`): elision, partitive articles, passé composé with être/avoir
+- [ ] Esperanto (`eo`)
+- [ ] Swedish (`sv`)
+- [ ] Norwegian Bokmål (`nb`)
+- [ ] Danish (`da`)
+- [ ] `index.json` listing all courses (the course picker itself is in v0.3)
+
 ## Later (not v1)
 
 - [~] Phase 6: Sarnami (`hns`), a Dutch–Sarnami course from the [source] dictionary. Local-only data ([source] copyright): never committed, and loaded from a file.
 - [-] Phase 7: `GitHubPackSource`, `DriveSyncBackend`. Interfaces only in v1.
-- [-] Phase 8: ink `AnswerInput`, e-ink mode, `ClaudeExplainer`. Interfaces and `reduceMotion` only in v1.
+- [-] Phase 8: ink `AnswerInput` and Onyx pen SDK (v0.5). The AI explainer and the B/W e-ink mode moved up to v0.3.
 - [-] `listen_pick` exercise (needs audio/TTS)

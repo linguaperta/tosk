@@ -78,64 +78,68 @@ class _SpotErrorViewState extends State<SpotErrorView> {
     final theme = Theme.of(context);
     final fb = FeedbackColors.of(context);
     final groups = groupTokens(e.tokens, e.tokenIsWord, pre: e.tokenPre);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        InstructionText(e.instruction),
-        Wrap(
-          spacing: 6,
-          runSpacing: 10,
-          children: [
-            for (final g in groups)
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  for (final i in g)
-                    if (i < e.tokenIsWord.length && !e.tokenIsWord[i])
-                      Text(e.tokens[i], style: theme.textTheme.titleLarge)
-                    else
-                      WordTile(
-                        key: ValueKey('token-$i'),
-                        label: e.tokens[i],
-                        state: _state(i),
-                        onTap: widget.locked ? null : () => _tap(i),
-                      ),
-                ],
-              ),
-          ],
-        ),
-        if (widget.result != null) ...[
-          const SizedBox(height: 16),
-          Row(
+    return ExerciseLayout(
+      prompt: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          InstructionText(e.instruction),
+          if (e.translation != null) SubtleText(e.translation!, italic: true, icon: Icons.translate),
+        ],
+      ),
+      controls: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Wrap(
+            spacing: 6,
+            runSpacing: 10,
             children: [
-              Icon(Icons.edit, size: 18, color: fb.correct),
-              const SizedBox(width: 6),
-              Flexible(
-                child: Text.rich(
-                  TextSpan(
-                    children: [
-                      TextSpan(
-                        text: e.tokens[e.errorIndex],
-                        style: const TextStyle(decoration: TextDecoration.lineThrough),
-                      ),
-                      const TextSpan(text: '  →  '),
-                      TextSpan(
-                        text: e.correction,
-                        style: TextStyle(color: fb.correct, fontWeight: FontWeight.w700),
-                      ),
-                    ],
-                  ),
-                  style: theme.textTheme.titleMedium,
+              for (final g in groups)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (final i in g)
+                      if (i < e.tokenIsWord.length && !e.tokenIsWord[i])
+                        Text(e.tokens[i], style: theme.textTheme.titleLarge)
+                      else
+                        WordTile(
+                          key: ValueKey('token-$i'),
+                          label: e.tokens[i],
+                          state: _state(i),
+                          onTap: widget.locked ? null : () => _tap(i),
+                        ),
+                  ],
                 ),
-              ),
             ],
           ),
+          if (widget.result != null) ...[
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Icon(Icons.edit, size: 18, color: fb.correct),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text: e.tokens[e.errorIndex],
+                          style: const TextStyle(decoration: TextDecoration.lineThrough),
+                        ),
+                        const TextSpan(text: '  →  '),
+                        TextSpan(
+                          text: e.correction,
+                          style: TextStyle(color: fb.correct, fontWeight: FontWeight.w700),
+                        ),
+                      ],
+                    ),
+                    style: theme.textTheme.titleMedium,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
-        if (e.translation != null) ...[
-          const SizedBox(height: 16),
-          SubtleText(e.translation!, italic: true, icon: Icons.translate),
-        ],
-      ],
+      ),
     );
   }
 }

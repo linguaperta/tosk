@@ -91,6 +91,15 @@ class _SkillSheetState extends ConsumerState<SkillSheet> {
               Chip(avatar: const Icon(Icons.workspace_premium_outlined, size: 16), label: Text(_tierLabel(stats.tier))),
             ],
           ),
+          if (stats.tier == MapTier.locked) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Recommended first: ${[for (final r in skill.requires)
+                if (course.skill(r) case final req?) pickLang(req.title, lang)].join(', ')}. You can start this one anyway.',
+              key: const ValueKey('skill-locked-hint'),
+              style: theme.textTheme.bodyMedium,
+            ),
+          ],
           const SizedBox(height: 16),
           Text('Lesson focus', style: theme.textTheme.labelLarge),
           const SizedBox(height: 6),

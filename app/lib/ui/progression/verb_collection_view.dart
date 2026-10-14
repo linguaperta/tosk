@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../progression/progression.dart';
+import '../theme/bw_skin.dart';
 import 'progression_colors.dart';
 
 /// Grid of verb cards; each tense is a pill that lights up with mastery.
@@ -202,8 +203,15 @@ class TensePill extends StatelessWidget {
     final decoration = BoxDecoration(
       color: fill,
       borderRadius: BorderRadius.circular(13),
-      border: m == VerbMastery.unseen ? Border.all(color: cs.outlineVariant) : null,
-      boxShadow: m == VerbMastery.mastered
+      // Black & white: unseen gray outline, learning thin, known thick,
+      // mastered inverted (plus the check / sparkle icons).
+      border: isMonochrome(cs)
+          ? Border.all(
+              color: m == VerbMastery.unseen ? kBwGray : kBwBlack,
+              width: m == VerbMastery.known ? 3 : (m == VerbMastery.learning ? 1.5 : kBwBorder),
+            )
+          : (m == VerbMastery.unseen ? Border.all(color: cs.outlineVariant) : null),
+      boxShadow: m == VerbMastery.mastered && !isMonochrome(cs)
           ? [BoxShadow(color: fill.withValues(alpha: 0.6), blurRadius: 8, spreadRadius: 0.5)]
           : null,
     );

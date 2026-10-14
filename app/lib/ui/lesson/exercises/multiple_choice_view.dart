@@ -36,47 +36,53 @@ class _MultipleChoiceViewState extends State<MultipleChoiceView> with ExerciseKe
   Widget build(BuildContext context) {
     final e = widget.exercise;
     final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        InstructionText(e.instruction),
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          child: Text(
-            e.prompt,
-            textAlign: TextAlign.center,
-            style: e.isSentence ? theme.textTheme.titleLarge : theme.textTheme.headlineMedium,
+    return ExerciseLayout(
+      prompt: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          InstructionText(e.instruction),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Text(
+              e.prompt,
+              textAlign: TextAlign.center,
+              style: e.isSentence ? theme.textTheme.titleLarge : theme.textTheme.headlineMedium,
+            ),
           ),
-        ),
-        if (e.hint != null)
-          Center(
-            child: Padding(
-              key: const ValueKey('mc-hint'),
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Text(
-                e.hint!,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                  fontStyle: FontStyle.italic,
+          if (e.hint != null)
+            Center(
+              child: Padding(
+                key: const ValueKey('mc-hint'),
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(
+                  e.hint!,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontStyle: FontStyle.italic,
+                  ),
                 ),
               ),
             ),
-          ),
-        const SizedBox(height: 12),
-        for (var i = 0; i < e.options.length; i++)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: OptionButton(
-              key: ValueKey('option-$i'),
-              number: i + 1,
-              label: e.options[i],
-              large: true,
-              state: choiceState(index: i, selected: _selected, correctIndex: e.correctIndex, result: widget.result),
-              onTap: widget.locked ? null : () => _select(i),
+        ],
+      ),
+      controls: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < e.options.length; i++)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: OptionButton(
+                key: ValueKey('option-$i'),
+                number: i + 1,
+                label: e.options[i],
+                large: true,
+                state: choiceState(index: i, selected: _selected, correctIndex: e.correctIndex, result: widget.result),
+                onTap: widget.locked ? null : () => _select(i),
+              ),
             ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 }

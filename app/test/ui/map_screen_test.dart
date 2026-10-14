@@ -77,8 +77,12 @@ void main() {
     expect(find.text('brood'), findsOneWidget);
   });
 
-  testWidgets("what's fading starts a mixed session", (tester) async {
+  testWidgets("what's fading: hidden on a fresh profile, starts a mixed session", (tester) async {
     await pumpApp(tester);
+    expect(find.byKey(const ValueKey('fading-button')), findsNothing);
+    final store = TestProgressStore();
+    await seedDemoProgress(store, buildDemoItalian(), testNow);
+    await pumpApp(tester, store: store);
     await tapKey(tester, 'fading-button');
     expect(find.byType(PlayerScreen), findsOneWidget);
     expect(find.text("What's fading"), findsNothing); // title only shown on summary
@@ -159,5 +163,23 @@ void main() {
     final g = MapGeometry(layout: layout, availableWidth: 320, zoom: 1);
     expect(g.width, 320); // fits at phone width
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('tapping a locked skill opens its sheet with what to do first', (tester) async {
+    await pumpApp(tester);
+    final node = find.byKey(const ValueKey('skill-node-present-are'));
+    expect(
+      tester.widget<SkillNode>(find.ancestor(of: node, matching: find.byType(SkillNode))).stats.tier,
+      MapTier.locked,
+    );
+    await tester.ensureVisible(node);
+    await tester.pumpAndSettle();
+    await tester.tap(node);
+    await tester.pumpAndSettle();
+    expect(find.byType(PlayerScreen), findsNothing);
+    expect(find.byType(SkillSheet), findsOneWidget);
+    expect(find.byKey(const ValueKey('skill-locked-hint')), findsOneWidget);
+    await tapKey(tester, 'start-lesson');
+    expect(find.byType(PlayerScreen), findsOneWidget);
   });
 }

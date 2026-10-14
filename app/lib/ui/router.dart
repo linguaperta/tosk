@@ -9,6 +9,7 @@ import 'lesson/player_screen.dart';
 import 'lesson/session_request.dart';
 import 'map/map_screen.dart';
 import 'map/skill_sheet.dart';
+import 'mistakes/mistakes_screen.dart';
 import 'nonstop/nonstop_screen.dart';
 import 'progress/progress_screen.dart';
 import 'progress/verb_collection_screen.dart';
@@ -24,6 +25,8 @@ class BottomSheetPage<T> extends Page<T> {
   @override
   Route<T> createRoute(BuildContext context) => ModalBottomSheetRoute<T>(
     settings: this,
+    // From the theme (transparent in black & white: no dimming overlay).
+    modalBarrierColor: Theme.of(context).bottomSheetTheme.modalBarrierColor,
     builder: (_) => child,
     isScrollControlled: true,
     useSafeArea: true,
@@ -88,6 +91,16 @@ GoRouter buildRouter({String initialLocation = Routes.map}) {
         path: Routes.fading,
         parentNavigatorKey: rootNavigatorKey,
         builder: (_, _) => const PlayerScreen(request: FadingRequest()),
+      ),
+      GoRoute(
+        path: Routes.review,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (_, _) => const PlayerScreen(request: ReviewRequest()),
+      ),
+      GoRoute(
+        path: Routes.mistakes,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (_, _) => const MistakesScreen(),
       ),
       GoRoute(
         path: '/play/lab',
