@@ -31,7 +31,11 @@ void main() {
     await goTab(tester, 'Progress');
     expect(find.byType(ProgressScreen), findsOneWidget);
     expect(find.byKey(const ValueKey('progress-profile')), findsOneWidget);
-    expect(find.textContaining('XP in total'), findsOneWidget);
+    // Level and XP are the active course's; the streak section is account-wide.
+    expect(find.byKey(const ValueKey('progress-course')), findsOneWidget);
+    expect(find.textContaining('XP in Italian'), findsOneWidget);
+    expect(find.text('Streak and daily goal · all courses'), findsOneWidget);
+    expect(find.byKey(const ValueKey('progress-streak')), findsOneWidget);
     expect(find.byType(StreakHeatmap), findsOneWidget);
     expect(find.byType(ChallengesList), findsOneWidget);
     await tapKey(tester, 'open-verbs');

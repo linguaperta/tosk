@@ -245,7 +245,12 @@ void main() {
       expect(find.byKey(const ValueKey('source-sentence')), findsOneWidget);
       expect(find.byKey(const ValueKey('word-3')), findsOneWidget); // mela
       expect(find.byKey(const ValueKey('word-1')), findsNothing); // mangio
-      expect(find.text(e.targetDescription), findsOneWidget);
+      // "Change the person": a prominent from → to chip.
+      expect(e.instruction, 'Change the person');
+      expect(find.text('Change the person'), findsOneWidget);
+      expect(find.descendant(of: find.byKey(const ValueKey('transform-target')), matching: find.text('io')), findsOneWidget);
+      expect(find.byKey(const ValueKey('transform-to')), findsOneWidget);
+      expect(tester.widget<Text>(find.byKey(const ValueKey('transform-to'))).data, 'noi');
       for (final w in e.answers.first) {
         await tap(tester, 'tile-${e.tiles.indexOf(w)}');
       }
@@ -318,6 +323,49 @@ void main() {
       final result = Result(correct: true, expected: e.correction, given: '', outcomes: const []);
       await host(tester, SpotErrorView(exercise: e, onChanged: (_) {}, result: result));
       expect(find.textContaining(e.correction), findsWidgets);
+    });
+
+    OptionState tokenState(WidgetTester tester, int i) =>
+        tester.widget<WordTile>(find.byKey(ValueKey('token-$i'))).state;
+
+    Widget checkable(SpotErrorExercise e, Probe p, Result? r) =>
+        SpotErrorView(key: const ValueKey('spot'), exercise: e, onChanged: p.onChanged, result: r);
+
+    Future<void> answerAndCheck(WidgetTester tester, SpotErrorExercise e, int tapIndex) async {
+      final p = Probe();
+      await host(tester, checkable(e, p, null));
+      await tap(tester, 'token-$tapIndex');
+      final ok = tapIndex == e.errorIndex;
+      final r = Result(correct: ok, expected: e.correction, given: e.tokens[tapIndex], outcomes: const []);
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              body: SingleChildScrollView(padding: const EdgeInsets.all(16), child: checkable(e, p, r)),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+    }
+
+    testWidgets('tapping the error word: it shows as correct (not red), with the correction', (tester) async {
+      final e = _first<SpotErrorExercise>();
+      await answerAndCheck(tester, e, e.errorIndex);
+      expect(tokenState(tester, e.errorIndex), OptionState.correct);
+      for (var i = 0; i < e.tokens.length; i++) {
+        if (i != e.errorIndex && e.tokenIsWord[i]) expect(tokenState(tester, i), OptionState.idle);
+      }
+      expect(find.byKey(const ValueKey('spot-correction')), findsOneWidget);
+    });
+
+    testWidgets('tapping another word: it shows as wrong, the error word as the answer', (tester) async {
+      final e = _first<SpotErrorExercise>();
+      final other = [for (var i = 0; i < e.tokens.length; i++) if (i != e.errorIndex && e.tokenIsWord[i]) i].first;
+      await answerAndCheck(tester, e, other);
+      expect(tokenState(tester, other), OptionState.wrong);
+      expect(tokenState(tester, e.errorIndex), OptionState.correct);
+      expect(find.byKey(const ValueKey('spot-correction')), findsOneWidget);
     });
 
     test('groupTokens attaches punctuation', () {

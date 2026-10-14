@@ -13,12 +13,18 @@ import '../text/normalize.dart';
 typedef _Rendered = List<(String, String, bool)>;
 
 class _Plan {
-  _Plan(this.occ, this.target, this.rendered, this.description, {required this.tenseSwap});
+  _Plan(this.occ, this.target, this.rendered, this.description,
+      {required this.tenseSwap, required this.fromLabel, required this.toLabel});
   final FormOccurrence occ;
   final VerbForm target;
   final _Rendered rendered;
   final String description;
   final bool tenseSwap;
+
+  /// The UI's "from → to" chip: tense labels, or person labels (with the
+  /// tense when that changes too).
+  final String fromLabel;
+  final String toLabel;
 }
 
 /// Rebuild a sentence in another tense (or person) from tiles. Trains the
@@ -94,7 +100,12 @@ class TransformTemplate extends ExerciseTemplate {
             forms['$tense.${c.person}']?.form != target?.form);
         if (target != null && !unsurePerson && !_unsureAgreement(o, target, ctx)) {
           final r = _construct(o, target.form, tense, ctx);
-          if (r != null) out.add(_Plan(o, target, r, '→ ${meta.tenseLabel(tense, ctx.lang)}', tenseSwap: true));
+          if (r != null) {
+            out.add(_Plan(o, target, r, '→ ${meta.tenseLabel(tense, ctx.lang)}',
+                tenseSwap: true,
+                fromLabel: meta.tenseLabel(o.tense, ctx.lang),
+                toLabel: meta.tenseLabel(tense, ctx.lang)));
+          }
         }
       }
       if (_personSwapOk(o, ctx)) {
@@ -112,7 +123,15 @@ class TransformTemplate extends ExerciseTemplate {
           final desc = o.tense == tense
               ? '→ ${meta.personLabel(p, ctx.lang)}'
               : '→ ${meta.personLabel(p, ctx.lang)}, ${meta.tenseLabel(tense, ctx.lang)}';
-          out.add(_Plan(o, target, r, desc, tenseSwap: false));
+          final sameTense = o.tense == tense;
+          out.add(_Plan(o, target, r, desc,
+              tenseSwap: false,
+              fromLabel: sameTense
+                  ? meta.personLabel(o.person, ctx.lang)
+                  : '${meta.personLabel(o.person, ctx.lang)}, ${meta.tenseLabel(o.tense, ctx.lang)}',
+              toLabel: sameTense
+                  ? meta.personLabel(p, ctx.lang)
+                  : '${meta.personLabel(p, ctx.lang)}, ${meta.tenseLabel(tense, ctx.lang)}'));
         }
       }
     }
@@ -412,9 +431,12 @@ class TransformTemplate extends ExerciseTemplate {
         id: ctx.nextId(),
         facetId: facet.facetId,
         skillId: ctx.skill?.id,
-        instruction: instruction('transform', ctx.lang),
+        instruction: instruction(p.tenseSwap ? 'transform.tense' : 'transform.person', ctx.lang),
         source: p.occ.sentence.text,
         targetDescription: p.description,
+        change: p.tenseSwap ? TransformChange.tense : TransformChange.person,
+        fromLabel: p.fromLabel,
+        toLabel: p.toLabel,
         tiles: ctx.shuffled([...answers.first, ...d]),
         answers: answers,
         sentenceId: p.occ.sentence.id,

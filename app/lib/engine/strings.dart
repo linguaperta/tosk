@@ -20,7 +20,9 @@ const Map<String, Map<String, String>> _strings = {
     'cloze.form': 'Fill in the right form',
     'cloze.article': 'Fill in the right article',
     'spot_error': 'Tap the wrong word',
-    'transform': 'Rewrite the sentence',
+    'transform': 'Change the sentence',
+    'transform.tense': 'Change the tense',
+    'transform.person': 'Change the person',
   },
   'nl': {
     'flashcard.rec': 'Wat betekent dit?',
@@ -39,7 +41,9 @@ const Map<String, Map<String, String>> _strings = {
     'cloze.form': 'Vul de juiste vorm in',
     'cloze.article': 'Vul het juiste lidwoord in',
     'spot_error': 'Tik op het foute woord',
-    'transform': 'Herschrijf de zin',
+    'transform': 'Verander de zin',
+    'transform.tense': 'Verander de tijd',
+    'transform.person': 'Verander de persoon',
   },
 };
 

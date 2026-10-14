@@ -298,8 +298,18 @@ class NonStopSession extends EngineSession {
   int _bonusLeft = 0;
   Set<ExerciseType>? _bonusTypes;
 
+  /// New facets no exercise could be built for in this run: skipped, so one
+  /// unbuildable facet never blocks every later new facet (the map's
+  /// progress through non-stop alone depends on new facets coming in).
+  final Set<String> _unbuildable = {};
+
   @override
   int? get targetLength => null;
+
+  @override
+  void onGenerateFailed(SessionSlot slot) {
+    if (!states.containsKey(slot.facet.facetId)) _unbuildable.add(slot.facet.facetId);
+  }
 
   /// Skills whose prerequisites are all started.
   List<Skill> unlockedSkills() {
@@ -359,7 +369,9 @@ class NonStopSession extends EngineSession {
     }
 
     _n++;
-    final fresh = [for (final f in pool) if (!st.containsKey(f.facetId)) f];
+    // New facets in skill order (unlocked skills only), so a learner who only
+    // plays non-stop still works through the map.
+    final fresh = [for (final f in pool) if (!st.containsKey(f.facetId) && !_unbuildable.contains(f.facetId)) f];
     final due = _dueSorted(pool, st, now);
     if (_n % newEvery == 0 && fresh.isNotEmpty) return SessionSlot(fresh.first);
     if (due.isNotEmpty) return SessionSlot(due.first);

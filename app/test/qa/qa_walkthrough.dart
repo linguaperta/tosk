@@ -38,7 +38,8 @@ import 'package:sqlite3/sqlite3.dart';
 
 import '../app/app_fixture.dart' show MapBundledPacks;
 import '../fixtures/big_map_course.dart';
-import '../ui/helpers.dart' show answerCurrent, currentExercise, goTab, setSurface, tapKey, testNow;
+import '../ui/helpers.dart'
+    show answerCurrent, currentExercise, goTab, setSurface, startLessonFromMap, tapKey, testNow;
 
 final _out = Directory(Platform.environment['QA_OUT'] ?? 'build/qa');
 const _root = ValueKey('qa-root');
@@ -269,7 +270,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // A lesson on the first skill.
-      await tapKey(tester, 'skill-node-${first.id}');
+      await startLessonFromMap(tester, first.id);
       await playAndShoot(tester, '$variant-10-lesson');
       await tapKey(tester, 'summary-done');
       await shot(tester, '$variant-11-map-after');
@@ -313,7 +314,7 @@ void main() {
       final c = (await tester.runAsync(
         () => ProviderScope.containerOf(tester.element(first)).read(courseDataProvider.future),
       ))!;
-      await tapKey(tester, 'skill-node-${c.skills.first.id}');
+      await startLessonFromMap(tester, c.skills.first.id);
       if (p == 'it') {
         for (var i = 0; i < 40 && !_done; i++) {
           await answerCurrent(tester, wrong: i % 3 == 1);
@@ -361,12 +362,12 @@ void main() {
       await tester.pumpAndSettle();
       await goTab(tester, 'Grammar');
       await shot(tester, '$p-42-grammar');
-      await goTab(tester, 'Map');
-      await tapKey(tester, 'course-switcher');
-      await tapKey(tester, 'manage-courses');
+      await goTab(tester, 'Settings');
+      await tapKey(tester, 'manage-courses-tile');
       await tapKey(tester, 'course-preview-${c.meta.id}');
       await shot(tester, '$p-43-course-picker');
       await tapKey(tester, 'course-picker-done');
+      await goTab(tester, 'Map');
       final grammar = c.skills.where((s) => s.kind == SkillKind.grammar).first;
       await tester.longPress(find.byKey(ValueKey('skill-node-${grammar.id}')));
       await tester.pumpAndSettle();
@@ -391,7 +392,7 @@ void main() {
     await shot(tester, 'dark-02-map-scrolled');
     await tester.drag(mapScroll, const Offset(0, 3000));
     await tester.pumpAndSettle();
-    await tapKey(tester, 'skill-node-${c.skills.first.id}');
+    await startLessonFromMap(tester, c.skills.first.id);
     await playAndShoot(tester, 'dark-10-lesson');
     expect(tester.takeException(), isNull);
   });

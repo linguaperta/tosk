@@ -31,7 +31,7 @@ void main() {
   testWidgets('full lesson: start from the map, answer everything, see the summary, back to the map', (tester) async {
     final store = await pumpApp(tester);
     expect(statsOf(tester, 'greetings').practiced, isFalse);
-    await tapKey(tester, 'skill-node-greetings');
+    await startLessonFromMap(tester, 'greetings');
     expect(find.byType(PlayerScreen), findsOneWidget);
 
     final n = await playToSummary(tester);
@@ -55,7 +55,7 @@ void main() {
 
   testWidgets('wrong answer: feedback shows the expected answer, the mistake comes back and is listed', (tester) async {
     await pumpApp(tester);
-    await tapKey(tester, 'skill-node-greetings');
+    await startLessonFromMap(tester, 'greetings');
     // 1st exercise is a flashcard; answer it, then get the multiple choice wrong.
     await answerCurrent(tester);
     expect(currentExercise(tester).type, ExerciseType.multipleChoice);
@@ -77,7 +77,7 @@ void main() {
 
   testWidgets('progress bar advances', (tester) async {
     await pumpApp(tester);
-    await tapKey(tester, 'skill-node-greetings');
+    await startLessonFromMap(tester, 'greetings');
     double value() => tester.widget<LinearProgressIndicator>(find.byKey(const ValueKey('lesson-progress'))).value!;
     expect(value(), 0);
     await answerCurrent(tester);
@@ -87,7 +87,7 @@ void main() {
 
   testWidgets('exit asks for confirmation', (tester) async {
     await pumpApp(tester);
-    await tapKey(tester, 'skill-node-greetings');
+    await startLessonFromMap(tester, 'greetings');
     await answerCurrent(tester);
     await tapKey(tester, 'player-close');
     expect(find.text('Quit this session?'), findsOneWidget);
@@ -106,7 +106,7 @@ void main() {
 
   testWidgets('desktop shortcuts: Enter reveals/checks/continues, digits pick options', (tester) async {
     await pumpApp(tester, size: const Size(1280, 800));
-    await tapKey(tester, 'skill-node-greetings');
+    await startLessonFromMap(tester, 'greetings');
     expect(currentExercise(tester).type, ExerciseType.flashcard);
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await tester.pumpAndSettle();

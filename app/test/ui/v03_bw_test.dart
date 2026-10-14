@@ -53,14 +53,14 @@ Future<void> walkScreens(WidgetTester tester, Future<void> Function(String what)
   await goTab(tester, 'Progress');
   await scrollDown(tester, find.byKey(const ValueKey('progress-list')), steps: 2);
   await check('progress with tough words');
-  await goTab(tester, 'Map');
-  await tapKey(tester, 'course-switcher');
-  await tapKey(tester, 'manage-courses');
+  await goTab(tester, 'Settings');
+  await tapKey(tester, 'manage-courses-tile');
   await tapKey(tester, 'course-preview-it');
   await check('course picker with preview');
   await scrollDown(tester, scrollableIn('course-picker'));
   await check('course picker (scrolled)');
   await tapKey(tester, 'course-picker-done');
+  await goTab(tester, 'Map');
   final node = find.byKey(const ValueKey('skill-node-present-are'));
   await tester.ensureVisible(node);
   await tester.pumpAndSettle();

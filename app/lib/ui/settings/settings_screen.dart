@@ -6,6 +6,7 @@ import '../../core/core.dart';
 import '../../providers.dart';
 import '../common/async_view.dart';
 import '../courses/course_picker.dart';
+import '../courses/course_updates.dart';
 import '../routes.dart';
 import '../shell/course_switcher.dart';
 import 'ai_settings_section.dart';
@@ -27,6 +28,9 @@ class SettingsScreen extends ConsumerWidget {
     final meta = ref.watch(courseDataProvider).value?.meta ?? courses.where((c) => c.id == activeId).firstOrNull;
     final lang = ref.watch(sourceLangProvider);
     final ctl = ref.read(settingsProvider.notifier);
+    // Course updates (v0.4 downloads): a dot on the course's row.
+    final offers = ref.watch(courseOffersProvider);
+    final anyUpdate = ref.watch(courseUpdateAvailableProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
@@ -43,6 +47,8 @@ class SettingsScreen extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 children: [
                   const _Section('Course'),
+                  // Courses are switched here (the map only shows the title),
+                  // with the "update available" dot on a course's row.
                   for (final c in courses)
                     ListTile(
                       key: ValueKey('course-${c.id}'),
@@ -51,10 +57,13 @@ class SettingsScreen extends ConsumerWidget {
                         children: [
                           Flexible(child: Text(pickLang(c.title, lang), overflow: TextOverflow.ellipsis)),
                           if (c.unverified) ...[const SizedBox(width: 8), const UnverifiedBadge(compact: true)],
+                          if (offers[c.id]?.status == OfferStatus.updateAvailable)
+                            UpdateDot(dotKey: ValueKey('course-update-dot-${c.id}')),
                         ],
                       ),
                       subtitle: Text(
-                        '${ref.read(courseCatalogProvider).isDemo(c.id) ? 'Demo content · ' : ''}v${c.version}',
+                        '${ref.read(courseCatalogProvider).isDemo(c.id) ? 'Demo content · ' : ''}v${c.version}'
+                        '${offers[c.id]?.status == OfferStatus.updateAvailable ? ' · Update available' : ''}',
                       ),
                       selected: c.id == activeId,
                       onTap: () => ctl.change((s) => s.copyWith(courseId: c.id)),
@@ -62,7 +71,17 @@ class SettingsScreen extends ConsumerWidget {
                   ListTile(
                     key: const ValueKey('manage-courses-tile'),
                     leading: const Icon(Icons.library_add_outlined),
-                    title: const Text('Add or remove courses'),
+                    title: Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            anyUpdate ? 'Courses (updates available)' : 'Add or remove courses',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (anyUpdate) const UpdateDot(),
+                      ],
+                    ),
                     onTap: () => showCoursePicker(context),
                   ),
                   SwitchListTile(

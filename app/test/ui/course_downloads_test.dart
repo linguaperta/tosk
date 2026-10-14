@@ -129,13 +129,20 @@ void main() {
     ...extra,
   ];
 
+  // Since v0.3.2 courses are managed in Settings (the map shows only the title).
   Future<void> openPicker(WidgetTester tester) async {
-    await tapKey(tester, 'course-switcher');
-    await tapKey(tester, 'manage-courses');
+    await goTab(tester, 'Settings');
+    await tapKey(tester, 'manage-courses-tile');
     expect(find.byKey(const ValueKey('course-picker')), findsOneWidget);
   }
 
   Finder key(String k) => find.byKey(ValueKey(k));
+
+  /// The update dot lives on Settings' "Add or remove courses" (and the course's row).
+  Future<void> expectDot(WidgetTester tester, Matcher m) async {
+    await goTab(tester, 'Settings');
+    expect(key('course-update-dot'), m);
+  }
 
   /// Scrolls the picker's list from the top until [f] is on screen.
   Future<void> reveal(WidgetTester tester, Finder f) async {
@@ -154,7 +161,11 @@ void main() {
       expect(remote.fetches, 1); // checked on start
       expect(store.settings[SettingKeys.packLastCheck], isNotNull);
       expect(store.settings[SettingKeys.packIndexCache], contains('"es"'));
-      expect(key('course-update-dot'), findsOneWidget); // it (a course of mine) has 1.2.0
+      await expectDot(tester, findsOneWidget); // it (a course of mine) has 1.2.0
+      expect(key('course-update-dot-it'), findsOneWidget);
+      expect(find.text('Courses (updates available)'), findsOneWidget);
+      await goTab(tester, 'Map');
+      expect(key('course-update-dot'), findsNothing); // not on the map
 
       await openPicker(tester);
       expect(key('update-badge'), findsOneWidget);
@@ -198,7 +209,8 @@ void main() {
       expect(key('update-badge'), findsNothing);
       expect(find.byKey(const ValueKey('placement-find')), findsNothing); // an update asks nothing
       await tapKey(tester, 'course-picker-done');
-      expect(key('course-update-dot'), findsNothing);
+      await expectDot(tester, findsNothing);
+      expect(key('course-update-dot-it'), findsNothing);
       expect(tester.takeException(), isNull);
     });
 
@@ -212,7 +224,7 @@ void main() {
       );
       await pumpApp(tester, store: store, overrides: online());
       expect(remote.fetches, 0);
-      expect(key('course-update-dot'), findsOneWidget); // from the cache
+      await expectDot(tester, findsOneWidget); // from the cache
       await openPicker(tester);
       expect(find.textContaining('Last checked'), findsOneWidget);
       // Manual check while offline: a polite message, nothing else changes.
@@ -239,7 +251,7 @@ void main() {
       final store = TestProgressStore(settings: {SettingKeys.autoCheckCourseUpdates: 'false'});
       await pumpApp(tester, store: store, overrides: online());
       expect(remote.fetches, 0);
-      expect(key('course-update-dot'), findsNothing);
+      await expectDot(tester, findsNothing);
       await openPicker(tester);
       await tapKey(tester, 'course-check-updates');
       expect(remote.fetches, 1);
@@ -315,7 +327,8 @@ void main() {
       expect(find.text('Updated Sarnami from v0.1.0 to v0.2.0. Your progress is kept.'), findsOneWidget);
       expect((await store.log(courseId: 'hns')).single.id, 'h1');
       await reveal(tester, key('course-langs-hns'));
-      expect(find.textContaining('v0.2.0'), findsOneWidget);
+      // (Settings, behind the picker, lists the course too.)
+      expect(find.descendant(of: key('course-picker'), matching: find.textContaining('v0.2.0')), findsOneWidget);
 
       failure = CourseFormatException('meta.course_id is missing');
       await reveal(tester, key('course-add-file'));
