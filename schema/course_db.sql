@@ -181,3 +181,37 @@ CREATE TABLE skill_features (
   feature  TEXT NOT NULL,
   PRIMARY KEY (skill_id, feature)
 );
+
+-- Graded mini-stories (docs/ARCHITECTURE.md, "Stories"; additive, schema version stays 1).
+-- A story uses only the vocabulary taught up to its unit (at most one later word, listed in
+-- new_words) and only the grammar features allowed there; the app unlocks it once its unit is
+-- worked through. Packs without stories have empty tables (packs built before them have none).
+CREATE TABLE stories (
+  id        TEXT PRIMARY KEY,          -- 'u1-bar', permanent within the course
+  unit_id   TEXT NOT NULL REFERENCES units(id),
+  ord       INTEGER NOT NULL,          -- order within the unit
+  title     TEXT NOT NULL,             -- target-language title
+  title_tr  TEXT NOT NULL,             -- i18n JSON
+  src       TEXT,                      -- 'claude-gen (story)'
+  new_words TEXT NOT NULL DEFAULT '[]' -- JSON array of item ids taught after the unit (glossed in the reader)
+);
+-- The story's sentences in reading order. They live in sentences + tokens (ids 'st:{storyId}.{n}',
+-- src 'claude-gen (story: {storyId})', tagged in sentence_features), so every word is tappable;
+-- the app keeps them out of the exercise pool.
+CREATE TABLE story_sentences (
+  story_id    TEXT NOT NULL REFERENCES stories(id),
+  idx         INTEGER NOT NULL,        -- 0-based
+  sentence_id TEXT NOT NULL REFERENCES sentences(id),
+  PRIMARY KEY (story_id, idx)
+);
+-- Comprehension questions (multiple choice, exactly one correct option).
+CREATE TABLE story_questions (
+  story_id       TEXT NOT NULL REFERENCES stories(id),
+  idx            INTEGER NOT NULL,     -- 0-based
+  prompt         TEXT,                 -- the question in the target language, or NULL
+  prompt_tr      TEXT NOT NULL,        -- i18n JSON: the question in the source language
+  options        TEXT NOT NULL,        -- JSON array: target-language strings or i18n objects (source language)
+  correct        INTEGER NOT NULL,     -- index into options
+  explanation_tr TEXT NOT NULL DEFAULT '{}', -- i18n JSON: optional explanation shown after answering
+  PRIMARY KEY (story_id, idx)
+);

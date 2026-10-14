@@ -43,7 +43,12 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--quiet", action="store_true", help="gaps: summary lines only")
     p.add_argument("--content-root")
 
-    p = sub.add_parser("flags", help="triage exercise flags exported from the app")
+    p = sub.add_parser("stories", help="check the graded stories of it/nl (content/{course}/stories/*.yaml)")
+    p.add_argument("lang")
+    p.add_argument("--content-root")
+    p.add_argument("--show", help="print the alignment of the stories of this unit ('all' for every unit)")
+
+    p = sub.add_parser("flags",help="triage exercise flags exported from the app")
     fsub = p.add_subparsers(dest="flags_cmd", required=True)
     q = fsub.add_parser("summarize", help="print flags grouped by course/skill/type with the exercise")
     q.add_argument("files", nargs="+", help="tosk-flags-*.jsonl")
@@ -87,6 +92,9 @@ def _run(a) -> int:
     if a.cmd == "gen":
         from .generate import run
         return run(a.action, a.lang, a.content_root, a)
+    if a.cmd == "stories":
+        from .stories import run_check
+        return run_check(a.lang, a.content_root, a.show)
     if a.cmd == "validate":
         from .build import validate_only
         return validate_only(a.langs, a.content_root, local=a.local)

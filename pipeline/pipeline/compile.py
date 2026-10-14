@@ -204,10 +204,13 @@ def compile_pack(pack: Pack, out: Path, built_at: str | None = None) -> dict:
                 con.execute("INSERT INTO skill_facets(skill_id, facet_id, item_id, kind, tense, ord) VALUES (?,?,?,?,?,?)",
                             (skill["id"], fid, iid, kind, tense, o))
                 n_facets += 1
+        from .stories import compile_stories
+        story_stats = compile_stories(con, pack)
         con.commit()
         con.execute("VACUUM")
     finally:
         con.close()
     return {"items": len(pack.items), "verbs": len(pack.verbs), "verb_forms": n_forms,
             "sentences": len(pack.sentences), "tokens": n_tokens, "facets": n_facets, "sentence_features": n_features,
+            **story_stats,
             "built_at": built_at}

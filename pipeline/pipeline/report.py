@@ -93,7 +93,19 @@ def build_report(pack: Pack) -> dict:
         "base_features": sorted(graph.base),
         "features": dict(sorted(feature_counts.items())),
         "sources": source_counts(pack),
+        "stories": _story_counts(pack),
     }
+
+
+def _story_counts(pack: Pack) -> dict:
+    """Stories, sentences and questions per unit (stories.py)."""
+    out: dict[str, list[int]] = {}
+    for s in pack.stories:
+        row = out.setdefault(str(s.get("unit")), [0, 0, 0])
+        row[0] += 1
+        row[1] += len(s.get("sentences") or [])
+        row[2] += len(s.get("questions") or [])
+    return out
 
 
 def source_counts(pack: Pack) -> dict[str, dict[str, int]]:
@@ -127,6 +139,11 @@ def format_report(r: dict, verbose: bool = True) -> str:
                  + ", ".join(f"{k} {v}" for k, v in r["features"].items()))
     for kind, d in (r.get("sources") or {}).items():
         lines.append(f"{kind} per source: " + ", ".join(f"{k} {v}" for k, v in sorted(d.items(), key=lambda kv: -kv[1])))
+    st = r.get("stories") or {}
+    if st:
+        lines.append(f"stories: {sum(v[0] for v in st.values())} ({sum(v[1] for v in st.values())} sentences, "
+                     f"{sum(v[2] for v in st.values())} questions); per unit: "
+                     + ", ".join(f"{u} {v[0]}" for u, v in st.items()))
     lines.append(f"{'skill':<24} {'unit':<4} {'kind':<7} {'items':>5} {'facets':>6} {'sents':>5} {'fit':>5} {'easy':>5}  "
                  "introduces / verb-form coverage (fit sentences)")
     for s in r["skills"]:

@@ -104,7 +104,8 @@ def build(langs, content_root=None, install: bool = False, quiet: bool = False, 
         stats = compile_pack(pack, out)
         print(f"[{code}] compiled {out} ({out.stat().st_size // 1024} KB): {stats['items']} items, "
               f"{stats['verbs']} verbs, {stats['verb_forms']} forms, {stats['sentences']} sentences, "
-              f"{stats['tokens']} tokens, {stats['facets']} skill facets", file=sys.stderr)
+              f"{stats['tokens']} tokens, {stats['facets']} skill facets, {stats['stories']} stories "
+              f"({stats['story_sentences']} sentences, {stats['story_questions']} questions)", file=sys.stderr)
         print(format_report(build_report(pack), verbose=not quiet))
         entries[code] = {
             "id": code,
