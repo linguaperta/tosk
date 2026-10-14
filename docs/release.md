@@ -10,6 +10,8 @@ All commands run from `app/` with Flutter on PATH (`C:\Users\timo\dev\flutter\bi
 | iOS / macOS | `flutter build ipa` / `flutter build macos` | needs a Mac with Xcode |
 | Linux | `flutter build linux` | needs Linux |
 
+Launcher icons and splash screens (v0.6) are generated from the brand kit (`app/assets/brand/icon/`): after the kit changes, run `dart run flutter_launcher_icons` and `dart run flutter_native_splash:create` from `app/` and commit the results (see docs/ui.md, "Brand and mascot").
+
 Plugin requirements (since v0.3):
 
 - **Windows:** nothing beyond the standard Flutter desktop toolchain (Visual Studio Build Tools with the C++ workload; ATL is **not** needed). The pub.dev `flutter_secure_storage_windows` builds a C++ plugin against ATL (`atlstr.h`), so `app/pubspec.yaml` replaces it via `dependency_overrides` with the local pure-Dart package `app/packages/secure_storage_windows_dart/` (same package name, `dartPluginClass` only). It stores the AI key in the Windows Credential Manager through FFI, and no C++ is compiled for it: `windows/flutter/generated_plugins.cmake` lists only `audioplayers_windows`. Check that after upgrading `flutter_secure_storage`. The package has its own tests (`cd app/packages/secure_storage_windows_dart && flutter test`); `flutter test integration_test/secure_storage_test.dart -d windows` round-trips a key through the real Credential Manager.
