@@ -125,7 +125,7 @@ Each item says what "done" means. Add newly discovered work at the bottom of its
 - [ ] Exercises for the item-only grammar skills (plurals, adjective agreement, split separable verbs): needs `#plural`/declension facets (see the declension extension) and alignment of split separable verbs
 - [ ] Italian reflexive/pronominal verbs (excluded by the pipeline today)
 - [x] B/W bug: some TextButton labels render as black blocks (course picker "Preview")
-- [~] Windows build needs ATL because of flutter_secure_storage_windows; replace it with a Dart-only Credential Manager implementation
+- [x] Windows build needs ATL because of flutter_secure_storage_windows; replace it with a Dart-only Credential Manager implementation
 - [ ] Preview 3 APK
 
 
