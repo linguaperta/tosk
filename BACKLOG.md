@@ -198,6 +198,7 @@ Each one at the expanded it/nl scale: 8–10 units, ~30 skills, ~1000 taught wor
 ## v0.6.x: user testing (15 October)
 
 - [ ] **Listening exercises are silent on the phone** (no audio from listen_pick or pronounce buttons). Investigate: TTS engine availability and language on the device (FP5, Android 15), the flutter_tts init, the audio focus/stream, the `<queries>` TTS_SERVICE entry, and the voice check. Deferred by the user to save tokens
+- [ ] All app audio (TTS, correct/wrong/fanfare sounds) on the **media** stream (`USAGE_MEDIA`, controlled by the media volume like YouTube/music apps), not the general/notification stream as now. Set the audio attributes for the sound player and flutter_tts (Android `AudioAttributes`, iOS playback category). Check it together with the silent-TTS bug above; the wrong stream may be part of the cause
 - [x] "Can't listen now (skip for 1 hour)" button on listening exercises: snoozes listen_pick (skipped in running sessions, not generated in new ones); in memory, so a restart ends it
 
 ## Branding: tosk (decided 14 October)
