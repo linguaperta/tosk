@@ -52,8 +52,13 @@ class SessionEnv {
 
 /// What to practice next: a facet, optionally restricted to some types.
 class SessionSlot {
-  const SessionSlot(this.facet, {this.only, this.reask = false, this.avoid, this.fixed});
+  const SessionSlot(this.facet, {this.only, this.reask = false, this.avoid, this.fixed, this.retryType});
   final SkillFacet facet;
+
+  /// A retry asks the facet again with the exercise type that was missed
+  /// when that type can be built (a fresh exercise testing the same thing),
+  /// else with any type ([only] still applies).
+  final ExerciseType? retryType;
 
   /// Serve this exercise as it is instead of generating one (starred
   /// practice replays a starred exercise). Its id must be unique in the session.
@@ -103,6 +108,22 @@ class AnswerEvent {
   final MistakeContext? mistake;
 }
 
+/// A mistake waiting to come back: at the end of a finite session ([due]
+/// null), or once exercise number [due] is reached in an endless one.
+class _Retry {
+  _Retry(this.slot, this.due);
+  final SessionSlot slot;
+  final int? due;
+}
+
+/// When an endless session (non-stop) asks a mistake again: retry n
+/// (1-based) comes `[4·2^(n−1), 8·2^(n−1)]` exercises later, so 4–8, then
+/// 8–16, then 16–32.
+(int, int) endlessRetryGap(int n) {
+  final lo = 4 << (n - 1);
+  return (lo, 2 * lo);
+}
+
 class _Served {
   _Served(this.exercise, this.slot);
   final Exercise exercise;
@@ -133,9 +154,16 @@ String? sentenceIdOf(Exercise e) => switch (e) {
 /// same facet (re-asks or later exercises) write nothing; the first correct
 /// answer after the mistake writes one `Good` (never `Easy`) as the
 /// relearning step; later answers on that facet write nothing. Facets never
-/// answered wrong in the session write an event for every answer.
-abstract class EngineSession implements PracticeSession, OverridableSession {
-  EngineSession(this.env, {required this.mode, required Map<String, FacetState> states, this.maxReasks = 2})
+/// answered wrong in the session write an event for every answer, except in
+/// a retry, which is practice: the retried facet records only its
+/// relearning step.
+///
+/// Retries (docs/engine.md, "Retries"): every wrong exercise comes back
+/// until it is answered right, at most [maxReasks] times per facet. Finite
+/// sessions ask them after the planned exercises, in the order they were
+/// missed; endless ones [endlessRetryGap] exercises later.
+abstract class EngineSession implements PracticeSession, OverridableSession, RetryingSession {
+  EngineSession(this.env, {required this.mode, required Map<String, FacetState> states, this.maxReasks = 3})
       : id = const Uuid().v4(),
         _states = Map.of(states) {
     startedAt = env.now();
@@ -147,7 +175,8 @@ abstract class EngineSession implements PracticeSession, OverridableSession {
   @override
   final SessionMode mode;
 
-  /// How many times one facet may be re-queued after mistakes.
+  /// How many times one facet may come back after mistakes (then it waits
+  /// for mistake review).
   final int maxReasks;
 
   final Map<String, FacetState> _states;
@@ -169,7 +198,7 @@ abstract class EngineSession implements PracticeSession, OverridableSession {
   SentenceHistory? _history;
 
   final Map<String, _Served> _served = {};
-  final List<(int, SessionSlot)> _requeue = []; // (due exercise number, slot)
+  final List<_Retry> _requeue = []; // in the order the mistakes were made
   final Map<String, int> _reaskCount = {};
   final Set<String> _mistaken = {};
   final Set<String> _recovered = {};
@@ -272,27 +301,54 @@ abstract class EngineSession implements PracticeSession, OverridableSession {
   int get correctCount => _correct;
 
   @override
+  int get pendingRetries => _requeue.length;
+
+  @override
+  bool isRetry(String exerciseId) => _served[exerciseId]?.slot.reask ?? false;
+
+  /// The spaced retry (endless sessions) whose turn has come, if any.
+  SessionSlot? _dueRetry(int number) {
+    _Retry? best;
+    for (final r in _requeue) {
+      final due = r.due;
+      if (due != null && due <= number && (best == null || due < best.due!)) best = r;
+    }
+    if (best == null) return null;
+    _requeue.remove(best);
+    return best.slot;
+  }
+
+  /// The next waiting retry once nothing else is planned: the earliest
+  /// mistake (or the earliest due), but not the facet just asked when
+  /// another one is waiting.
+  SessionSlot? _takeRetry() {
+    if (_requeue.isEmpty) return null;
+    final order = [..._requeue]..sort((a, b) => (a.due ?? 0).compareTo(b.due ?? 0));
+    final last = _recentFacets.isEmpty ? null : _recentFacets.last;
+    final r = order.firstWhere((r) => r.slot.facet.facetId != last, orElse: () => order.first);
+    _requeue.remove(r);
+    return r.slot;
+  }
+
+  @override
   Future<Exercise?> next() async {
     if (_stopped) return null;
     await prepare();
     for (var attempt = 0; attempt < 60; attempt++) {
       final number = _servedTotal + 1;
-      SessionSlot? slot;
-      final dueIdx = _requeue.indexWhere((r) => r.$1 <= number);
-      if (dueIdx >= 0) {
-        slot = _requeue.removeAt(dueIdx).$2;
-      } else if (targetLength == null || _servedPlanned < targetLength!) {
+      var slot = _dueRetry(number);
+      if (slot == null && (targetLength == null || _servedPlanned < targetLength!)) {
         slot = nextSlot();
       }
-      if (slot == null && _requeue.isNotEmpty) {
-        slot = _requeue.removeAt(0).$2;
-      }
+      slot ??= _takeRetry();
       if (slot == null) {
         await saveSentenceHistory();
         return null;
       }
       final ex = _generate(slot);
       if (ex == null) {
+        // A retry that can't be built any more drops out of the count.
+        if (slot.reask) _requeuedTotal--;
         onGenerateFailed(slot);
         continue;
       }
@@ -318,6 +374,20 @@ abstract class EngineSession implements PracticeSession, OverridableSession {
       return fixed;
     }
     final ctx = genContext(slot.facet);
+    final retry = slot.retryType;
+    if (retry != null && (slot.only == null || slot.only!.contains(retry))) {
+      // A retry tests the same thing: the missed type first (a fresh
+      // exercise, usually another sentence), any type only when it can't be built.
+      final same = env.selector.generate(
+        slot.facet,
+        ctx,
+        focus: focus,
+        only: {retry},
+        ignoreSkillRestriction: ignoreSkillRestriction,
+        recent: const [],
+      );
+      if (same != null) return same;
+    }
     return env.selector.generate(
       slot.facet,
       ctx,
@@ -374,16 +444,25 @@ abstract class EngineSession implements PracticeSession, OverridableSession {
     final events = <ReviewEvent>[];
     final newStates = <String, FacetState>{};
     MistakeContext? mistake;
+    final slot = served?.slot;
+    final retried = slot != null && slot.reask ? slot.facet.facetId : null;
     for (final o in result.outcomes) {
+      // Another word of a partly right answer: only facets the learner studies.
+      if (o.secondary && !await _gradesSecondary(o.facetId)) continue;
       _practiced.add(o.facetId);
       // An answered facet starts its skills: their grammar and words count as known from now on.
       _gate?.markStarted(env.course.skillsForFacet(o.facetId));
       Rating? rating;
-      if (!_mistaken.contains(o.facetId)) {
+      final mistaken = _mistaken.contains(o.facetId);
+      if (mistaken) {
+        // The relearning step: the first fully right answer after the mistake.
+        if (o.correct && !o.partial && !_recovered.contains(o.facetId)) {
+          rating = o.rating == Rating.easy ? Rating.good : o.rating;
+          _recovered.add(o.facetId);
+        }
+      } else if (o.facetId != retried) {
+        // A retry is practice: its facet's first attempt was graded already.
         rating = o.rating;
-      } else if (o.correct && !_recovered.contains(o.facetId)) {
-        rating = o.rating == Rating.easy ? Rating.good : o.rating;
-        _recovered.add(o.facetId);
       }
       String? eventId;
       if (rating != null) {
@@ -395,7 +474,8 @@ abstract class EngineSession implements PracticeSession, OverridableSession {
           exerciseType: exercise.type.id,
           inputMode: answer.inputMode,
           responseMs: elapsed.inMilliseconds,
-          correct: o.correct,
+          // Partial credit: rated Good, but the answer was a mistake.
+          correct: o.correct && !o.partial,
           answer: result.given,
           sessionId: id,
           mode: mode.name,
@@ -406,11 +486,11 @@ abstract class EngineSession implements PracticeSession, OverridableSession {
         _states[o.facetId] = st;
         newStates[o.facetId] = st;
       }
-      if (!o.correct && !_mistaken.contains(o.facetId)) {
+      if (!o.correct && !mistaken) {
         _mistaken.add(o.facetId);
         _mistakeOrder.add(o.facetId);
-        final ctx = _mistakeContext(exercise, result, o.facetId, served?.slot, now);
-        mistake ??= ctx;
+        final ctx = _mistakeContext(exercise, result, o.facetId, served?.slot, now, secondary: o.secondary);
+        if (!o.secondary) mistake ??= ctx;
         await env.store.saveMistake(MistakeRecord(
           id: eventId ?? const Uuid().v4(),
           facetId: o.facetId,
@@ -423,7 +503,16 @@ abstract class EngineSession implements PracticeSession, OverridableSession {
           note: ctx.note,
         ));
       }
-      if (!o.correct) _requeueFacet(o.facetId, exercise, served?.slot);
+    }
+    // The wrong exercise comes back: its wrong facets (not the other words of
+    // a partly right sentence), or its own facet when only those were wrong.
+    final again = <String>{
+      for (final o in result.outcomes)
+        if (!o.correct && !o.secondary) o.facetId,
+    };
+    if (!result.correct && again.isEmpty) again.add(exercise.facetId);
+    for (final f in again) {
+      _requeueFacet(f, exercise, slot);
     }
     if (!result.correct && mistake == null) {
       // Wrong again on a facet that already has a mistake record: keep a
@@ -452,16 +541,33 @@ abstract class EngineSession implements PracticeSession, OverridableSession {
     return result;
   }
 
+  /// Queues [facetId] to come back (at most [maxReasks] times, once at a time).
   void _requeueFacet(String facetId, Exercise exercise, SessionSlot? slot) {
     final count = _reaskCount[facetId] ?? 0;
     if (count >= maxReasks || _stopped) return;
+    if (_requeue.any((r) => r.slot.facet.facetId == facetId)) return;
     final facet = (slot != null && slot.facet.facetId == facetId) ? slot.facet : facetFor(facetId, exercise.skillId);
     if (facet == null) return;
     _reaskCount[facetId] = count + 1;
-    final offset = 2 + env.random.nextInt(3); // 2..4 exercises later
-    _requeue.add((_servedTotal + offset, SessionSlot(facet, only: slot?.only, reask: true, avoid: exercise.type)));
-    _requeue.sort((a, b) => a.$1.compareTo(b.$1));
+    int? due;
+    if (targetLength == null) {
+      final (lo, hi) = endlessRetryGap(count + 1);
+      due = _servedTotal + lo + env.random.nextInt(hi - lo + 1);
+    }
+    _requeue.add(_Retry(SessionSlot(facet, only: slot?.only, reask: true, retryType: exercise.type), due));
     _requeuedTotal++;
+  }
+
+  /// A secondary outcome is graded only for a facet the course trains and the
+  /// learner has studied: a lapse never introduces a new word.
+  Future<bool> _gradesSecondary(String facetId) async {
+    if (env.course.skillsForFacet(facetId).isEmpty) return false;
+    if (_states.containsKey(facetId)) return true;
+    try {
+      return await env.store.state(facetId) != null;
+    } catch (_) {
+      return false;
+    }
   }
 
   /// The [SkillFacet] for [facetId], preferring [skillId].
@@ -476,9 +582,12 @@ abstract class EngineSession implements PracticeSession, OverridableSession {
     return null;
   }
 
-  MistakeContext _mistakeContext(Exercise e, Result r, String facetId, SessionSlot? slot, DateTime at) {
+  MistakeContext _mistakeContext(Exercise e, Result r, String facetId, SessionSlot? slot, DateTime at, {bool secondary = false}) {
     final course = env.course;
-    final skillId = e.skillId ?? slot?.facet.skillId ?? course.skillsForFacet(facetId).firstOrNull;
+    // Another word of the sentence: its own skill's note.
+    final skillId = secondary
+        ? course.skillsForFacet(facetId).firstOrNull
+        : e.skillId ?? slot?.facet.skillId ?? course.skillsForFacet(facetId).firstOrNull;
     final sentenceId = sentenceIdOf(e);
     return MistakeContext(
       courseId: course.meta.id,
@@ -535,9 +644,19 @@ abstract class EngineSession implements PracticeSession, OverridableSession {
       _mistakeOrder.remove(e.facetId);
       _reaskCount.remove(e.facetId);
       final before = _requeue.length;
-      _requeue.removeWhere((r) => r.$2.reask && r.$2.facet.facetId == e.facetId);
+      _requeue.removeWhere((r) => r.slot.facet.facetId == e.facetId);
       _requeuedTotal -= before - _requeue.length;
     }
+    // The answer was right: it doesn't come back, even where it recorded
+    // nothing (a retry) or nothing wrong.
+    final again = {
+      served.exercise.facetId,
+      for (final o in served.result!.outcomes)
+        if (!o.correct && !o.secondary) o.facetId,
+    };
+    final before = _requeue.length;
+    _requeue.removeWhere((r) => again.contains(r.slot.facet.facetId));
+    _requeuedTotal -= before - _requeue.length;
     _mistakes.remove(exerciseId);
     return written;
   }

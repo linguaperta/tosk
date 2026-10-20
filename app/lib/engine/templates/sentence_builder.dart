@@ -7,6 +7,7 @@ import '../gen_context.dart';
 import '../grading/rating.dart';
 import '../strings.dart';
 import '../template.dart';
+import '../text/answer_diff.dart';
 import '../text/normalize.dart';
 import 'alterations.dart';
 
@@ -150,6 +151,24 @@ class SentenceBuilderTemplate extends ExerciseTemplate {
   @override
   Result grade(Exercise exercise, Answer answer, {required Duration elapsed, GradeOptions options = const GradeOptions()}) {
     final e = exercise as SentenceBuilderExercise;
-    return gradeTiles(e, answer, e.answers, elapsed: elapsed, grade: options);
+    // The canonical answer is shown as the sentence itself (case,
+    // punctuation) and carries its alignment: per-facet credit maps its words.
+    final aligned = e.answerTokens == null ? null : alignedTokens(e.answerTokens!);
+    final accepted = [
+      for (var i = 0; i < e.answers.length; i++)
+        if (i == 0 && aligned != null && sameWords(aligned, textTokens(e.answers[0].join(' '))))
+          aligned
+        else
+          textTokens(e.answers[i].join(' ')),
+    ];
+    return gradeTiles(
+      e,
+      answer,
+      e.answers,
+      elapsed: elapsed,
+      grade: options,
+      accepted: accepted,
+      credit: (d) => creditByAlignment(e.facetId, d),
+    );
   }
 }

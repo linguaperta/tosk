@@ -7,6 +7,7 @@ import '../gen_context.dart';
 import '../grading/rating.dart';
 import '../strings.dart';
 import '../template.dart';
+import '../text/answer_diff.dart';
 import '../text/normalize.dart';
 
 /// A rewritten sentence: (pre, text, isWord) per displayed token.
@@ -485,6 +486,22 @@ class TransformTemplate extends ExerciseTemplate {
   @override
   Result grade(Exercise exercise, Answer answer, {required Duration elapsed, GradeOptions options = const GradeOptions()}) {
     final e = exercise as TransformExercise;
-    return gradeTiles(e, answer, e.answers, elapsed: elapsed, grade: options);
+    final accepted = [for (final ws in e.answers) textTokens(ws.join(' '))];
+    final source = textTokens(e.source);
+    return gradeTiles(
+      e,
+      answer,
+      e.answers,
+      elapsed: elapsed,
+      grade: options,
+      accepted: accepted,
+      // The words the transform changes carry the tested form; the others
+      // are copied from the given sentence, so a slip there is no lapse of
+      // any word (no secondary outcomes).
+      credit: (d) {
+        final changed = changedWords(source, accepted[d.answerIndex]);
+        return changed.isEmpty ? null : (target: changed, others: const <int, String>{});
+      },
+    );
   }
 }

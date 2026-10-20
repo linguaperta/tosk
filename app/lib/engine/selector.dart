@@ -72,8 +72,8 @@ class ExerciseSelector {
   /// focus is ignored (e.g. a vocab-focus lesson on a pure grammar skill), and
   /// as a last resort every allowed type is tried.
   ///
-  /// Variety: within each of those tiers, [avoid] (the previous exercise's
-  /// type, or the type a re-asked mistake was missed with) is only tried after
+  /// Variety: within each of those tiers, [avoid] (usually the previous
+  /// exercise's type) is only tried after
   /// every other type of the tier failed, and types among [recent] (the last
   /// few exercises' types) weigh [recentFactor] less per occurrence.
   Exercise? generate(

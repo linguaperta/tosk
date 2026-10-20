@@ -10,6 +10,7 @@ import '../core/models/facet.dart';
 import '../core/models/progress.dart';
 import 'gen_context.dart';
 import 'grading/rating.dart';
+import 'text/answer_diff.dart';
 import 'text/normalize.dart';
 
 /// Generates and grades one [ExerciseType] from course data.
@@ -116,17 +117,40 @@ Result gradeChoice(
   );
 }
 
+/// Partial credit for a partly right sentence answer, by token index into
+/// [AnswerDiff.expected]: the words that carry the tested facet ([target];
+/// that facet is right when all of them are right, in place or moved) and
+/// the facet each other aligned word trains ([others]; graded only when the
+/// word is wrong or missing). Null: no facet mapping for this answer.
+typedef PartialCredit = ({Set<int> target, Map<int, String> others});
+
+/// Facet mapping of the closest accepted answer of a diff.
+typedef CreditMap = PartialCredit? Function(AnswerDiff diff);
+
 /// Grades a tile sequence (or typed text) against accepted word sequences.
 /// Tapped tiles are compared with exact diacritics; typed/ink answers use the
 /// strictness setting. Word boundaries after elisions are ignored
 /// (`l' acqua` == `l'acqua`).
+///
+/// A wrong answer gets a [Result.diff] against the closest accepted answer
+/// ([accepted]: display tokens parallel to [answers], with alignment where
+/// known; by default the answers' words). When the diff is
+/// [AnswerDiff.partial] and [credit] maps its words to facets, the outcomes
+/// give per-facet credit ([partialOutcomes]).
 Result gradeTiles(
   Exercise e,
   Answer a,
   List<List<String>> answers, {
   required Duration elapsed,
   required GradeOptions grade,
+  List<List<TokenRef>>? accepted,
+  CreditMap? credit,
 }) {
+  final parts = switch (a) {
+    TilesAnswer(:final words) => words,
+    TextAnswer(:final text) => [text],
+    _ => const <String>[],
+  };
   final given = switch (a) {
     TilesAnswer(:final words) => words.join(' '),
     TextAnswer(:final text) => text,
@@ -135,15 +159,67 @@ Result gradeTiles(
   final strict = a.inputMode == InputMode.tap ? AccentStrictness.strict : grade.accents;
   final candidates = a is TextAnswer ? a.candidates : const <String>[];
   final m = matchAnswer(given, [for (final ws in answers) ws.join(' ')], strict, candidates: candidates);
+  final diff = m.correct || parts.isEmpty
+      ? null
+      : bestAnswerDiff(parts, accepted ?? [for (final ws in answers) textTokens(ws.join(' '))], strict);
   return Result(
     correct: m.correct,
     expected: answers.first.join(' '),
     given: given,
     accentSlip: m.accentSlip,
-    outcomes: [
-      rateOutcome(e.type, e.facetId, correct: m.correct, elapsed: elapsed, options: grade, accentSlip: m.accentSlip),
-    ],
+    diff: diff,
+    outcomes: partialOutcomes(e, diff, credit) ??
+        [
+          rateOutcome(e.type, e.facetId, correct: m.correct, elapsed: elapsed, options: grade, accentSlip: m.accentSlip),
+        ],
   );
+}
+
+/// Per-facet outcomes of a partly right answer, or null for whole-answer
+/// grading (no diff, not [AnswerDiff.partial], no mapping, or no word of the
+/// answer carries the tested facet). The tested facet is right (Good, never
+/// Easy: the answer was wrong) when all its words are right, else Again;
+/// every other mapped facet with a wrong or missing word gets Again as a
+/// [FacetOutcome.secondary] outcome.
+List<FacetOutcome>? partialOutcomes(Exercise e, AnswerDiff? diff, CreditMap? credit) {
+  if (diff == null || credit == null || !diff.partial) return null;
+  final c = credit(diff);
+  if (c == null || c.target.isEmpty) return null;
+  bool ok(int j) => diff.expected[j].mark == DiffMark.same || diff.expected[j].mark == DiffMark.moved;
+  final targetOk = c.target.every(ok);
+  final others = <String>{
+    for (final MapEntry(key: j, value: f) in c.others.entries)
+      if (f != e.facetId && !c.target.contains(j) && !ok(j)) f,
+  };
+  return [
+    FacetOutcome(
+      facetId: e.facetId,
+      correct: targetOk,
+      rating: targetOk ? Rating.good : Rating.again,
+      partial: targetOk,
+    ),
+    for (final f in others) FacetOutcome(facetId: f, correct: false, rating: Rating.again, secondary: true),
+  ];
+}
+
+/// Partial credit by alignment: the words aligned to the tested facet's item
+/// carry it; every other aligned word maps to [facetOfToken].
+PartialCredit? creditByAlignment(String facetId, AnswerDiff diff) {
+  final hash = facetId.indexOf('#');
+  final item = hash < 0 ? facetId : facetId.substring(0, hash);
+  final target = <int>{};
+  final others = <int, String>{};
+  for (var j = 0; j < diff.expected.length; j++) {
+    final t = diff.expected[j];
+    if (!t.isWord || t.itemId == null) continue;
+    if (t.itemId == item) {
+      target.add(j);
+    } else {
+      final f = facetOfToken(t.itemId, t.form);
+      if (f != null) others[j] = f;
+    }
+  }
+  return target.isEmpty ? null : (target: target, others: others);
 }
 
 String _given(Answer a) => switch (a) {

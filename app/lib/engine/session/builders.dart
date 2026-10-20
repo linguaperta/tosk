@@ -80,7 +80,7 @@ class LessonPlan {
 }
 
 /// About 12 exercises from one skill: due facets, then up to 5 new facets,
-/// then filler. Mistakes come back 2–4 exercises later (see [EngineSession]).
+/// then filler. Mistakes come back after the planned exercises (see [EngineSession]).
 class LessonBuilder {
   const LessonBuilder(this.skill, this.focus, {this.length = 12, this.maxNew = 5});
 
