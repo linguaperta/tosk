@@ -123,7 +123,7 @@ Each item says what "done" means. Add newly discovered work at the bottom of its
 - [x] Black & white (e-ink) mode for the Boox: pure B/W skin, nothing conveyed by color (icons, labels, patterns, inverted fills), reduce motion forced on. Tested: grayscale-only assertions on every screen and exercise type, goldens, overflow at Boox and phone sizes
 - [x] QA leftovers: `ciao` MC offers "hello" as a distractor (synonym data); instruction can slide under the app bar on tall exercises; a "jump to current unit" button on long maps
 - [x] Exercises for the item-only grammar skills (plurals, adjective agreement, split separable verbs): needs `#plural`/declension facets (see the declension extension) and alignment of split separable verbs
-- [ ] Italian reflexive/pronominal verbs (excluded by the pipeline today)
+- [x] Italian reflexive/pronominal verbs (it 1.3.0)
 - [x] B/W bug: some TextButton labels render as black blocks (course picker "Preview")
 - [x] Windows build needs ATL because of flutter_secure_storage_windows; replace it with a Dart-only Credential Manager implementation
 - [x] Content fixes: nl perfect + double infinitive tagged, "laat" adjective, uncountables, de|het nouns, it imperatives, translation sanity check (dropped 643 it / 249 nl bad pairs)
@@ -216,6 +216,13 @@ Each one at the expanded it/nl scale: 8–10 units, ~30 skills, ~1000 taught wor
 - [ ] Check the twinkle/leaf feel and frame cost on a real phone; gold laurel and hairline cracks may be too subtle at map size (tunable in `branch-style.json`); leaves only react to vertical scrolling
 - [ ] Retry edge cases: a wrong article maps to the article item's facet (not the noun's `#article`); sentence-builder answers closest to an alternative sentence get whole-answer grading
 
+## Italian 1.3.0 (21 October)
+
+- [x] it 1.3.0: 15 units, 78 skills, 1,507 taught words, 45k sentences (18% generated, validated), 30 stories; reflexives, imperative (+ pronouns), ci/ne, combined pronouns, condizionale, comparatives, stare + gerund, impersonal si, congiuntivo presente/imperfetto, passato remoto as a recognition-only skill, relatives. Pack format 1.1 (`recognition`, `required_translations`, `tense_persons`/`tense_groups`), min app 0.7.3. Published as packs-20261021 with nl 1.2.1 and es 1.0.1
+- [ ] it: formal Lei shown as "lui/lei (he/she)" in hints; four slots under the sentence floor (sparire noi, preoccuparsi tu imperative, sentirsi loro / pensare io congiuntivo imperfetto)
+- [ ] Pack size: it is 41.5 MB (APK 41.8 MB); consider a slimmer sentence pool or not bundling packs in the APK
+- [ ] Optional: rewrite the tosk-data history too (old commits and old dist packs still carry the old name)
+
 ## Web app (QA 20 October)
 
 - [x] Web QA pass and fixes: first load ~10 MB (packs from the mirror instead of bundled), offline app shell after one visit, async web voices, flutter_tts web replay fix, typed-answer focus on desktop, English sign-in button, centred Lab on wide windows (`docs/release.md` "Web app QA")
@@ -231,7 +238,7 @@ Each one at the expanded it/nl scale: 8–10 units, ~30 skills, ~1000 taught wor
 - [x] Sparklier gold, silver and bronze node states (rings, rays, twinkles; animated only with motion on)
 - [x] Map art kit: branch segment, fork and join pieces, an optional trunk spine, node states, leaves, a Tosk position marker (colour + e-ink). Decide top-down vs bottom-up (roots first) scrolling
 - [x] In-app branding (v0.6.0): app name "tosk", launcher icons (adaptive Android, iOS, web, Windows) from the storybook icon, splash, Tosk on empty states and the summary, a wordmark in the header
-- [ ] Rename repos/package ids (decided 20 Oct: app id `org.linguaperta.tosk`, repos `linguaperta/tosk` + `linguaperta/tosk-data`); licences decided (Apache-2.0 code, CC BY-SA 4.0 packs, brand CC BY-NC-ND 4.0). Go-public checklist: `docs/hosting.md`
+- [x] Rename repos/package ids (done 20–21 Oct; decided 20 Oct: app id `org.linguaperta.tosk`, repos `linguaperta/tosk` + `linguaperta/tosk-data`); licences decided (Apache-2.0 code, CC BY-SA 4.0 packs, brand CC BY-NC-ND 4.0). Go-public checklist: `docs/hosting.md`
 
 ## v0.8: pack toolkit (the pack format is the product; see docs/VISION.md)
 
