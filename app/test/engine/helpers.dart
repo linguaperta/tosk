@@ -11,6 +11,7 @@ Answer correctAnswer(Exercise e) => switch (e) {
       ClozeExercise() => e.options != null ? ChoiceAnswer(e.correctIndex!) : TextAnswer(e.expected),
       SpotErrorExercise() => TokenAnswer(e.errorIndex),
       TransformExercise() => TilesAnswer(e.answers.first),
+      ListenPickExercise() => ChoiceAnswer(e.correctIndex),
     };
 
 /// A wrong answer for every facet of [e].
@@ -29,4 +30,5 @@ Answer wrongAnswer(Exercise e) => switch (e) {
           ? e.tokenIsWord.lastIndexWhere((w) => w)
           : e.tokenIsWord.indexWhere((w) => w)),
       TransformExercise() => const TilesAnswer(['xxx']),
+      ListenPickExercise() => ChoiceAnswer((e.correctIndex + 1) % e.options.length),
     };

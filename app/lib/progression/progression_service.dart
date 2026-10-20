@@ -32,7 +32,9 @@ class ProgressionConfig {
   final NonStopRules nonStop;
 }
 
-/// The header numbers: XP, level, streak, today's reviews.
+/// The header numbers. XP, level and the review counts are the **course's**
+/// (progress is per language); the streak, freezes and the daily goal's
+/// [accountTodayXp] / [accountTodayReviews] cover every course.
 @immutable
 class ProgressProfile {
   const ProgressProfile({
@@ -43,15 +45,31 @@ class ProgressProfile {
     required this.todayXp,
     required this.totalReviews,
     required this.today,
-  });
+    int? accountTodayXp,
+    int? accountTodayReviews,
+  }) : accountTodayXp = accountTodayXp ?? todayXp,
+       accountTodayReviews = accountTodayReviews ?? todayReviews;
 
+  /// This course's total XP.
   final int totalXp;
+
+  /// This course's level.
   final LevelInfo level;
+
+  /// Account-wide: every course's practice days count.
   final StreakInfo streak;
+
+  /// This course's reviews and XP today.
   final int todayReviews;
   final int todayXp;
+
+  /// This course's reviews ever.
   final int totalReviews;
   final LocalDate today;
+
+  /// Account-wide XP and reviews today (the daily goal).
+  final int accountTodayXp;
+  final int accountTodayReviews;
 
   int get currentStreak => streak.current;
   int get longestStreak => streak.longest;
@@ -61,12 +79,18 @@ class ProgressProfile {
 /// Everything progression shows, recomputed from the review log on demand.
 ///
 /// Each query re-reads the full log from [store] (cheap: a few thousand rows)
-/// and updates an incremental [LogReplay]; when the log only grew at the end,
-/// only new events are replayed, otherwise (sync merge) the replay is rebuilt.
-/// Results never depend on cached counters, so they always equal a full replay.
+/// and updates two incremental [LogReplay]s, one over the whole log and one
+/// over [course]'s events (facet ids `{courseId}:...`); when the log only grew
+/// at the end, only new events are replayed, otherwise (sync merge) the
+/// replay is rebuilt. Results never depend on cached counters, so they always
+/// equal a full replay.
 ///
-/// XP, level, streak, heatmap, challenges and badges cover the whole log (all
-/// courses); skill tiers and the verb collection cover [course].
+/// Progress is per language: XP, level, challenges, badges (challenge and
+/// level badges), skill tiers, the verb collection, non-stop records and
+/// session summaries cover [course] only. Account-wide: the streak, freezes,
+/// streak badges, the heatmap and the daily goal's XP per day ([xpByDay]).
+/// A facet's replay depends only on its own events, so the course replay's
+/// states and per-event XP equal the whole log's.
 class ProgressionService {
   ProgressionService({
     required this.store,
@@ -77,7 +101,8 @@ class ProgressionService {
     this.config = const ProgressionConfig(),
   })  : clock = clock ?? DateTime.now,
         calendar = calendar ?? LocalCalendar.system(),
-        _replay = LogReplay(scheduler: scheduler, xpRules: config.xp);
+        _replay = LogReplay(scheduler: scheduler, xpRules: config.xp),
+        _courseReplay = LogReplay(scheduler: scheduler, xpRules: config.xp);
 
   final ProgressStore store;
   final Scheduler scheduler;
@@ -86,67 +111,96 @@ class ProgressionService {
   final LocalCalendar calendar;
   final ProgressionConfig config;
 
+  /// Every course: streaks, freezes, the heatmap and the daily goal.
   final LogReplay _replay;
 
-  // Derived caches, valid for _cacheVersion.
-  int _cacheVersion = -1;
+  /// [course]'s events only: everything else.
+  final LogReplay _courseReplay;
+
+  // Derived caches, valid for _allVersion / _courseVersion.
+  int _allVersion = -1;
+  int _courseVersion = -1;
   Map<LocalDate, int>? _dayCounts;
   Map<LocalDate, int>? _dayXp;
+  Map<LocalDate, int>? _courseDayCounts;
+  Map<LocalDate, int>? _courseDayXp;
   ChallengeFacts? _facts;
   List<NonStopRecord>? _runs;
 
-  /// The replay as of the last query (read-only use).
-  LogReplay get replay => _replay;
+  /// The course replay as of the last query (read-only use).
+  LogReplay get replay => _courseReplay;
 
-  /// Pulls the log from the store and updates the replay.
+  /// The whole-log replay (every course) as of the last query.
+  LogReplay get accountReplay => _replay;
+
+  /// Whether [e] belongs to [course] (facet ids start with `{courseId}:`).
+  bool inCourse(ReviewEvent e) => e.facetId.startsWith('${course.meta.id}:');
+
+  /// Pulls the log from the store and updates both replays.
   Future<LogReplay> refresh() async {
-    _replay.update(await store.log());
-    if (_cacheVersion != _replay.version) {
-      _cacheVersion = _replay.version;
+    final log = await store.log();
+    _replay.update(log);
+    _courseReplay.update(log.where(inCourse));
+    if (_allVersion != _replay.version) {
+      _allVersion = _replay.version;
       _dayCounts = null;
       _dayXp = null;
+    }
+    if (_courseVersion != _courseReplay.version) {
+      _courseVersion = _courseReplay.version;
+      _courseDayCounts = null;
+      _courseDayXp = null;
       _facts = null;
       _runs = null;
     }
-    return _replay;
+    return _courseReplay;
   }
 
-  Map<LocalDate, int> get _counts =>
-      _dayCounts ??= dayCountsOf(_replay.steps.map((s) => s.event), calendar);
+  /// Reviews per local date, every course (streaks, freezes, heatmap).
+  Map<LocalDate, int> get _counts => _dayCounts ??= dayCountsOf(_replay.steps.map((s) => s.event), calendar);
 
-  Map<LocalDate, int> get _xpByDay {
-    final cached = _dayXp;
-    if (cached != null) return cached;
+  Map<LocalDate, int> get _courseCounts =>
+      _courseDayCounts ??= dayCountsOf(_courseReplay.steps.map((s) => s.event), calendar);
+
+  static Map<LocalDate, int> _xpPerDay(LogReplay r, LocalCalendar calendar) {
     final m = <LocalDate, int>{};
-    for (final s in _replay.steps) {
+    for (final s in r.steps) {
       final d = calendar.dateOf(s.event.at);
       m[d] = (m[d] ?? 0) + s.xp;
     }
-    return _dayXp = m;
+    return m;
   }
 
+  /// XP per local date, every course (the daily goal).
+  Map<LocalDate, int> get _xpByDay => _dayXp ??= _xpPerDay(_replay, calendar);
+
+  Map<LocalDate, int> get _courseXpByDay => _courseDayXp ??= _xpPerDay(_courseReplay, calendar);
+
   ChallengeFacts get _challengeFacts =>
-      _facts ??= ChallengeFacts.build(_replay.steps, calendar, nonStopRules: config.nonStop);
+      _facts ??= ChallengeFacts.build(_courseReplay.steps, calendar, nonStopRules: config.nonStop);
 
   StreakInfo _streak(LocalDate today) => computeStreak(_counts, today: today, rules: config.streaks);
 
-  /// Total XP, level, streak, freezes and today's count.
+  /// The course's XP, level and counts; the account's streak, freezes and
+  /// today's XP (daily goal).
   Future<ProgressProfile> profile([DateTime? now]) async {
     await refresh();
     final today = calendar.dateOf(now ?? clock());
-    final total = _replay.totalXp;
+    final total = _courseReplay.totalXp;
     return ProgressProfile(
       totalXp: total,
       level: config.levels.levelFor(total),
       streak: _streak(today),
-      todayReviews: _counts[today] ?? 0,
-      todayXp: _xpByDay[today] ?? 0,
-      totalReviews: _replay.length,
+      todayReviews: _courseCounts[today] ?? 0,
+      todayXp: _courseXpByDay[today] ?? 0,
+      totalReviews: _courseReplay.length,
       today: today,
+      accountTodayXp: _xpByDay[today] ?? 0,
+      accountTodayReviews: _counts[today] ?? 0,
     );
   }
 
-  /// XP earned per local date (whole log), for the daily goal.
+  /// XP earned per local date (whole log, every course), for the daily goal.
   Future<Map<LocalDate, int>> xpByDay() async {
     await refresh();
     return Map.unmodifiable(_xpByDay);
@@ -157,15 +211,30 @@ class ProgressionService {
     await refresh();
     return computeSkillProgress(
       course: course,
-      states: _replay.states,
+      states: _courseReplay.states,
       scheduler: scheduler,
       now: (now ?? clock()).toUtc(),
       rules: config.tiers,
     );
   }
 
-  /// Heatmap for [from]..[to] (inclusive local dates). Defaults to the 26 weeks
-  /// ending with the current week (Monday-aligned).
+  /// What [skillId] needs for its next tier now (see [nextTierNeeds]).
+  Future<NextTierNeeds> nextTier(String skillId, [DateTime? now]) async {
+    final at = (now ?? clock()).toUtc();
+    final tiers = await skillTiers(at);
+    return nextTierNeeds(
+      tier: tiers[skillId]?.tier ?? SkillTier.available,
+      facets: course.skillFacets(skillId),
+      states: _courseReplay.states,
+      scheduler: scheduler,
+      now: at,
+      rules: config.tiers,
+    );
+  }
+
+  /// Heatmap for [from]..[to] (inclusive local dates), every course (it
+  /// shows the account-wide streak). Defaults to the 26 weeks ending with the
+  /// current week (Monday-aligned).
   Future<HeatmapData> heatmap({LocalDate? from, LocalDate? to, DateTime? now}) async {
     await refresh();
     final today = calendar.dateOf(now ?? clock());
@@ -180,7 +249,7 @@ class ProgressionService {
     );
   }
 
-  /// This week's and month's challenges with progress, plus all badges.
+  /// This week's and month's challenges of [course] with progress, plus all badges.
   Future<ChallengeBoard> challenges([DateTime? now]) async {
     await refresh();
     final today = calendar.dateOf(now ?? clock());
@@ -194,7 +263,8 @@ class ProgressionService {
     );
   }
 
-  /// Every badge earned up to [now]: challenges, streak and level milestones (oldest first).
+  /// Every badge earned up to [now] (oldest first): [course]'s challenges and
+  /// level milestones, and the account-wide streak milestones.
   Future<List<EarnedBadge>> badges([DateTime? now]) async {
     await refresh();
     return _badges(calendar.dateOf(now ?? clock()));
@@ -204,7 +274,7 @@ class ProgressionService {
     final all = [
       ..._challengeFacts.challengeBadges(today),
       ...streakBadges(_streak(today).milestonesReached),
-      ...levelBadges(_replay.steps, calendar, curve: config.levels),
+      ...levelBadges(_courseReplay.steps, calendar, curve: config.levels),
     ];
     all.sort((a, b) {
       final c = a.earnedOn.compareTo(b.earnedOn);
@@ -218,7 +288,7 @@ class ProgressionService {
     await refresh();
     return computeVerbCollection(
       course: course,
-      states: _replay.states,
+      states: _courseReplay.states,
       scheduler: scheduler,
       now: (now ?? clock()).toUtc(),
       rules: config.tiers,
@@ -230,7 +300,7 @@ class ProgressionService {
     await refresh();
     return summarizeSession(
       sessionId: sessionId,
-      replay: _replay,
+      replay: _courseReplay,
       scheduler: scheduler,
       course: course,
       curve: config.levels,
@@ -238,10 +308,10 @@ class ProgressionService {
     );
   }
 
-  /// All non-stop runs in the log, oldest first.
+  /// All non-stop runs of [course] in the log, oldest first.
   Future<List<NonStopRecord>> nonStopHistory() async {
     await refresh();
-    return _runs ??= nonStopRuns(_replay.steps.map((s) => s.event), rules: config.nonStop);
+    return _runs ??= nonStopRuns(_courseReplay.steps.map((s) => s.event), rules: config.nonStop);
   }
 
   /// The best non-stop run (highest score), or null.

@@ -312,11 +312,27 @@ void main() {
       final f = _facet(it, 'passato-prossimo', 'it:mangiare#form:passato_prossimo');
       final es = _many<TransformExercise>(const TransformTemplate(), it, f, n: 40);
       expect(es.map((e) => e.answers.first.join(' ')), contains('abbiamo mangiato la pizza alle otto'));
+      for (final e in es) {
+        expect(e.toLabel, isNotNull);
+        expect(e.fromLabel, isNotNull);
+        if (e.change == TransformChange.person) {
+          expect(e.instruction, 'Change the person');
+          expect(it.meta.persons.map((p) => it.meta.personLabel(p, 'en')).any((l) => e.toLabel!.startsWith(l)), isTrue);
+        } else {
+          expect(e.instruction, 'Change the tense');
+          expect(e.toLabel, it.meta.tenseLabel('passato_prossimo', 'en'));
+        }
+      }
       // Dutch never gets a person change (pronoun subjects are always present).
       for (final skill in ['tt-regelmatig', 'tt-onregelmatig', 'perfectum']) {
         for (final sf in nl.skillFacets(skill)) {
           for (final e in _many<TransformExercise>(const TransformTemplate(), nl, sf, n: 8)) {
             expect(e.targetDescription, startsWith('→ '));
+            // The UI's chip and instruction: a tense change, from → to in the course's labels.
+            expect(e.change, TransformChange.tense);
+            expect(e.instruction, 'Change the tense');
+            expect(nl.meta.tenses.map((t) => nl.meta.tenseLabel(t, 'en')), containsAll([e.fromLabel, e.toLabel]));
+            expect(e.fromLabel, isNot(e.toLabel));
             for (final p in nl.meta.persons) {
               expect(e.targetDescription.contains(nl.meta.personLabel(p, 'en')), isFalse, reason: e.targetDescription);
             }

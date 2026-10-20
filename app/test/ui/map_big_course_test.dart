@@ -58,7 +58,7 @@ void main() {
       final painter = MapEdgesPainter(
         layout: layout,
         geometry: g,
-        style: const DefaultSkin().mapStyle(ColorScheme.fromSeed(seedColor: Colors.green)),
+        style: const ToskSkin().mapStyle(ColorScheme.fromSeed(seedColor: Colors.green)),
       );
       final r = g.diameter / 2;
       var detours = 0;

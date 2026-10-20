@@ -231,7 +231,8 @@ String exerciseTypeLabel(ExerciseType t) => switch (t) {
   ExerciseType.sentenceBuilder => 'Sentence builder',
   ExerciseType.cloze => 'Cloze',
   ExerciseType.spotError => 'Spot the error',
-  ExerciseType.transform => 'Transform',
+  ExerciseType.transform => 'Change tense or person',
+  ExerciseType.listenPick => 'Listen and pick',
 };
 
 IconData exerciseTypeIcon(ExerciseType t) => switch (t) {
@@ -243,7 +244,8 @@ IconData exerciseTypeIcon(ExerciseType t) => switch (t) {
   ExerciseType.sentenceBuilder => Icons.view_week_outlined,
   ExerciseType.cloze => Icons.space_bar,
   ExerciseType.spotError => Icons.search,
-  ExerciseType.transform => Icons.transform,
+  ExerciseType.transform => Icons.swap_horiz,
+  ExerciseType.listenPick => Icons.hearing,
 };
 
 /// Exercise types each lesson focus favors (mirrors the spec; the engine's
@@ -255,6 +257,7 @@ const Map<LessonFocus, Set<ExerciseType>> kFocusTypes = {
     ExerciseType.matchPairs,
     ExerciseType.multipleChoice,
     ExerciseType.sentenceBuilder,
+    ExerciseType.listenPick,
   },
   LessonFocus.grammar: {
     ExerciseType.conjPick,

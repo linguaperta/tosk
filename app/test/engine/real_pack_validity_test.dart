@@ -16,7 +16,7 @@ import 'real_packs.dart';
 
 const _templates = [
   'flashcard', 'multiple_choice', 'match_pairs', 'conj_pick', 'conj_grid',
-  'sentence_builder', 'cloze', 'spot_error', 'transform',
+  'sentence_builder', 'cloze', 'spot_error', 'transform', 'listen_pick',
 ];
 
 void main() {

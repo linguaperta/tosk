@@ -1,5 +1,7 @@
 import 'package:tosk/ui/demo/demo_courses.dart';
 import 'package:tosk/ui/demo/demo_seed.dart';
+import 'package:tosk/ui/map/node_painter.dart';
+import 'package:tosk/ui/map/skill_stats.dart';
 import 'package:tosk/ui/progress/progress_screen.dart';
 import 'package:tosk/ui/progress/verb_collection_screen.dart';
 import 'package:tosk/ui/progression/progression_widgets.dart';
@@ -31,7 +33,11 @@ void main() {
     await goTab(tester, 'Progress');
     expect(find.byType(ProgressScreen), findsOneWidget);
     expect(find.byKey(const ValueKey('progress-profile')), findsOneWidget);
-    expect(find.textContaining('XP in total'), findsOneWidget);
+    // Level and XP are the active course's; the streak section is account-wide.
+    expect(find.byKey(const ValueKey('progress-course')), findsOneWidget);
+    expect(find.textContaining('XP in Italian'), findsOneWidget);
+    expect(find.text('Streak and daily goal · all courses'), findsOneWidget);
+    expect(find.byKey(const ValueKey('progress-streak')), findsOneWidget);
     expect(find.byType(StreakHeatmap), findsOneWidget);
     expect(find.byType(ChallengesList), findsOneWidget);
     await tapKey(tester, 'open-verbs');
@@ -43,9 +49,15 @@ void main() {
     expect(find.byType(ProgressScreen), findsOneWidget);
   });
 
-  testWidgets('tier badges on map nodes come from progression', (tester) async {
+  testWidgets('tiers on map nodes come from progression', (tester) async {
     await pumpApp(tester, store: await _seeded());
-    expect(find.byType(TierBadge), findsWidgets);
+    // The nodes paint their tier (the storybook medallion); the seeded
+    // progress puts at least one skill in a metal tier.
+    final painters = tester
+        .widgetList<CustomPaint>(find.byWidgetPredicate((w) => w is CustomPaint && w.painter is NodePainter))
+        .map((w) => w.painter! as NodePainter);
+    expect(painters, isNotEmpty);
+    expect(painters.any((p) => p.tier.index >= MapTier.bronze.index), isTrue);
   });
 
   testWidgets('non-stop start screen shows the best run after a run', (tester) async {

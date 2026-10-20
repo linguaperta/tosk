@@ -355,6 +355,9 @@ class SpotErrorExercise extends Exercise {
   ExerciseType get type => ExerciseType.spotError;
 }
 
+/// What a transform exercise asks to change.
+enum TransformChange { tense, person }
+
 @immutable
 class TransformExercise extends Exercise {
   const TransformExercise({
@@ -369,9 +372,22 @@ class TransformExercise extends Exercise {
     this.sentenceId,
     this.translation,
     this.sourceTokens,
+    this.change,
+    this.fromLabel,
+    this.toLabel,
   });
   final String source; // original sentence
   final String targetDescription; // e.g. "→ passato prossimo" or "→ noi"
+
+  /// What changes: the tense or the person (null from older snapshots).
+  final TransformChange? change;
+
+  /// The source sentence's tense or person (with its tense when both change),
+  /// in the course's labels and the source language: `present`, `io`.
+  final String? fromLabel;
+
+  /// The target tense or person: `present perfect (passato prossimo)`, `noi`.
+  final String? toLabel;
   final List<String> tiles;
   final List<List<String>> answers; // first is canonical
   final String? sentenceId;
@@ -383,6 +399,48 @@ class TransformExercise extends Exercise {
   final List<TokenRef>? sourceTokens;
   @override
   ExerciseType get type => ExerciseType.transform;
+}
+
+/// Listen and pick (v0.5): the UI speaks [text] with on-device
+/// text-to-speech in [languageCode]; the learner picks what they heard among
+/// target-language [options] (sentences, or words when [isSentence] is
+/// false). Trains `#rec`. The prompt is audio only: the UI never shows
+/// [text] before the answer is checked.
+@immutable
+class ListenPickExercise extends Exercise {
+  const ListenPickExercise({
+    required super.id,
+    required super.facetId,
+    super.skillId,
+    super.instruction,
+    required this.text,
+    required this.languageCode,
+    required this.options,
+    required this.correctIndex,
+    this.isSentence = true,
+    this.translation,
+    this.sentenceId,
+    this.tokens,
+  });
+
+  /// What to speak (the correct option).
+  final String text;
+
+  /// The course's target language (`CourseMeta.target`, BCP-47 base code);
+  /// the UI picks a voice for it.
+  final String languageCode;
+  final List<String> options;
+  final int correctIndex;
+  final bool isSentence;
+
+  /// Meaning of [text] in the source language, shown after checking.
+  final String? translation;
+  final String? sentenceId;
+
+  /// Tokens of [text] (tap-for-gloss after checking), sentence variant only.
+  final List<TokenRef>? tokens;
+  @override
+  ExerciseType get type => ExerciseType.listenPick;
 }
 
 // ---------------------------------------------------------------- answers
@@ -413,14 +471,23 @@ class SelfGradeAnswer extends Answer {
 
 class MatchAnswer extends Answer {
   /// left index -> right index as finally matched, plus left indices that had a wrong attempt.
-  const MatchAnswer(this.matches, {this.missed = const {}});
+  const MatchAnswer(this.matches, {this.missed = const {}, this.wrongPairs = const []});
   final Map<int, int> matches;
   final Set<int> missed;
+
+  /// Every wrong pair the learner tried, in order, as (left index, right
+  /// index): for display (both cards marked) and the stored answer text.
+  /// Grading uses [missed].
+  final List<(int, int)> wrongPairs;
 }
 
 class GridAnswer extends Answer {
-  const GridAnswer(this.cells, {super.inputMode});
+  const GridAnswer(this.cells, {super.inputMode, this.candidates = const []});
   final List<String> cells; // one per cell, '' for prefilled
+
+  /// Recognizer alternatives per cell (ink), parallel to [cells] when not
+  /// empty: a cell is accepted if its text or any of its candidates matches.
+  final List<List<String>> candidates;
 }
 
 class TilesAnswer extends Answer {

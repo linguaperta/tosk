@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/core.dart';
 import '../../providers.dart';
+import '../../speech/speech_providers.dart';
 import '../common/async_view.dart';
 import '../routes.dart';
 import '../settings/app_settings.dart';
@@ -32,6 +33,12 @@ class _LabScreenState extends ConsumerState<LabScreen> {
     final course = ref.watch(courseDataProvider);
     final lang = ref.watch(sourceLangProvider);
     final theme = Theme.of(context);
+    // Listen and pick only with a voice for the course language (v0.5).
+    final listening = ref.watch(listeningProvider);
+    final available = [
+      for (final t in ExerciseType.values)
+        if (t != ExerciseType.listenPick || listening) t,
+    ];
 
     final body = AsyncView<CourseData>(
       value: course,
@@ -42,7 +49,8 @@ class _LabScreenState extends ConsumerState<LabScreen> {
           _courseId = course.meta.id;
           _skills.clear();
         }
-        final canStart = _skills.isNotEmpty && _types.isNotEmpty;
+        final chosen = {for (final t in available) if (_types.contains(t)) t};
+        final canStart = _skills.isNotEmpty && chosen.isNotEmpty;
         return Column(
           children: [
             Expanded(
@@ -69,20 +77,20 @@ class _LabScreenState extends ConsumerState<LabScreen> {
                     title: 'Exercise types',
                     trailing: TextButton(
                       onPressed: () => setState(() {
-                        if (_types.length == ExerciseType.values.length) {
+                        if (chosen.length == available.length) {
                           _types.clear();
                         } else {
-                          _types.addAll(ExerciseType.values);
+                          _types.addAll(available);
                         }
                       }),
-                      child: Text(_types.length == ExerciseType.values.length ? 'Clear' : 'All'),
+                      child: Text(chosen.length == available.length ? 'Clear' : 'All'),
                     ),
                   ),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      for (final t in ExerciseType.values)
+                      for (final t in available)
                         FilterChip(
                           key: ValueKey('lab-type-${t.id}'),
                           avatar: _types.contains(t) ? null : Icon(exerciseTypeIcon(t), size: 18),
@@ -120,7 +128,7 @@ class _LabScreenState extends ConsumerState<LabScreen> {
                   children: [
                     Text(
                       canStart
-                          ? '${_skills.length} skills · ${_types.length} types · $_length exercises'
+                          ? '${_skills.length} skills · ${chosen.length} types · $_length exercises'
                           : 'Pick at least one skill and one exercise type',
                       textAlign: TextAlign.center,
                       style: theme.textTheme.bodySmall,
@@ -136,7 +144,7 @@ class _LabScreenState extends ConsumerState<LabScreen> {
                                     if (_skills.contains(s.id)) s.id,
                                 ],
                                 types: [
-                                  for (final t in ExerciseType.values)
+                                  for (final t in available)
                                     if (_types.contains(t)) t,
                                 ],
                                 length: _length,

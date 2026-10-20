@@ -62,6 +62,7 @@ void main() {
   ) async {
     await makeMistake(tester);
     await goTab(tester, 'Progress');
+    await scrollToFind(tester, find.text('Review mistakes (1)'));
     expect(find.text('Review mistakes (1)'), findsOneWidget);
     await tapKey(tester, 'open-mistakes');
     expect(find.byType(MistakesScreen), findsOneWidget);
@@ -103,6 +104,7 @@ void main() {
     await pumpApp(tester);
     expect(find.byKey(const ValueKey('mistakes-button')), findsNothing);
     await goTab(tester, 'Progress');
+    await scrollToFind(tester, find.text('No mistakes to review'));
     expect(find.text('No mistakes to review'), findsOneWidget);
     await tapKey(tester, 'open-mistakes');
     expect(find.byKey(const ValueKey('mistakes-empty')), findsOneWidget);

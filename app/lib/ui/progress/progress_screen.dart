@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../theme/tosk_palette.dart';
+import '../../core/core.dart';
 import '../../progression/progression.dart';
 import '../../providers.dart';
 import '../common/async_view.dart';
@@ -11,8 +13,10 @@ import '../lesson/session_summary_view.dart' show facetLabel;
 import '../progression/progression_widgets.dart';
 import '../routes.dart';
 
-/// Progress / profile page: level and XP, streak and heatmap, the verb
-/// collection, open mistakes, weekly and monthly challenges, and badges.
+/// Progress / profile page, per language: the active course's level and XP,
+/// verb collection, mistakes, tough words, challenges and badges. Only the
+/// streak, freezes, daily goal and the activity heatmap (which shows the
+/// streak) are account-wide, in their own labelled section.
 class ProgressScreen extends ConsumerWidget {
   const ProgressScreen({super.key});
 
@@ -62,29 +66,46 @@ class ProgressScreen extends ConsumerWidget {
               key: const ValueKey('progress-list'),
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
               children: [
-                _ProfileCard(profile: p, reduceMotion: reduce),
-                if (heatmap != null)
-                  section(
-                    'Activity',
-                    Card(
-                      margin: EdgeInsets.zero,
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            // The daily goal: today's progress and the days it was met.
-                            if (goal != null && goal.enabled) ...[
-                              DailyGoalBar(status: goal),
-                              const SizedBox(height: 8),
-                            ],
+                _ProfileCard(
+                  profile: p,
+                  courseTitle: course == null ? null : pickLang(course.meta.title, lang),
+                  reduceMotion: reduce,
+                ),
+                // Account-wide: the streak (and the heatmap that shows it),
+                // freezes and the daily goal count every course.
+                section(
+                  'Streak and daily goal · all courses',
+                  Card(
+                    margin: EdgeInsets.zero,
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: StreakCounter(
+                              key: const ValueKey('progress-streak'),
+                              streak: p.streak,
+                              reduceMotion: reduce,
+                              showLongest: true,
+                            ),
+                          ),
+                          // The daily goal: today's progress and the days it was met.
+                          if (goal != null && goal.enabled) ...[
+                            const SizedBox(height: 8),
+                            DailyGoalBar(status: goal),
+                          ],
+                          if (heatmap != null) ...[
+                            const SizedBox(height: 8),
                             StreakHeatmap(data: heatmap, reduceMotion: reduce, goalDays: goalDays),
                           ],
-                        ),
+                        ],
                       ),
                     ),
-                    key: const ValueKey('progress-heatmap'),
                   ),
+                  key: const ValueKey('progress-heatmap'),
+                ),
                 section(
                   'Verb collection',
                   Card(
@@ -164,10 +185,14 @@ class ProgressScreen extends ConsumerWidget {
   }
 }
 
+/// The active course's level and XP.
 class _ProfileCard extends StatelessWidget {
-  const _ProfileCard({required this.profile, required this.reduceMotion});
+  const _ProfileCard({required this.profile, required this.reduceMotion, this.courseTitle});
   final ProgressProfile profile;
   final bool reduceMotion;
+
+  /// "Italian": the level and XP are this course's.
+  final String? courseTitle;
 
   @override
   Widget build(BuildContext context) {
@@ -190,11 +215,14 @@ class _ProfileCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('Level ${p.level.level}', style: theme.textTheme.headlineSmall),
-                  Text('${p.totalXp} XP in total', key: const ValueKey('progress-total-xp')),
+                  if (courseTitle != null)
+                    Text(courseTitle!, key: const ValueKey('progress-course'), style: theme.textTheme.labelLarge),
+                  Text('Level ${p.level.level}', style: theme.textTheme.serifHeadline),
+                  Text(
+                    courseTitle == null ? '${p.totalXp} XP in total' : '${p.totalXp} XP in $courseTitle',
+                    key: const ValueKey('progress-total-xp'),
+                  ),
                   Text('Today: ${p.todayReviews} reviews · +${p.todayXp} XP', style: theme.textTheme.bodySmall),
-                  const SizedBox(height: 8),
-                  StreakCounter(streak: p.streak, reduceMotion: reduceMotion, showLongest: true),
                 ],
               ),
             ),

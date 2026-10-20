@@ -1,0 +1,61 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>tosk: storybook ink, round 2</title>
+<style>
+body{margin:0;padding:24px 32px;background:#F7F0E2;color:#3B2A1F;font-family:Georgia,'Palatino Linotype',serif;width:1540px}
+h1{margin:0 0 2px;font-size:40px;letter-spacing:-1px} h2{font-size:17px;margin:14px 0 8px;font-weight:normal;opacity:.75;border-bottom:1px solid #3B2A1F44}
+p.sub{margin:0 0 6px;font-size:14px;opacity:.8}
+.row{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;margin-bottom:14px}
+figure{margin:0}
+.card{background:#FBF7EE;border:1.5px solid #3B2A1F;border-radius:14px;padding:10px 12px 6px;box-shadow:3px 4px 0 #3B2A1F22}
+.card.w{background:#fff} .card img{display:block} .card figcaption{text-align:center;font-size:12px;margin-top:5px;opacity:.85}
+.v1 .card{opacity:.85;padding:6px 8px 4px} .v1 figcaption{font-size:11px}
+.icons{display:flex;gap:16px;align-items:flex-end} .icons div{text-align:center;font-size:11px} .icons img{display:inline-block;vertical-align:bottom}
+.pal{display:flex;gap:7px;flex-wrap:wrap} .sw{width:62px;font-size:10px;text-align:center} .sw b{display:block;margin-top:3px}
+.chip{height:40px;border-radius:8px;border:1px solid #3B2A1F55}
+.states{display:flex;justify-content:space-around;font-size:11px;width:670px;margin:2px auto 0}
+.note{font-size:11px;opacity:.7;text-align:center}
+</style></head><body>
+<h1>tosk <span style="font-size:18px;opacity:.6">storybook ink, round 2</span></h1>
+<p class="sub">Ratatosk, the messenger squirrel. Tapered pen lines, hatching, warm watercolour. Colour and e-ink side by side.</p>
+
+<h2>Tosk: v1 and four small steps toward a friendlier cartoon squirrel</h2>
+<div class="row v1">
+ <figure class="card"><img src="v1/tosk.svg" width="270"><figcaption>v1 (previous round)</figcaption></figure><figure class="card"><img src="tosk-a.svg" width="270"><figcaption>a: face fixed</figcaption></figure><figure class="card"><img src="tosk-b.svg" width="270"><figcaption>b: + bigger head and eye</figcaption></figure><figure class="card"><img src="tosk-c.svg" width="270"><figcaption>c: + upright pose</figcaption></figure><figure class="card"><img src="tosk-d.svg" width="270"><figcaption>d: furthest (rounder)</figcaption></figure>
+</div>
+<div class="row">
+ <figure class="card w"><img src="v1/tosk-mono.svg" width="270"><figcaption>v1, e-ink</figcaption></figure><figure class="card w"><img src="tosk-a-mono.svg" width="270"><figcaption>a, e-ink</figcaption></figure><figure class="card w"><img src="tosk-b-mono.svg" width="270"><figcaption>b, e-ink</figcaption></figure><figure class="card w"><img src="tosk-c-mono.svg" width="270"><figcaption>c, e-ink</figcaption></figure><figure class="card w"><img src="tosk-d-mono.svg" width="270"><figcaption>d, e-ink</figcaption></figure>
+</div>
+<div class="row">
+ <figure class="card"><div class="icons"><div><img src="head-a.svg" width="96"> <img src="head-a.svg" width="48"> <img src="head-a-mono.svg" width="48"><br>a</div><div><img src="head-b.svg" width="96"> <img src="head-b.svg" width="48"> <img src="head-b-mono.svg" width="48"><br>b</div><div><img src="head-c.svg" width="96"> <img src="head-c.svg" width="48"> <img src="head-c-mono.svg" width="48"><br>c</div><div><img src="head-d.svg" width="96"> <img src="head-d.svg" width="48"> <img src="head-d-mono.svg" width="48"><br>d</div></div><figcaption>Each variant's head as an icon crop: 96, 48, 48 e-ink</figcaption></figure>
+ <figure class="card"><div class="icons">
+   <div><img src="icon.svg" width="128"><br>icon (face b) 128</div><div><img src="icon.svg" width="64"><br>64</div>
+   <div><img src="icon-48.svg" width="96"><br>icon-48 at 96</div><div><img src="icon-48.svg" width="48"><br>48</div><div><img src="icon-48.svg" width="32"><br>32</div>
+   <div><img src="icon-48-mono.svg" width="48"><br>48 e-ink</div><div><img src="icon-mono.svg" width="64"><br>64 e-ink</div>
+   <div><img src="v1/icon.svg" width="48"><br>v1 48</div></div>
+   <figcaption>App icon: default (face b) and the dedicated small variant</figcaption></figure>
+</div>
+
+<h2>Logo and wordmark</h2>
+<div class="row">
+ <figure class="card"><img src="logo.svg" width="380"><figcaption>logo, plain</figcaption></figure>
+ <figure class="card"><img src="logo-touched.svg" width="380"><figcaption>logo, touched (leaflet on the k)</figcaption></figure>
+ <figure class="card"><img src="wordmark.svg" width="230"><img src="wordmark-mono.svg" width="230" style="background:#fff;margin-top:6px"><figcaption>wordmark.svg, wordmark-mono.svg</figcaption></figure>
+ <figure class="card"><img src="v1/logo.svg" width="300"><figcaption>v1 logo (live Georgia text)</figcaption></figure>
+</div>
+<div class="note" style="text-align:left">Wordmark: Gelasio Bold outlines (SIL OFL).</div>
+
+<h2>Yggdrasil, the course tree, and the map pieces</h2>
+<div class="row">
+ <figure class="card"><img src="yggdrasil.svg" width="370"><figcaption>Yggdrasil: the course tree</figcaption></figure>
+ <figure class="card w"><img src="yggdrasil-mono.svg" width="370"><figcaption>Yggdrasil, e-ink</figcaption></figure>
+ <div style="width:700px">
+  <figure class="card"><img src="node-states.svg" width="670"><div class="states"><span>locked</span><span>available</span><span>progress</span><span>bronze</span><span>silver</span><span>gold</span></div>
+   <img src="node-states-mono.svg" width="670" style="background:#fff;margin-top:6px"><div class="states"><span>locked</span><span>available</span><span>progress</span><span>bronze</span><span>silver</span><span>gold</span></div>
+   <figcaption>Skill node states, colour and e-ink</figcaption></figure>
+  <div class="row" style="margin-top:14px"><figure class="card"><img src="branch-tile.svg" width="210"><figcaption>Map branch tile</figcaption></figure>
+  <figure class="card w"><img src="branch-tile-mono.svg" width="210"><figcaption>e-ink</figcaption></figure>
+  <figure class="card v1"><img src="v1/yggdrasil.svg" width="150"><figcaption>v1 tree</figcaption></figure></div>
+  <figure class="card"><div class="pal"><div class="sw"><div class="chip" style="background:#3B2A1F"></div><b>ink</b><span>#3B2A1F</span></div><div class="sw"><div class="chip" style="background:#F7F0E2"></div><b>paper</b><span>#F7F0E2</span></div><div class="sw"><div class="chip" style="background:#C96A3B"></div><b>fur</b><span>#C96A3B</span></div><div class="sw"><div class="chip" style="background:#9C4C27"></div><b>fur_dk</b><span>#9C4C27</span></div><div class="sw"><div class="chip" style="background:#E8A872"></div><b>fur_lt</b><span>#E8A872</span></div><div class="sw"><div class="chip" style="background:#F4E5C8"></div><b>cream</b><span>#F4E5C8</span></div><div class="sw"><div class="chip" style="background:#8E6C4E"></div><b>bark</b><span>#8E6C4E</span></div><div class="sw"><div class="chip" style="background:#5B4333"></div><b>bark_dk</b><span>#5B4333</span></div><div class="sw"><div class="chip" style="background:#7E9B5F"></div><b>leaf</b><span>#7E9B5F</span></div><div class="sw"><div class="chip" style="background:#55733F"></div><b>leaf_dk</b><span>#55733F</span></div><div class="sw"><div class="chip" style="background:#D8B15C"></div><b>gold</b><span>#D8B15C</span></div><div class="sw"><div class="chip" style="background:#B9BDBD"></div><b>silver</b><span>#B9BDBD</span></div><div class="sw"><div class="chip" style="background:#B5713E"></div><b>bronze</b><span>#B5713E</span></div><div class="sw"><div class="chip" style="background:#A9BFC0"></div><b>water</b><span>#A9BFC0</span></div><div class="sw"><div class="chip" style="background:#3B2A1F"></div><b>hatch</b><span>#3B2A1F</span></div></div><figcaption>Palette</figcaption></figure>
+ </div>
+</div>
+</body></html>

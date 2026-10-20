@@ -54,6 +54,7 @@ void main() {
         ExerciseType.matchPairs,
         ExerciseType.multipleChoice,
         ExerciseType.sentenceBuilder,
+        ExerciseType.listenPick,
       });
       expect(p.typesFor(LessonFocus.grammar), {
         ExerciseType.conjPick,
@@ -66,7 +67,7 @@ void main() {
     });
     test('parsing ignores unknown keys and keeps defaults for missing foci', () {
       final p = FocusPresets.fromJsonString(
-          '{"presets": {"vocab": {"flashcard": 2, "listen_pick": 1, "cloze": "x"}, "speed": {"cloze": 1}}}');
+          '{"presets": {"vocab": {"flashcard": 2, "dictation": 1, "cloze": "x"}, "speed": {"cloze": 1}}}');
       expect(p.weights[LessonFocus.vocab], {ExerciseType.flashcard: 2.0});
       expect(p.weights[LessonFocus.grammar], kDefaultFocusWeights[LessonFocus.grammar]);
     });

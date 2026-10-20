@@ -126,9 +126,12 @@ class MatchPairsTemplate extends ExerciseTemplate {
       outcomes.add(rateOutcome(e.type, e.pairFacetIds[i]!, correct: ok, elapsed: elapsed, options: options));
     }
     String rightAt(int? j) => j == null || j < 0 || j >= e.right.length ? '?' : e.right[j];
-    final given = [
-      for (var i = 0; i < e.left.length; i++) '${e.left[i]} = ${rightAt(answer.matches[i])}',
-    ].join('; ');
+    String leftAt(int i) => i < 0 || i >= e.left.length ? '?' : e.left[i];
+    // The wrong pairs tried, when the board reports them (what the learner
+    // actually answered wrong); else the final matches.
+    final given = answer.wrongPairs.isNotEmpty
+        ? [for (final (l, r) in answer.wrongPairs) '${leftAt(l)} = ${rightAt(r)}'].join('; ')
+        : [for (var i = 0; i < e.left.length; i++) '${e.left[i]} = ${rightAt(answer.matches[i])}'].join('; ');
     return Result(correct: all, expected: expected, given: given, outcomes: outcomes);
   }
 }

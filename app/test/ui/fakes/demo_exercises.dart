@@ -1,4 +1,4 @@
-/// Hand-made exercises of all 9 types for the demo courses. The real engine
+/// Hand-made exercises of all 10 types for the demo courses. The real engine
 /// generates these from pack data.
 library;
 
@@ -219,9 +219,12 @@ List<Exercise> _italian(String lang) {
       id: 'it-tr-noi',
       facetId: 'it:mangiare#form:presente',
       skillId: 'present-are',
-      instruction: t('Rewrite the sentence', 'Herschrijf de zin'),
+      instruction: t('Change the person', 'Verander de persoon'),
       source: 'Io mangio la mela.',
       targetDescription: '→ noi',
+      change: TransformChange.person,
+      fromLabel: 'io',
+      toLabel: 'noi',
       tiles: const ['mela', 'Noi', 'mangiate', 'la', 'mangiamo', 'il'],
       answers: const [
         ['Noi', 'mangiamo', 'la', 'mela'],
@@ -334,9 +337,12 @@ List<Exercise> _italian(String lang) {
       id: 'it-tr-passato',
       facetId: 'it:mangiare#form:passato_prossimo',
       skillId: 'passato',
-      instruction: t('Rewrite the sentence', 'Herschrijf de zin'),
+      instruction: t('Change the tense', 'Verander de tijd'),
       source: 'Mangio la mela.',
       targetDescription: t('→ present perfect', '→ voltooid tegenwoordige tijd'),
+      change: TransformChange.tense,
+      fromLabel: t('present', 'tegenwoordige tijd'),
+      toLabel: t('present perfect', 'voltooid tegenwoordige tijd'),
       tiles: const ['mangiato', 'la', 'Ho', 'mela', 'Hai', 'mangiare'],
       answers: const [
         ['Ho', 'mangiato', 'la', 'mela'],
@@ -384,6 +390,23 @@ List<Exercise> _italian(String lang) {
       options: [t('yesterday', 'gisteren'), t('tomorrow', 'morgen'), t('today', 'vandaag')],
       correctIndex: 2,
       direction: Direction.recognize,
+    ),
+    ListenPickExercise(
+      id: 'it-lp-domani',
+      facetId: 'it:domani#rec',
+      skillId: 'time',
+      instruction: t('What do you hear?', 'Wat hoor je?'),
+      text: 'Ci vediamo domani.',
+      languageCode: 'it',
+      options: const ['Ci vediamo domani.', 'Ci vediamo dopo.', 'Ci vedremo domani.'],
+      correctIndex: 0,
+      translation: t('See you tomorrow.', 'Tot morgen.'),
+      tokens: const [
+        TokenRef('Ci'),
+        TokenRef('vediamo', pre: ' '),
+        TokenRef('domani', pre: ' ', itemId: 'it:domani'),
+        TokenRef('.', isWord: false),
+      ],
     ),
   ];
 }
@@ -492,9 +515,12 @@ List<Exercise> _dutch(String lang) => const [
     id: 'nl-tr-perfectum',
     facetId: 'nl:werken#form:perfectum',
     skillId: 'perfectum',
-    instruction: 'Rewrite the sentence',
+    instruction: 'Change the tense',
     source: 'Ik werk thuis.',
     targetDescription: '→ perfectum',
+    change: TransformChange.tense,
+    fromLabel: 'present',
+    toLabel: 'present perfect',
     tiles: ['gewerkt', 'thuis', 'Ik', 'heb', 'ben'],
     answers: [
       ['Ik', 'heb', 'thuis', 'gewerkt'],
@@ -511,5 +537,17 @@ List<Exercise> _dutch(String lang) => const [
     accepted: ['loopt'],
     hint: 'lopen (hij, present)',
     translation: 'He walks home.',
+  ),
+  ListenPickExercise(
+    id: 'nl-lp-hallo',
+    facetId: 'nl:hallo#rec',
+    skillId: 'groeten',
+    instruction: 'Which word do you hear?',
+    text: 'hallo',
+    languageCode: 'nl',
+    options: ['hallo', 'dag', 'doei'],
+    correctIndex: 0,
+    isSentence: false,
+    translation: 'hello',
   ),
 ];

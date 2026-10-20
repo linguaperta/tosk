@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/core.dart';
 import '../../../engine/templates/conj_pick.dart' show kNoEnding;
+import '../../ink/ink_pad.dart';
 import '../typing.dart';
 import 'common.dart';
 
@@ -23,10 +24,16 @@ class ConjPickView extends ExerciseWidget<ConjPickExercise> {
     super.reduceMotion,
     super.onCheck,
     this.typed = false,
+    this.ink = false,
   });
 
   /// Typing mode: type the ending instead of picking it.
   final bool typed;
+
+  /// Handwriting: write the ending (or the whole form) on the pad.
+  final bool ink;
+
+  bool get freeInput => typed || ink;
 
   @override
   State<ConjPickView> createState() => _ConjPickViewState();
@@ -42,6 +49,13 @@ class _ConjPickViewState extends State<ConjPickView> with ExerciseKeysMixin<Conj
     widget.onChanged(_typed.isEmpty ? null : TextAnswer(_typed, inputMode: InputMode.keyboard));
   }
 
+  /// Handwriting: the pad's reading (the stem is context for the recognizer).
+  void _write(InkResult? r) {
+    if (widget.locked) return;
+    setState(() => _typed = r?.text.trim() ?? '');
+    widget.onChanged(r?.toAnswer());
+  }
+
   void _select(int i) {
     if (widget.locked) return;
     setState(() => _selected = i);
@@ -50,7 +64,7 @@ class _ConjPickViewState extends State<ConjPickView> with ExerciseKeysMixin<Conj
 
   @override
   void onDigit(int n) {
-    if (widget.typed) return;
+    if (widget.freeInput) return;
     if (n >= 1 && n <= widget.exercise.endings.length) _select(n - 1);
   }
 
@@ -60,8 +74,12 @@ class _ConjPickViewState extends State<ConjPickView> with ExerciseKeysMixin<Conj
     final theme = Theme.of(context);
     final fb = FeedbackColors.of(context);
     final sel = _selected;
-    final typedEnding = _typed.replaceFirst(RegExp(r'^[-–]\s*'), '');
-    final picked = widget.typed ? (_typed.isEmpty ? null : typedEnding) : (sel == null ? null : e.endings[sel]);
+    var typedEnding = _typed.replaceFirst(RegExp(r'^[-–]\s*'), '');
+    // The whole form written or typed: show just its ending after the stem.
+    if (e.stem.isNotEmpty && typedEnding.toLowerCase().startsWith(e.stem.toLowerCase())) {
+      typedEnding = typedEnding.substring(e.stem.length);
+    }
+    final picked = widget.freeInput ? (_typed.isEmpty ? null : typedEnding) : (sel == null ? null : e.endings[sel]);
     final ending = picked == null ? null : (isNoEnding(picked) ? '' : picked);
     final endingColor = widget.result == null
         ? theme.colorScheme.secondary
@@ -123,7 +141,15 @@ class _ConjPickViewState extends State<ConjPickView> with ExerciseKeysMixin<Conj
       controls: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (widget.typed)
+          if (widget.ink)
+            InkPad(
+              key: const ValueKey('conj-pick-ink'),
+              enabled: !widget.locked,
+              preContext: e.stem,
+              hintText: e.endings.any(isNoEnding) ? 'Write the ending (none? write -)' : 'Write the ending',
+              onChanged: _write,
+            )
+          else if (widget.typed)
             TypedAnswerField(
               key: const ValueKey('conj-pick-typed'),
               enabled: !widget.locked,

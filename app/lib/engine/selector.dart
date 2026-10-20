@@ -25,6 +25,8 @@ const Map<ExerciseType, Map<FacetStage, double>> kStageAffinity = {
   ExerciseType.cloze: {FacetStage.fresh: 0.5, FacetStage.learning: 2, FacetStage.stable: 3},
   ExerciseType.spotError: {FacetStage.fresh: 0, FacetStage.learning: 1, FacetStage.stable: 3},
   ExerciseType.transform: {FacetStage.fresh: 0, FacetStage.learning: 0.5, FacetStage.stable: 3},
+  // Only generated when the device can speak the course language.
+  ExerciseType.listenPick: {FacetStage.fresh: 0.5, FacetStage.learning: 2, FacetStage.stable: 2},
 };
 
 class ExerciseSelector {

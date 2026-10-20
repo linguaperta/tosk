@@ -29,6 +29,7 @@ String exercisePrompt(Exercise e) {
     ClozeExercise() => '${e.before}___${e.after}${e.hint == null ? '' : ' (${e.hint})'}',
     SpotErrorExercise() => renderSpotError(e),
     TransformExercise() => '${e.source} ${e.targetDescription}',
+    ListenPickExercise() => '🔊 ${e.text} — ${e.options.join(' / ')}',
   };
   if (e.instruction.isEmpty) return body;
   // "What does this mean? ciao", not "What does this mean?: ciao".
@@ -87,6 +88,9 @@ String formatExercise(Exercise e) {
       for (final a in e.answers) {
         b.writeln('  => ${a.join(' ')}');
       }
+    case ListenPickExercise():
+      b.writeln('  (speak, ${e.languageCode}) ${e.text}${e.translation == null ? '' : '   "${e.translation}"'}');
+      b.writeln('  ${opts(e.options, e.correctIndex)}');
   }
   return b.toString();
 }
@@ -109,7 +113,8 @@ String sampleExercises(
 }) {
   final b = StringBuffer();
   final tpls = templates ?? defaultTemplates();
-  final options = SessionOptions(sourceLang: lang, seed: seed);
+  // Listening assumed available, so listen_pick is sampled too.
+  final options = SessionOptions(sourceLang: lang, seed: seed, listening: true);
   for (final skill in course.skills) {
     if (skillIds != null && !skillIds.contains(skill.id)) continue;
     b.writeln('=' * 72);

@@ -7,7 +7,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 
+import '../brand/tosk.dart';
 import '../../core/core.dart';
+import '../../speech/speech_providers.dart';
+import '../../device/device_providers.dart';
+import '../../device/onyx.dart';
 import '../../feedback/answer_context.dart';
 import '../../progression/nonstop.dart';
 import '../../providers.dart';
@@ -18,6 +22,8 @@ import '../routes.dart';
 import '../slots/progression_slots.dart';
 import 'exercises/exercise_layout.dart';
 import 'exercises/exercise_view.dart';
+import 'intro/exercise_intro_view.dart';
+import 'intro/exercise_intros.dart';
 import 'answer_override.dart';
 import 'assessment_result.dart';
 import 'feedback_banner.dart';
@@ -55,8 +61,13 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   /// exercise keeps its marks; the feedback panel shows [_bannerResult].
   bool _overridden = false;
   Result? _bannerResult;
+
   /// The current exercise was flagged (the Report action shows "Reported").
   bool _flagged = false;
+
+  /// The first-time intro of the current exercise's type is showing (before
+  /// the exercise; "Got it" marks the type as seen).
+  bool _intro = false;
 
   /// Non-stop scoring (combo, multiplier, bonus rounds), fed one graded
   /// exercise at a time with the `at` the session recorded.
@@ -76,14 +87,63 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
   bool get _endless => widget.request.endless;
 
+  /// E-ink (ONYX): a full refresh after the summary and when leaving the
+  /// player, against ghosting (Settings → E-reader). Read up front: `ref`
+  /// can't be used in [dispose].
+  EinkScreen _eink = const NoEinkScreen();
+
+  void _fullRefresh() {
+    if (!_refreshOnLeave) return;
+    final eink = _eink;
+    // After the next screen has been drawn.
+    unawaited(Future<void>.delayed(const Duration(milliseconds: 350), eink.fullRefresh));
+  }
+
+  bool _refreshOnLeave = false;
+
+  /// Kept for [dispose], where `ref` can no longer be used.
+  late final ProgressRevision _revision;
+
+  /// Progress was refreshed for this session's answers ([_bumpProgress]).
+  bool _bumped = false;
+
   @override
   void initState() {
     super.initState();
+    // Kept current (the device and settings may still be loading).
+    ref.listenManual(einkScreenProvider, (_, v) => _eink = v, fireImmediately: true);
+    ref.listenManual(fullRefreshAfterLessonsProvider, (_, v) => _refreshOnLeave = v, fireImmediately: true);
+    _revision = ref.read(progressRevisionProvider.notifier);
     unawaited(_start());
+  }
+
+  /// Refreshes everything derived from progress (map, header, progress pages)
+  /// after this session's answers: on finishing, quitting or stopping.
+  void _bumpProgress() {
+    _bumped = true;
+    _revision.bump();
   }
 
   @override
   void dispose() {
+    if (_refreshOnLeave) {
+      final eink = _eink;
+      unawaited(Future<void>.delayed(const Duration(milliseconds: 350), eink.fullRefresh));
+    }
+    // Left some other way (the route was replaced or removed) with answers
+    // recorded: the map and progress pages must still see them.
+    final s = _session;
+    if (s != null && !_bumped && s.answered > 0) {
+      s.stop();
+      final revision = _revision;
+      scheduleMicrotask(() {
+        try {
+          revision.bump();
+        } catch (_) {
+          // The provider scope is gone too (app closing): nothing to refresh.
+        }
+      });
+    }
     unawaited(_answers?.cancel());
     _exerciseScroll.dispose();
     _keys.dispose();
@@ -129,8 +189,24 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       await pending.future.timeout(const Duration(seconds: 2), onTimeout: () {});
       _answerHandled = null;
     }
-    final next = await s.next();
+    var next = await s.next();
+    // "Can't listen now": the running session may still serve listening
+    // exercises; skip them while the snooze lasts (bounded).
+    for (var i = 0; i < 50 && next is ListenPickExercise && ref.read(listenSnoozeProvider.notifier).active; i++) {
+      next = await s.next();
+    }
     if (!mounted) return;
+    // A type met for the first time gets its intro first.
+    var intro = false;
+    if (next != null && ref.read(exerciseIntrosEnabledProvider)) {
+      try {
+        final seen = await ref.read(introSeenProvider.future);
+        intro = !seen.contains(next.type);
+      } catch (_) {
+        intro = false;
+      }
+      if (!mounted) return;
+    }
     if (next == null) {
       if (first) {
         setState(() => _phase = PlayerPhase.empty);
@@ -147,6 +223,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       _overridden = false;
       _bannerResult = null;
       _flagged = false;
+      _intro = intro;
       _phase = PlayerPhase.playing;
     });
     _watch
@@ -224,6 +301,30 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     if (mounted) setState(() {});
   }
 
+  /// "Got it" on a first-time intro: the type is seen, the exercise starts
+  /// (its response time from now).
+  void _dismissIntro() {
+    final ex = _exercise;
+    if (!_intro || ex == null) return;
+    unawaited(ref.read(introSeenProvider.notifier).markSeen(ex.type));
+    setState(() => _intro = false);
+    _watch
+      ..reset()
+      ..start();
+    _focus.requestFocus();
+  }
+
+  /// The intro example for [ex]'s type, from the course's own data.
+  List<IntroLine> _introExample(Exercise ex) =>
+      introExample(ex.type, ref.read(courseDataProvider).value, ref.read(sourceLangProvider), current: ex);
+
+  /// The (?) button: the current type's explanation again.
+  void _help() {
+    final ex = _exercise;
+    if (ex == null) return;
+    unawaited(showExerciseIntroSheet(context, type: ex.type, example: _introExample(ex)));
+  }
+
   void _check() {
     final d = _draft;
     if (d != null) unawaited(_submit(d));
@@ -233,17 +334,26 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     if (_result != null && !_busy) unawaited(_advance());
   }
 
+  /// "Can't listen now": skip this listening exercise (ungraded) and any
+  /// others for an hour; new sessions won't generate them meanwhile.
+  void _cantListen() {
+    if (_busy) return;
+    ref.read(listenSnoozeProvider.notifier).snooze();
+    unawaited(_advance());
+  }
+
   void _finish() {
     final s = _session;
     if (s == null) return;
     final summary = s.summary();
-    ref.read(progressRevisionProvider.notifier).bump();
+    _bumpProgress();
     ref.read(fxProvider).finished();
     unawaited(_celebrate(summary.sessionId));
     setState(() {
       _summary = summary;
       _phase = PlayerPhase.summary;
     });
+    _fullRefresh();
   }
 
   /// The end-of-session sound: the level-up fanfare when this session gained
@@ -309,7 +419,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     );
     if (leave == true && mounted) {
       _session?.stop();
-      ref.read(progressRevisionProvider.notifier).bump();
+      _bumpProgress();
       setState(() => _phase = PlayerPhase.summary); // lets PopScope pop
       _close();
     }
@@ -375,18 +485,20 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     final events = await s.overrideAnswer(ex.id);
     final course = ref.read(courseDataProvider).value;
     try {
-      await ref.read(feedbackStoreProvider).saveFlag(
-        overrideFlag(
-          id: const Uuid().v4(),
-          at: ref.read(clockProvider)(),
-          courseId: course?.meta.id ?? '',
-          exercise: ex,
-          result: r,
-          overrides: events,
-          packVersion: course?.meta.version,
-          sourceLang: ref.read(sourceLangProvider),
-        ),
-      );
+      await ref
+          .read(feedbackStoreProvider)
+          .saveFlag(
+            overrideFlag(
+              id: const Uuid().v4(),
+              at: ref.read(clockProvider)(),
+              courseId: course?.meta.id ?? '',
+              exercise: ex,
+              result: r,
+              overrides: events,
+              packVersion: course?.meta.version,
+              sourceLang: ref.read(sourceLangProvider),
+            ),
+          );
       ref.read(flagsRevisionProvider.notifier).bump();
     } catch (e) {
       debugPrint('[override] flag not saved: $e');
@@ -423,7 +535,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
         case PlayerPhase.summary || PlayerPhase.empty:
           _close();
         case PlayerPhase.playing:
-          if (_result != null) {
+          if (_intro) {
+            _dismissIntro();
+          } else if (_result != null) {
             _continue();
           } else if (_draft != null) {
             _check();
@@ -436,7 +550,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       return KeyEventResult.handled;
     }
     final d = _digits[key];
-    if (d != null && _phase == PlayerPhase.playing && _result == null) {
+    if (d != null && _phase == PlayerPhase.playing && _result == null && !_intro) {
       _keys.digit(d);
       return KeyEventResult.handled;
     }
@@ -465,6 +579,14 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
             ),
             title: _title(context),
             actions: [
+              // How this exercise type works (its first-time intro, again).
+              if (playing && _exercise != null && !_intro)
+                IconButton(
+                  key: const ValueKey('exercise-help'),
+                  tooltip: 'How this exercise works',
+                  icon: const Icon(Icons.help_outline),
+                  onPressed: _help,
+                ),
               if (_endless && playing)
                 Padding(
                   padding: const EdgeInsets.only(right: 8),
@@ -526,7 +648,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.inbox_outlined, size: 48),
+                // Nothing due, no mistakes, no tough words: Tosk is asleep.
+                const ToskImage(pose: ToskPose.sleeping, height: 112),
                 const SizedBox(height: 12),
                 Text(widget.request.emptyMessage, key: const ValueKey('player-empty'), textAlign: TextAlign.center),
                 const SizedBox(height: 12),
@@ -553,6 +676,16 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
   Widget _playing(BuildContext context) {
     final ex = _exercise!;
+    if (_intro) {
+      return Column(
+        children: [
+          if (_endless) NonStopHudSlot(run: _run),
+          Expanded(
+            child: ExerciseIntroView(type: ex.type, example: _introExample(ex), onGotIt: _dismissIntro),
+          ),
+        ],
+      );
+    }
     final result = _result;
     final reduce = ref.watch(reduceMotionProvider);
     final aiAvailable = ref.watch(explainerAvailableProvider);
@@ -619,7 +752,16 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
               ),
             ],
           )
-        else if (!selfSubmitting(ex.type))
+        else if (!selfSubmitting(ex.type)) ...[
+          if (ex is ListenPickExercise)
+            Center(
+              child: TextButton.icon(
+                key: const ValueKey('cant-listen-button'),
+                onPressed: _busy ? null : _cantListen,
+                icon: const Icon(Icons.hearing_disabled_outlined),
+                label: const Text("Can't listen now (skip for 1 hour)"),
+              ),
+            ),
           SafeArea(
             top: false,
             child: Center(
@@ -639,6 +781,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
               ),
             ),
           ),
+        ],
       ],
     );
   }

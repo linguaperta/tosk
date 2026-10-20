@@ -11,6 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 
+import '../theme/tosk_palette.dart';
 import '../../core/core.dart';
 import '../../engine/engine.dart' show tokenRefsOf;
 import '../../progression/xp.dart';
@@ -374,7 +375,7 @@ class _ReaderState extends ConsumerState<_Reader> {
       const SizedBox(height: 24),
       Icon(Icons.auto_stories, size: 64, color: isBw(context) ? kBwBlack : theme.colorScheme.primary),
       const SizedBox(height: 12),
-      Text('Story complete!', textAlign: TextAlign.center, style: theme.textTheme.headlineSmall),
+      Text('Story complete!', textAlign: TextAlign.center, style: theme.textTheme.serifHeadline),
       const SizedBox(height: 8),
       if (n > 0)
         Text(

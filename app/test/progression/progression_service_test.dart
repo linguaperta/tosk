@@ -100,7 +100,72 @@ void main() {
     await s.profile();
     expect(identical(s.replay, r), isTrue);
     expect(r.version, v + 1);
-    expect(r.length, log.length);
+    // The course replay holds this course's events; the account replay all.
+    expect(r.length, log.where(s.inCourse).length);
+    expect(s.accountReplay.length, log.length);
+  });
+
+  test('progress is per language; streak, freezes, heatmap and the daily goal are account-wide', () async {
+    final f = EventFactory();
+    // Italian: two days of lessons. Dutch (another course): today, a lot,
+    // a non-stop run and a lesson session of its own.
+    final itEvents = [
+      ...f.many(greetingFacets, utc(2026, 10, 11, 9), 8, session: 'it-a', mode: 'lesson'),
+      ...f.many(greetingFacets, utc(2026, 10, 13, 8), 4, session: 'it-b', mode: 'lesson'),
+    ];
+    final nlEvents = [
+      ...f.many(['nl:huis#rec', 'nl:huis#prod', 'nl:boom#rec'], utc(2026, 10, 12, 9), 60, session: 'nl-a', mode: 'lesson'),
+      ...f.many(['nl:huis#rec', 'nl:boom#rec'], utc(2026, 10, 13, 9), 30, session: 'nl-run', mode: 'nonstop'),
+    ];
+    final store = FakeProgressStore(sch, [...itEvents, ...nlEvents]);
+    final s = service(store);
+    final p = await s.profile();
+
+    final itOnly = LogReplay(scheduler: sch)..update(itEvents);
+    final all = LogReplay(scheduler: sch)..update([...itEvents, ...nlEvents]);
+    // The course's XP, level and counts.
+    expect(p.totalXp, itOnly.totalXp);
+    expect(p.totalXp, lessThan(all.totalXp));
+    expect(p.level, const LevelCurve().levelFor(itOnly.totalXp));
+    expect(p.totalReviews, itEvents.length);
+    expect(p.todayReviews, 4);
+    expect(p.todayXp, itOnly.steps.skip(8).fold<int>(0, (a, x) => a + x.xp));
+    // The account's streak (Oct 11, 12 by Dutch only, 13) and today's goal XP.
+    expect(p.currentStreak, 3);
+    expect(p.accountTodayReviews, 34);
+    expect(p.accountTodayXp, all.steps.where((x) => x.event.at.day == 13).fold<int>(0, (a, x) => a + x.xp));
+    // 102 reviews over all courses earned two freezes for the account.
+    expect(p.freezes, 2);
+    final xpDays = await s.xpByDay();
+    expect(xpDays.values.fold<int>(0, (a, b) => a + b), all.totalXp);
+    expect((await s.heatmap()).counts[const LocalDate(2026, 10, 12)], 60);
+
+    // Challenges and badges: Italian only (no 150-review or combo progress from Dutch).
+    final board = await s.challenges();
+    // This ISO week started Monday Oct 12 (4 Italian reviews); the month has all 12.
+    for (final c in board.weekly) {
+      if (c.template.metric == ChallengeMetric.reviews) expect(c.progress, 4);
+      if (c.template.metric == ChallengeMetric.practiceDays) expect(c.progress, 1);
+      if (c.template.metric == ChallengeMetric.nonStopCombo) expect(c.progress, 0);
+    }
+    for (final c in board.monthly) {
+      if (c.template.metric == ChallengeMetric.reviews) expect(c.progress, itEvents.length);
+      if (c.template.metric == ChallengeMetric.practiceDays) expect(c.progress, 2);
+      if (c.template.metric == ChallengeMetric.nonStopCombo) expect(c.progress, 0);
+    }
+    final facts = ChallengeFacts.build(s.replay.steps, cal);
+    final week = Period.weekOf(const LocalDate(2026, 10, 13));
+    final reviews = ChallengeTemplate(id: 'r', metric: ChallengeMetric.reviews, target: 1000, title: 'r', description: 'r');
+    expect(facts.evaluate(reviews, week).progress, 4);
+    // The Dutch run is not an Italian record; its session has no Italian summary.
+    expect(await s.bestNonStopRun(), isNull);
+    expect(await s.sessionSummary('nl-a'), isNull);
+    expect((await s.sessionSummary('it-b'))!.reviews, 4);
+    // Recomputing from scratch, in any order, gives the same split.
+    final fresh = service(FakeProgressStore(sch, [...nlEvents, ...itEvents]..shuffle(math.Random(3))));
+    final q = await fresh.profile();
+    expect((q.totalXp, q.level, q.currentStreak, q.freezes, q.accountTodayXp),
+        (p.totalXp, p.level, p.currentStreak, p.freezes, p.accountTodayXp));
   });
 
   test('heatmap default range, frozen days and explicit range', () async {

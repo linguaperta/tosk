@@ -12,6 +12,7 @@ import '../../engine/reference.dart';
 import '../../providers.dart';
 import '../routes.dart';
 import '../theme/bw_skin.dart';
+import 'pronounce_button.dart';
 
 /// Decoration of a tappable word: a dotted underline (black in black & white).
 TextStyle tappableWordStyle(BuildContext context, TextStyle? base) {
@@ -256,13 +257,22 @@ class _WordPopoverCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: Text(
-                gloss.headline,
-                key: const ValueKey('word-popover-headline'),
-                style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
-              ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Flexible(
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: Text(
+                      gloss.headline,
+                      key: const ValueKey('word-popover-headline'),
+                      style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+                // v0.5: hear the word (only with a voice for the language).
+                PronounceButton(text: gloss.word, buttonKey: const ValueKey('word-popover-pronounce')),
+              ],
             ),
             const SizedBox(height: 2),
             Padding(

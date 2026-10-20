@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/core.dart';
 import '../../common/word_popover.dart';
+import '../../ink/ink_pad.dart';
 import '../../theme/bw_skin.dart';
 import '../typing.dart';
 import 'common.dart';
@@ -135,10 +136,14 @@ class SentenceBuilderView extends ExerciseWidget<SentenceBuilderExercise> {
     super.reduceMotion,
     super.onCheck,
     this.typed = false,
+    this.ink = false,
   });
 
   /// Typing mode: type the sentence instead of building it from tiles.
   final bool typed;
+
+  /// Handwriting: write the sentence on the pad (in parts: "Next word").
+  final bool ink;
 
   @override
   State<SentenceBuilderView> createState() => _SentenceBuilderViewState();
@@ -173,7 +178,13 @@ class _SentenceBuilderViewState extends State<SentenceBuilderView> {
           ],
         ],
       ),
-      controls: widget.typed
+      controls: widget.ink
+          ? InkSentenceArea(
+              locked: widget.locked,
+              correct: widget.result?.correct,
+              onChanged: widget.onChanged,
+            )
+          : widget.typed
           ? TypedSentenceArea(
               locked: widget.locked,
               correct: widget.result?.correct,
@@ -247,6 +258,51 @@ class TypedSentenceArea extends StatelessWidget {
   }
 }
 
+/// Handwriting for the sentence builder and transform: the whole sentence
+/// on the pad, word by word or in a few parts ("Next word" commits a part),
+/// reported as an ink `TextAnswer` with combined candidates.
+class InkSentenceArea extends StatelessWidget {
+  const InkSentenceArea({super.key, required this.locked, required this.onChanged, this.correct});
+
+  final bool locked;
+  final bool? correct;
+  final ValueChanged<Answer?> onChanged;
+
+  /// Sentences are written in parts; more combinations of the parts' readings count.
+  static const int topK = 5;
+
+  @override
+  Widget build(BuildContext context) {
+    final fb = FeedbackColors.of(context);
+    final mark = correct;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        InkPad(
+          key: const ValueKey('sentence-ink'),
+          enabled: !locked,
+          segmented: true,
+          hintText: 'Write a word or a few',
+          onChanged: (r) => onChanged(r?.toAnswer(topK: topK)),
+        ),
+        if (mark != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Row(
+              key: const ValueKey('typed-verdict'),
+              children: [
+                Icon(mark ? Icons.check : Icons.close, size: 18, color: mark ? fb.correct : fb.wrong),
+                const SizedBox(width: 6),
+                Text(mark ? 'Right' : 'Not quite', style: Theme.of(context).textTheme.bodyMedium),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
 /// Rebuild a sentence in another tense or person from tiles.
 class TransformView extends ExerciseWidget<TransformExercise> {
   const TransformView({
@@ -258,10 +314,14 @@ class TransformView extends ExerciseWidget<TransformExercise> {
     super.reduceMotion,
     super.onCheck,
     this.typed = false,
+    this.ink = false,
   });
 
   /// Typing mode: type the sentence instead of building it from tiles.
   final bool typed;
+
+  /// Handwriting: write the sentence on the pad (in parts: "Next word").
+  final bool ink;
 
   @override
   State<TransformView> createState() => _TransformViewState();
@@ -271,7 +331,6 @@ class _TransformViewState extends State<TransformView> {
   @override
   Widget build(BuildContext context) {
     final e = widget.exercise;
-    final scheme = Theme.of(context).colorScheme;
     return ExerciseLayout(
       prompt: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -292,18 +351,16 @@ class _TransformViewState extends State<TransformView> {
             ),
           ],
           const SizedBox(height: 10),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Chip(
-              key: const ValueKey('transform-target'),
-              avatar: Icon(Icons.swap_horiz, size: 18, color: scheme.onTertiaryContainer),
-              backgroundColor: scheme.tertiaryContainer,
-              label: Text(e.targetDescription, style: TextStyle(color: scheme.onTertiaryContainer)),
-            ),
-          ),
+          TransformTargetChip(exercise: e),
         ],
       ),
-      controls: widget.typed
+      controls: widget.ink
+          ? InkSentenceArea(
+              locked: widget.locked,
+              correct: widget.result?.correct,
+              onChanged: widget.onChanged,
+            )
+          : widget.typed
           ? TypedSentenceArea(
               locked: widget.locked,
               correct: widget.result?.correct,
@@ -318,6 +375,62 @@ class _TransformViewState extends State<TransformView> {
               keys: widget.keys,
               onChanged: (words) => widget.onChanged(words == null ? null : TilesAnswer(words)),
             ),
+    );
+  }
+}
+
+/// What to change, prominently: `present → present perfect (passato
+/// prossimo)` or `io → noi`, in the course's labels. Falls back to the
+/// engine's `→ target` description for exercises without labels.
+class TransformTargetChip extends StatelessWidget {
+  const TransformTargetChip({super.key, required this.exercise});
+  final TransformExercise exercise;
+
+  @override
+  Widget build(BuildContext context) {
+    final e = exercise;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final mono = isMonochrome(scheme);
+    final fg = scheme.onTertiaryContainer;
+    final from = e.fromLabel, to = e.toLabel;
+    final style = theme.textTheme.titleMedium?.copyWith(color: fg);
+    final label = from != null && to != null ? '$from → $to' : e.targetDescription;
+    return Semantics(
+      label: label,
+      excludeSemantics: true,
+      child: Container(
+        key: const ValueKey('transform-target'),
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: scheme.tertiaryContainer,
+          borderRadius: BorderRadius.circular(12),
+          border: mono ? Border.all(color: kBwBlack, width: kBwBorder) : null,
+        ),
+        child: from != null && to != null
+            ? Wrap(
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                runSpacing: 2,
+                children: [
+                  Text(from, key: const ValueKey('transform-from'), style: style),
+                  Icon(Icons.arrow_forward, size: 20, color: fg),
+                  Text(
+                    to,
+                    key: const ValueKey('transform-to'),
+                    style: style?.copyWith(fontWeight: FontWeight.w800),
+                  ),
+                ],
+              )
+            : Row(
+                children: [
+                  Icon(Icons.swap_horiz, size: 20, color: fg),
+                  const SizedBox(width: 8),
+                  Flexible(child: Text(e.targetDescription, style: style)),
+                ],
+              ),
+      ),
     );
   }
 }

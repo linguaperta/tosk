@@ -37,7 +37,8 @@ String _typeName(ExerciseType t) => switch (t) {
   ExerciseType.sentenceBuilder => 'build the translation from word tiles',
   ExerciseType.cloze => 'fill the gap',
   ExerciseType.spotError => 'spot the wrong word',
-  ExerciseType.transform => 'transform the sentence',
+  ExerciseType.transform => 'change the tense or person of the sentence',
+  ExerciseType.listenPick => 'listen (text-to-speech) and pick the sentence or word heard',
 };
 
 /// Notes are trusted course content but can be long; the model needs the gist.

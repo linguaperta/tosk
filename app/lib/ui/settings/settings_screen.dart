@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../theme/tosk_palette.dart';
+import '../../app_version.dart';
+import '../brand/tosk.dart';
 import '../../core/core.dart';
 import '../../providers.dart';
 import '../common/async_view.dart';
 import '../courses/course_picker.dart';
+import '../courses/course_updates.dart';
 import '../routes.dart';
 import '../shell/course_switcher.dart';
 import 'ai_settings_section.dart';
@@ -13,6 +17,7 @@ import 'answer_input_section.dart';
 import 'app_settings.dart';
 import 'backup_section.dart';
 import 'daily_goal_section.dart';
+import 'device_section.dart';
 
 /// Settings, persisted through the progress store (see `setting_keys.dart`).
 class SettingsScreen extends ConsumerWidget {
@@ -27,6 +32,9 @@ class SettingsScreen extends ConsumerWidget {
     final meta = ref.watch(courseDataProvider).value?.meta ?? courses.where((c) => c.id == activeId).firstOrNull;
     final lang = ref.watch(sourceLangProvider);
     final ctl = ref.read(settingsProvider.notifier);
+    // Course updates (v0.4 downloads): a dot on the course's row.
+    final offers = ref.watch(courseOffersProvider);
+    final anyUpdate = ref.watch(courseUpdateAvailableProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
@@ -43,6 +51,8 @@ class SettingsScreen extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 children: [
                   const _Section('Course'),
+                  // Courses are switched here (the map only shows the title),
+                  // with the "update available" dot on a course's row.
                   for (final c in courses)
                     ListTile(
                       key: ValueKey('course-${c.id}'),
@@ -51,10 +61,13 @@ class SettingsScreen extends ConsumerWidget {
                         children: [
                           Flexible(child: Text(pickLang(c.title, lang), overflow: TextOverflow.ellipsis)),
                           if (c.unverified) ...[const SizedBox(width: 8), const UnverifiedBadge(compact: true)],
+                          if (offers[c.id]?.status == OfferStatus.updateAvailable)
+                            UpdateDot(dotKey: ValueKey('course-update-dot-${c.id}')),
                         ],
                       ),
                       subtitle: Text(
-                        '${ref.read(courseCatalogProvider).isDemo(c.id) ? 'Demo content · ' : ''}v${c.version}',
+                        '${ref.read(courseCatalogProvider).isDemo(c.id) ? 'Demo content · ' : ''}v${c.version}'
+                        '${offers[c.id]?.status == OfferStatus.updateAvailable ? ' · Update available' : ''}',
                       ),
                       selected: c.id == activeId,
                       onTap: () => ctl.change((s) => s.copyWith(courseId: c.id)),
@@ -62,7 +75,17 @@ class SettingsScreen extends ConsumerWidget {
                   ListTile(
                     key: const ValueKey('manage-courses-tile'),
                     leading: const Icon(Icons.library_add_outlined),
-                    title: const Text('Add or remove courses'),
+                    title: Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            anyUpdate ? 'Courses (updates available)' : 'Add or remove courses',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (anyUpdate) const UpdateDot(),
+                      ],
+                    ),
                     onTap: () => showCoursePicker(context),
                   ),
                   SwitchListTile(
@@ -159,6 +182,14 @@ class SettingsScreen extends ConsumerWidget {
                     onTap: () => context.push(Routes.flags),
                   ),
                   const _Section('About'),
+                  const Padding(
+                    key: ValueKey('about-brand'),
+                    padding: EdgeInsets.fromLTRB(16, 4, 16, 8),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: BrandLockup(caption: 'Version $kAppVersion · free and offline-first'),
+                    ),
+                  ),
                   if (meta != null && meta.attribution.isNotEmpty)
                     ListTile(
                       leading: const Icon(Icons.info_outline),
@@ -193,6 +224,7 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                   // v0.3 practice extras (their own settings and widgets).
                   const AnswerInputSection(),
+                  const DeviceSection(),
                   const DailyGoalSection(),
                   const BackupSection(),
                 ],
@@ -214,7 +246,7 @@ class _Section extends StatelessWidget {
     padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
     child: Text(
       title,
-      style: Theme.of(context).textTheme.labelLarge?.copyWith(color: Theme.of(context).colorScheme.primary),
+      style: Theme.of(context).textTheme.serifSection?.copyWith(color: Theme.of(context).colorScheme.primary),
     ),
   );
 }

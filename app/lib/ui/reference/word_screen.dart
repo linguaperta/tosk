@@ -10,6 +10,7 @@ import '../../core/core.dart';
 import '../../engine/reference.dart';
 import '../../providers.dart';
 import '../common/async_view.dart';
+import '../common/pronounce_button.dart';
 import '../common/word_popover.dart';
 import '../routes.dart';
 import 'reference_screen.dart';
@@ -41,7 +42,11 @@ class WordScreen extends ConsumerWidget {
         final table = item.isVerb ? reference.verbTable(item.id, lang) : null;
         final verb = course.verb(item.id);
         return Scaffold(
-          appBar: AppBar(title: Text(wordLabel(item), key: const ValueKey('word-title'))),
+          appBar: AppBar(
+            title: Text(wordLabel(item), key: const ValueKey('word-title')),
+            // v0.5: hear the word (with its article), when the device has a voice.
+            actions: [PronounceButton(text: wordLabel(item), buttonKey: const ValueKey('word-pronounce'))],
+          ),
           body: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 760),

@@ -49,11 +49,17 @@ class DemoGrader {
         );
       case ConjPickExercise e:
         if (answer is TextAnswer) {
-          // Typing mode: the typed ending ('-' for none).
-          final t = answer.text.trim().replaceFirst(RegExp(r'^[-–]\s*'), '');
-          final given = '${e.stem}$t';
-          final accepted = {e.fullForm, ...e.accepted}.map(normalize);
-          return single(accepted.contains(normalize(given)), e.fullForm, given);
+          // Typing mode: the typed ending ('-' for none); handwriting: any
+          // candidate, the ending or the whole form.
+          String form(String raw) {
+            final t = raw.trim().replaceFirst(RegExp(r'^[-–]\s*'), '');
+            return t.toLowerCase().startsWith(e.stem.toLowerCase()) && t.length > e.stem.length ? t : '${e.stem}$t';
+          }
+
+          final given = form(answer.text);
+          final accepted = {e.fullForm, ...e.accepted}.map(normalize).toSet();
+          final ok = [answer.text, ...answer.candidates].any((c) => accepted.contains(normalize(form(c))));
+          return single(ok, e.fullForm, given);
         }
         final i = answer is ChoiceAnswer ? answer.index : -1;
         return single(i == e.correctIndex, e.fullForm, i < 0 ? '' : '${e.stem}${_at(e.endings, i)}');
@@ -67,8 +73,9 @@ class DemoGrader {
             continue;
           }
           final given = i < cells.length ? cells[i] : '';
-          final accepted = {c.expected, ...c.accepted}.map(normalize);
-          marks.add(accepted.contains(normalize(given)));
+          final alts = answer is GridAnswer && i < answer.candidates.length ? answer.candidates[i] : const <String>[];
+          final accepted = {c.expected, ...c.accepted}.map(normalize).toSet();
+          marks.add([given, ...alts].any((g) => accepted.contains(normalize(g))));
         }
         final ok = marks.every((m) => m);
         return Result(
@@ -95,6 +102,9 @@ class DemoGrader {
       case SpotErrorExercise e:
         final i = answer is TokenAnswer ? answer.index : -1;
         return single(i == e.errorIndex, '${e.tokens[e.errorIndex]} → ${e.correction}', _at(e.tokens, i));
+      case ListenPickExercise e:
+        final i = answer is ChoiceAnswer ? answer.index : -1;
+        return single(i == e.correctIndex, e.text, _at(e.options, i));
     }
   }
 
@@ -104,7 +114,9 @@ class DemoGrader {
       TextAnswer(:final text) => text.trim(), // typing mode
       _ => '',
     };
-    final ok = answers.any((a) => normalize(a.join(' ')) == normalize(given));
+    // Handwriting: any recognizer candidate.
+    final alts = answer is TextAnswer ? answer.candidates : const <String>[];
+    final ok = answers.any((a) => [given, ...alts].any((g) => normalize(a.join(' ')) == normalize(g)));
     return single(ok, answers.first.join(' '), given);
   }
 

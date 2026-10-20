@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+<rect x="0" y="0" width="512" height="512" rx="112" fill="#D9A441"/>
+<circle cx="256" cy="256" r="214" fill="#FBF3E1" stroke="#1F1813" stroke-width="14"/>
+<circle cx="256" cy="256" r="196" fill="none" stroke="#A6762B" stroke-width="5"/>
+<path d="M232,392 C150,420 84,360 100,284 C84,250 104,210 128,196 C116,150 150,108 196,118 C216,80 282,84 294,130 C300,150 290,162 280,164 C258,150 234,160 224,186 C206,222 204,270 220,322 C226,350 232,372 232,392 Z" fill="#C4361B" stroke="#1F1813" stroke-width="11" stroke-linejoin="round" stroke-linecap="round" />
+<path d="M236,340 C222,290 226,236 248,196 C258,180 272,172 282,172 C286,182 284,190 280,194 C264,196 252,214 246,234 C236,266 238,300 248,336 Z" fill="#FBF3E1" stroke="#1F1813" stroke-width="5.5" stroke-linejoin="round" stroke-linecap="round" />
+<path d="M300,250 C330,250 356,290 356,336 C356,384 316,410 262,406 C222,402 206,370 220,330 C236,286 266,250 300,250 Z" fill="#C4361B" stroke="#1F1813" stroke-width="11" stroke-linejoin="round" stroke-linecap="round" />
+<path d="M342,336 C342,372 312,392 272,390 C252,388 244,372 254,356 C284,348 314,340 342,336 Z" fill="#FBF3E1" stroke="#1F1813" stroke-width="5.5" stroke-linejoin="round" stroke-linecap="round" />
+<path d="M268,252 C256,206 290,172 334,176 C364,180 380,200 384,222 C398,232 404,254 392,270 C380,284 360,286 348,282 C330,296 296,292 282,276 C272,268 268,260 268,252 Z" fill="#C4361B" stroke="#1F1813" stroke-width="11" stroke-linejoin="round" stroke-linecap="round" />
+<path d="M346,232 C368,232 388,244 390,262 C384,278 364,284 350,282 C334,282 322,270 326,254 C330,242 338,232 346,232 Z" fill="#FBF3E1" stroke="#1F1813" stroke-width="5.5" stroke-linejoin="round" stroke-linecap="round" />
+<path d="M286,198 C288,176 296,160 306,150 L310,126 L322,150 L344,138 L336,160 L352,162 C344,174 334,190 326,200 Z" fill="#C4361B" stroke="#1F1813" stroke-width="11" stroke-linejoin="round" stroke-linecap="round" />
+<ellipse cx="352" cy="222" rx="17" ry="18" fill="#FBF3E1" stroke="#1F1813" stroke-width="7"/>
+<circle cx="356" cy="225" r="11" fill="#1F1813"/>
+<circle cx="351" cy="218" r="4" fill="#FBF3E1"/>
+<path d="M334,200 C346,192 364,194 372,204" fill="none" stroke="#1F1813" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+<circle cx="396" cy="256" r="7" fill="#1F1813"/>
+<path d="M388,270 C382,282 368,284 360,278" fill="none" stroke="#1F1813" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
+<g transform="rotate(-20 318 318)">
+<path d="M292,306 L344,306 L344,330 L292,330 Z" fill="#FBF3E1" stroke="#1F1813" stroke-width="7" stroke-linejoin="round" stroke-linecap="round" />
+<circle cx="292" cy="318" r="9" fill="#D9A441" stroke="#1F1813" stroke-width="6"/>
+<circle cx="344" cy="318" r="9" fill="#D9A441" stroke="#1F1813" stroke-width="6"/>
+</g>
+<path d="M306,282 C322,286 336,298 342,308 C344,316 336,320 330,316 C318,308 306,298 298,292 Z" fill="#C4361B" stroke="#1F1813" stroke-width="8.8" stroke-linejoin="round" stroke-linecap="round" />
+</svg>

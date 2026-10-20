@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../theme/tosk_palette.dart';
+import '../brand/tosk.dart';
 import '../../core/core.dart';
 import '../../engine/engine.dart' show OpenMistake;
 import '../../providers.dart';
@@ -98,9 +100,9 @@ class _Empty extends StatelessWidget {
           key: const ValueKey('mistakes-empty'),
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.task_alt, size: 56, color: theme.colorScheme.primary),
+            const ToskImage(pose: ToskPose.sleeping, height: 112),
             const SizedBox(height: 12),
-            Text('Nothing to review', style: theme.textTheme.titleLarge),
+            Text('Nothing to review', style: theme.textTheme.serifTitle),
             const SizedBox(height: 6),
             const Text(
               'Wrong answers show up here until you get them right in a later session.',
@@ -277,7 +279,7 @@ class MistakeCard extends ConsumerWidget {
                   if (skill != null && note != null)
                     TextButton.icon(
                       key: ValueKey('mistake-note-${m.facetId}'),
-                      onPressed: () => context.push(Routes.skill(skillId)),
+                      onPressed: () => context.push(Routes.skill(skillId, section: 'note')),
                       icon: const Icon(Icons.open_in_new),
                       label: const Text('Grammar note'),
                     ),

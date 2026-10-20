@@ -128,8 +128,11 @@ Future<void> scrollToFind(WidgetTester tester, Finder finder) async {
   );
   for (final element in vertical.evaluate().toList()) {
     final scrollable = find.byElementPredicate((e) => e == element);
-    for (final dy in const [300.0, -300.0]) {
+    // Content below first: dragging down at the top of a modal sheet's list
+    // would pull the sheet closed (and unmount the scrollable).
+    for (final dy in const [-300.0, 300.0]) {
       for (var i = 0; i < 30 && finder.evaluate().isEmpty; i++) {
+        if (!element.mounted) break;
         final pos = (element as StatefulElement).state as ScrollableState;
         final before = pos.position.pixels;
         await tester.drag(scrollable, Offset(0, dy), warnIfMissed: false);
@@ -151,6 +154,12 @@ Future<void> tapIt(WidgetTester tester, Finder finder) async {
 }
 
 Future<void> tapKey(WidgetTester tester, String key) => tapIt(tester, find.byKey(ValueKey(key)));
+
+/// A tap on a map node opens the skill's sheet; Start lesson starts it.
+Future<void> startLessonFromMap(WidgetTester tester, String skillId) async {
+  await tapKey(tester, 'skill-node-$skillId');
+  await tapKey(tester, 'start-lesson');
+}
 
 Exercise currentExercise(WidgetTester tester) => tester.widget<ExerciseView>(find.byType(ExerciseView)).exercise;
 
@@ -252,6 +261,9 @@ Future<bool> answerCurrentNoContinue(WidgetTester tester, {bool wrong = false}) 
     case SpotErrorExercise e:
       final idx = wrong ? (e.errorIndex == 0 ? 1 : 0) : e.errorIndex;
       await tapKey(tester, 'token-$idx');
+      await check();
+    case ListenPickExercise e:
+      await tapKey(tester, 'option-${wrong ? (e.correctIndex + 1) % e.options.length : e.correctIndex}');
       await check();
   }
   return true;

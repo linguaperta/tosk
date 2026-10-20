@@ -1,5 +1,7 @@
 # Roadmap
 
+Direction (14 October 2026): the app is a **player for language packs**, and the pack format plus a tool suite for making packs is the product. See [VISION.md](VISION.md).
+
 The detailed task list lives in [BACKLOG.md](../BACKLOG.md). This page is the release-level view.
 
 | Release | Theme | Status |
@@ -8,9 +10,10 @@ The detailed task list lives in [BACKLOG.md](../BACKLOG.md). This page is the re
 | v0.2 (preview 2) | Real-pack correctness (compound tenses, Dutch clause rules), fast exercise generation | shipped 13 Oct 2026 |
 | **v0.3** (preview 3) | Bigger grammar-first courses, AI explanations, flagging, sounds, mistake review, one-handed layout, B/W e-ink mode, reference, course picker, backup, daily goal, typing mode, Sarnami (local) | shipped 14 Oct 2026 |
 | v0.4 | Content downloads and sync | planned |
-| v0.5 | Handwriting and e-ink (Boox), listening | planned |
+| v0.5 | Handwriting and e-ink (Boox), listening | built; device testing pending ([checklist](device-testing.md)) |
 | v0.6 | New full-size courses: Spanish, Portuguese, French, Esperanto, Swedish, Norwegian, Danish | planned |
-| Later | RPG/forest layer, personalized vocabulary, reading readiness, ghost race | parked |
+| v0.8 | Pack toolkit: open pack spec, `pack new` / `from-text` / `draft --ai`, extension packs (`extends`), custom catalog URLs, license and sources in the course preview, a "read a book" pack (Montalbano) | planned |
+| Later | RPG/forest layer, ghost race | parked |
 
 ## v0.3
 
@@ -33,9 +36,10 @@ The detailed task list lives in [BACKLOG.md](../BACKLOG.md). This page is the re
 
 ## v0.5: handwriting, e-ink, listening
 
-- ML Kit Digital Ink as an `AnswerInput` for production exercises, plus the Onyx pen SDK on the Boox.
-- E-ink extras: a full refresh after each lesson and Onyx pen low-latency drawing. The B/W mode itself ships in v0.3.
-- `listen_pick` with on-device text-to-speech.
+- **Answer input: Write.** ML Kit Digital Ink on a writing pad in cloze, conjugation pick and grid, sentence builder and transform (Android and iOS); the course's model is downloaded once (about 20 MB) and works offline; the answer counts when any of the top readings is right. Sarnami uses the Dutch model.
+- **Boox:** the Onyx pen SDK draws on the pad with e-ink latency, and a full e-ink refresh follows each lesson (Settings → E-reader).
+- **Listening:** `listen_pick`, the 10th exercise type, with on-device text-to-speech (where the phone has a voice for the language; never for Sarnami), plus 🔊 pronounce buttons on word popovers, flashcards and word pages.
+- What needs checking on the phone and the Boox: [device-testing.md](device-testing.md).
 
 ## v0.6: new full-size courses
 

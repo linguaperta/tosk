@@ -19,6 +19,7 @@ String controlKey(Exercise e) => switch (e) {
   SentenceBuilderExercise() || TransformExercise() => 'tile-0',
   ClozeExercise() => 'cloze-option-0',
   SpotErrorExercise() => 'token-0',
+  ListenPickExercise e => 'option-${e.options.length - 1}',
 };
 
 void main() {
