@@ -235,7 +235,7 @@ Each one at the expanded it/nl scale: 8â€“10 units, ~30 skills, ~1000 taught wor
 - [ ] Package the JSON schemas inside the Python package so a real wheel works (today only an editable install)
 - [ ] Move source-specific importers for copyrighted sources (Sarnami [source], [source]©, [source]) into a private module or repo before any repo goes public. The audit lists exactly what moves and which hooks to replace: `docs/private-importers.md`
 - [ ] Expansions (design: `docs/extensions.md`, agreed 20 Oct): `extends`, course families, word-derived ids `<lang>~<lemma>.<pos>`, `variant_of`, topics inside packs (`topics:` with an `anchor`), validator rules, installed-expansion list synced
-- [ ] App: topic trees (own map), a branch leaving the main map at the anchor with a signpost and "Go to <topic>", a tree selector at the top of the map, "N of M words already known"
+- [ ] App: topic trees (own map), a branch leaving the main map at the anchor with an arrow and name carved/painted into the bark and "Go to <topic>", a tree selector at the top of the map, "N of M words already known"
 - [ ] Tidy the it/nl/es main trees: move self-contained vocab clusters into built-in topics (owner reviews the split first; ids unchanged)
 - [ ] Later: book expansions as a guided e-reader (`pack from-text`); move the stories into the same model
 - [ ] `pack from-text <book>`: lemmatise with the base course tables, per-chapter frequency, drop known words (from an exported progress log), chapter units, sentences from the text, AI glosses for missing/dialect words (labelled), reading readiness per chapter. First target: Montalbano (Camilleri, Sicilian vigatese)

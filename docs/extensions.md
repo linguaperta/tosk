@@ -40,10 +40,10 @@ topics:
 ## In the app
 
 **On the main tree**, at the anchor skill, a **side branch leaves the map**: it grows off the anchor node and runs out of the screen edge (on very wide screens it fades out instead).
-- Where it leaves, a small **signpost arrow** on the tree points the way and carries the topic's name.
+- Along the branch, an arrow and the topic's name are **carved or painted into the bark itself** (not a separate sign): an incised/painted arrow following the branch's curve towards the edge, with the name lettered along it in the storybook style. In B/W it's black incised lines; it must stay legible at phone size (fall back to a short name).
 - A clear button next to it: **Go to Food and cooking**.
-- Several topics on one anchor: several branches/signposts, alternating sides when space allows.
-- Before the anchor is reached, the branch and signpost are shown locked (the topic can still be opened and browsed).
+- Several topics on one anchor: several branches with their carved arrows, alternating sides when space allows.
+- Before the anchor is reached, the branch and its carving are shown locked (the topic can still be opened and browsed).
 
 **A topic tree** is its own map, drawn by the same branch-map painter (units as boughs, skills as nodes, tiers, decay, twinkles). Its root shows where it grows from ("from Italian · Food basics") and tapping it goes back.
 
@@ -57,4 +57,4 @@ Move self-contained vocabulary clusters out of the main trees into built-in topi
 
 ## Books (later)
 
-Same attachment on the tree (a branch leaving the map with a signpost and "Go to <book>"), but it opens a guided e-reader prepared by the pack: chapters, reading readiness per chapter, new words before each chapter, tap-for-gloss while reading. Personal book packs may include the text (never shared) or only word lists and exercises (shareable). `pack from-text` builds them. The current stories move to this model.
+Same attachment on the tree (a branch leaving the map with a carved arrow and "Go to <book>"), but it opens a guided e-reader prepared by the pack: chapters, reading readiness per chapter, new words before each chapter, tap-for-gloss while reading. Personal book packs may include the text (never shared) or only word lists and exercises (shareable). `pack from-text` builds them. The current stories move to this model.
