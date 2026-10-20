@@ -111,14 +111,14 @@ mixin ExerciseKeysMixin<W extends ExerciseWidget> on State<W> {
 class FeedbackColors {
   FeedbackColors.of(BuildContext context) : _scheme = Theme.of(context).colorScheme;
   final ColorScheme _scheme;
-  bool get _dark => _scheme.brightness == Brightness.dark;
 
   /// Black & white (e-ink) theme.
   bool get mono => isMonochrome(_scheme);
 
-  Color get correct => mono ? kBwBlack : (_dark ? const Color(0xFF81C784) : const Color(0xFF2E7D32));
-  Color get correctContainer => mono ? kBwWhite : (_dark ? const Color(0xFF1E3A22) : const Color(0xFFDDF3DF));
-  Color get onCorrectContainer => mono ? kBwBlack : (_dark ? const Color(0xFFC8EBC9) : const Color(0xFF0F3D14));
+  // The skin's leaf tones (tosk: leaf dark / leaf tint, leaf light / leaf night).
+  Color get correct => mono ? kBwBlack : _scheme.secondary;
+  Color get correctContainer => mono ? kBwWhite : _scheme.secondaryContainer;
+  Color get onCorrectContainer => mono ? kBwBlack : _scheme.onSecondaryContainer;
   Color get wrong => _scheme.error;
   Color get wrongContainer => _scheme.errorContainer;
   Color get onWrongContainer => _scheme.onErrorContainer;
