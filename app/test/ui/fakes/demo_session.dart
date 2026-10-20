@@ -140,7 +140,7 @@ class DemoSessionFactory implements SessionFactory {
       ...starred.exercises,
       ...pool.where((e) => words.contains(item(e.facetId))),
     ];
-    return _make(SessionMode.review, source, source.isEmpty ? 0 : length.clamp(1, source.length));
+    return _make(SessionMode.starred, source, source.isEmpty ? 0 : length.clamp(1, source.length));
   }
 }
 

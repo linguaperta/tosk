@@ -3521,6 +3521,565 @@ class FlagsCompanion extends UpdateCompanion<FlagRow> {
   }
 }
 
+class $BookmarksTable extends Bookmarks
+    with TableInfo<$BookmarksTable, BookmarkRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $BookmarksTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _courseIdMeta = const VerificationMeta(
+    'courseId',
+  );
+  @override
+  late final GeneratedColumn<String> courseId = GeneratedColumn<String>(
+    'course_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _refIdMeta = const VerificationMeta('refId');
+  @override
+  late final GeneratedColumn<String> refId = GeneratedColumn<String>(
+    'ref_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _atMeta = const VerificationMeta('at');
+  @override
+  late final GeneratedColumn<int> at = GeneratedColumn<int>(
+    'at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _removedMeta = const VerificationMeta(
+    'removed',
+  );
+  @override
+  late final GeneratedColumn<bool> removed = GeneratedColumn<bool>(
+    'removed',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("removed" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _labelMeta = const VerificationMeta('label');
+  @override
+  late final GeneratedColumn<String> label = GeneratedColumn<String>(
+    'label',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _detailMeta = const VerificationMeta('detail');
+  @override
+  late final GeneratedColumn<String> detail = GeneratedColumn<String>(
+    'detail',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _facetIdMeta = const VerificationMeta(
+    'facetId',
+  );
+  @override
+  late final GeneratedColumn<String> facetId = GeneratedColumn<String>(
+    'facet_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _exerciseJsonMeta = const VerificationMeta(
+    'exerciseJson',
+  );
+  @override
+  late final GeneratedColumn<String> exerciseJson = GeneratedColumn<String>(
+    'exercise_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    courseId,
+    kind,
+    refId,
+    at,
+    removed,
+    label,
+    detail,
+    facetId,
+    exerciseJson,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'bookmarks';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<BookmarkRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('course_id')) {
+      context.handle(
+        _courseIdMeta,
+        courseId.isAcceptableOrUnknown(data['course_id']!, _courseIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_courseIdMeta);
+    }
+    if (data.containsKey('kind')) {
+      context.handle(
+        _kindMeta,
+        kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_kindMeta);
+    }
+    if (data.containsKey('ref_id')) {
+      context.handle(
+        _refIdMeta,
+        refId.isAcceptableOrUnknown(data['ref_id']!, _refIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_refIdMeta);
+    }
+    if (data.containsKey('at')) {
+      context.handle(_atMeta, at.isAcceptableOrUnknown(data['at']!, _atMeta));
+    } else if (isInserting) {
+      context.missing(_atMeta);
+    }
+    if (data.containsKey('removed')) {
+      context.handle(
+        _removedMeta,
+        removed.isAcceptableOrUnknown(data['removed']!, _removedMeta),
+      );
+    }
+    if (data.containsKey('label')) {
+      context.handle(
+        _labelMeta,
+        label.isAcceptableOrUnknown(data['label']!, _labelMeta),
+      );
+    }
+    if (data.containsKey('detail')) {
+      context.handle(
+        _detailMeta,
+        detail.isAcceptableOrUnknown(data['detail']!, _detailMeta),
+      );
+    }
+    if (data.containsKey('facet_id')) {
+      context.handle(
+        _facetIdMeta,
+        facetId.isAcceptableOrUnknown(data['facet_id']!, _facetIdMeta),
+      );
+    }
+    if (data.containsKey('exercise_json')) {
+      context.handle(
+        _exerciseJsonMeta,
+        exerciseJson.isAcceptableOrUnknown(
+          data['exercise_json']!,
+          _exerciseJsonMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {courseId, kind, refId};
+  @override
+  BookmarkRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return BookmarkRow(
+      courseId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}course_id'],
+      )!,
+      kind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kind'],
+      )!,
+      refId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}ref_id'],
+      )!,
+      at: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}at'],
+      )!,
+      removed: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}removed'],
+      )!,
+      label: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}label'],
+      )!,
+      detail: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}detail'],
+      ),
+      facetId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}facet_id'],
+      ),
+      exerciseJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}exercise_json'],
+      ),
+    );
+  }
+
+  @override
+  $BookmarksTable createAlias(String alias) {
+    return $BookmarksTable(attachedDatabase, alias);
+  }
+}
+
+class BookmarkRow extends DataClass implements Insertable<BookmarkRow> {
+  final String courseId;
+  final String kind;
+  final String refId;
+  final int at;
+  final bool removed;
+  final String label;
+  final String? detail;
+  final String? facetId;
+  final String? exerciseJson;
+  const BookmarkRow({
+    required this.courseId,
+    required this.kind,
+    required this.refId,
+    required this.at,
+    required this.removed,
+    required this.label,
+    this.detail,
+    this.facetId,
+    this.exerciseJson,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['course_id'] = Variable<String>(courseId);
+    map['kind'] = Variable<String>(kind);
+    map['ref_id'] = Variable<String>(refId);
+    map['at'] = Variable<int>(at);
+    map['removed'] = Variable<bool>(removed);
+    map['label'] = Variable<String>(label);
+    if (!nullToAbsent || detail != null) {
+      map['detail'] = Variable<String>(detail);
+    }
+    if (!nullToAbsent || facetId != null) {
+      map['facet_id'] = Variable<String>(facetId);
+    }
+    if (!nullToAbsent || exerciseJson != null) {
+      map['exercise_json'] = Variable<String>(exerciseJson);
+    }
+    return map;
+  }
+
+  BookmarksCompanion toCompanion(bool nullToAbsent) {
+    return BookmarksCompanion(
+      courseId: Value(courseId),
+      kind: Value(kind),
+      refId: Value(refId),
+      at: Value(at),
+      removed: Value(removed),
+      label: Value(label),
+      detail: detail == null && nullToAbsent
+          ? const Value.absent()
+          : Value(detail),
+      facetId: facetId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(facetId),
+      exerciseJson: exerciseJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(exerciseJson),
+    );
+  }
+
+  factory BookmarkRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return BookmarkRow(
+      courseId: serializer.fromJson<String>(json['courseId']),
+      kind: serializer.fromJson<String>(json['kind']),
+      refId: serializer.fromJson<String>(json['refId']),
+      at: serializer.fromJson<int>(json['at']),
+      removed: serializer.fromJson<bool>(json['removed']),
+      label: serializer.fromJson<String>(json['label']),
+      detail: serializer.fromJson<String?>(json['detail']),
+      facetId: serializer.fromJson<String?>(json['facetId']),
+      exerciseJson: serializer.fromJson<String?>(json['exerciseJson']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'courseId': serializer.toJson<String>(courseId),
+      'kind': serializer.toJson<String>(kind),
+      'refId': serializer.toJson<String>(refId),
+      'at': serializer.toJson<int>(at),
+      'removed': serializer.toJson<bool>(removed),
+      'label': serializer.toJson<String>(label),
+      'detail': serializer.toJson<String?>(detail),
+      'facetId': serializer.toJson<String?>(facetId),
+      'exerciseJson': serializer.toJson<String?>(exerciseJson),
+    };
+  }
+
+  BookmarkRow copyWith({
+    String? courseId,
+    String? kind,
+    String? refId,
+    int? at,
+    bool? removed,
+    String? label,
+    Value<String?> detail = const Value.absent(),
+    Value<String?> facetId = const Value.absent(),
+    Value<String?> exerciseJson = const Value.absent(),
+  }) => BookmarkRow(
+    courseId: courseId ?? this.courseId,
+    kind: kind ?? this.kind,
+    refId: refId ?? this.refId,
+    at: at ?? this.at,
+    removed: removed ?? this.removed,
+    label: label ?? this.label,
+    detail: detail.present ? detail.value : this.detail,
+    facetId: facetId.present ? facetId.value : this.facetId,
+    exerciseJson: exerciseJson.present ? exerciseJson.value : this.exerciseJson,
+  );
+  BookmarkRow copyWithCompanion(BookmarksCompanion data) {
+    return BookmarkRow(
+      courseId: data.courseId.present ? data.courseId.value : this.courseId,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      refId: data.refId.present ? data.refId.value : this.refId,
+      at: data.at.present ? data.at.value : this.at,
+      removed: data.removed.present ? data.removed.value : this.removed,
+      label: data.label.present ? data.label.value : this.label,
+      detail: data.detail.present ? data.detail.value : this.detail,
+      facetId: data.facetId.present ? data.facetId.value : this.facetId,
+      exerciseJson: data.exerciseJson.present
+          ? data.exerciseJson.value
+          : this.exerciseJson,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BookmarkRow(')
+          ..write('courseId: $courseId, ')
+          ..write('kind: $kind, ')
+          ..write('refId: $refId, ')
+          ..write('at: $at, ')
+          ..write('removed: $removed, ')
+          ..write('label: $label, ')
+          ..write('detail: $detail, ')
+          ..write('facetId: $facetId, ')
+          ..write('exerciseJson: $exerciseJson')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    courseId,
+    kind,
+    refId,
+    at,
+    removed,
+    label,
+    detail,
+    facetId,
+    exerciseJson,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is BookmarkRow &&
+          other.courseId == this.courseId &&
+          other.kind == this.kind &&
+          other.refId == this.refId &&
+          other.at == this.at &&
+          other.removed == this.removed &&
+          other.label == this.label &&
+          other.detail == this.detail &&
+          other.facetId == this.facetId &&
+          other.exerciseJson == this.exerciseJson);
+}
+
+class BookmarksCompanion extends UpdateCompanion<BookmarkRow> {
+  final Value<String> courseId;
+  final Value<String> kind;
+  final Value<String> refId;
+  final Value<int> at;
+  final Value<bool> removed;
+  final Value<String> label;
+  final Value<String?> detail;
+  final Value<String?> facetId;
+  final Value<String?> exerciseJson;
+  final Value<int> rowid;
+  const BookmarksCompanion({
+    this.courseId = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.refId = const Value.absent(),
+    this.at = const Value.absent(),
+    this.removed = const Value.absent(),
+    this.label = const Value.absent(),
+    this.detail = const Value.absent(),
+    this.facetId = const Value.absent(),
+    this.exerciseJson = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  BookmarksCompanion.insert({
+    required String courseId,
+    required String kind,
+    required String refId,
+    required int at,
+    this.removed = const Value.absent(),
+    this.label = const Value.absent(),
+    this.detail = const Value.absent(),
+    this.facetId = const Value.absent(),
+    this.exerciseJson = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : courseId = Value(courseId),
+       kind = Value(kind),
+       refId = Value(refId),
+       at = Value(at);
+  static Insertable<BookmarkRow> custom({
+    Expression<String>? courseId,
+    Expression<String>? kind,
+    Expression<String>? refId,
+    Expression<int>? at,
+    Expression<bool>? removed,
+    Expression<String>? label,
+    Expression<String>? detail,
+    Expression<String>? facetId,
+    Expression<String>? exerciseJson,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (courseId != null) 'course_id': courseId,
+      if (kind != null) 'kind': kind,
+      if (refId != null) 'ref_id': refId,
+      if (at != null) 'at': at,
+      if (removed != null) 'removed': removed,
+      if (label != null) 'label': label,
+      if (detail != null) 'detail': detail,
+      if (facetId != null) 'facet_id': facetId,
+      if (exerciseJson != null) 'exercise_json': exerciseJson,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  BookmarksCompanion copyWith({
+    Value<String>? courseId,
+    Value<String>? kind,
+    Value<String>? refId,
+    Value<int>? at,
+    Value<bool>? removed,
+    Value<String>? label,
+    Value<String?>? detail,
+    Value<String?>? facetId,
+    Value<String?>? exerciseJson,
+    Value<int>? rowid,
+  }) {
+    return BookmarksCompanion(
+      courseId: courseId ?? this.courseId,
+      kind: kind ?? this.kind,
+      refId: refId ?? this.refId,
+      at: at ?? this.at,
+      removed: removed ?? this.removed,
+      label: label ?? this.label,
+      detail: detail ?? this.detail,
+      facetId: facetId ?? this.facetId,
+      exerciseJson: exerciseJson ?? this.exerciseJson,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (courseId.present) {
+      map['course_id'] = Variable<String>(courseId.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (refId.present) {
+      map['ref_id'] = Variable<String>(refId.value);
+    }
+    if (at.present) {
+      map['at'] = Variable<int>(at.value);
+    }
+    if (removed.present) {
+      map['removed'] = Variable<bool>(removed.value);
+    }
+    if (label.present) {
+      map['label'] = Variable<String>(label.value);
+    }
+    if (detail.present) {
+      map['detail'] = Variable<String>(detail.value);
+    }
+    if (facetId.present) {
+      map['facet_id'] = Variable<String>(facetId.value);
+    }
+    if (exerciseJson.present) {
+      map['exercise_json'] = Variable<String>(exerciseJson.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BookmarksCompanion(')
+          ..write('courseId: $courseId, ')
+          ..write('kind: $kind, ')
+          ..write('refId: $refId, ')
+          ..write('at: $at, ')
+          ..write('removed: $removed, ')
+          ..write('label: $label, ')
+          ..write('detail: $detail, ')
+          ..write('facetId: $facetId, ')
+          ..write('exerciseJson: $exerciseJson, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$ProgressDb extends GeneratedDatabase {
   _$ProgressDb(QueryExecutor e) : super(e);
   $ProgressDbManager get managers => $ProgressDbManager(this);
@@ -3532,6 +4091,7 @@ abstract class _$ProgressDb extends GeneratedDatabase {
   late final $SettingsTable settings = $SettingsTable(this);
   late final $AiExplanationsTable aiExplanations = $AiExplanationsTable(this);
   late final $FlagsTable flags = $FlagsTable(this);
+  late final $BookmarksTable bookmarks = $BookmarksTable(this);
   late final Index reviewLogFacetAt = Index(
     'review_log_facet_at',
     'CREATE INDEX review_log_facet_at ON review_log (facet_id, at)',
@@ -3556,6 +4116,10 @@ abstract class _$ProgressDb extends GeneratedDatabase {
     'flags_created',
     'CREATE INDEX flags_created ON flags (created_at)',
   );
+  late final Index bookmarksCourseAt = Index(
+    'bookmarks_course_at',
+    'CREATE INDEX bookmarks_course_at ON bookmarks (course_id, at)',
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3567,12 +4131,14 @@ abstract class _$ProgressDb extends GeneratedDatabase {
     settings,
     aiExplanations,
     flags,
+    bookmarks,
     reviewLogFacetAt,
     reviewLogAt,
     facetStateDue,
     mistakesAt,
     mistakesFacet,
     flagsCreated,
+    bookmarksCourseAt,
   ];
 }
 
@@ -5345,6 +5911,288 @@ typedef $$FlagsTableProcessedTableManager =
       FlagRow,
       PrefetchHooks Function()
     >;
+typedef $$BookmarksTableCreateCompanionBuilder = BookmarksCompanion Function({
+  required String courseId,
+  required String kind,
+  required String refId,
+  required int at,
+  Value<bool> removed,
+  Value<String> label,
+  Value<String?> detail,
+  Value<String?> facetId,
+  Value<String?> exerciseJson,
+  Value<int> rowid,
+});
+typedef $$BookmarksTableUpdateCompanionBuilder = BookmarksCompanion Function({
+  Value<String> courseId,
+  Value<String> kind,
+  Value<String> refId,
+  Value<int> at,
+  Value<bool> removed,
+  Value<String> label,
+  Value<String?> detail,
+  Value<String?> facetId,
+  Value<String?> exerciseJson,
+  Value<int> rowid,
+});
+
+class $$BookmarksTableFilterComposer
+    extends Composer<_$ProgressDb, $BookmarksTable> {
+  $$BookmarksTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get courseId => $composableBuilder(
+    column: $table.courseId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get refId => $composableBuilder(
+    column: $table.refId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get at => $composableBuilder(
+    column: $table.at,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get removed => $composableBuilder(
+    column: $table.removed,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get label => $composableBuilder(
+    column: $table.label,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get detail => $composableBuilder(
+    column: $table.detail,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get facetId => $composableBuilder(
+    column: $table.facetId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get exerciseJson => $composableBuilder(
+    column: $table.exerciseJson,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$BookmarksTableOrderingComposer
+    extends Composer<_$ProgressDb, $BookmarksTable> {
+  $$BookmarksTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get courseId => $composableBuilder(
+    column: $table.courseId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get refId => $composableBuilder(
+    column: $table.refId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get at => $composableBuilder(
+    column: $table.at,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get removed => $composableBuilder(
+    column: $table.removed,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get label => $composableBuilder(
+    column: $table.label,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get detail => $composableBuilder(
+    column: $table.detail,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get facetId => $composableBuilder(
+    column: $table.facetId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get exerciseJson => $composableBuilder(
+    column: $table.exerciseJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$BookmarksTableAnnotationComposer
+    extends Composer<_$ProgressDb, $BookmarksTable> {
+  $$BookmarksTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get courseId =>
+      $composableBuilder(column: $table.courseId, builder: (column) => column);
+
+  GeneratedColumn<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<String> get refId =>
+      $composableBuilder(column: $table.refId, builder: (column) => column);
+
+  GeneratedColumn<int> get at =>
+      $composableBuilder(column: $table.at, builder: (column) => column);
+
+  GeneratedColumn<bool> get removed =>
+      $composableBuilder(column: $table.removed, builder: (column) => column);
+
+  GeneratedColumn<String> get label =>
+      $composableBuilder(column: $table.label, builder: (column) => column);
+
+  GeneratedColumn<String> get detail =>
+      $composableBuilder(column: $table.detail, builder: (column) => column);
+
+  GeneratedColumn<String> get facetId =>
+      $composableBuilder(column: $table.facetId, builder: (column) => column);
+
+  GeneratedColumn<String> get exerciseJson => $composableBuilder(
+    column: $table.exerciseJson,
+    builder: (column) => column,
+  );
+}
+
+class $$BookmarksTableTableManager
+    extends
+        RootTableManager<
+          _$ProgressDb,
+          $BookmarksTable,
+          BookmarkRow,
+          $$BookmarksTableFilterComposer,
+          $$BookmarksTableOrderingComposer,
+          $$BookmarksTableAnnotationComposer,
+          $$BookmarksTableCreateCompanionBuilder,
+          $$BookmarksTableUpdateCompanionBuilder,
+          (
+            BookmarkRow,
+            BaseReferences<_$ProgressDb, $BookmarksTable, BookmarkRow>,
+          ),
+          BookmarkRow,
+          PrefetchHooks Function()
+        > {
+  $$BookmarksTableTableManager(_$ProgressDb db, $BookmarksTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$BookmarksTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$BookmarksTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$BookmarksTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> courseId = const Value.absent(),
+                Value<String> kind = const Value.absent(),
+                Value<String> refId = const Value.absent(),
+                Value<int> at = const Value.absent(),
+                Value<bool> removed = const Value.absent(),
+                Value<String> label = const Value.absent(),
+                Value<String?> detail = const Value.absent(),
+                Value<String?> facetId = const Value.absent(),
+                Value<String?> exerciseJson = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => BookmarksCompanion(
+                courseId: courseId,
+                kind: kind,
+                refId: refId,
+                at: at,
+                removed: removed,
+                label: label,
+                detail: detail,
+                facetId: facetId,
+                exerciseJson: exerciseJson,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String courseId,
+                required String kind,
+                required String refId,
+                required int at,
+                Value<bool> removed = const Value.absent(),
+                Value<String> label = const Value.absent(),
+                Value<String?> detail = const Value.absent(),
+                Value<String?> facetId = const Value.absent(),
+                Value<String?> exerciseJson = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => BookmarksCompanion.insert(
+                courseId: courseId,
+                kind: kind,
+                refId: refId,
+                at: at,
+                removed: removed,
+                label: label,
+                detail: detail,
+                facetId: facetId,
+                exerciseJson: exerciseJson,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$BookmarksTable, BookmarkRow>(table),
+                  BaseReferences<_$ProgressDb, $BookmarksTable, BookmarkRow>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$BookmarksTableProcessedTableManager =
+    ProcessedTableManager<
+      _$ProgressDb,
+      $BookmarksTable,
+      BookmarkRow,
+      $$BookmarksTableFilterComposer,
+      $$BookmarksTableOrderingComposer,
+      $$BookmarksTableAnnotationComposer,
+      $$BookmarksTableCreateCompanionBuilder,
+      $$BookmarksTableUpdateCompanionBuilder,
+      (BookmarkRow, BaseReferences<_$ProgressDb, $BookmarksTable, BookmarkRow>),
+      BookmarkRow,
+      PrefetchHooks Function()
+    >;
 
 class $ProgressDbManager {
   final _$ProgressDb _db;
@@ -5361,4 +6209,6 @@ class $ProgressDbManager {
       $$AiExplanationsTableTableManager(_db, _db.aiExplanations);
   $$FlagsTableTableManager get flags =>
       $$FlagsTableTableManager(_db, _db.flags);
+  $$BookmarksTableTableManager get bookmarks =>
+      $$BookmarksTableTableManager(_db, _db.bookmarks);
 }

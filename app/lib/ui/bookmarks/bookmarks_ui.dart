@@ -14,9 +14,9 @@ import '../../feedback/exercise_snapshot.dart';
 import '../../progression/stats.dart' show exerciseTypeLabel;
 import '../../providers.dart';
 
-/// Reads and writes the bookmark settings of the progress store.
+/// Stars and unstars through the progress DB's bookmarks (`bookmarkRepoProvider`).
 final bookmarkStoreProvider = Provider<BookmarkStore>(
-  (ref) => BookmarkStore(ref.watch(progressStoreProvider), clock: ref.watch(clockProvider)),
+  (ref) => BookmarkStore(ref.watch(bookmarkRepoProvider), clock: ref.watch(clockProvider)),
 );
 
 /// The active course's bookmarks (reloaded after every progress refresh, so

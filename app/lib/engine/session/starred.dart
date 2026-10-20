@@ -180,11 +180,11 @@ class StarredBuilder {
   }
 }
 
-/// A starred-practice session (mode `review`). Wrong answers are re-asked
+/// A starred-practice session (mode `starred`). Wrong answers are re-asked
 /// like in any session (with a freshly generated exercise).
 class StarredSession extends EngineSession {
   StarredSession._(super.env, Map<String, FacetState> states, this.slots, this._preferred)
-    : super(mode: SessionMode.review, states: states);
+    : super(mode: SessionMode.starred, states: states);
 
   /// The planned slots, in order.
   final List<SessionSlot> slots;

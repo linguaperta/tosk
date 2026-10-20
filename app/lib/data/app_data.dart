@@ -13,6 +13,7 @@ library;
 import '../core/core.dart';
 import 'course/course_repo.dart';
 import 'fsrs/fsrs_scheduler.dart';
+import 'progress/bookmarks.dart';
 import 'progress/feedback_store.dart';
 import 'progress/progress_repo.dart';
 import 'stats/skill_stats.dart';
@@ -42,6 +43,9 @@ class AppData {
 
   /// Cached AI explanations and exercise flags (tables in the progress database).
   late final FeedbackStore feedback = DriftFeedbackStore(progress.db);
+
+  /// Starred words, sentences and exercises (table `bookmarks`, schema v3).
+  late final BookmarkRepo bookmarks = DriftBookmarkRepo(progress.db);
 
   final Map<String, Future<CourseRepo>> _courses = {};
 

@@ -15,6 +15,9 @@ enum SessionMode {
 
   /// "Find my level": units in order until one is failed.
   placement,
+
+  /// "Practice starred" (v0.4): the learner's bookmarks ([SessionFactory.starred]).
+  starred,
 }
 
 /// Lesson lengths offered on the lesson start sheet.
@@ -144,7 +147,7 @@ abstract interface class SessionFactory {
   /// recognition -> production ladder. Empty when there are none.
   Future<PracticeSession> toughWords({int length = 12, int minLapses = 4});
 
-  /// "Practice starred" (mode [SessionMode.review]): the learner's
+  /// "Practice starred" (mode [SessionMode.starred]): the learner's
   /// bookmarks. Starred exercises are served again as they were (when the
   /// course still trains their facets; otherwise a fresh exercise on the same
   /// facet), starred words through their facets (weakest first), starred
