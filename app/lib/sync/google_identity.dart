@@ -22,7 +22,8 @@ abstract interface class GoogleIdentity {
   /// Google's own button (web).
   Widget button();
 
-  /// ID tokens from sign-ins through [button] (web).
+  /// ID tokens from sign-ins through [button] (web). Never reports a sign-in
+  /// that [signIn] already returned.
   Stream<String> get idTokens;
 
   Future<void> signOut();
@@ -47,6 +48,11 @@ class PluginGoogleIdentity implements GoogleIdentity {
           // Android: the ID token is issued for the web client (the "server").
           await gs.initialize(serverClientId: config.webClientId);
         }
+        // Only the web signs in through these events (Google's button). On
+        // Android and iOS, authenticate() returns the account *and* reports
+        // it here; forwarding that made SyncService sign in to Firebase twice
+        // at once (DUPLICATE_RAW_ID on a new account).
+        if (!kIsWeb) return;
         gs.authenticationEvents.listen((e) {
           if (e case GoogleSignInAuthenticationEventSignIn(:final user)) {
             final t = user.authentication.idToken;

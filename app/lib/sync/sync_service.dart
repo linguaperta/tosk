@@ -3,6 +3,11 @@
 /// pause, a minute after the last answer, "Sync now"), and the status the
 /// Settings screen shows. Created only when the build has a Firebase
 /// configuration and the platform can sign in (`sync_bootstrap.dart`).
+///
+/// **One at a time.** There is at most one sign-in in flight (button taps and
+/// web tokens join it) and at most one sync running, with at most one more
+/// queued behind it (every trigger that arrives meanwhile shares that one).
+/// The first sync after a sign-in starts only once the session is stored.
 library;
 
 import 'dart:async';
@@ -16,6 +21,7 @@ import 'firebase_auth.dart';
 import 'firestore_backend.dart';
 import 'google_identity.dart';
 import 'sync_engine.dart';
+import 'sync_errors.dart';
 
 enum SyncPhase { signedOut, signingIn, idle, syncing, error }
 
@@ -27,6 +33,7 @@ class SyncStatus {
     this.name,
     this.lastSync,
     this.lastError,
+    this.notice,
     this.pending = 0,
     this.offline = false,
   });
@@ -35,7 +42,13 @@ class SyncStatus {
   final String? email;
   final String? name;
   final DateTime? lastSync;
+
+  /// A sentence for the user (`sync_errors.dart`), never a raw error code.
   final String? lastError;
+
+  /// A passing remark that is not an error ("Sign-in hiccup, trying
+  /// again…"). Not carried over by [copyWith].
+  final String? notice;
 
   /// Answers not uploaded yet.
   final int pending;
@@ -52,6 +65,7 @@ class SyncStatus {
     DateTime? lastSync,
     String? lastError,
     bool clearError = false,
+    String? notice,
     int? pending,
     bool? offline,
   }) =>
@@ -61,6 +75,7 @@ class SyncStatus {
         name: name ?? this.name,
         lastSync: lastSync ?? this.lastSync,
         lastError: clearError ? null : (lastError ?? this.lastError),
+        notice: notice,
         pending: pending ?? this.pending,
         offline: offline ?? this.offline,
       );
@@ -77,6 +92,7 @@ class SyncService extends ChangeNotifier {
     required this.identity,
     required this.backendFor,
     this.debounce = const Duration(minutes: 1),
+    this.signInRetryDelay = const Duration(milliseconds: 1500),
     DateTime Function()? clock,
   }) : clock = clock ?? DateTime.now;
 
@@ -103,9 +119,15 @@ class SyncService extends ChangeNotifier {
   final GoogleIdentity identity;
   final SyncBackendFactory backendFor;
   final Duration debounce;
+
+  /// The pause before `signInWithIdp` is retried ([isRetryableSignIn]).
+  final Duration signInRetryDelay;
   final DateTime Function() clock;
 
   static const sessionKey = 'tosk.sync.session';
+
+  /// How soon after a local bulk change ([localDataChanged]) to sync.
+  static const localChangeDelay = Duration(seconds: 2);
 
   SyncStatus _status = const SyncStatus(phase: SyncPhase.signedOut);
   SyncStatus get status => _status;
@@ -115,6 +137,18 @@ class SyncService extends ChangeNotifier {
   void Function(SyncResult result)? onLocalChange;
 
   FirebaseTokens? _tokens;
+
+  /// The one sign-in in flight.
+  Future<void>? _signingIn;
+
+  /// The Google ID token of the last sign-in (a second report of it is ignored).
+  String? _usedGoogleToken;
+  SyncResult? _lastResult;
+
+  /// The sync running now, and the one queued after it.
+  Future<SyncResult?>? _current;
+  Future<SyncResult?>? _next;
+
   Timer? _timer;
   StreamSubscription<String>? _webTokens;
   AppLifecycleListener? _lifecycle;
@@ -128,7 +162,7 @@ class SyncService extends ChangeNotifier {
 
   /// Restores a saved session and starts the triggers. Never throws.
   Future<void> start({bool lifecycle = true, Duration firstSyncDelay = const Duration(seconds: 3)}) async {
-    _webTokens = identity.idTokens.listen((t) => unawaited(_completeSignIn(t)));
+    _webTokens = identity.idTokens.listen(_onIdToken);
     if (lifecycle) {
       _lifecycle = AppLifecycleListener(
         onResume: () => unawaited(syncNow()),
@@ -164,67 +198,161 @@ class SyncService extends ChangeNotifier {
     _schedule(debounce);
   }
 
+  /// Many answers or settings changed at once (a backup was imported): sync
+  /// soon. A sync already running is followed by one more.
+  void localDataChanged() {
+    if (_tokens == null) return;
+    _schedule(localChangeDelay);
+  }
+
   void _schedule(Duration d) {
     _timer?.cancel();
     _timer = Timer(d, () => unawaited(syncNow()));
   }
 
-  /// Interactive sign-in (Android, iOS); the web signs in through [GoogleIdentity.button].
-  Future<void> signIn() async {
+  // ------------------------------------------------------------------ sign-in
+
+  /// Interactive sign-in (Android, iOS); the web signs in through
+  /// [GoogleIdentity.button]. Taps while a sign-in is running join it.
+  Future<void> signIn() => _signingIn ??= _track(_interactiveSignIn());
+
+  /// A Google ID token from [GoogleIdentity.idTokens] (the web's button).
+  /// Ignored while a sign-in is running, when already signed in, and when it
+  /// is the token just used: google_sign_in's `authenticate()` also reports
+  /// its sign-in on that stream, and handling that report as a second sign-in
+  /// sent two `signInWithIdp` calls for one new account at once, which
+  /// Identity Toolkit answers with `DUPLICATE_RAW_ID`.
+  void _onIdToken(String googleIdToken) {
+    if (_disposed) return;
+    if (_signingIn != null || _tokens != null || googleIdToken == _usedGoogleToken) {
+      debugPrint('[sync] ignoring a Google token (a sign-in is running or done)');
+      return;
+    }
+    _signingIn = _track(_completeSignIn(googleIdToken));
+  }
+
+  Future<void> _track(Future<void> f) => f.whenComplete(() => _signingIn = null);
+
+  Future<void> _interactiveSignIn() async {
     final before = _status;
     _set(_status.copyWith(phase: SyncPhase.signingIn, clearError: true));
+    String? token;
     try {
-      final token = await identity.signIn();
-      if (token == null) {
-        _set(before);
-        return;
-      }
-      await _completeSignIn(token);
+      token = await identity.signIn();
     } on Object catch (e) {
-      _set(before.copyWith(phase: SyncPhase.signedOut, lastError: 'Sign-in failed: ${_describe(e)}'));
+      debugPrint('[sync] Google sign-in failed: $e');
+      _set(before.copyWith(phase: SyncPhase.signedOut, lastError: friendlySyncError(e, signIn: true)));
+      return;
     }
+    if (token == null) {
+      _set(before);
+      return;
+    }
+    await _completeSignIn(token);
   }
 
+  /// Google ID token → Firebase session; then the first sync, once the
+  /// session is stored and attached. Never throws.
   Future<void> _completeSignIn(String googleIdToken) async {
+    _usedGoogleToken = googleIdToken;
+    _set(_status.copyWith(phase: SyncPhase.signingIn, clearError: true));
+    final FirebaseSession session;
     try {
-      _set(_status.copyWith(phase: SyncPhase.signingIn, clearError: true));
-      final session = await auth.signInWithGoogle(googleIdToken);
+      session = await _signInWithIdp(googleIdToken);
       await secrets.write(sessionKey, session.encode());
-      _attach(session);
-      _set(SyncStatus(phase: SyncPhase.idle, email: session.email, name: session.displayName));
-      await syncNow();
     } on Object catch (e) {
-      _set(const SyncStatus(phase: SyncPhase.signedOut).copyWith(lastError: 'Sign-in failed: ${_describe(e)}'));
+      debugPrint('[sync] sign-in failed: $e');
+      _set(SyncStatus(phase: SyncPhase.signedOut, lastError: friendlySyncError(e, signIn: true)));
+      return;
+    }
+    if (_disposed) return;
+    _attach(session);
+    _set(SyncStatus(phase: SyncPhase.idle, email: session.email, name: session.displayName));
+    await _enqueueSync();
+  }
+
+  /// `signInWithIdp`, retried once after [signInRetryDelay] when it failed
+  /// for a reason a retry fixes ([isRetryableSignIn]; above all
+  /// `DUPLICATE_RAW_ID`, a race with another sign-in that was creating the
+  /// account: the retry signs in to it).
+  Future<FirebaseSession> _signInWithIdp(String googleIdToken) async {
+    try {
+      return await auth.signInWithGoogle(googleIdToken);
+    } on Object catch (e) {
+      if (!isRetryableSignIn(e) || _disposed) rethrow;
+      debugPrint('[sync] signInWithIdp failed ($e); retrying once');
+      _set(_status.copyWith(phase: SyncPhase.signingIn, notice: SyncMessages.retrying));
+      await Future<void>.delayed(signInRetryDelay);
+      return auth.signInWithGoogle(googleIdToken);
     }
   }
 
-  /// One sync now (no-op when signed out or already running). Errors end up
-  /// in [status]; the answers stay queued.
+  // ------------------------------------------------------------------ sync
+
+  /// One sync now (no-op when signed out). Syncs never overlap: a call while
+  /// one runs queues one more run after it (every such call shares it, and it
+  /// picks up what changed meanwhile); a call before a sign-in has its
+  /// session waits for the sign-in, which ends with its own first sync.
+  /// Errors end up in [status]; the answers stay queued.
   Future<SyncResult?> syncNow() async {
-    if (_tokens == null || _disposed) return null;
+    if (_disposed) return null;
+    if (_tokens == null) {
+      final signing = _signingIn;
+      if (signing == null) return null;
+      await signing;
+      return _lastResult;
+    }
     _timer?.cancel();
+    return _enqueueSync();
+  }
+
+  Future<SyncResult?> _enqueueSync() {
+    final current = _current;
+    if (current == null) {
+      final run = _runSync();
+      _current = run;
+      return run.whenComplete(() {
+        if (identical(_current, run)) _current = null;
+      });
+    }
+    return _next ??= current.then((_) {
+      _next = null;
+      return _enqueueSync();
+    });
+  }
+
+  /// One engine run with its status. Never throws.
+  Future<SyncResult?> _runSync() async {
+    final tokens = _tokens;
+    if (tokens == null || _disposed) return null;
+    // Signed out meanwhile: leave the status alone.
+    bool stale() => _disposed || !identical(_tokens, tokens);
     _set(_status.copyWith(phase: SyncPhase.syncing));
     try {
       final r = await engine.sync();
+      final pending = await _pending();
+      if (stale()) return null;
+      _lastResult = r;
       _set(_status.copyWith(
         phase: SyncPhase.idle,
         lastSync: clock(),
         clearError: true,
         offline: false,
-        pending: await engine.pending(),
+        pending: pending,
       ));
       if (r.changedLocal) onLocalChange?.call(r);
       return r;
-    } on SyncAuthException catch (e) {
-      _set(_status.copyWith(phase: SyncPhase.error, lastError: e.message, pending: await _pending()));
     } on Object catch (e) {
-      final offline = _looksOffline(e);
+      debugPrint('[sync] sync failed: $e');
+      final pending = await _pending();
+      if (stale()) return null;
+      final offline = e is! SyncAuthException && looksOffline(e);
       _set(_status.copyWith(
-        phase: _tokens == null ? SyncPhase.signedOut : SyncPhase.error,
-        lastError: offline ? null : _describe(e),
+        phase: SyncPhase.error,
+        lastError: offline ? null : friendlySyncError(e),
         clearError: offline,
         offline: offline,
-        pending: await _pending(),
+        pending: pending,
       ));
     }
     return null;
@@ -238,9 +366,12 @@ class SyncService extends ChangeNotifier {
     }
   }
 
+  // ------------------------------------------------------------------ sign-out
+
   Future<void> _forgetSession() async {
     _timer?.cancel();
     _tokens = null;
+    _usedGoogleToken = null;
     engine.backend = const NullSyncBackend();
     await secrets.delete(sessionKey);
     try {
@@ -252,7 +383,7 @@ class SyncService extends ChangeNotifier {
 
   Future<void> _signedOutRemotely() async {
     await _forgetSession();
-    _set(const SyncStatus(phase: SyncPhase.signedOut, lastError: 'Signed out. Sign in again to keep syncing.'));
+    _set(const SyncStatus(phase: SyncPhase.signedOut, lastError: SyncMessages.expired));
   }
 
   /// Signs out on this device. Progress stays here and in the account.
@@ -266,6 +397,8 @@ class SyncService extends ChangeNotifier {
   Future<void> deleteCloudData() async {
     final tokens = _tokens;
     if (tokens == null) return;
+    // Not in the middle of a sync (a queued one then finds no session).
+    await _current;
     _set(_status.copyWith(phase: SyncPhase.syncing));
     try {
       await engine.deleteRemote();
@@ -278,26 +411,11 @@ class SyncService extends ChangeNotifier {
       await _forgetSession();
       _set(const SyncStatus(phase: SyncPhase.signedOut));
     } on Object catch (e) {
-      _set(_status.copyWith(phase: SyncPhase.error, lastError: 'Could not delete the cloud data: ${_describe(e)}'));
+      debugPrint('[sync] could not delete the cloud data: $e');
+      _set(_status.copyWith(phase: SyncPhase.error, lastError: 'Could not delete the cloud data. ${friendlySyncError(e, fallback: 'Please try again.')}'));
       rethrow;
     }
   }
-
-  static bool _looksOffline(Object e) {
-    final s = e.toString();
-    return e is TimeoutException ||
-        e is http.ClientException ||
-        s.contains('SocketException') ||
-        s.contains('Failed host lookup') ||
-        s.contains('XMLHttpRequest error') ||
-        s.contains('No network');
-  }
-
-  static String _describe(Object e) => switch (e) {
-        FirebaseAuthException(:final code) => code,
-        SyncAuthException(:final message) => message,
-        _ => '$e',
-      };
 
   @override
   void dispose() {

@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/progress/event_importer.dart';
 import '../../data/sync/progress_backup.dart';
 import '../../providers.dart';
+import '../../sync/sync_providers.dart';
 import 'learner_settings.dart';
 import 'setting_keys.dart';
 import 'settings_parts.dart';
@@ -175,6 +176,9 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
         importer: store as EventImporter,
         bookmarks: ref.read(bookmarkRepoProvider),
       );
+      // Signed in: upload the imported answers soon (after a sync that is
+      // running now, never alongside it).
+      if (report.eventsAdded > 0 || report.settingsAdded > 0) container.read(syncServiceProvider)?.localDataChanged();
       if (!mounted) {
         refresh();
         return;

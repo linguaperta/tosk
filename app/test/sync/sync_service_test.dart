@@ -21,9 +21,17 @@ import '../fixtures/sample_log.dart';
 
 /// Hands out a fixed Google ID token (null = the user cancels).
 class FakeIdentity implements GoogleIdentity {
-  FakeIdentity(this.token, {this.web = false});
+  FakeIdentity(this.token, {this.web = false, this.alsoOnStream = false});
   String? token;
   final bool web;
+
+  /// Like google_sign_in's authenticate(): a sign-in is returned *and*
+  /// reported on [idTokens].
+  final bool alsoOnStream;
+
+  /// When set, [signIn] waits for it (the Google sheet is open).
+  Completer<void>? sheet;
+  int signIns = 0;
   final _tokens = StreamController<String>.broadcast();
   int signOuts = 0;
 
@@ -33,7 +41,13 @@ class FakeIdentity implements GoogleIdentity {
   @override
   bool get canCallSignIn => !web;
   @override
-  Future<String?> signIn() async => token;
+  Future<String?> signIn() async {
+    signIns++;
+    await sheet?.future;
+    final t = token;
+    if (alsoOnStream && t != null) _tokens.add(t);
+    return t;
+  }
   @override
   Widget button() => const SizedBox(key: ValueKey('google-web-button'), width: 200, height: 40);
   @override
