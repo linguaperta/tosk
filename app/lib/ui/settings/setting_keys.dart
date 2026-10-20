@@ -54,6 +54,10 @@ abstract final class SettingKeys {
   static const packIndexCache = 'packs.index_cache';
   static const packLastCheck = 'packs.last_check';
 
+  /// Device-only (not in [all]): languages whose "install a voice" notice
+  /// was shown, comma-separated (voices are per device).
+  static const voiceNoticeShown = 'speech.voice_notice';
+
   static const all = [
     course,
     sourceLang,

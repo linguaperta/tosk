@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../device/device_info.dart' show openTtsSettings;
 import '../../ink/ink_recognizer.dart';
 import '../../speech/speech_providers.dart';
 import '../ink/ink_providers.dart';
@@ -27,6 +28,7 @@ class AnswerInputSection extends ConsumerWidget {
     ];
     final handwriting = s.handwriting && inkSupported;
     final voice = ref.watch(canPronounceProvider);
+    final notice = ref.watch(voiceNoticeProvider);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -61,6 +63,22 @@ class AnswerInputSection extends ConsumerWidget {
             value: s.listening,
             onChanged: (v) =>
                 unawaited(ref.read(learnerSettingsProvider.notifier).change((s) => s.copyWith(listening: v))),
+          ),
+        // No voice for the course language (Android): how to get one.
+        if (!voice && notice != null)
+          ListTile(
+            key: const ValueKey('voice-notice-tile'),
+            leading: const Icon(Icons.record_voice_over_outlined),
+            title: Text('No ${notice.languageName} voice'),
+            subtitle: Text(
+              'Listening exercises and 🔊 buttons need one. Install ${notice.aVoice} '
+              'in Android text-to-speech settings.',
+            ),
+            trailing: TextButton(
+              key: const ValueKey('voice-notice-open'),
+              onPressed: () => unawaited(openTtsSettings()),
+              child: const Text('Open'),
+            ),
           ),
       ],
     );

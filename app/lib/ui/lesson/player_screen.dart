@@ -191,8 +191,10 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     }
     var next = await s.next();
     // "Can't listen now": the running session may still serve listening
-    // exercises; skip them while the snooze lasts (bounded).
-    for (var i = 0; i < 50 && next is ListenPickExercise && ref.read(listenSnoozeProvider.notifier).active; i++) {
+    // exercises; skip them while the snooze lasts, or once speaking showed
+    // that the voice isn't installed after all (bounded).
+    bool skipListening() => ref.read(listenSnoozeProvider.notifier).active || ref.read(voiceNotInstalledProvider);
+    for (var i = 0; i < 50 && next is ListenPickExercise && skipListening(); i++) {
       next = await s.next();
     }
     if (!mounted) return;
