@@ -78,6 +78,12 @@ class SyncSection extends ConsumerWidget {
         ),
       ]);
     }
+    if (status.notice case final n?) {
+      children.add(Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+        child: Text(n, key: const ValueKey('sync-notice'), style: theme.textTheme.bodySmall),
+      ));
+    }
     if (status.lastError case final e?) {
       children.add(Padding(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
