@@ -50,7 +50,7 @@ import yaml
 
 from . import features, query, trcheck
 from .align import Aligner
-from .content import required_translations
+from .content import all_units, required_translations
 from .lang import get_lang
 from .tokens import tokenize
 
@@ -107,7 +107,7 @@ class StoryChecker:
         self.translations = list(c["translations"])
         # optional translations (course.yaml required_translations) are used and checked where given
         self.required = required_translations(c)
-        self.units = [u["id"] for u in c["units"]]
+        self.units = [u["id"] for u in all_units(c)]
         self.items = {it["id"]: it for it in pack.items}
         resolved = {s["id"]: query.resolve(s, pack.items, pack.verbs, query.course_persons(c))
                     for _, _, _, s in pack.skills()}
@@ -119,7 +119,7 @@ class StoryChecker:
         # features allowed at each unit: base + everything introduced in this or an earlier unit
         self.allowed: list[set[str]] = []
         acc = set(self.graph.base)
-        for ui, unit in enumerate(c["units"]):
+        for ui, unit in enumerate(all_units(c)):
             for s in unit.get("skills") or []:
                 acc |= self.graph.introduces[s["id"]]
             self.allowed.append(set(acc))

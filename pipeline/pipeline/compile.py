@@ -12,7 +12,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from . import features, query
-from .content import Pack
+from .content import Pack, all_units
+from .topics import anchor_of
 from .paths import DDL_PATH
 
 COURSE_DB_SCHEMA_VERSION = 1
@@ -29,12 +30,16 @@ MIN_APP_VERSION_INFL = "0.4.0"
 #      only forms as production and transform between moods, so such packs need this app version.
 COURSE_DB_SCHEMA_MINOR_MOODS = 2
 MIN_APP_VERSION_MOODS = "0.7.3"
+#   3: built-in topic trees (`topics`, `topic_units`; written only by packs that have topics).
+#      Older apps ignore the two tables and show the topic units as further units at the end of
+#      the main tree (locked until their prerequisites are practised): safe, so no min_app_version.
+COURSE_DB_SCHEMA_MINOR_TOPICS = 3
 
 
 def recognition_skills(course: dict) -> dict[str, dict]:
     """meta.recognition_skills: {skill id: {equivalent_tense?}} of the `recognition: true` skills."""
     out = {}
-    for unit in course.get("units") or []:
+    for unit in all_units(course):
         for s in unit.get("skills") or []:
             if s.get("recognition"):
                 out[s["id"]] = {"equivalent_tense": s["equivalent_tense"]} if s.get("equivalent_tense") else {}
@@ -207,10 +212,20 @@ def compile_pack(pack: Pack, out: Path, built_at: str | None = None) -> dict:
             meta["schema_minor"] = str(COURSE_DB_SCHEMA_MINOR_MOODS)
             if not c.get("min_app_version"):
                 meta["min_app_version"] = MIN_APP_VERSION_MOODS
+        if c.get("topics"):
+            meta["schema_minor"] = str(COURSE_DB_SCHEMA_MINOR_TOPICS)
         con.executemany("INSERT INTO meta(key, value) VALUES (?, ?)", sorted(meta.items()))
 
-        for ui, unit in enumerate(c["units"]):
+        # every tree's units in course order: the main tree, then each topic (topic_units says which)
+        for ui, unit in enumerate(all_units(c)):
             con.execute("INSERT INTO units(id, ord, title) VALUES (?, ?, ?)", (unit["id"], ui, _j(unit["title"])))
+        for ti, topic in enumerate(c.get("topics") or []):
+            con.execute(
+                "INSERT INTO topics(id, ord, title, short_title, description, icon, anchor) VALUES (?,?,?,?,?,?,?)",
+                (topic["id"], ti, _j(topic["title"]), _j(topic.get("short_title") or {}),
+                 _j(topic.get("description") or {}), topic.get("icon"), anchor_of(c, topic)))
+            for unit in topic["units"]:
+                con.execute("INSERT INTO topic_units(unit_id, topic_id) VALUES (?, ?)", (unit["id"], topic["id"]))
         for ui, unit, si, skill in pack.skills():
             pos = skill.get("pos") or {}
             con.execute(

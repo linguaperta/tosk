@@ -21,7 +21,7 @@ import yaml
 
 from . import features, inflect, query, trcheck
 from .align import Aligner
-from .content import load_course_yaml, read_jsonl, required_translations, write_jsonl
+from .content import all_units, load_course_yaml, read_jsonl, required_translations, write_jsonl
 from .fetch import SOURCES, load_freq_words
 from .ids import IdRegistry
 from .lang import Lang, get_lang
@@ -571,8 +571,8 @@ def run_import(code: str, content_root: str | None = None) -> None:
 
     # ---- resolve skills -> units
     unit_of: dict[str, str] = {}
-    unit_order = [u["id"] for u in course["units"]]
-    for unit in course["units"]:
+    unit_order = [u["id"] for u in all_units(course)]
+    for unit in all_units(course):
         for skill in unit.get("skills") or []:
             for iid in query.resolve(skill, items, verbs, query.course_persons(course)):
                 unit_of.setdefault(iid, unit["id"])
@@ -592,7 +592,7 @@ def run_import(code: str, content_root: str | None = None) -> None:
     skill_items = {iid for iid in unit_of}
     grammar_targets: set[tuple[str, str]] = set()
     infl_targets: set[tuple[str, str]] = set()     # (item, table) of inflection skills
-    for unit in course["units"]:
+    for unit in all_units(course):
         for skill in unit.get("skills") or []:
             if "verbs" in skill:
                 t = skill["verbs"]["tense"]

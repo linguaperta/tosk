@@ -27,7 +27,8 @@ from jsonschema import Draft202012Validator
 
 from . import features, inflect, query
 from .compile import note_texts
-from .content import Pack, required_translations
+from .content import Pack, all_units, required_translations, unit_topics
+from .topics import validate_topics
 from .paths import SCHEMA_DIR
 
 NON_FINITE = {"infinitive", "participle", "gerund"}
@@ -121,7 +122,7 @@ def validate(pack: Pack, check_notes: bool = True) -> list[str]:
         items[it["id"]] = it
         if not it["id"].startswith(f"{code}:"):
             errors.append(f"{code}: item id {it['id']} lacks the course prefix '{code}:'")
-    unit_ids = [u["id"] for u in c["units"]]
+    unit_ids = [u["id"] for u in all_units(c)]
     for it in pack.items:
         if it.get("unit") and it["unit"] not in unit_ids:
             errors.append(f"{code}: item {it['id']} has unknown unit {it['unit']}")
@@ -173,6 +174,9 @@ def validate(pack: Pack, check_notes: bool = True) -> list[str]:
     cyc = find_cycle(graph)
     if cyc:
         errors.append(f"{code}: prerequisite cycle: {' -> '.join(cyc)}")
+    # topic trees (pack format 1.2): anchors, and which tree may require which
+    errors += validate_topics(c)
+    topic_of_unit = unit_topics(c)
     for s in skills:
         if "verbs" in s and s["verbs"].get("tense") not in tenses:
             errors.append(f"{code}: skill {s['id']} trains undeclared tense {s['verbs'].get('tense')!r}")
@@ -207,6 +211,11 @@ def validate(pack: Pack, check_notes: bool = True) -> list[str]:
                 errors.append(f"{code}: skill {s['id']} item {iid} has no translation for {miss}")
             if not it.get("unit"):
                 errors.append(f"{code}: skill {s['id']} item {iid} has no unit")
+            elif topic_of_unit.get(it["unit"]) and not topic_of_unit.get(unit["id"]):
+                errors.append(f"{code}: main-tree skill {s['id']} uses {iid}, which is introduced in topic "
+                              f"{topic_of_unit[it['unit']]!r} (unit {it['unit']}); the main tree cannot need a topic's words")
+            elif topic_of_unit.get(it["unit"]) not in (None, topic_of_unit.get(unit["id"])):
+                pass   # a word another topic introduces: shared, with one progress (docs/extensions.md)
             elif unit_index.get(it["unit"], 99) > ui:
                 errors.append(f"{code}: skill {s['id']} (unit {unit['id']}) uses {iid} introduced later in {it['unit']}")
             if s.get("facet") == "article" and articles and it.get("article") not in articles:

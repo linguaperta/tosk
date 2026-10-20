@@ -1,6 +1,6 @@
-# Pack format 1.1
+# Pack format 1.2
 
-*Status: **1.1**, 20 October 2026 (1.1 adds moods and recognition-only skills, sections 3, 12.5 and 15; everything of 1.0 is unchanged). Draft parts are marked **DRAFT**. Normative words (MUST, SHOULD, MAY) are used as in RFC 2119.*
+*Status: **1.2**, 21 October 2026 (1.2 adds built-in topic trees, sections 3.3, 13 and 16; 1.1 added moods and recognition-only skills, sections 3, 12.5 and 15; everything of 1.0 is unchanged). Draft parts are marked **DRAFT**. Normative words (MUST, SHOULD, MAY) are used as in RFC 2119.*
 
 A **language pack** is everything the app knows about one course: the words, their conjugation and inflection tables, example sentences with translations, grammar notes, the course structure (units, skills and their prerequisites), graded stories, and credits. The app is a player for packs; it contains no knowledge of any language. This document specifies the format so that anyone can make a pack, build it, and host it without reading the project's code.
 
@@ -46,10 +46,11 @@ Contents:
 - **Target language.** The language being learned (`target`).
 - **Source languages** (`translations`). The learner's languages: every taught word has glosses, and every grammar note text exists, in these. The learner picks one; it is called the *source language* in the app.
 - **Item.** One lexical unit (a word or a fixed phrase) with a part of speech, glosses, and optionally a verb table or inflection tables. Items with a `unit` are *taught*; items without one form the *distractor pool* (wrong options, alignment of sentence words).
+- **Tree, topic.** (1.2) A course has a **main tree** (`units`) and optionally **topics** (`topics`): themed side trees, each with its own units and skills and drawn as its own map, attached to the main tree at an **anchor** skill (section 3.3).
 - **Unit, skill.** A unit is a group of skills (a band on the course map). A skill is one node on the map: a lesson topic. Skills select their items with **queries**, resolved at build time.
 - **Facet.** One thing a learner can know about an item, scheduled on its own by spaced repetition (FSRS): recognising a word, producing it, its forms in one tense, its article, one of its inflection tables. Progress is stored **per facet id**, so ids are permanent (section 10).
 - **Feature.** A grammar construct a sentence uses (`tense:past`, `aux:essere`). Skills *introduce* features; the app only shows sentences whose features the learner has met (grammar gating, section 12.4).
-- **Pack format version** (this document, 1.1), **compiled schema version** (`schema_version` 1, `schema_minor` 2), **catalog version** (`index_version` 1) and **pack version** (the content's own semver, `version`) are four different numbers; section 15.
+- **Pack format version** (this document, 1.2), **compiled schema version** (`schema_version` 1, `schema_minor` 3), **catalog version** (`index_version` 1) and **pack version** (the content's own semver, `version`) are four different numbers; section 15.
 
 ## 2. Source layout
 
@@ -105,7 +106,8 @@ Schema: `schema/course.schema.json` (unknown keys are errors). Top level:
 | `base_features` | no | list of features | grammar features allowed from the start; **declaring the key turns grammar gating on** (section 12.4) |
 | `feature_detectors` | no | {feature: detector} | how the pipeline finds construct features in sentences (section 12.4) |
 | `time_adverbs` | no | {adverb: [tense, …]} | adverbs (one or more words) and the tenses they fit; the transform exercise never moves a sentence containing one into another tense |
-| `units` | yes | list of units | the course, in order |
+| `units` | yes | list of units | the course (its main tree), in order |
+| `topics` | no | list of topics | (1.2) built-in topic trees (section 3.3) |
 
 An **i18n** value is a mapping from language code to a non-empty string: `{en: "Greetings", nl: "Begroetingen"}`. Apps fall back to English, then to any language present.
 
@@ -157,6 +159,47 @@ With `facet: article` only items with an `article` qualify; with `facet: infl` o
 **Order.** Selected items are introduced by frequency rank (`freq` ascending, items without `freq` last, then by id), except an explicit `lemmas` list without `top`, which keeps its own order. The order becomes `skill_items.ord` and `skill_facets.ord`.
 
 The query is resolved **at build time**: the compiled pack lists each skill's items and facets, and the app never interprets queries.
+
+### 3.3 Topics (1.2)
+
+A **topic** is a themed set of skills (food and cooking, travel, work, football) that is not part of the course's main line. It has its own units and skills and the app draws it as its own map; on the main tree a side branch grows off the topic's **anchor** skill with the topic's name carved into the bark and a "Go to …" button. Topics share everything with the main tree: item ids (one progress per word), grammar notes, gating, XP and level. Words the learner already knows from the main tree or another topic count as known (lessons don't introduce them again).
+
+```yaml
+topics:
+  - id: cucina                       # ^[a-z0-9][a-z0-9_-]*$, unique among the topics
+    title: {en: "Food and cooking", nl: "Eten en koken"}
+    short_title: {en: "Food", nl: "Eten"}   # optional: for the carving when the title doesn't fit
+    icon: food                       # optional, the skill icon keys
+    anchor: food-basics              # optional: default the deepest main-tree requirement
+    units:                           # units and skills exactly as in `units` (sections 3.1, 3.2)
+      - id: cucina-u1
+        title: {en: "In the kitchen"}
+        skills:
+          - id: cucina-1
+            kind: vocab
+            title: {en: "Cooking"}
+            requires: [food-basics]  # main-tree skills and earlier skills of this topic
+            items: {tags: [cooking]}
+```
+
+| Key | Req. | Meaning |
+| --- | --- | --- |
+| `id` | yes | the topic id, unique among the course's topics |
+| `title` | yes | i18n |
+| `short_title` | no | i18n; the app carves it on the branch when `title` is too long (default: the title's first word) |
+| `description` | no | i18n |
+| `icon` | no | icon key (section 3.2) |
+| `anchor` | no | the main-tree skill the topic's branch grows from: the **last** main-tree skill its skills require. Default: the deepest of the main-tree skills the topic's skills require (longest prerequisite path; ties: the later in course order) |
+| `units` | yes | the topic's units, at least one |
+
+Rules:
+
+- **Course order** is the main tree's units, then each topic's units in `topics` order. So a facet shared with the main tree is introduced by its main-tree skill, and unit and skill ids are unique over every tree.
+- **Requirements.** A topic skill may require main-tree skills and skills of its own topic; never another topic's. A main-tree skill never requires a topic skill. Every main-tree skill a topic requires is the anchor or a prerequisite of it (the anchor is the last one).
+- **Words.** A topic skill may select items of the main tree, of its own topic (a unit no later than the skill's) and of other topics (a word two topics share is one item with one progress). An item whose `unit` is a topic unit is introduced by that topic; **a main-tree skill MUST NOT select it** (the main tree cannot need words of a side tree). Moving a main-tree vocab skill into a topic keeps its ids, so progress is kept.
+- **Unlocking.** A topic skill is available like any skill (every prerequisite practised); the app shows the branch and the topic as locked until the anchor is started, and the topic can be browsed before.
+- **Grammar** comes from the main tree: gating, the home-skill rule and notes work unchanged across trees (a topic skill's prerequisites include its main-tree requirements).
+- **Separately installed topics** (an extension pack with `extends`) are not part of 1.2 (section 20); built-in and installed topics will behave the same in the app.
 
 ## 4. Lexicon (`lexicon/*.jsonl`)
 
@@ -465,7 +508,7 @@ One SQLite 3 file per course. The DDL in `schema/course_db.sql` is normative; a 
 ### 13.1 File and versions
 
 - File name `{course_id}.sqlite` when shared, bundled, hosted or copied into the app's `courses/` folder (the app skips a misnamed file).
-- `PRAGMA user_version = 1` and `meta.schema_version = '1'`: the **major** schema version. `meta.schema_minor` (absent = 0) is the additive revision: `1` = inflection tables (`inflections`, `meta.inflection_tables`, facet kind `infl`, token forms `infl:…`); `2` = moods and recognition-only skills (`meta.tense_persons`, `tense_person_labels`, `tense_groups`, `recognition_skills`; written only by packs that use them, others stay at minor 1). The app refuses a pack whose major version it does not know; `'1.1'` style versions also parse (major 1).
+- `PRAGMA user_version = 1` and `meta.schema_version = '1'`: the **major** schema version. `meta.schema_minor` (absent = 0) is the additive revision: `1` = inflection tables (`inflections`, `meta.inflection_tables`, facet kind `infl`, token forms `infl:…`); `2` = moods and recognition-only skills (`meta.tense_persons`, `tense_person_labels`, `tense_groups`, `recognition_skills`; written only by packs that use them, others stay at minor 1); `3` = topic trees (`topics`, `topic_units`; written only by packs with topics, which also covers minor 2). The app refuses a pack whose major version it does not know; `'1.1'` style versions also parse (major 1).
 - JSON columns hold UTF-8 JSON; list columns are JSON arrays and never NULL (`'[]'`, `'{}'`). Output is deterministic apart from `meta.built_at` (fixed row order, `VACUUM` at the end).
 
 ### 13.2 meta
@@ -508,8 +551,9 @@ One SQLite 3 file per course. The DDL in `schema/course_db.sql` is normative; a 
 | `skill_items(skill_id, item_id, ord)`, `skill_facets(skill_id, facet_id, item_id, kind, tense, ord)` | resolved skills; for `infl` facets `tense` holds the table name |
 | `sentence_features(sentence_id, feature)`, `skill_features(skill_id, feature)` | grammar gating |
 | `stories(id, unit_id, ord, title, title_tr, src, new_words)`, `story_sentences`, `story_questions` | stories |
+| `topics(id, ord, title, short_title, description, icon, anchor)`, `topic_units(unit_id, topic_id)` | topic trees (minor 3): the topics in order with their resolved anchor; which units belong to which topic. Topic units and skills are ordinary `units` / `skills` rows (unit `ord`s after every main-tree unit); units not in `topic_units` are the main tree |
 
-Optional tables: an app MUST load packs without `sentence_features`, `skill_features`, `inflections` and the story tables (packs built before them), and MUST ignore unknown tables, unknown meta keys and facet kinds it does not know.
+Optional tables: an app MUST load packs without `sentence_features`, `skill_features`, `inflections`, the story tables and the topic tables (packs built before them), and MUST ignore unknown tables, unknown meta keys and facet kinds it does not know.
 
 ## 14. Catalogs (index.json)
 
@@ -555,7 +599,7 @@ The app checks size and checksum while downloading, then validates the file's me
 
 ### 15.1 Pack format version
 
-This document versions the whole format: **1.0** = source format of sections 2–11, compiled schema 1 minor 1, catalog `index_version` 1; **1.1** adds the optional keys marked (1.1) (`required_translations`, `tense_persons`, `tense_person_labels`, `tense_groups`, skill `recognition` and `equivalent_tense`, detector types `pattern` and `enclitic`) and compiled schema minor 2. A minor format version adds optional things that older tools and apps may ignore; a major one breaks something.
+This document versions the whole format: **1.0** = source format of sections 2–11, compiled schema 1 minor 1, catalog `index_version` 1; **1.1** adds the optional keys marked (1.1) (`required_translations`, `tense_persons`, `tense_person_labels`, `tense_groups`, skill `recognition` and `equivalent_tense`, detector types `pattern` and `enclitic`) and compiled schema minor 2; **1.2** adds `topics` (section 3.3) and compiled schema minor 3. A minor format version adds optional things that older tools and apps may ignore; a major one breaks something.
 
 ### 15.2 Compiled schema
 
@@ -569,7 +613,7 @@ This document versions the whole format: **1.0** = source format of sections 2�
 
 ### 15.4 Minimum app version
 
-`meta.min_app_version` is the oldest app that can use the pack. The compiler sets `0.4.0` for packs that train inflection tables and `0.7.3` for packs of schema minor 2 (moods, recognition-only skills); `course.yaml` `min_app_version` overrides it; catalogs copy it, defaulting to `0.3.0` (grammar gating and generated sentences). A new exercise type, facet kind or table that older apps would handle wrongly MUST come with a higher `min_app_version`.
+`meta.min_app_version` is the oldest app that can use the pack. The compiler sets `0.4.0` for packs that train inflection tables and `0.7.3` for packs of schema minor 2 (moods, recognition-only skills); `course.yaml` `min_app_version` overrides it; catalogs copy it, defaulting to `0.3.0` (grammar gating and generated sentences). Topics (minor 3) raise nothing: an app before them ignores the topic tables and shows the topic units as further units at the end of the main tree, locked until their prerequisites are practised, with the same ids and progress. A new exercise type, facet kind or table that older apps would handle wrongly MUST come with a higher `min_app_version`.
 
 ### 15.5 Toolkit
 
@@ -594,6 +638,7 @@ Generic:
 11. Verb tables: tenses declared or non-finite; persons declared or `_`; non-finite tenses use `_` only; `stem` + `ending` both or neither, and equal to `form`.
 12. Inflection tables: `base` is a cell; labels name cells; an item's table is declared, allowed for its POS, has exactly the declared cells; stem + ending = form; `alts` don't repeat `form`; `wrong` forms are no form of the table. A `facet: infl` skill names a table; every trained table is declared; an `inflections` skill has at least one item that inflects.
 13. Tokens re-render the text; every `lex` exists; a verb `form` exists in the verb's table; an `infl:` form exists for the item and the token text is an accepted form of the cell.
+14b. (1.2) Topics: topic ids are unique; unit and skill ids are unique over every tree; the anchor (given or default) exists and is a main-tree skill, and every main-tree skill the topic requires is the anchor or one of its prerequisites; a topic without main-tree requirements names its anchor; main-tree skills require no topic skill, topic skills no other topic's skill; no prerequisite cycle across trees; a main-tree skill selects no item introduced in a topic unit.
 14a. (1.1) `tense_persons`, `tense_person_labels` and `tense_groups` name declared tenses (and persons); `recognition` is not combined with `facet`; `equivalent_tense` belongs to a recognition verbs skill and names another declared tense.
 14. Grammar gating: detector types are known; every base feature and `introduces` entry is a tense feature or has a detector; every sentence feature is introduced by some skill or the base set, and allowed at the sentence's home skill (only when `base_features` is declared).
 
@@ -650,7 +695,7 @@ xx/
 **`xx/course.yaml`**
 
 ```yaml
-# Course definition of the pack 'xx' (pack format 1.1, docs/pack-format.md in the tosk repo).
+# Course definition of the pack 'xx' (pack format 1.2, docs/pack-format.md in the tosk repo).
 #
 # `pack new` wrote this starter. The words, verbs and sentences are EXAMPLE CONTENT in a made-up
 # language, only there so that the pack validates and builds and shows every part of the format:
@@ -743,6 +788,28 @@ units:
         icon: past
         requires: [present]
         verbs: {tense: past, min: 2}
+
+# Optional: topics (pack format 1.2). A topic is a themed side tree with its own units and skills,
+# drawn as its own map; on the main tree a branch grows off its anchor skill ("Go to <title>").
+# Its skills may require main-tree skills (the anchor is the last of them) and earlier skills of the
+# same topic; words the learner already knows from any tree count as known. Uncomment to try it:
+#
+# topics:
+#   - id: market
+#     title: {en: At the market}
+#     short_title: {en: Market}   # carved on the branch where the title doesn't fit
+#     icon: shopping
+#     anchor: things              # default: the deepest main-tree skill its skills require
+#     units:
+#       - id: market-u1
+#         title: {en: Buying food}
+#         skills:
+#           - id: market-food
+#             kind: vocab
+#             title: {en: Food}
+#             icon: food
+#             requires: [things]
+#             items: {lemmas: [mela, pano], min: 2}
 ```
 
 <!-- example: ids.tsv -->

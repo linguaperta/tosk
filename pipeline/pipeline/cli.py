@@ -24,7 +24,7 @@ import sys
 import urllib.request
 from pathlib import Path
 
-PACK_FORMAT_VERSION = "1.1"
+PACK_FORMAT_VERSION = "1.2"
 TEMPLATE_DIR = Path(__file__).resolve().parent / "pack_template"
 COURSE_ID_RE = re.compile(r"^[a-z]{2,3}$")
 COUNT_TABLES = ("units", "skills", "notes", "items", "verbs", "verb_forms", "inflections", "sentences",
@@ -295,13 +295,13 @@ def cmd_publish(a) -> int:
 
 # ------------------------------------------------------------------------------------------ main
 def parser() -> argparse.ArgumentParser:
-    from .compile import COURSE_DB_SCHEMA_MINOR, COURSE_DB_SCHEMA_VERSION
+    from .compile import COURSE_DB_SCHEMA_MINOR_TOPICS, COURSE_DB_SCHEMA_VERSION
     ap = argparse.ArgumentParser(
         prog="pack", description="Make, check and build language packs (pack format "
                                  f"{PACK_FORMAT_VERSION}, docs/pack-format.md).")
     ap.add_argument("--version", action="version",
                     version=f"pack (pack format {PACK_FORMAT_VERSION}, course.sqlite schema "
-                            f"{COURSE_DB_SCHEMA_VERSION}.{COURSE_DB_SCHEMA_MINOR})")
+                            f"{COURSE_DB_SCHEMA_VERSION}.{COURSE_DB_SCHEMA_MINOR_TOPICS})")
     sub = ap.add_subparsers(dest="cmd", required=True)
 
     p = sub.add_parser("new", help="scaffold a pack source that validates")

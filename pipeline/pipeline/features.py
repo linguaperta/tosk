@@ -60,6 +60,7 @@ import re
 from collections import defaultdict
 from types import SimpleNamespace
 
+from .content import all_units
 from . import query
 from .lang import get_lang
 
@@ -449,7 +450,7 @@ class SkillGraph:
         self.base: set[str] = set(course.get("base_features") or [])
         self.order: list[str] = []
         self.skill: dict[str, dict] = {}
-        for unit in course["units"]:
+        for unit in all_units(course):
             for s in unit.get("skills") or []:
                 self.order.append(s["id"])
                 self.skill[s["id"]] = s
@@ -546,6 +547,6 @@ class SkillGraph:
 
 def build(course: dict, items: list[dict], verbs: dict[str, dict]) -> tuple[FeatureTagger, SkillGraph]:
     resolved = {s["id"]: query.resolve(s, items, verbs, query.course_persons(course))
-                for u in course["units"] for s in (u.get("skills") or [])}
+                for u in all_units(course) for s in (u.get("skills") or [])}
     tagger = FeatureTagger(course, items, verbs)
     return tagger, SkillGraph(course, resolved, tagger)

@@ -39,7 +39,7 @@ from pathlib import Path
 
 from . import gaps, query, trcheck
 from .align import Aligner
-from .content import Pack, load_pack, read_jsonl, required_translations, write_jsonl
+from .content import Pack, all_units, load_pack, read_jsonl, required_translations, write_jsonl
 from .importer import dedupe_key
 from .lang import get_lang
 from .tokens import tokenize
@@ -119,7 +119,7 @@ class Generator:
             self.by_lemma[it["lemma"]].append(it["id"])
         self.translations = list(self.pack.course["translations"])
         self.required = required_translations(self.pack.course)
-        self.unit_order = [u["id"] for u in self.pack.course["units"]]
+        self.unit_order = [u["id"] for u in all_units(self.pack.course)]
         self.skill_items = set(self.graph.item_skill)
         self.keys = {dedupe_key(s["text"]): s["id"] for s in self.pack.sentences}
         self.registry = Registry(self.code, self.root / REGISTRY)
