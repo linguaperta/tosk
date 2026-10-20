@@ -6,8 +6,8 @@
 
 The app is a **viewer and player for language packs**. It knows no language: everything (words, conjugation and inflection tables, sentences, grammar notes, course structure, stories) comes from the pack. Anyone can make packs for any language or purpose.
 
-- **The pack format is an open, versioned spec.** It consists of `schema/course_db.sql`, the JSON schemas in `schema/`, and the conventions in `docs/ARCHITECTURE.md` (facets, grammar gating, inflection tables, stories). The app refuses packs with an unknown major schema version.
-- **A tool suite lets people build their own courses,** optionally with AI help. It is the pipeline (`pipeline/`) grown into a reusable toolkit, documented in `docs/new-language.md`.
+- **The pack format is an open, versioned spec.** It consists of `schema/course_db.sql`, the JSON schemas in `schema/`, and the conventions in `docs/ARCHITECTURE.md` (facets, grammar gating, inflection tables, stories), written up as one standalone spec in `docs/pack-format.md` (format 1.0). The app refuses packs with an unknown major schema version.
+- **A tool suite lets people build their own courses,** optionally with AI help. It is the pipeline (`pipeline/`) grown into a reusable toolkit (the `pack` command, docs/pack-format.md section 17).
 - **Hosting:** the project hosts only **open-licensed packs** (the official catalog: GitHub Releases of `tosk-data`). Anyone can host their own catalog (`index.json`) or share a pack file.
 - **Responsibility:** what people build and load for personal use, for example a pack made from a book they own, is their own business. The app plays packs; it does not police their sources. Packs show their own license, sources and authors in the course preview.
 - **Public code stays generic.** Importers that target a specific copyrighted source (the Sarnami [source], [source]© and [source] parsers) stay in a private part of the code and never go into a public repo. Public tools are generic: JSONL, CSV, Wiktionary/kaikki, Tatoeba, plain text.

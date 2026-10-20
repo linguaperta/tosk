@@ -103,3 +103,14 @@ def test_publish_gz_adds_fields_and_assets(tmp_path):
     assert str(rel / "it.sqlite.gz") in cmd and str(rel / "nl.sqlite.gz") in cmd
     plain = pub.build_index(rel, ["it"], "packs-20261020")
     assert "web_url" not in plain["courses"][0]
+
+
+def test_pack_index_gz(tmp_path):
+    from pipeline.cli import build_catalog
+    it = _fake_pack(tmp_path / "it.sqlite", "it")
+    doc = build_catalog([it], "https://me.example/packs", gz=True)
+    c = doc["courses"][0]
+    assert c["url"] == "https://me.example/packs/it.sqlite"
+    assert c["web_url"] == "https://me.example/packs/it.sqlite.gz"
+    assert c["gz_size"] == (tmp_path / "it.sqlite.gz").stat().st_size
+    assert "web_url" not in build_catalog([it], "https://me.example/packs")["courses"][0]

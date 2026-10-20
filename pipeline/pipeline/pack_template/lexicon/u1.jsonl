@@ -1,0 +1,12 @@
+{"id": "{{code}}:salo", "lemma": "salo", "pos": "intj", "freq": 20, "unit": "u1", "tags": ["basics"], "tr": {"en": ["hello", "hi"]}, "tr_src": {"en": "manual"}, "src": "pack-template"}
+{"id": "{{code}}:tanko", "lemma": "tanko", "pos": "intj", "freq": 25, "unit": "u1", "tags": ["basics"], "tr": {"en": ["thank you", "thanks"]}, "tr_src": {"en": "manual"}, "src": "pack-template"}
+{"id": "{{code}}:ja", "lemma": "ja", "pos": "adv", "freq": 10, "unit": "u1", "tags": ["basics"], "tr": {"en": ["yes"]}, "tr_src": {"en": "manual"}, "src": "pack-template"}
+{"id": "{{code}}:ne", "lemma": "ne", "pos": "adv", "freq": 5, "unit": "u1", "tags": ["basics"], "tr": {"en": ["no", "not"]}, "tr_src": {"en": "manual"}, "src": "pack-template"}
+{"id": "{{code}}:mi", "lemma": "mi", "pos": "pron", "freq": 1, "unit": "u1", "tags": ["basics"], "tr": {"en": ["I", "me"]}, "tr_src": {"en": "manual"}, "src": "pack-template"}
+{"id": "{{code}}:tu", "lemma": "tu", "pos": "pron", "freq": 2, "unit": "u1", "tags": ["basics"], "tr": {"en": ["you"]}, "tr_src": {"en": "manual"}, "src": "pack-template"}
+{"id": "{{code}}:li", "lemma": "li", "pos": "pron", "freq": 3, "unit": "u1", "tags": ["basics"], "tr": {"en": ["he", "she"]}, "tr_src": {"en": "manual"}, "src": "pack-template"}
+{"id": "{{code}}:nos", "lemma": "nos", "pos": "pron", "freq": 6, "unit": "u1", "tags": ["basics"], "tr": {"en": ["we", "us"]}, "tr_src": {"en": "manual"}, "src": "pack-template"}
+{"id": "{{code}}:vos", "lemma": "vos", "pos": "pron", "freq": 8, "unit": "u1", "tags": ["basics"], "tr": {"en": ["you (plural)"]}, "tr_src": {"en": "manual"}, "src": "pack-template"}
+{"id": "{{code}}:los", "lemma": "los", "pos": "pron", "freq": 7, "unit": "u1", "tags": ["basics"], "tr": {"en": ["they", "them"]}, "tr_src": {"en": "manual"}, "src": "pack-template"}
+{"id": "{{code}}:kantar", "lemma": "kantar", "pos": "verb", "freq": 30, "unit": "u1", "tr": {"en": ["to sing"]}, "tr_src": {"en": "manual"}, "src": "pack-template"}
+{"id": "{{code}}:manjar", "lemma": "manjar", "pos": "verb", "freq": 15, "unit": "u1", "tr": {"en": ["to eat"]}, "tr_src": {"en": "manual"}, "src": "pack-template"}

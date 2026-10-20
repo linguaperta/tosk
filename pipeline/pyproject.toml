@@ -4,15 +4,19 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tosk-pipeline"
-version = "0.1.0"
-description = "tosk content pipeline: open data -> JSONL -> course.sqlite"
+version = "0.2.0"
+description = "tosk content pipeline and pack toolkit: pack sources (YAML/JSONL) -> course.sqlite (docs/pack-format.md)"
 requires-python = ">=3.11"
 dependencies = ["pyyaml>=6.0", "jsonschema>=4.20", "requests>=2.31"]
+
+[project.scripts]
+pack = "pipeline.cli:main"
 
 [tool.setuptools]
 packages = ["pipeline", "pipeline.hns"]
 
 [tool.setuptools.package-data]
+"pipeline" = ["pack_template/*.yaml", "pack_template/*.tsv", "pack_template/*/*.jsonl", "pack_template/*/*.md"]
 "pipeline.hns" = ["template/*.yaml", "template/grammar/*.md"]
 
 [tool.pytest.ini_options]
