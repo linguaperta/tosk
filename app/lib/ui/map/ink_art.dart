@@ -138,8 +138,12 @@ void hatchRegion(
     ..strokeWidth = width
     ..strokeCap = StrokeCap.round
     ..style = PaintingStyle.stroke;
-  canvas.save();
-  canvas.clipPath(region);
+  // Every line goes into one path, stroked once: one draw instead of one per
+  // line (the lines never overlap, so it looks the same).
+  final lines = Path();
+  void line(Offset p, Offset q) => lines
+    ..moveTo(p.dx, p.dy)
+    ..lineTo(q.dx, q.dy);
   final count = (2 * r / spacing).ceil();
   for (var k = -count; k <= count; k++) {
     final off = k * spacing + (rnd.nextDouble() - 0.5) * jitter;
@@ -151,12 +155,15 @@ void hatchRegion(
     final p1 = base + d * r;
     if (rnd.nextDouble() < 0.12) {
       final gap = 0.3 + rnd.nextDouble() * 0.4;
-      canvas.drawLine(p0, Offset.lerp(p0, p1, gap - 0.04)!, paint);
-      canvas.drawLine(Offset.lerp(p0, p1, gap + 0.04)!, p1, paint);
+      line(p0, Offset.lerp(p0, p1, gap - 0.04)!);
+      line(Offset.lerp(p0, p1, gap + 0.04)!, p1);
     } else {
-      canvas.drawLine(p0, p1, paint);
+      line(p0, p1);
     }
   }
+  canvas.save();
+  canvas.clipPath(region);
+  canvas.drawPath(lines, paint);
   canvas.restore();
 }
 

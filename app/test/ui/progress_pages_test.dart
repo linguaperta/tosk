@@ -1,5 +1,6 @@
 import 'package:tosk/ui/demo/demo_courses.dart';
 import 'package:tosk/ui/demo/demo_seed.dart';
+import 'package:tosk/ui/map/map_raster.dart';
 import 'package:tosk/ui/map/node_painter.dart';
 import 'package:tosk/ui/map/skill_stats.dart';
 import 'package:tosk/ui/progress/progress_screen.dart';
@@ -55,9 +56,10 @@ void main() {
     await pumpApp(tester, store: await _seeded());
     // The nodes paint their tier (the storybook medallion); the seeded
     // progress puts at least one skill in a metal tier.
+    // (Each stone is drawn once into an image: `CachedPaint`.)
     final painters = tester
-        .widgetList<CustomPaint>(find.byWidgetPredicate((w) => w is CustomPaint && w.painter is NodePainter))
-        .map((w) => w.painter! as NodePainter);
+        .widgetList<CachedPaint>(find.byWidgetPredicate((w) => w is CachedPaint && w.painter is NodePainter))
+        .map((w) => w.painter as NodePainter);
     expect(painters, isNotEmpty);
     expect(painters.any((p) => p.tier.index >= MapTier.bronze.index), isTrue);
   });
