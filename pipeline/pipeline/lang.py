@@ -81,6 +81,11 @@ class Lang:
     # Italian imperatives look like present forms ('Chiedi a un poliziotto!', 'Andiamo!'): verbs that
     # never form one that way (their imperative is distinct: sii, abbi)
     imperative_exempt: set[str] = field(default_factory=set)
+    # spellings that are also the imperative of another verb: spelling -> (that verb, its English
+    # heads) (Spanish 've' = he sees / go!, 'ven' = they see / come!, 'sé' = I know / be!).
+    # Clause-initial without a subject pronoun and with '!' or an English translation starting with
+    # one of the heads, the word links to that verb without a form
+    imperative_homographs: dict[str, tuple[str, set[str]]] = field(default_factory=dict)
     # words that may precede a clause-initial imperative ('Non parlate!', 'Mi scusi!')
     imperative_lead: set[str] = field(default_factory=set)
     # read the gerund from the conjugation table ('gerund._': mangiando, hablando)
@@ -96,6 +101,11 @@ class Lang:
     # spellings whose verb reading needs an adjacent subject pronoun; otherwise the word is read as
     # its other item (Spanish 'como' = like/as, not 'I eat', unless 'yo como')
     verb_needs_pronoun: set[str] = field(default_factory=set)
+    # ... or one of these object clitics right before it ('lo como', 'me mira', 'se para')
+    preverbal_clitics: set[str] = field(default_factory=set)
+    # verbs ('ser', 'estar') after whose finite form (with only `skip_between` words in between) a word
+    # is no finite verb: '¿Estás todavía despierta?' (awake), not 'ella despierta'
+    copula_lemmas: set[str] = field(default_factory=set)
     # a word that is both a noun and a verb form, directly after a finite verb, is the noun (its
     # object): Spanish 'Bebo vino' (wine, not 'he came'), 'Busco trabajo'
     object_noun_after_verb: bool = False

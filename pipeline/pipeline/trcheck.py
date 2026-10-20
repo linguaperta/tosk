@@ -57,6 +57,131 @@ NUMBERS["es"].update({"tercero": 3, "tercera": 3, "tercer": 3, "cuarto": 4, "cua
                       "noveno": 9, "novena": 9, "décimo": 10, "décima": 10})
 NUMBERS["nl"].update({"derde": 3, "vierde": 4, "vijfde": 5, "zesde": 6, "zevende": 7, "achtste": 8, "negende": 9,
                       "tiende": 10})
+# Spanish one-word cardinals: veintiséis .. veintinueve, the hundreds (and their feminine forms)
+NUMBERS["es"].update({"veintiséis": 26, "veintisiete": 27, "veintiocho": 28, "veintinueve": 29,
+                      "cuatrocientos": 400, "seiscientos": 600, "setecientos": 700, "ochocientos": 800,
+                      "novecientos": 900})
+NUMBERS["es"].update({w[:-2] + "as": v for w, v in list(NUMBERS["es"].items()) if w.endswith("ientos")})
+NUMBERS["es"]["quinientas"] = 500
+
+# Compound numbers. Several words make one number ('two hundred' = 200 = 'doscientos', 'twenty
+# five' = 25 = 'veinticinco', 'treinta y dos' = 32, 'dos mil' = 2000), and Dutch and Italian write
+# compounds as one word ('tweehonderd', 'vijfentwintig', 'duecento', 'trentadue'), so both sides
+# are read as whole numbers before they are compared.
+MULTIPLIERS = {100, 1000, 10**6, 10**9}
+# a word between two parts of one number: 'two hundred and fifty', 'treinta y dos'
+CONNECTORS = {"en": {"and"}, "es": {"y"}}
+# extra parts that occur only inside one-word compounds ('one' alone is ignored, see _num); a part
+# with value 0 joins a unit and a ten ('vijfentwintig', 'tweeëntwintig')
+COMPOUND_PARTS = {
+    "nl": {"een": 1, "eën": 1, "en": 0, "ën": 0},
+    "it": {"uno": 1, "un": 1, "tré": 3, "mila": 1000},
+}
+
+
+def _mergeable(run: list[int], v: int) -> bool:
+    """Can number word `v` continue the number words `run` ('two' + 'hundred', 'thirty' + 'two')?"""
+    prev = run[-1]
+    if v >= 1000 and v in MULTIPLIERS:
+        return all(x < v for x in run)                    # 'dos mil', 'two hundred thousand'
+    if v == 100:
+        since = run[max((i for i, x in enumerate(run) if x >= 1000), default=-1) + 1:]
+        return sum(since) < 100                           # 'two hundred', 'mil cien', 'nineteen hundred'
+    if prev >= 100:
+        return v < 10 ** (len(str(prev)) - 1) * (10 if prev in MULTIPLIERS else 1)   # 'doscientos cinco'
+    return 20 <= prev <= 90 and prev % 10 == 0 and 1 <= v <= 9                       # 'thirty two'
+
+
+def _value(parts: list[int]) -> int:
+    total = current = 0
+    for v in parts:
+        if v >= 1000:
+            total += (current or 1) * v
+            current = 0
+        elif v == 100:
+            current = (current or 1) * 100
+        else:
+            current += v
+    return total + current
+
+
+def _compound(word: str, lang: str) -> int | None:
+    """Value of a one-word compound number ('tweehonderd' 200, 'vijfentwintig' 25, 'trentadue' 32)."""
+    extra = COMPOUND_PARTS.get(lang)
+    if not extra or len(word) < 6:
+        return None
+    parts = {w: v for w, v in NUMBERS[lang].items() if v not in (0,) and "'" not in w} | extra
+    best: dict[int, list[int]] = {0: []}
+    for i in range(len(word)):
+        if i not in best:
+            continue
+        for p, v in parts.items():
+            if word.startswith(p, i) and i + len(p) not in best:
+                best[i + len(p)] = best[i] + [v]
+    seq = best.get(len(word))
+    if not seq or len(seq) < 2:
+        return None
+    if seq[0] == 0 or seq[-1] == 0:
+        return None                 # 'vieren', 'achten' (verbs), 'honderden'
+    vals = []
+    for i, v in enumerate(seq):
+        if v == 0:
+            if not (1 <= seq[i - 1] <= 9 and 20 <= seq[i + 1] <= 90):
+                return None
+            continue
+        vals.append(v)
+    for i in range(1, len(vals)):
+        a, b = vals[i - 1], vals[i]
+        if not (_mergeable(vals[:i], b) or (1 <= a <= 9 and 20 <= b <= 90 and lang == "nl")):
+            return None
+    return _value(vals)
+
+
+def number_values(words: list[str], lang: str) -> list[tuple[int, bool]]:
+    """Numbers in a list of lowercased words, compounds joined: (value, from an ambiguous word).
+    Digits are left to the caller."""
+    out: list[tuple[int, bool]] = []
+    run: list[int] = []
+    amb = False
+    conn = CONNECTORS.get(lang, set())
+
+    def flush():
+        nonlocal run, amb
+        if run:
+            out.append((_value(run), amb and len(run) == 1))
+        run, amb = [], False
+
+    def _starts_number(run: list[int], v: int, j: int) -> bool:
+        # 'five hundred and five hundred': the second 'five' begins a new number
+        nxt = NUMBERS.get(lang, {}).get(words[j]) if j < len(words) else None
+        return nxt is not None and not _mergeable(run + [v], nxt) and _mergeable([v], nxt)
+
+    i = 0
+    while i < len(words):
+        w = words[i]
+        v = None
+        if w and not w[:1].isdigit():
+            v = NUMBERS.get(lang, {}).get(w)
+            if v is None:
+                v = _compound(w, lang)
+        if v is None:
+            if run and w in conn and i + 1 < len(words):
+                nxt = NUMBERS.get(lang, {}).get(words[i + 1])
+                if nxt is not None and _mergeable(run, nxt) and not _starts_number(run, nxt, i + 2):
+                    i += 1
+                    continue
+            flush()
+            i += 1
+            continue
+        if run and (not _mergeable(run, v) or _starts_number(run, v, i + 1)):
+            flush()
+        run.append(v)
+        amb = amb or w in AMBIGUOUS.get(lang, set())
+        i += 1
+    flush()
+    return out
+
+
 # idioms with a number word that is no number: 'grazie mille' (thanks a lot)
 IDIOMS = {"it": {("grazie", "mille")}}
 # number words that are mostly something else (Italian 'sei' = you are, Dutch 'vier' = celebrate,
@@ -111,7 +236,9 @@ def _num(word: str, lang: str) -> int | None:
 def numbers_in(text: str, lang: str) -> set[int]:
     """Number values in a text: digits (1,000 = 1000) and number words."""
     text = _THOUSANDS.sub("", text)
-    return {v for w in _words(text) if (v := _num(w, lang)) is not None}
+    ws = _words(text)
+    digits = {v for w in ws if w.isdigit() and (v := _num(w, lang)) is not None}
+    return digits | {v for v, _ in number_values([w.lower().replace("’", "'") for w in ws], lang)}
 
 
 def calendar_in(text: str, lang: str) -> set[int]:
@@ -153,16 +280,11 @@ def mismatch(tokens: list[dict], items: dict[str, dict], code: str, tr: str, tr_
     src_nums = {v for d in re.findall(r"\d+", _THOUSANDS.sub("", text))
                 if (v := _num(d, code)) is not None}
     ignore = set()
-    for i, t in enumerate(words):
-        if (i > 0 and (low[i - 1], low[i]) in IDIOMS.get(code, set())) or low[i][:1].isdigit():
-            continue
-        v = _num(low[i], code)
-        if v is None:
-            continue
-        if low[i] in AMBIGUOUS.get(code, set()):
-            ignore.add(v)
-        else:
-            src_nums.add(v)
+    # idiom words ('grazie mille') are no numbers; digits were counted above
+    plain = ["" if (i > 0 and (low[i - 1], w) in IDIOMS.get(code, set())) or w[:1].isdigit() else w
+             for i, w in enumerate(low)]
+    for v, ambiguous in number_values(plain, code):
+        (ignore if ambiguous else src_nums).add(v)
     tr_nums = numbers_in(tr, tr_lang) - ignore
     vague = bool(set(low) & NUMBER_WORDS_VAGUE.get(code, set())) \
         or bool({w.lower() for w in _words(tr)} & NUMBER_WORDS_VAGUE.get(tr_lang, set())) \

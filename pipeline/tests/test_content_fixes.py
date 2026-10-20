@@ -146,6 +146,28 @@ def test_translation_check():
     assert invariant_names(pairs) == {"Tom"}
 
 
+def test_translation_check_reads_compound_numbers():
+    from pipeline.trcheck import mismatch, numbers_in
+    assert numbers_in("two hundred and fifty books", "en") == {250}
+    assert numbers_in("one thousand five hundred", "en") == {1500}
+    assert numbers_in("twenty-five", "en") == {25}
+    assert numbers_in("Seven and seven are fourteen.", "en") == {7, 14}
+    assert numbers_in("treinta y dos", "es") == {32} and numbers_in("dos y dos", "es") == {2}
+    assert numbers_in("mil quinientos", "es") == {1500} and numbers_in("doscientos mil", "es") == {200000}
+    assert numbers_in("Five hundred and five hundred are a thousand.", "en") == {500, 1000}
+    assert numbers_in("five hundred and five", "en") == {505}
+    assert numbers_in("tweehonderd boeken, vijfentwintig, tweeëntwintig", "nl") == {200, 25, 22}
+    assert numbers_in("We vieren het. Honderden mensen.", "nl") == set()   # verbs, no compounds
+    assert numbers_in("trentadue, duemilacinquecento, il centro", "it") == {32, 2500}
+    items = {"es:doscientos": {"pos": "num"}}
+    toks = _toks("Hay doscientos libros.", "es")
+    assert mismatch(toks, items, "es", "There are two hundred books.", "en") is None
+    assert mismatch(toks, items, "es", "Er zijn tweehonderd boeken.", "nl") is None
+    assert mismatch(toks, items, "es", "There are two books.", "en").startswith("numbers")
+    toks = _toks("Hay treinta y dos sillas.", "es")
+    assert mismatch(toks, items, "es", "There are thirty-two chairs.", "en") is None
+
+
 def test_dutch_was_is_zijn_unless_it_can_be_wassen():
     T, V = "tegenwoordige_tijd", "verleden_tijd"
     items = [item("nl:zijn", "verb", 1), item("nl:wassen", "verb", 500), item("nl:ik", "pron", 3),
@@ -175,3 +197,70 @@ def test_interjections_and_multi_word_phrases():
     assert r["per"] == ("it:per favore", None) and r["favore"] == ("it:per favore", None)
     assert run(a, "Lo faccio per te.", "it")["per"] == ("it:per", None)
 
+
+
+def test_shared_inflection_goes_to_the_item_whose_table_has_it():
+    # Wiktionary lists 'esa', 'esta', 'aquella' under each Spanish demonstrative
+    def det(lemma, freq, f_sg, others):
+        return item(f"es:{lemma}", "det", freq, inflections=others,
+                    infl={"agreement": {"m.sg": {"form": lemma}, "f.sg": {"form": f_sg}}})
+    shared = ["esa", "esta", "aquella", "ese", "este", "aquel"]
+    items = [det("este", 20, "esta", shared), det("ese", 500, "esa", shared), det("aquel", 6000, "aquella", shared),
+             item("es:señora", "noun", 300)]
+    a = Aligner(get_lang("es"), items, {})
+    assert run(a, "Esa señora", "es")["Esa"][0] == "es:ese"
+    assert run(a, "Aquella señora", "es")["Aquella"][0] == "es:aquel"
+    assert run(a, "Esta señora", "es")["Esta"][0] == "es:este"
+    assert run(a, "Ese", "es")["Ese"][0] == "es:ese"
+
+
+ES_P = ["yo", "tú", "él/ella", "nosotros", "vosotros", "ellos/ellas"]
+
+
+def es_aligner(extra_items=(), extra_verbs=()):
+    items = [item("es:estar", "verb", 5), item("es:despertar", "verb", 400), item("es:casar", "verb", 600),
+             item("es:caso", "noun", 90), item("es:comer", "verb", 100), item("es:como", "adv", 8),
+             item("es:pedir", "verb", 150), item("es:su", "det", 10), item("es:lo", "pron", 7),
+             item("es:aquí", "adv", 30), item("es:todavía", "adv", 60), item("es:yo", "pron", 3), *extra_items]
+    verbs = {v["id"]: v for v in [
+        verb("es:estar", ES_P, ["estoy", "estás", "está", "estamos", "estáis", "están"], "estado", "haber"),
+        verb("es:despertar", ES_P, ["despierto", "despiertas", "despierta", "despertamos", "despertáis",
+                                    "despiertan"], "despertado", "haber"),
+        verb("es:casar", ES_P, ["caso", "casas", "casa", "casamos", "casáis", "casan"], "casado", "haber"),
+        verb("es:comer", ES_P, ["como", "comes", "come", "comemos", "coméis", "comen"], "comido", "haber"),
+        verb("es:pedir", ES_P, ["pido", "pides", "pide", "pedimos", "pedís", "piden"], "pedido", "haber"),
+        *extra_verbs]}
+    return Aligner(get_lang("es"), items, verbs)
+
+
+def test_spanish_word_after_estar_is_no_finite_verb():
+    a = es_aligner()
+    assert run(a, "¿Estás todavía despierta?", "es")["despierta"] == ("es:despertar", None)
+    assert run(a, "¿Estás todavía despierta?", "es")["Estás"] == ("es:estar", "presente.tú")
+    assert run(a, "Ella despierta a Ana.", "es")["despierta"][1] == "presente.él/ella"
+
+
+def test_spanish_noun_or_verb_homographs():
+    a = es_aligner()
+    assert run(a, "Caso cerrado.", "es")["Caso"] == ("es:caso", None)
+    assert run(a, "Lo como.", "es")["como"] == ("es:comer", "presente.yo")      # a clitic before: the verb
+    assert run(a, "Aquí está su pedido.", "es")["pedido"] == (None, None)      # a noun, not the participle
+
+
+def test_spanish_imperative_homographs():
+    extra_items = [item("es:ver", "verb", 20), item("es:venir", "verb", 40), item("es:ir", "verb", 15),
+                   item("es:enseguida", "adv", 300), item("es:atrás", "adv", 400)]
+    extra_verbs = [
+        verb("es:ver", ES_P, ["veo", "ves", "ve", "vemos", "veis", "ven"], "visto", "haber"),
+        verb("es:venir", ES_P, ["vengo", "vienes", "viene", "venimos", "venís", "vienen"], "venido", "haber"),
+        verb("es:ir", ES_P, ["voy", "vas", "va", "vamos", "vais", "van"], "ido", "haber"),
+    ]
+    a = es_aligner(extra_items, extra_verbs)
+
+    def r(text, tr):
+        out = a.align(tokenize(text, "es"), tr)
+        return {t["t"]: (t["lex"], t["form"]) for t in out if t["is_word"]}
+
+    assert r("Ven enseguida.", "Come right away.")["Ven"] == ("es:venir", None)
+    assert r("Ve atrás.", "Go back.")["Ve"] == ("es:ir", None)
+    assert r("Ven atrás.", "They see behind.")["Ven"] == ("es:ver", "presente.ellos/ellas")

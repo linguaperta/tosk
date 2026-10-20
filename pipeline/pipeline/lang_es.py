@@ -93,7 +93,11 @@ class Spanish(Lang):
             third_pl="ellos/ellas",
             # 'ser', 'estar', 'haber' forms are never a tú-imperative (sé, está, he are other words)
             imperative_exempt={"ser", "estar", "haber", "ir"},
-            imperative_lead={"ahora", "pues", "entonces", "bueno", "y", "ya", "también"},
+            imperative_lead={"ahora", "pues", "entonces", "bueno", "y", "ya", "también", "por", "favor"},
+            imperative_homographs={"ve": ("ir", {"go", "get"}), "ven": ("venir", {"come", "get"}),
+                                   "sé": ("ser", {"be"}), "di": ("decir", {"say", "tell"}),
+                                   "sal": ("salir", {"get", "go", "leave", "come"}),
+                                   "ten": ("tener", {"have", "take", "be", "keep"})},
             gerund=True,
             # 'he comido', 'no lo he visto', '¿Has visto...?'; 'he ya comido' is not Spanish
             aux_window=2,
@@ -101,7 +105,9 @@ class Spanish(Lang):
                          "tú", "usted", "él", "ella", "ustedes"},
             bare_participle_tense=False,
             verb_needs_pronoun={"como", "para", "bajo", "nada", "cerca", "junto", "salvo", "medio", "entre",
-                                "sobre", "vale", "mira", "claro", "pase"},
+                                "sobre", "vale", "mira", "claro", "pase", "caso"},
+            preverbal_clitics=CLITICS,
+            copula_lemmas={"ser", "estar"},
             object_noun_after_verb=True,
             noun_coordinators={"y", "e", "o", "u", "ni"},
             clitic_forms=True,

@@ -67,7 +67,8 @@ _INVISIBLE = dict.fromkeys(map(ord, "​‌‍⁠﻿­"))
 def clean_text(text: str) -> str:
     """Tatoeba text without invisible characters (zero-width spaces, soft hyphens) and with single
     plain spaces: 'draagt ​​een' would not re-render from tokens."""
-    return " ".join(text.translate(_INVISIBLE).replace(" ", " ").replace("''", '"').split())   # ''quoted'' -> "quoted"
+    s = " ".join(text.translate(_INVISIBLE).replace(" ", " ").replace("''", '"').split())   # ''quoted'' -> "quoted"
+    return re.sub(r"([¿¡]) +", r"\1", s)     # Spanish opening marks stick to the word: '¿ Dónde' -> '¿Dónde'
 
 
 def dedupe_key(text: str) -> str:
@@ -309,6 +310,38 @@ def load_tatoeba(code: str, cache: Path) -> tuple[dict[int, str], dict[int, dict
         if "en" in tr:
             trs[sid] = tr
     return target, trs
+
+
+MOOD_TRIGGERS = {"que", "si", "ojalá"}
+
+
+def mood_spellings(lexemes: dict, moods: set[str], items: list[dict], verbs: dict[str, dict])         -> tuple[set[str], set[str]]:
+    """(spellings only of excluded moods, spellings of excluded moods that are also other words).
+    Mood forms come from every Wiktionary verb; kept forms and other words only from the pack's
+    verb tables and items (the rare 'vengar' does not make 'vengas' an indicative)."""
+    if not moods:
+        return set(), set()
+    mood: set[str] = set()
+    for (lemma, pos), lx in lexemes.items():
+        if pos == "verb":
+            for m, forms in lx.mood_forms.items():
+                if m in moods:
+                    mood |= forms
+    kept: set[str] = set()
+    for v in verbs.values():
+        for table in (v.get("forms") or {}).values():
+            for val in table.values():
+                if isinstance(val, dict):
+                    kept |= {x.lower() for x in [val.get("form") or "", *(val.get("alts") or [])]}
+                else:
+                    kept.add(str(val).lower())
+    other: set[str] = set()
+    for it in items:
+        if it["pos"] != "verb":
+            other.add(it["lemma"].lower())
+            other |= {x.lower() for x in it.get("inflections") or []}
+    mood -= kept
+    return mood - other, mood & other
 
 
 # --------------------------------------------------------------------------------------- main
@@ -553,7 +586,18 @@ def run_import(code: str, content_root: str | None = None) -> None:
     tr_dropped: Counter = Counter()
     names = trcheck.invariant_names((target[s], tr["en"][1]) for s, tr in trs.items())
     tr_of: dict[int, dict[str, tuple[int, str]]] = {}
+    # moods the conjugation tables leave out (seed.yaml exclude_moods: subjunctive, conditional,
+    # imperative): sentences with such a form are not imported, so no exercise shows an untaught
+    # mood. A spelling that is also a kept verb form ('ven': they see / come!) never counts; one
+    # that is also another word ('fuera' outside / were, 'coma' comma) only after 'que' or 'si'.
+    mood_any, mood_after = mood_spellings(lexemes, set(seed.get("exclude_moods") or []), items, verbs)
+    mood_dropped = 0
+    bad_words = {w.lower() for w in (seed.get("exclude_words") or [])}
+    # Tatoeba sentences a review found wrong or odd (seed.yaml exclude_sentences: ids)
+    bad_sentences = {int(x) for x in (seed.get("exclude_sentences") or [])}
     for sid in sorted(trs):
+        if sid in bad_sentences:
+            continue
         text = target[sid]
         if lang.no_apostrophes and ("'" in text or "’" in text):
             continue        # foreign words or quotes ("Stayin' Alive"): no tile/cloze re-renders them
@@ -569,6 +613,14 @@ def run_import(code: str, content_root: str | None = None) -> None:
         words = [t for t in al if t["is_word"]]
         if not words or len(words) > MAX_WORDS:
             continue
+        ws = [t["t"].lower() for t in words]
+        if bad_words and any(w in bad_words for w in ws):
+            continue                        # another variety's words (seed.yaml exclude_words: voseo 'tenés')
+        if mood_any or mood_after:
+            if any(w in mood_any or (w in mood_after and i > 0 and ws[i - 1] in MOOD_TRIGGERS)
+                   for i, w in enumerate(ws)):
+                mood_dropped += 1
+                continue                    # a mood the course does not teach ('que vengas', 'podría')
         unlinked = 0
         for i, t in enumerate(al):
             if not t["is_word"] or t["lex"]:
@@ -681,6 +733,8 @@ def run_import(code: str, content_root: str | None = None) -> None:
             "unit": unit_order[unit_idx],
             "tokens": toks_out,
         })
+    if mood_dropped:
+        log(f"[{code}] {mood_dropped} sentences with an untaught mood (subjunctive, conditional, imperative) skipped")
     log(f"[{code}] {len(cands)} candidate sentences, {len(sentences)} selected; translation check: "
         f"{tr_dropped['en']} sentences dropped (English), {tr_dropped['nl']} Dutch translations dropped")
 
