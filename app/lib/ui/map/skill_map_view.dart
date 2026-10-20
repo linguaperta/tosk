@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
-import '../theme/tosk_palette.dart';
 import '../../core/core.dart';
 import '../brand/tosk.dart';
 import '../theme/bw_skin.dart';
@@ -12,6 +11,7 @@ import '../theme/skin.dart';
 import 'bough.dart';
 import 'branch_style.dart';
 import 'ink_art.dart';
+import 'map_labels.dart';
 import 'map_layout.dart';
 import 'map_motion.dart';
 import 'node_painter.dart';
@@ -19,6 +19,7 @@ import 'skill_node.dart';
 import 'skill_stats.dart';
 
 export 'bough.dart' show BoughShape, LeafSpot, paintBough;
+export 'map_labels.dart' show MapTextMetrics;
 
 /// Which way the course grows on screen.
 ///
@@ -36,13 +37,25 @@ enum MapDirection { topDown, bottomUp }
 const MapDirection kMapDirection = MapDirection.topDown;
 
 /// Pixel geometry derived from a [MapLayout] for a given available width and zoom.
+///
+/// Under every stone it reserves the room for the node's title (two lines)
+/// and its days chip at the current text size ([text], see
+/// [MapTextMetrics]), so a wrapped title never runs under the chip or into
+/// the next row; the band headers grow with the unit title's text size too.
 class MapGeometry {
-  MapGeometry({required this.layout, required double availableWidth, required this.zoom, this.direction = kMapDirection}) {
+  MapGeometry({
+    required this.layout,
+    required double availableWidth,
+    required this.zoom,
+    this.direction = kMapDirection,
+    this.text = MapTextMetrics.fallback,
+    this.tallHeaders = const {},
+  }) {
     final cols = math.max(1.0, layout.columns);
     final fit = (availableWidth - 2 * hPad) / cols;
     cellWidth = math.max(64.0, math.min(144.0, fit) * zoom);
     diameter = (cellWidth * 0.6).clamp(40.0, 76.0);
-    rowHeight = diameter + 64;
+    rowHeight = labelTop + text.labelBlock + rowGap;
     gridWidth = cols * cellWidth;
     width = math.max(availableWidth, gridWidth + 2 * hPad);
     originX = (width - gridWidth) / 2;
@@ -51,22 +64,41 @@ class MapGeometry {
     final order = direction == MapDirection.topDown ? layout.bands : layout.bands.reversed;
     for (final b in order) {
       tops[b.index] = y;
-      y += bandHeader + b.rowCount * rowHeight + bandGap;
+      y += headerOf(b.index) + b.rowCount * rowHeight + bandGap;
     }
     bandTop.addAll(tops);
     height = y;
+    for (final n in layout.nodes) {
+      _rows.putIfAbsent((n.band, n.row), () => []).add(n.col);
+    }
   }
 
   static const hPad = 12.0;
+
+  /// The smallest band header (the unit title at text scale 1).
   static const bandHeader = 36.0;
   static const bandGap = 12.0;
+
+  /// Space between a node's chip and the next row's cell.
+  static const rowGap = 4.0;
+
+  /// Inset of the band's rounded box from the map's sides.
+  static const bandInset = 4.0;
 
   final MapLayout layout;
   final double zoom;
   final MapDirection direction;
+  final MapTextMetrics text;
+
+  /// Bands whose header has room for a two-line unit title (one squeezed
+  /// between the boughs passing through it, see [planMap]).
+  final Set<int> tallHeaders;
   late final double cellWidth;
   late final double diameter;
   late final double rowHeight;
+
+  /// Height of band [band]'s header (the unit title), at least [bandHeader].
+  double headerOf(int band) => text.headerHeight(tallHeaders.contains(band) ? 2 : 1);
   late final double gridWidth;
   late final double width;
   late final double height;
@@ -75,19 +107,44 @@ class MapGeometry {
   /// Top of each band, indexed by band index (not by position on screen).
   final List<double> bandTop = [];
 
+  /// The columns of the nodes in each (band, row).
+  final Map<(int, int), List<double>> _rows = {};
+
   /// The row's position inside its band, counted from the band's top.
   int visualRow(MapNode n) =>
       direction == MapDirection.topDown ? n.row : layout.bands[n.band].rowCount - 1 - n.row;
 
   /// Top-left of the node's cell.
   Offset cellOrigin(MapNode n) =>
-      Offset(originX + n.col * cellWidth, bandTop[n.band] + bandHeader + visualRow(n) * rowHeight);
+      Offset(originX + n.col * cellWidth, bandTop[n.band] + headerOf(n.band) + visualRow(n) * rowHeight);
 
   /// Center of the node's box (stone, ring and rays).
   Offset ringCenter(MapNode n) => cellOrigin(n) + Offset(cellWidth / 2, 8 + nodeBox / 2);
 
   /// The node widget's box (at least a 48 px target).
   double get nodeBox => math.max(diameter, 48);
+
+  /// Top of the title under a stone, from the cell's top.
+  double get labelTop => 8 + nodeBox + 4;
+
+  /// How wide the node's label (title and chip) may be: up to half way to
+  /// its neighbours in the row (less a gap), inside the band, at most 1.6
+  /// cells; so labels of one row never touch.
+  double labelWidth(MapNode n) {
+    final cx = ringCenter(n).dx;
+    var half = math.min(cx - bandInset - 2, width - bandInset - 2 - cx);
+    for (final c in _rows[(n.band, n.row)] ?? const <double>[]) {
+      final d = (c - n.col).abs() * cellWidth;
+      if (d > 0.01) half = math.min(half, d / 2 - 3);
+    }
+    return math.max(nodeBox, math.min(2 * half, cellWidth * 1.6));
+  }
+
+  /// The room reserved for the node's title and chip, in map coordinates.
+  Rect labelRect(MapNode n) {
+    final w = labelWidth(n);
+    return Rect.fromLTWH(ringCenter(n).dx - w / 2, cellOrigin(n).dy + labelTop, w, text.labelBlock);
+  }
 }
 
 /// The first skill in course order that is available or started: where Tosk
@@ -181,8 +238,8 @@ class _SkillMapViewState extends State<SkillMapView> with SingleTickerProviderSt
   /// The scroll position changed since the last tick (keeps the ticker going).
   bool _scrolled = false;
   List<SparkleSpot> _spots = const [];
-  Object? _boughKey;
-  List<MapBough> _boughs = const [];
+  Object? _planKey;
+  MapPlan? _plan;
   MapInk? _leafInk;
 
   bool get _animate => !widget.reduceMotion && !widget.style.monochrome;
@@ -192,6 +249,10 @@ class _SkillMapViewState extends State<SkillMapView> with SingleTickerProviderSt
   /// True while the shared motion ticker runs (for tests).
   @visibleForTesting
   bool get ticking => _ticker.isActive;
+
+  /// The current layout plan: geometry, boughs and unit title places (for tests).
+  @visibleForTesting
+  MapPlan? get plan => _plan;
 
   @override
   void initState() {
@@ -315,20 +376,48 @@ class _SkillMapViewState extends State<SkillMapView> with SingleTickerProviderSt
     if (!twinkling && !leavesMoving) _ticker.stop();
   }
 
-  /// The boughs for this layout and geometry, computed once and kept.
-  List<MapBough> _boughsFor(MapGeometry g, Set<String> locked) {
-    final key = (widget.layout, g.cellWidth, g.width, g.direction, widget.branchStyle, (locked.toList()..sort()).join(','));
-    if (key != _boughKey) {
-      _boughKey = key;
-      _boughs = MapEdgesPainter(
-        layout: widget.layout,
-        geometry: g,
-        style: widget.style,
-        branchStyle: widget.branchStyle,
-        lockedSkills: locked,
-      ).boughShapes();
+  /// The map's geometry, boughs and unit title places, computed once per
+  /// layout, width, text size and progress (locked skills) and kept.
+  MapPlan _planFor({
+    required double width,
+    required MapTextMetrics text,
+    required Set<String> locked,
+    required Map<int, String> titles,
+    required Set<int> storyBands,
+    required TextStyle? titleStyle,
+    required TextScaler scaler,
+  }) {
+    final w = widget;
+    final key = (
+      w.layout,
+      width,
+      w.zoom,
+      text,
+      w.branchStyle,
+      w.style,
+      (locked.toList()..sort()).join(','),
+      Object.hashAll([for (final e in titles.entries) (e.key, e.value)]),
+      Object.hashAll(storyBands.toList()..sort()),
+      titleStyle,
+      scaler,
+    );
+    if (key != _planKey || _plan == null) {
+      _planKey = key;
+      _plan = planMap(
+        layout: w.layout,
+        availableWidth: width,
+        zoom: w.zoom,
+        text: text,
+        style: w.style,
+        branchStyle: w.branchStyle,
+        locked: locked,
+        titles: titles,
+        storyBands: storyBands,
+        titleStyle: titleStyle,
+        scaler: scaler,
+      );
     }
-    return _boughs;
+    return _plan!;
   }
 
   @override
@@ -340,8 +429,25 @@ class _SkillMapViewState extends State<SkillMapView> with SingleTickerProviderSt
     final onUnitStories = w.onUnitStories, storyCounts = w.storyCounts;
     return LayoutBuilder(
       builder: (context, constraints) {
-        final g = MapGeometry(layout: layout, availableWidth: constraints.maxWidth, zoom: w.zoom);
         final unitTitles = {for (final u in course.units) u.id: pickLang(u.title, lang)};
+        final titleStyle = mapBandTitleStyle(theme)?.copyWith(color: style.bandTitleColor);
+        final locked = {
+          for (final e in stats.entries)
+            if (e.value.tier == MapTier.locked) e.key,
+        };
+        final plan = _planFor(
+          width: constraints.maxWidth,
+          text: MapTextMetrics.of(context),
+          locked: locked,
+          titles: {for (final b in layout.bands) b.index: unitTitles[b.unitId] ?? b.unitId},
+          storyBands: {
+            for (final b in layout.bands)
+              if ((storyCounts[b.unitId] ?? 0) > 0 && onUnitStories != null) b.index,
+          },
+          titleStyle: titleStyle,
+          scaler: MediaQuery.textScalerOf(context),
+        );
+        final g = plan.geometry;
         final current = w.showMarker
             ? currentSkillId([
                 for (final u in course.units)
@@ -351,14 +457,10 @@ class _SkillMapViewState extends State<SkillMapView> with SingleTickerProviderSt
             : null;
         final markerNode = current == null ? null : layout.node(current);
         final markerSize = (g.diameter * 0.95).clamp(40.0, 56.0);
-        final locked = {
-          for (final e in stats.entries)
-            if (e.value.tier == MapTier.locked) e.key,
-        };
 
         // Motion: the boughs' leaves and the metal nodes' twinkles.
         final twinkleOn = _twinkleOn, swayOn = _swayOn;
-        final boughs = _boughsFor(g, locked);
+        final boughs = plan.boughs;
         if (swayOn) {
           _motion.setLeaves([for (final b in boughs) ?b.shape.leaf]);
           if (_leafInk != style.ink) {
@@ -366,6 +468,7 @@ class _SkillMapViewState extends State<SkillMapView> with SingleTickerProviderSt
             _leafInk = style.ink;
           }
         }
+        final titleSlots = plan.titles;
         final stoneR = NodePainter.stoneRadius(g.nodeBox, branchStyle.extent);
         final spots = !twinkleOn
             ? const <SparkleSpot>[]
@@ -390,13 +493,14 @@ class _SkillMapViewState extends State<SkillMapView> with SingleTickerProviderSt
           width: g.width,
           height: g.height,
           child: Stack(
+            key: const ValueKey('map-content'),
             children: [
               for (final b in layout.bands)
                 Positioned(
                   left: 4,
                   right: 4,
                   top: g.bandTop[b.index],
-                  height: MapGeometry.bandHeader + b.rowCount * g.rowHeight,
+                  height: g.headerOf(b.index) + b.rowCount * g.rowHeight,
                   child: DecoratedBox(
                     key: w.unitKeys[b.unitId],
                     decoration: BoxDecoration(
@@ -434,37 +538,42 @@ class _SkillMapViewState extends State<SkillMapView> with SingleTickerProviderSt
                     ),
                   ),
                 ),
-              // Unit titles above the branches, on the band color, so a bough
-              // passing through a band header never runs through its text.
+              // Unit titles on a plaque above the branches (the band colour
+              // with a hairline edge), so a bough crossing the header passes
+              // behind the plaque and never through the text; no twig or leaf
+              // hangs over it (`planMap`).
               for (final b in layout.bands)
-                Positioned(
-                  left: 4,
-                  // Room for the stories button on the right.
-                  right: (storyCounts[b.unitId] ?? 0) > 0 && onUnitStories != null ? 4 + _storyButtonWidth : 4,
-                  top: g.bandTop[b.index],
-                  child: Align(
-                    alignment: Alignment.topLeft,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(8, 6, 8, 0),
+                if (titleSlots[b.index] case final slot?)
+                  Positioned(
+                    key: ValueKey('band-title-${b.unitId}'),
+                    left: slot.left,
+                    width: slot.width,
+                    top: g.bandTop[b.index] + kMapBandTitleTop,
+                    child: Tooltip(
+                      message: unitTitles[b.unitId] ?? b.unitId,
+                      excludeFromSemantics: true,
                       child: DecoratedBox(
                         decoration: BoxDecoration(
                           color: style.bandColor(b.index),
                           borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: style.monochrome ? kBwBlack : style.bandTitleColor.withValues(alpha: 0.3),
+                            width: style.monochrome ? 1.5 : 1,
+                          ),
                         ),
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                          padding: kMapBandTitlePadding,
                           child: Text(
                             unitTitles[b.unitId] ?? b.unitId,
-                            maxLines: 1,
+                            maxLines: slot.lines,
                             overflow: TextOverflow.ellipsis,
                             // A wordmark-style serif title for each bough.
-                            style: theme.textTheme.serifSection?.copyWith(color: style.bandTitleColor, fontSize: 15),
+                            style: titleStyle,
                           ),
                         ),
                       ),
                     ),
                   ),
-                ),
               // The unit's stories: a book and the count at the right end of
               // the band header: the header plus the gap above the nodes (44 px).
               if (onUnitStories != null)
@@ -474,7 +583,7 @@ class _SkillMapViewState extends State<SkillMapView> with SingleTickerProviderSt
                       right: 8,
                       top: g.bandTop[b.index],
                       width: _storyButtonWidth,
-                      height: _storyButtonHeight,
+                      height: g.headerOf(b.index) + 8,
                       child: _UnitStoriesButton(
                         key: ValueKey('unit-stories-${b.unitId}'),
                         count: storyCounts[b.unitId]!,
@@ -488,9 +597,9 @@ class _SkillMapViewState extends State<SkillMapView> with SingleTickerProviderSt
               for (final n in layout.nodes)
                 if (course.skill(n.skillId) case final skill?)
                   Positioned(
-                    left: g.cellOrigin(n).dx,
+                    left: g.ringCenter(n).dx - g.labelWidth(n) / 2,
                     top: g.cellOrigin(n).dy + 8,
-                    width: g.cellWidth,
+                    width: g.labelWidth(n),
                     height: g.rowHeight - 8,
                     child: Align(
                       alignment: Alignment.topCenter,
@@ -552,6 +661,93 @@ class _SkillMapViewState extends State<SkillMapView> with SingleTickerProviderSt
       },
     );
   }
+}
+
+/// Where a unit title goes in its band header: the plaque's left edge and
+/// width, and its lines (2 when it is too long for the header on one line).
+typedef MapTitleSlot = ({double left, double width, int lines});
+
+/// What the map lays out once per layout, width, text size and progress:
+/// the [geometry], the [boughs] and the unit [titles] (by band index).
+class MapPlan {
+  const MapPlan({required this.geometry, required this.boughs, required this.titles});
+  final MapGeometry geometry;
+  final List<MapBough> boughs;
+  final Map<int, MapTitleSlot> titles;
+
+  /// The plaque behind band [band]'s title, in map coordinates.
+  Rect titleRect(int band) {
+    final t = titles[band]!;
+    return Rect.fromLTWH(
+      t.left,
+      geometry.bandTop[band] + kMapBandTitleTop,
+      t.width,
+      geometry.text.headerText(t.lines) + kMapBandTitlePadding.vertical,
+    );
+  }
+}
+
+/// Lays out the map: the geometry, the boughs along the edges and each unit
+/// title's plaque ([titles] by band index) at the left of its band header;
+/// [storyBands] have a stories button at the header's right end. A title too
+/// long for the header on one line gets a header with room for two lines
+/// (ellipsized after that). The plaques sit above the boughs (a bough passes
+/// behind one, never through its text), and a twig and leaf that would hang
+/// over a plaque are left off their bough.
+MapPlan planMap({
+  required MapLayout layout,
+  required double availableWidth,
+  required double zoom,
+  required MapStyle style,
+  MapTextMetrics text = MapTextMetrics.fallback,
+  BranchStyle branchStyle = BranchStyle.defaults,
+  Set<String> locked = const {},
+  Map<int, String> titles = const {},
+  Set<int> storyBands = const {},
+  TextStyle? titleStyle,
+  TextScaler scaler = TextScaler.noScaling,
+  MapDirection direction = kMapDirection,
+}) {
+  final width = math.max(availableWidth, MapGeometry(layout: layout, availableWidth: availableWidth, zoom: zoom).width);
+  const minX = MapGeometry.bandInset + 8;
+  final want = <int, double>{}, room = <int, double>{};
+  final tall = <int>{};
+  for (final b in layout.bands) {
+    final tp = TextPainter(
+      text: TextSpan(text: titles[b.index] ?? b.unitId, style: titleStyle),
+      textDirection: TextDirection.ltr,
+      textScaler: scaler,
+      maxLines: 1,
+    )..layout();
+    want[b.index] = tp.width.ceilToDouble() + 1 + kMapBandTitlePadding.horizontal;
+    tp.dispose();
+    room[b.index] = width - MapGeometry.bandInset - (storyBands.contains(b.index) ? 4 + _storyButtonWidth : 8) - minX;
+    if (want[b.index]! > room[b.index]!) tall.add(b.index);
+  }
+  final g = MapGeometry(
+    layout: layout,
+    availableWidth: availableWidth,
+    zoom: zoom,
+    direction: direction,
+    text: text,
+    tallHeaders: tall,
+  );
+  final slots = <int, MapTitleSlot>{
+    for (final b in layout.bands)
+      b.index: (left: minX, width: math.min(want[b.index]!, room[b.index]!), lines: tall.contains(b.index) ? 2 : 1),
+  };
+  final raw = MapEdgesPainter(layout: layout, geometry: g, style: style, branchStyle: branchStyle, lockedSkills: locked)
+      .boughShapes();
+  final plan = MapPlan(geometry: g, boughs: raw, titles: slots);
+  final plaques = [for (final b in layout.bands) plan.titleRect(b.index).inflate(2)];
+  return MapPlan(
+    geometry: g,
+    boughs: [
+      for (final b in raw)
+        if (plaques.any((t) => leafTouches(b.shape, t))) MapBough(b.shape.withoutLeaf(), b.locked) else b,
+    ],
+    titles: slots,
+  );
 }
 
 /// Paints the prerequisite edges as storybook boughs: a tapered bark
@@ -717,6 +913,9 @@ class MapEdgesPainter extends CustomPainter {
       old.layout != layout ||
       old.geometry.cellWidth != geometry.cellWidth ||
       old.geometry.width != geometry.width ||
+      old.geometry.rowHeight != geometry.rowHeight ||
+      old.geometry.text != geometry.text ||
+      !setEquals(old.geometry.tallHeaders, geometry.tallHeaders) ||
       old.geometry.direction != geometry.direction ||
       old.style != style ||
       old.branchStyle != branchStyle ||
@@ -734,7 +933,6 @@ class MapBough {
 }
 
 const double _storyButtonWidth = 64;
-const double _storyButtonHeight = MapGeometry.bandHeader + 8;
 
 /// The book button of a unit band: an open book when the unit's stories are
 /// unlocked, an outline otherwise, plus the number of stories.

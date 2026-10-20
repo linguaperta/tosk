@@ -297,8 +297,8 @@ void main() {
           final b = layout.bands[n.band];
           final top = g.bandTop[b.index];
           final y = g.cellOrigin(n).dy;
-          expect(y, greaterThanOrEqualTo(top + MapGeometry.bandHeader - 0.01), reason: n.skillId);
-          expect(y, lessThan(top + MapGeometry.bandHeader + b.rowCount * g.rowHeight), reason: n.skillId);
+          expect(y, greaterThanOrEqualTo(top + g.headerOf(b.index) - 0.01), reason: n.skillId);
+          expect(y, lessThan(top + g.headerOf(b.index) + b.rowCount * g.rowHeight), reason: n.skillId);
         }
       }
       // A multi-row band flips its rows.

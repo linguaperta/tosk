@@ -43,7 +43,9 @@ void main() {
     final store = await makeMistake(tester);
     expect((await store.mistakes()).length, 1);
     // Right on the re-ask in the same session: still open.
-    expect(find.text('Review mistakes (1)'), findsOneWidget);
+    // A short label in the map's bar, the full wording in its semantics.
+    expect(find.text('Mistakes · 1'), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp(r'Review mistakes \(1\)')), findsOneWidget);
 
     await tapKey(tester, 'mistakes-button');
     expect(find.byType(PlayerScreen), findsOneWidget);

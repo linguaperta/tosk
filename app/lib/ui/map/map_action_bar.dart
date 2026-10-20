@@ -4,13 +4,16 @@ import '../theme/bw_skin.dart';
 
 /// The map's actions in a compact bar under the map (the Scaffold's bottom
 /// bar, so the map's viewport ends above it and no node is ever covered):
-/// "Review mistakes (N)" while mistakes are open, "What's fading" once
-/// something was practiced, and on long maps "Jump to current unit". They
-/// used to float over the map and hid skill nodes on phones.
+/// "Mistakes · N" while mistakes are open, "Fading" once something was
+/// practiced, and on long maps "Jump to current unit". They used to float
+/// over the map and hid skill nodes on phones.
 ///
-/// Buttons are at least 48 px tall; labels wrap to two lines on narrow
-/// phones rather than being cut. Black & white: white with a 2 px rule on
-/// top, a black "Review mistakes" button, outlined others.
+/// Buttons are at least 48 px tall. The labels are short so they fit on one
+/// line at 360 dp with text 1.3 (the mistakes button gets the larger
+/// share); on narrower screens a label scales down a little
+/// rather than being cut. The full wording ("Review mistakes (N)", "What's
+/// fading") is in the semantics label and the tooltip. Black & white: white
+/// with a 2 px rule on top, a black mistakes button, outlined others.
 class MapActionBar extends StatelessWidget {
   const MapActionBar({super.key, required this.mistakeCount, this.onMistakes, this.onFading, this.onJump});
 
@@ -30,7 +33,13 @@ class MapActionBar extends StatelessWidget {
 
   static const _minSize = Size(48, 48);
 
-  Widget _label(String text) => Text(text, maxLines: 2, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center);
+  /// Tighter than the default (16 / 24), so the labels fit on small phones.
+  static const _padding = EdgeInsets.symmetric(horizontal: 12);
+
+  Widget _label(String text, String semantics) => FittedBox(
+    fit: BoxFit.scaleDown,
+    child: Text(text, maxLines: 1, softWrap: false, semanticsLabel: semantics),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -42,31 +51,35 @@ class MapActionBar extends StatelessWidget {
     final children = <Widget>[
       if (mistakes != null)
         Expanded(
+          // The longer label gets more room.
+          flex: fading != null ? 3 : 1,
           child: Tooltip(
             message: 'Practice your open mistakes',
             child: FilledButton.tonalIcon(
               key: const ValueKey('mistakes-button'),
               style: FilledButton.styleFrom(
                 minimumSize: _minSize,
+                padding: _padding,
                 backgroundColor: bw ? null : scheme.tertiaryContainer,
                 foregroundColor: bw ? null : scheme.onTertiaryContainer,
               ),
               onPressed: mistakes,
               icon: const Icon(Icons.replay),
-              label: _label('Review mistakes ($mistakeCount)'),
+              label: _label('Mistakes · $mistakeCount', 'Review mistakes ($mistakeCount)'),
             ),
           ),
         ),
       if (fading != null)
         Expanded(
+          flex: mistakes != null ? 2 : 1,
           child: Tooltip(
             message: 'Practice what you are forgetting',
             child: OutlinedButton.icon(
               key: const ValueKey('fading-button'),
-              style: OutlinedButton.styleFrom(minimumSize: _minSize),
+              style: OutlinedButton.styleFrom(minimumSize: _minSize, padding: _padding),
               onPressed: fading,
               icon: const Icon(Icons.restore),
-              label: _label("What's fading"),
+              label: _label('Fading', "What's fading"),
             ),
           ),
         ),

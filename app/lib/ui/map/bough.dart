@@ -53,6 +53,20 @@ class BoughShape {
   /// The ash leaf at the twig's tip (null on short boughs or without leaves).
   final LeafSpot? leaf;
 
+  /// This bough without its twig and leaf (one that would hang over a unit title).
+  BoughShape withoutLeaf() => BoughShape._(
+    seed: seed,
+    silhouette: silhouette,
+    grain: grain,
+    shadow: shadow,
+    hatchAngle: hatchAngle,
+    creases: creases,
+    outlines: outlines,
+    twig: null,
+    twigBand: null,
+    leaf: null,
+  );
+
   /// The bough along [centre] (parent → child), [w0] px wide at the start
   /// and [w1] at the end; null when the path is too short to draw.
   static BoughShape? build(

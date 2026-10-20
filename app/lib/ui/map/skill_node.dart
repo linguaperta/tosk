@@ -8,6 +8,7 @@ import '../theme/bw_skin.dart';
 import '../theme/skin.dart';
 import 'branch_style.dart';
 import 'ink_art.dart';
+import 'map_labels.dart';
 import 'node_painter.dart';
 import 'skill_stats.dart';
 
@@ -153,17 +154,20 @@ class _SkillNodeState extends State<SkillNode> {
             ),
           ),
           const SizedBox(height: 4),
-          Flexible(
-            child: _LabelBox(
-              color: w.labelBackground,
-              child: Text(
-                w.title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: locked ? theme.colorScheme.outline : theme.colorScheme.onSurface,
-                ),
+          // The title (at most two lines) and the days chip under it: the
+          // map reserves their height under every stone (`MapTextMetrics`),
+          // so they never overlap each other or the next row.
+          _LabelBox(
+            color: w.labelBackground,
+            child: Text(
+              w.title,
+              key: ValueKey('skill-title-${w.skill.id}'),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              textWidthBasis: TextWidthBasis.longestLine,
+              style: mapNodeTitleStyle(theme)?.copyWith(
+                color: locked ? theme.colorScheme.outline : theme.colorScheme.onSurface,
               ),
             ),
           ),
@@ -172,8 +176,9 @@ class _SkillNodeState extends State<SkillNode> {
               color: w.labelBackground,
               child: Text(
                 daysAgoShort(days),
+                key: ValueKey('skill-days-${w.skill.id}'),
                 maxLines: 1,
-                style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                style: mapNodeChipStyle(theme)?.copyWith(color: theme.colorScheme.onSurfaceVariant),
               ),
             ),
         ],
@@ -191,8 +196,8 @@ class _LabelBox extends StatelessWidget {
   Widget build(BuildContext context) => color == null
       ? child
       : DecoratedBox(
-          decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(4)),
-          child: Padding(padding: const EdgeInsets.symmetric(horizontal: 3), child: child),
+          decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(5)),
+          child: Padding(padding: kMapLabelPadding, child: child),
         );
 }
 
