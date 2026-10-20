@@ -212,13 +212,17 @@ Each one at the expanded it/nl scale: 8â€“10 units, ~30 skills, ~1000 taught wor
 
 ## v0.8: pack toolkit (the pack format is the product; see docs/VISION.md)
 
-- [ ] Publish the pack format as a versioned spec (`docs/pack-format.md`) from schema/course_db.sql, the JSON schemas and the conventions
-- [ ] Pipeline as a reusable toolkit (`pack` CLI, pip-installable): `new`, generic importers, `validate` / `build` / `publish`
-- [ ] Move source-specific importers for copyrighted sources (Sarnami [source], [source]©, [source]) into a private module or repo before any repo goes public
+- [x] Publish the pack format as a versioned spec (`docs/pack-format.md` v1.0, with a worked example kept in sync with `pack new` by a test; 21 open issues listed in its section 19)
+- [x] `pack` CLI (pip-installable console script): `new`, `validate`, `build`, `info`, `publish` (requires `--dry-run`/`--yes`, refuses hns), `index` (self-hosted catalogs)
+- [ ] Generic importers as `pack import` (kaikki, Tatoeba, frequency lists)
+- [ ] Fix the two `dist/index.json` writers (`build` and `publish` write different formats to the same file; the app can't read the `build` one)
+- [ ] Add `license`, `authors`, `data_sources` to the it/nl/es `course.yaml` in tosk-data
+- [ ] Package the JSON schemas inside the Python package so a real wheel works (today only an editable install)
+- [ ] Move source-specific importers for copyrighted sources (Sarnami [source], [source]©, [source]) into a private module or repo before any repo goes public. The audit lists exactly what moves and which hooks to replace: `docs/private-importers.md`
 - [ ] Extension packs: `extends: <course> >= <version>`, reuse of base item IDs (shared progress), a base-pack check in the app
 - [ ] `pack from-text <book>`: lemmatise with the base course tables, per-chapter frequency, drop known words (from an exported progress log), chapter units, sentences from the text, AI glosses for missing/dialect words (labelled), reading readiness per chapter. First target: Montalbano (Camilleri, Sicilian vigatese)
 - [ ] `pack draft --ai`: AI drafts (glosses, sentences, tables, notes), always `src: claude-*`
-- [ ] App: custom catalog URLs (any index.json); the course preview shows license, sources and authors; reading readiness view for book packs
+- [ ] App: custom catalog URLs (any index.json, resolving relative URLs); the course preview shows license, sources and authors (now compiled into pack meta); reading readiness view for book packs
 - [ ] Claude Code skill: "make a pack for this book / language"
 
 ## Later (not v1)
