@@ -30,12 +30,11 @@ python -m pipeline gen check it drafts.jsonl                   # check Claude-wr
 python -m pipeline gen add it drafts.jsonl                     # ... and add the accepted ones
 python -m pipeline gen refresh it [--drop]                     # re-align generated sentences after an import
 python -m pipeline stories it [--show u3|all]                  # check the graded stories (+ print their alignment)
-python -m pipeline publish it nl [--tag packs-YYYYMMDD] [--dry-run]   # dist/index.json + GitHub Release (gh; never hns)
+python -m pipeline publish it nl [--tag packs-YYYYMMDD] [--dry-run]   # dist/index.json + GitHub Release (gh; never restricted courses)
 python -m pytest pipeline/tests                                # offline tests
 
-python -m pipeline fetch hns                 # Sarnami: scrape the [source] dictionary (1 req/s) + extra sources
-python -m pipeline import hns                # -> <main checkout>/local/content/hns (local only)
-python -m pipeline build hns --local [--desktop]   # -> local/dist/hns.sqlite (+ copy into the desktop app)
+python -m pipeline import --help             # lists the private course plugins found, if any
+python -m pipeline build hns [--desktop]     # a restricted course: local root only (+ copy into the desktop app)
 ```
 
 The **pack toolkit** (`pack`, console script of this package, `pipeline/cli.py`; the format is
@@ -50,9 +49,20 @@ pack index eo.sqlite --base-url https://example.org/packs   # index.json catalog
 pack publish it nl --dry-run                                # wraps `publish` below; --yes to really publish
 ```
 
-Sarnami (`hns`) content is copyrighted and lives only in the git-ignored `local/` folder of the main
-checkout; the pipeline refuses to write it anywhere else (`pipeline/hns/safeguard.py`) and refuses
-`--install`. Details, sources and verification: `docs/sarnami.md`.
+### Private course plugins and restricted courses
+
+Importers aimed at one copyrighted source are not in this repository. They plug in as **course
+plugins** (`pipeline/plugins.py`): set `TOSK_PRIVATE_PIPELINE` to a folder (or a repo with a
+`pipeline_private/` folder) holding packages with a `tosk_plugin.py`, or pip-install a package with a
+`tosk.pipeline_plugins` entry point. Each plugin registers `fetch` / `import` for its course codes,
+which `python -m pipeline fetch|import <code>` then runs. Without plugins, everything else works and
+`fetch`/`import` of a restricted code exits with an error. Details: `docs/private-importers.md`.
+
+**Restricted courses** (`pipeline/restricted.py`: `hns`, plus `$TOSK_RESTRICTED_COURSES` and any
+course a plugin marks restricted) are built from all-rights-reserved sources. Their content may only
+be written below a local root (`$TOSK_LOCAL`, else the plugin's own `local_root`, else the ignored
+`local/` folder of the main checkout); the pipeline refuses the content repo, `app/` and every other
+place, and refuses `build --install`, `publish` and `mirror` for them.
 
 * **Content root** (the folder with `it/`, `nl/`): `--content-root`, else `$TOSK_CONTENT`, else
   `../tosk-data/content` next to the repo root, else `C:/Users/timo/Repositories/tosk-data/content`
@@ -66,7 +76,7 @@ checkout; the pipeline refuses to write it anywhere else (`pipeline/hns/safeguar
   sources, unverified, schema_version, min_app_version, sha256, size, url) and runs
   `gh release create <tag> dist/<id>.sqlite... dist/index.json --repo linguaperta/tosk-data --latest`.
   The app reads `https://github.com/linguaperta/tosk-data/releases/latest/download/index.json`.
-  `--dry-run` writes the index and prints the commands. Restricted courses (`hns`) are refused.
+  `--dry-run` writes the index and prints the commands. Restricted courses are refused.
   Steps and `gh auth login`: docs/release.md, "Publishing course packs".
 
 ## Sources (fetch)
@@ -454,21 +464,9 @@ carries the skill), and the Dutch `comparison` table is imported but no skill tr
 separable verbs are aligned (*sta … op*), but the separable skill still trains only `#rec`/`#prod`.
 Italian reflexive (pronominal) verbs are still excluded from the pool.
 
-**Sarnami 0.2.0 (local only, unverified)** — 35 skills, 394 taught items, 990 facets, 3004 sentences
-(1772 [source] examples, 1214 generated `claude-gen`, 18 [source]); 6284 items, 742 verb tables.
-Grammar first: `base_features` is empty, every tense and construct has its own skill.
-
-| Unit | Skills (items) | Introduces |
-|---|---|---|
-| u1 Eerste stappen | basics (22), pronouns (9), copula* (1), people (15) | `tense:present` |
-| u2 Familie | family (16), present* (20), negation (6), numbers (18) | `negation` |
-| u3 Vragen en bezit | questions (8), possessives (9), body (20), present-more* (20) | `question`, `possessive` |
-| u4 Eten en drinken | food (26), present-progressive* (15), adjectives (26) | `tense:present_progressive` |
-| u5 Thuis | home (24), clothes (16), past-tr* (20), past-intr* (15) | `tense:past` |
-| u6 Buiten | nature (22), animals (18), perfect* (20), places (17) | `tense:perfect` |
-| u7 Tijd | time (28), past-progressive* (12), future* (20), shopping (15) | `tense:past_progressive`, `tense:future` |
-| u8 Werk en gevoel | work (16), modal* (2), feelings (17), actions (30) | `modal` |
-| u9 Beleefd en wensen | polite (7), subjunctive* (15), travel (15), celebrations (15) | `polite`, `tense:subjunctive` |
+**Sarnami (`hns`, local only, unverified)**: 9 units, 35 skills, built grammar first by a private
+course plugin (see "Private course plugins" above); its structure and sources are documented in
+the private repository.
 
 ## Generated sentences (`pipeline/generate.py`, `pipeline/gaps.py`)
 

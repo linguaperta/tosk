@@ -111,7 +111,7 @@ void main() {
   });
 
   test('pack files copied into courses/ by hand are listed, refreshed and forgotten', () async {
-    // E.g. the locally built Sarnami pack, which must never be bundled (docs/sarnami.md).
+    // E.g. the locally built Sarnami pack, which must never be bundled (docs/private-importers.md).
     final dir = Directory('${tmp.path}/courses')..createSync(recursive: true);
     Map<String, String> hnsMeta(String version) => {
           'course_id': 'hns',

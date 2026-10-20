@@ -11,7 +11,7 @@ from pipeline import publish as pub
 from pipeline.__main__ import main
 from pipeline.compile import compile_pack
 from pipeline.content import load_pack
-from pipeline.hns.safeguard import RestrictedContentError
+from pipeline.restricted import RestrictedContentError
 
 
 def _fake_pack(path, cid, version="1.2.0", **extra):

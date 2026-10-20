@@ -127,7 +127,7 @@ def cmd_build(a) -> int:
     if not _schema_check():
         return 2
     from .compile import compile_pack
-    from .hns.safeguard import check_destination
+    from .restricted import check_destination
     try:
         pack = _load(a.dir)
     except (FileNotFoundError, ValueError) as e:
@@ -356,7 +356,7 @@ def parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     a = parser().parse_args(argv)
-    from .hns.safeguard import RestrictedContentError
+    from .restricted import RestrictedContentError
     try:
         return a.fn(a)
     except RestrictedContentError as e:

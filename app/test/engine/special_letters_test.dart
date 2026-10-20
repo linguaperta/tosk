@@ -43,11 +43,11 @@ void main() {
     });
   }
 
-  const hns = 'C:/Users/timo/Repositories/tosk/local/dist/hns.sqlite';
   test('local Sarnami pack', () {
-    final path = Platform.environment['TOSK_HNS_PACK'] ?? hns;
-    if (!File(path).existsSync()) {
-      markTestSkipped('no local hns pack');
+    final env = Platform.environment;
+    final path = env['TOSK_HNS_PACK'] ?? env['TOSK_HNS_PACK'] ?? '';
+    if (path.isEmpty || !File(path).existsSync()) {
+      markTestSkipped('no local hns pack (set TOSK_HNS_PACK to its path)');
       return;
     }
     final letters = specialLetters(loadCourseFile(path));

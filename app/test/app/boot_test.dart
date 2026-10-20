@@ -65,7 +65,7 @@ void main() {
   });
 
   test('a Dutch-only pack copied into courses/ is listed; an English setting falls back to Dutch', () async {
-    // How the locally built Sarnami pack is loaded on desktop (docs/sarnami.md).
+    // How the locally built Sarnami pack is loaded on desktop (docs/private-importers.md).
     final dir = tempDir('tosk_boot_dropped');
     Directory('${dir.path}/courses').createSync();
     writeFixtureCourseFile('${dir.path}/courses/hns.sqlite', overrideMeta: {

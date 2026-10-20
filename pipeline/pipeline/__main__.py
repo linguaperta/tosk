@@ -9,12 +9,16 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="python -m pipeline", description="tosk content pipeline")
     sub = ap.add_subparsers(dest="cmd", required=True)
 
-    p = sub.add_parser("fetch", help="download open-data sources into the cache (hns: scrape the [source] dictionary)")
+    from .plugins import describe
+    plugins_note = describe()
+
+    p = sub.add_parser("fetch", help="download open-data sources into the cache (and plugin courses' sources)",
+                       epilog=plugins_note)
     p.add_argument("langs", nargs="*", default=["it", "nl"])
     p.add_argument("--force", action="store_true", help="re-download even if cached")
     p.add_argument("--skip-english", action="store_true", help="skip the 3 GB English dump (it->nl pivot)")
 
-    p = sub.add_parser("import", help="cached dumps -> JSONL in content/")
+    p = sub.add_parser("import", help="cached dumps -> JSONL in content/", epilog=plugins_note)
     p.add_argument("langs", nargs="+")
     p.add_argument("--content-root")
 
@@ -22,8 +26,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("langs", nargs="+")
     p.add_argument("--content-root")
     p.add_argument("--local", action="store_true",
-                   help="use the git-ignored local/content and local/dist (always the case for hns)")
-    p.add_argument("--install", action="store_true", help="copy packs to app/assets/courses/ (refused for hns)")
+                   help="use the local (unpublished) content and dist folders (always the case for restricted courses)")
+    p.add_argument("--install", action="store_true", help="copy packs to app/assets/courses/ (refused for restricted courses)")
     p.add_argument("--desktop", action="store_true",
                    help="also copy the packs into this computer's app data courses/ folder (for local-only packs)")
     p.add_argument("--quiet", action="store_true", help="short report")
@@ -31,7 +35,7 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("validate", help="validate content only")
     p.add_argument("langs", nargs="+")
     p.add_argument("--content-root")
-    p.add_argument("--local", action="store_true", help="use local/content (always the case for hns)")
+    p.add_argument("--local", action="store_true", help="use the local content folder (always the case for restricted courses)")
 
     p = sub.add_parser("gen", help="generated example sentences (it/nl): gaps, context, check, add, refresh")
     p.add_argument("action", choices=["gaps", "context", "check", "add", "refresh"])
@@ -48,7 +52,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--content-root")
     p.add_argument("--show", help="print the alignment of the stories of this unit ('all' for every unit)")
 
-    p = sub.add_parser("publish", help="dist/index.json + a GitHub Release of the built packs (never hns)")
+    p = sub.add_parser("publish", help="dist/index.json + a GitHub Release of the built packs (never restricted courses)")
     p.add_argument("langs", nargs="+")
     p.add_argument("--tag", help="release tag (default packs-YYYYMMDD, UTC)")
     p.add_argument("--dry-run", action="store_true", help="write dist/index.json and print the gh commands only")
@@ -71,7 +75,7 @@ def main(argv: list[str] | None = None) -> int:
     q.add_argument("--json", action="store_true", help="also print each raw exercise snapshot")
 
     a = ap.parse_args(argv)
-    from .hns.safeguard import RestrictedContentError
+    from .restricted import RestrictedContentError
     try:
         return _run(a)
     except RestrictedContentError as e:
@@ -80,24 +84,29 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def _run(a) -> int:
-    if a.cmd == "fetch":
-        if "hns" in a.langs:
-            from .hns.sil import fetch_all
-            from .hns.sources import fetch_sources
-            fetch_all(force=a.force)
-            fetch_sources(force=a.force)
-        rest = [x for x in a.langs if x != "hns"]
-        if rest:
-            from .fetch import fetch
-            fetch(rest, force=a.force, skip_english=a.skip_english)
-        return 0
-    if a.cmd == "import":
+    if a.cmd in ("fetch", "import"):
+        from .plugins import ENV_VAR, course_plugin
+        from .restricted import is_restricted
+        public = []
         for lang in a.langs:
-            if lang == "hns":
-                from .hns.importer import run_import as run_import_hns
-                run_import_hns(a.content_root)
+            plugin = course_plugin(lang)
+            step = None if plugin is None else (plugin.fetch if a.cmd == "fetch" else plugin.import_)
+            if step is not None and a.cmd == "fetch":
+                step(force=a.force)
+            elif step is not None:
+                step(a.content_root)
+            elif plugin is not None or is_restricted(lang):
+                print(f"error: '{a.cmd} {lang}' needs its private course plugin (set ${ENV_VAR}, "
+                      "see docs/private-importers.md)", file=sys.stderr)
+                return 2
             else:
-                from .importer import run_import
+                public.append(lang)
+        if public and a.cmd == "fetch":
+            from .fetch import fetch
+            fetch(public, force=a.force, skip_english=a.skip_english)
+        elif public:
+            from .importer import run_import
+            for lang in public:
                 run_import(lang, a.content_root)
         return 0
     if a.cmd == "build":

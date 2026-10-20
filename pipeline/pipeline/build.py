@@ -26,14 +26,17 @@ def sha256(path: Path) -> str:
 
 
 def _roots(langs, content_root, local: bool) -> dict[str, Path]:
-    """Content root per course. Restricted courses (hns) always use the local root, unless an
+    """Content root per course. Restricted courses always use the local root, unless an
     explicit --content-root is given (which the safeguard then checks)."""
-    from .hns.safeguard import RESTRICTED_COURSES, check_destination, local_content_root
+    from .restricted import check_destination, local_content_root, restricted_courses
+    restricted = restricted_courses()
     out = {}
     for code in langs:
         if content_root:
             root = content_dir(content_root)
-        elif local or code in RESTRICTED_COURSES:
+        elif code in restricted:
+            root = local_content_root(code)
+        elif local:
             root = local_content_root()
         else:
             root = content_dir(None)
@@ -87,11 +90,12 @@ def write_index(dist: Path, entries: dict[str, dict]) -> Path:
 
 def build(langs, content_root=None, install: bool = False, quiet: bool = False, local: bool = False,
           desktop: bool = False) -> int:
-    from .hns.safeguard import RESTRICTED_COURSES, RestrictedContentError, check_destination
-    if install and RESTRICTED_COURSES & set(langs):
+    from .restricted import RestrictedContentError, check_destination, restricted_courses
+    bad = sorted(restricted_courses() & set(langs))
+    if install and bad:
         raise RestrictedContentError(
-            f"refusing --install for {sorted(RESTRICTED_COURSES & set(langs))}: restricted content must not be "
-            "bundled into app/assets (load it from a file instead, see docs/sarnami.md)")
+            f"refusing --install for {bad}: restricted content must not be bundled into app/assets "
+            "(load it from a file instead: build --desktop, or 'Add course from file' in the app)")
     roots = _roots(langs, content_root, local)
     packs, ok = _validate(langs, roots)
     if not ok:
@@ -122,7 +126,7 @@ def build(langs, content_root=None, install: bool = False, quiet: bool = False, 
             shutil.copyfile(out, APP_COURSES_DIR / f"{code}.sqlite")
             print(f"[{code}] installed -> {APP_COURSES_DIR / f'{code}.sqlite'}", file=sys.stderr)
         if desktop:
-            from .hns.install import install_desktop
+            from .install import install_desktop
             print(f"[{code}] copied to the desktop app: {install_desktop(out)}", file=sys.stderr)
     for dist, entries in entries_by_dist.items():
         idx = write_index(dist, entries)

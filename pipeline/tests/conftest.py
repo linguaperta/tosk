@@ -10,6 +10,18 @@ import pytest
 FIXTURES = Path(__file__).parent / "fixtures"
 
 
+@pytest.fixture(autouse=True)
+def _no_private_plugins(monkeypatch):
+    """The public tests run as if no private course plugin were installed."""
+    from pipeline import plugins
+    for var in (plugins.ENV_VAR, "TOSK_LOCAL", "TOSK_RESTRICTED_COURSES"):
+        monkeypatch.delenv(var, raising=False)
+    monkeypatch.setattr(plugins, "entry_points_enabled", False)
+    plugins.reset()
+    yield
+    plugins.reset()
+
+
 @pytest.fixture
 def mini_pack_dir(tmp_path) -> Path:
     """A writable copy of the tiny hand-written Italian course."""

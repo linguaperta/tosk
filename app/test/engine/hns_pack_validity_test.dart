@@ -1,9 +1,9 @@
 // Runs the template validity suite on the locally built Sarnami pack.
 //
-// The Sarnami (hns) content comes from the [source] Suriname dictionary (all rights reserved), so the
-// pack is never committed or bundled: it is built with `python -m pipeline build hns --local` into
-// the git-ignored `local/dist/hns.sqlite` of the main checkout (see docs/sarnami.md). Without that
-// file (CI, public clones) the tests are skipped. Override the location with $TOSK_HNS_PACK.
+// The Sarnami (hns) pack is built from all-rights-reserved sources, so it is never committed or
+// bundled: it is built locally by a private pipeline plugin (docs/private-importers.md). Point
+// $TOSK_HNS_PACK (or the older $TOSK_HNS_PACK) at the built `hns.sqlite` to run these tests;
+// without it (CI, public clones) they are skipped.
 @TestOn('vm')
 library;
 
@@ -15,8 +15,6 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'template_validity.dart';
 
-const _defaultPath = 'C:/Users/timo/Repositories/tosk/local/dist/hns.sqlite';
-
 /// The templates every Sarnami pack must use somewhere. Transform needs person changes in
 /// pro-drop sentences or same-length tense swaps; Sarnami examples rarely allow that, so it is
 /// reported but not required.
@@ -26,7 +24,8 @@ const _requiredTemplates = [
 ];
 
 void main() {
-  final path = Platform.environment['TOSK_HNS_PACK'] ?? _defaultPath;
+  final env = Platform.environment;
+  final path = env['TOSK_HNS_PACK'] ?? env['TOSK_HNS_PACK'] ?? '';
   group('local Sarnami pack', () {
     late CourseData course;
     late ValidityReport report;
@@ -65,5 +64,7 @@ void main() {
       final r = runTemplateValidity(course, perPair: 3, langs: ['en']);
       expect(r.failures.take(5).join('\n\n'), isEmpty, reason: '${r.failures.length} failures');
     });
-  }, skip: File(path).existsSync() ? false : 'Sarnami pack $path not built (local only)');
+  }, skip: path.isNotEmpty && File(path).existsSync()
+      ? false
+      : 'no local Sarnami pack (set TOSK_HNS_PACK to its path)');
 }

@@ -10,7 +10,7 @@ import pytest
 
 from pipeline import publish as pub
 from pipeline import webpacks
-from pipeline.hns.safeguard import RestrictedContentError
+from pipeline.restricted import RestrictedContentError
 
 
 
