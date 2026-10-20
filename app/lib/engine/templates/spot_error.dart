@@ -7,6 +7,7 @@ import '../gen_context.dart';
 import '../grading/rating.dart';
 import '../strings.dart';
 import '../template.dart';
+import '../text/normalize.dart';
 import 'alterations.dart';
 import 'inflection.dart';
 
@@ -58,7 +59,21 @@ class SpotErrorTemplate extends ExerciseTemplate {
         // Only other persons of the same tense: a swap to another tense
         // (`De leerlingen mogen` -> `mochten`) usually leaves a grammatical
         // sentence that is wrong only against the translation.
-        final pool = [for (final s in formSwaps(ix, o)) if (s.replacement.tense == o.tense) s];
+        // ... and not a person the translation may mean as well (English
+        // "you": tú, usted, vosotros, ustedes) when the sentence names none.
+        // Every person spelled like the new form counts (`hacía`: yo and
+        // usted).
+        final tr = o.sentence.translation(ctx.lang);
+        final forms = ctx.course.verbForms(o.verbId).values.where((f) => f.tense == o.tense).toList();
+        bool youToo(FormSwap s) {
+          final key = foldAnswer(s.replacement.form);
+          return forms.any((f) => foldAnswer(f.form) == key && ix.sharesTranslation(o, f.person, tr, ctx.lang));
+        }
+
+        final pool = [
+          for (final s in formSwaps(ix, o))
+            if (s.replacement.tense == o.tense && !youToo(s)) s,
+        ];
         if (pool.isEmpty) continue;
         final sw = shuffle ? ctx.pick(pool) : pool.first;
         out.add(_Plan(

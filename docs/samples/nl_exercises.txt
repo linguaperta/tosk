@@ -1080,49 +1080,49 @@ SKILL present-regular (grammar)  The present tense
 
 --- transform: 8 example(s)
 [transform] nl:denken#form:tegenwoordige_tijd  (skill present-regular)
-  Rewrite the sentence
+  Change the tense
   Tom heeft vaak aan Mary gedacht.   → present
   tiles: Mary · aan · vaak · heeft · denk · gedacht · Tom · denkt
   => Tom denkt vaak aan Mary
 
 [transform] nl:maken#form:tegenwoordige_tijd  (skill present-regular)
-  Rewrite the sentence
+  Change the tense
   Je hebt het ernaar gemaakt.   → present
   tiles: hebt · gemaakt · het · ernaar · maakt · je · maak
   => je maakt het ernaar
 
 [transform] nl:vinden#form:tegenwoordige_tijd  (skill present-regular)
-  Rewrite the sentence
+  Change the tense
   Waar hebben ze het gevonden?   → present
   tiles: hebben · waar · vinden · ze · gevonden · het · vind
   => waar vinden ze het
 
 [transform] nl:laten#form:tegenwoordige_tijd  (skill present-regular)
-  Rewrite the sentence
+  Change the tense
   Jij hebt haar alleen gelaten.   → present
   tiles: gelaten · laat · jij · laten · haar · alleen · hebt
   => jij laat haar alleen
 
 [transform] nl:vertellen#form:tegenwoordige_tijd  (skill present-regular)
-  Rewrite the sentence
+  Change the tense
   Ik heb hen erover verteld.   → present
   tiles: vertel · vertellen · heb · erover · ik · hen · verteld
   => ik vertel hen erover
 
 [transform] nl:nemen#form:tegenwoordige_tijd  (skill present-regular)
-  Rewrite the sentence
+  Change the tense
   Ik heb de A58 genomen.   → present
   tiles: A58 · heb · ik · neemt · genomen · de · neem
   => ik neem de A58
 
 [transform] nl:blijven#form:tegenwoordige_tijd  (skill present-regular)
-  Rewrite the sentence
+  Change the tense
   Tom is bij me gebleven.   → present
   tiles: blijf · bij · me · is · gebleven · blijft · Tom
   => Tom blijft bij me
 
 [transform] nl:leven#form:tegenwoordige_tijd  (skill present-regular)
-  Rewrite the sentence
+  Change the tense
   Jullie hebben voor elkaar geleefd.   → present
   tiles: leven · leeft · jullie · voor · hebben · elkaar · geleefd
   => jullie leven voor elkaar
@@ -1881,49 +1881,49 @@ SKILL present-irregular (grammar)  Key verbs: zijn, hebben and modals
 
 --- transform: 8 example(s)
 [transform] nl:zijn#form:tegenwoordige_tijd  (skill present-irregular)
-  Rewrite the sentence
+  Change the tense
   Hij is nooit naar Amerika geweest.   → present
   tiles: bent · ben · nooit · geweest · naar · is · hij · Amerika
   => hij is nooit naar Amerika
 
 [transform] nl:hebben#form:tegenwoordige_tijd  (skill present-irregular)
-  Rewrite the sentence
+  Change the tense
   We hebben het er nog niet over gehad.   → present
   tiles: niet · over · er · heeft · gehad · we · het · hebt · nog · hebben
   => we hebben het er nog niet over
 
 [transform] nl:gaan#form:tegenwoordige_tijd  (skill present-irregular)
-  Rewrite the sentence
+  Change the tense
   We zijn uit elkaar gegaan.   → present
   tiles: gaan · elkaar · gegaan · gaat · we · zijn · uit
   => we gaan uit elkaar
 
 [transform] nl:doen#form:tegenwoordige_tijd  (skill present-irregular)
-  Rewrite the sentence
+  Change the tense
   Ik heb dit voor jou gedaan.   → present
   tiles: heb · doen · doe · gedaan · dit · jou · ik · voor
   => ik doe dit voor jou
 
 [transform] nl:komen#form:tegenwoordige_tijd  (skill present-irregular)
-  Rewrite the sentence
+  Change the tense
   Is ze met hem gekomen?   → present
   tiles: komt · kom · gekomen · is · hem · met · ze
   => komt ze met hem
 
 [transform] nl:zien#form:tegenwoordige_tijd  (skill present-irregular)
-  Rewrite the sentence
+  Change the tense
   Hebben jullie hen vandaag gezien?   → present
   tiles: jullie · zien · gezien · vandaag · hebben · zie · hen
   => zien jullie hen vandaag
 
 [transform] nl:zeggen#form:tegenwoordige_tijd  (skill present-irregular)
-  Rewrite the sentence
+  Change the tense
   Wat hebben ze gezegd?   → present
   tiles: zeg · ze · gezegd · hebben · wat · zeggen
   => wat zeggen ze
 
 [transform] nl:worden#form:tegenwoordige_tijd  (skill present-irregular)
-  Rewrite the sentence
+  Change the tense
   Ik ben twintig geworden.   → present
   tiles: word · ik · geworden · twintig · wordt · ben
   => ik word twintig
@@ -4655,13 +4655,13 @@ SKILL perfectum-hebben (grammar)  Perfect tense with hebben
 
 --- transform: 2 example(s)
 [transform] nl:zeggen#form:perfectum  (skill perfectum-hebben)
-  Rewrite the sentence
+  Change the tense
   Wat als ik nee zeg?   → present perfect
   tiles: gezegd · ik · hebt · nee · heb · wat · hebben · zeg · als
   => wat als ik nee heb gezegd
 
 [transform] nl:zeggen#form:perfectum  (skill perfectum-hebben)
-  Rewrite the sentence
+  Change the tense
   Wat als ik nee zeg?   → present perfect
   tiles: heb · heeft · als · wat · ik · gezegd · nee · zeg · hebben
   => wat als ik nee heb gezegd
@@ -4858,31 +4858,31 @@ SKILL perfectum-zijn (grammar)  Perfect tense with zijn
 
 --- transform: 5 example(s)
 [transform] nl:zijn#form:perfectum  (skill perfectum-zijn)
-  Rewrite the sentence
+  Change the tense
   Sorry dat ik te laat ben.   → present perfect
   tiles: laat · te · dat · sorry · bent · ik · zijn · is · geweest · ben
   => sorry dat ik te laat ben geweest
 
 [transform] nl:komen#form:perfectum  (skill perfectum-zijn)
-  Rewrite the sentence
+  Change the tense
   Ja, ik kom.   → present perfect
   tiles: bent · ja · zijn · kom · gekomen · ik · ben
   => ja ik ben gekomen
 
 [transform] nl:weggaan#form:perfectum  (skill perfectum-zijn)
-  Rewrite the sentence
+  Change the tense
   We gaan weg.   → present perfect
   tiles: weg · is · weggegaan · we · gaan · zijn
   => we zijn weggegaan
 
 [transform] nl:zijn#form:perfectum  (skill perfectum-zijn)
-  Rewrite the sentence
+  Change the tense
   Sorry dat ik zo laat ben.   → present perfect
   tiles: bent · ben · sorry · dat · is · ik · laat · zo · zijn · geweest
   => sorry dat ik zo laat ben geweest
 
 [transform] nl:komen#form:perfectum  (skill perfectum-zijn)
-  Rewrite the sentence
+  Change the tense
   Ja, ik kom.   → present perfect
   tiles: ik · gekomen · bent · is · ja · kom · ben
   => ja ik ben gekomen
@@ -8727,50 +8727,50 @@ SKILL verleden-tijd-weak (grammar)  Simple past: weak verbs
 
 --- transform: 8 example(s)
 [transform] nl:maken#form:verleden_tijd  (skill verleden-tijd-weak)
-  Rewrite the sentence
+  Change the tense
   Soms maak ik eten.   → simple past
   tiles: maak · ik · soms · eten · maakten · maakte
   => soms maakte ik eten
 
 [transform] nl:willen#form:verleden_tijd  (skill verleden-tijd-weak)
-  Rewrite the sentence
+  Change the tense
   Ik wil vandaag uit eten gaan.   → simple past
   tiles: vandaag · wilden · wilde · uit · gaan · wil · eten · ik
   => ik wilde vandaag uit eten gaan
   => ik wou vandaag uit eten gaan
 
 [transform] nl:vertellen#form:verleden_tijd  (skill verleden-tijd-weak)
-  Rewrite the sentence
+  Change the tense
   Dat heeft ze me gisteren verteld.   → simple past
   tiles: heeft · dat · verteld · vertelde · gisteren · ze · me
   => dat vertelde ze me gisteren
 
 [transform] nl:leven#form:verleden_tijd  (skill verleden-tijd-weak)
-  Rewrite the sentence
+  Change the tense
   Ik leef om te eten.   → simple past
   tiles: ik · leefden · eten · om · te · leef · leefde
   => ik leefde om te eten
 
 [transform] nl:gebeuren#form:verleden_tijd  (skill verleden-tijd-weak)
-  Rewrite the sentence
+  Change the tense
   Wat gebeurt er dan?   → simple past
   tiles: gebeurde · dan · er · gebeurt · wat
   => wat gebeurde er dan
 
 [transform] nl:horen#form:verleden_tijd  (skill verleden-tijd-weak)
-  Rewrite the sentence
+  Change the tense
   Hebben jullie van haar gehoord?   → simple past
   tiles: jullie · hebben · haar · van · hoorde · hoorden · gehoord
   => hoorden jullie van haar
 
 [transform] nl:kennen#form:verleden_tijd  (skill verleden-tijd-weak)
-  Rewrite the sentence
+  Change the tense
   Kent hij me niet?   → simple past
   tiles: niet · kent · me · kende · hij
   => kende hij me niet
 
 [transform] nl:proberen#form:verleden_tijd  (skill verleden-tijd-weak)
-  Rewrite the sentence
+  Change the tense
   Ik probeer Frans te leren.   → simple past
   tiles: probeerde · probeer · leren · probeerden · Frans · ik · te
   => ik probeerde Frans te leren
@@ -8967,50 +8967,50 @@ SKILL verleden-tijd-strong (grammar)  Simple past: strong and irregular verbs
 
 --- transform: 8 example(s)
 [transform] nl:zijn#form:verleden_tijd  (skill verleden-tijd-strong)
-  Rewrite the sentence
+  Change the tense
   Ik ben aan het verhuizen.   → simple past
   tiles: het · ik · ben · was · verhuizen · aan · waren
   => ik was aan het verhuizen
 
 [transform] nl:hebben#form:verleden_tijd  (skill verleden-tijd-strong)
-  Rewrite the sentence
+  Change the tense
   De Library of Congress heeft een YouTube-kanaal.   → simple past
   tiles: Library · had · of · YouTube-kanaal · een · de · heeft · Congress
   => de Library of Congress had een YouTube-kanaal
 
 [transform] nl:gaan#form:verleden_tijd  (skill verleden-tijd-strong)
-  Rewrite the sentence
+  Change the tense
   Ik ben naar Nagasaki gegaan.   → simple past
   tiles: ik · ging · naar · gegaan · Nagasaki · gingen · ben
   => ik ging naar Nagasaki
 
 [transform] nl:moeten#form:verleden_tijd  (skill verleden-tijd-strong)
-  Rewrite the sentence
+  Change the tense
   Hij moet met haar meegaan.   → simple past
   tiles: moest · meegaan · met · haar · moet · hij
   => hij moest met haar meegaan
 
 [transform] nl:doen#form:verleden_tijd  (skill verleden-tijd-strong)
-  Rewrite the sentence
+  Change the tense
   Ik heb dat in 2013 gedaan.   → simple past
   tiles: dat · ik · in · gedaan · deden · 2013 · heb · deed
   => ik deed dat in 2013
 
 [transform] nl:zeggen#form:verleden_tijd  (skill verleden-tijd-strong)
-  Rewrite the sentence
+  Change the tense
   Wat hebben jullie gezegd?   → simple past
   tiles: jullie · zei · zeiden · wat · gezegd · hebben
   => wat zeiden jullie
   => wat zegden jullie
 
 [transform] nl:denken#form:verleden_tijd  (skill verleden-tijd-strong)
-  Rewrite the sentence
+  Change the tense
   Ik heb aan je gedacht.   → simple past
   tiles: heb · dacht · aan · ik · gedacht · dachten · je
   => ik dacht aan je
 
 [transform] nl:kunnen#form:verleden_tijd  (skill verleden-tijd-strong)
-  Rewrite the sentence
+  Change the tense
   Hoe kan ik ervoor betalen?   → simple past
   tiles: betalen · hoe · konden · ik · kon · ervoor · kan
   => hoe kon ik ervoor betalen
