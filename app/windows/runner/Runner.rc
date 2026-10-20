@@ -89,11 +89,11 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "io.github.timoverlaan" "\0"
+            VALUE "CompanyName", "linguaperta" "\0"
             VALUE "FileDescription", "tosk" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "tosk" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 io.github.timoverlaan. All rights reserved." "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 linguaperta. All rights reserved." "\0"
             VALUE "OriginalFilename", "tosk.exe" "\0"
             VALUE "ProductName", "tosk" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"

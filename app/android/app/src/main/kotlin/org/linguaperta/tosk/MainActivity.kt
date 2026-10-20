@@ -1,4 +1,4 @@
-package io.github.timoverlaan.tosk
+package org.linguaperta.tosk
 
 import android.content.ActivityNotFoundException
 import android.content.Context

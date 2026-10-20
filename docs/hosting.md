@@ -6,7 +6,7 @@ Decisions agreed with the owner on 20 October 2026, and the checklist for making
 
 | Topic | Decision |
 | --- | --- |
-| App id | Change `io.github.timoverlaan.tosk` → **`org.linguaperta.tosk`** before the first public release (the owner moves their own progress with backup export/import; the new id installs as a separate app). The Windows exe name and secure-storage key follow the rename. |
+| App id | **Done in 0.7.1:** `io.github.timoverlaan.tosk` → **`org.linguaperta.tosk`**, Windows `tosk.exe` → `tosk.exe` (data folder `%APPDATA%\linguaperta	osk`) (the owner moves their own progress with backup export/import; the new id installs as a separate app). The Windows exe name and secure-storage key follow the rename. |
 | Name | **tosk**. Checked 20 Oct: no conflicting app, startup or trademark (only a small Rust CLI to-do tool `tosk` and Toskr, Inc., a US telecom). Overlap: "Tosk" is also the Albanian dialect standard Albanian is based on, so searches for Tosk courses find Albanian apps; accepted. |
 | Code licence | **Apache-2.0** for the app and the pack toolkit. |
 | Content licence | Official packs: **CC BY-SA 4.0** (required by the Wiktionary and FrequencyWords data; Tatoeba's CC BY sentences may be included). Our own additions (generated sentences, notes, stories, structure) are released under the same licence. |

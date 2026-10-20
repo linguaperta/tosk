@@ -23,7 +23,7 @@ permissions:
 
 env:
   FLUTTER_VERSION: '3.47.7'
-  APP_ID: io.github.timoverlaan.tosk
+  APP_ID: org.linguaperta.tosk
 
 jobs:
   android:

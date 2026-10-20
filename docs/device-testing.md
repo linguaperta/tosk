@@ -88,7 +88,7 @@ All app audio (speech, correct/wrong/complete/level-up/bonus and the select tick
 - [ ] With the media volume at 0 (ringer up): the app is silent.
 - [ ] In the app, the volume keys show the **media** volume slider, even when nothing is playing.
 - [ ] Music from another app keeps playing (mixed, not paused) while the app ticks and speaks.
-- [ ] `adb shell dumpsys audio` while a 🔊 word plays: under "players" (`playback activity` / `PlaybackActivityMonitor`), the app's players (its uid: `adb shell dumpsys package io.github.timoverlaan.tosk | findstr userId`; the speech player belongs to the TTS engine's uid, e.g. Google's) show `usage=USAGE_MEDIA` with `content=CONTENT_TYPE_SPEECH` for speech and `CONTENT_TYPE_SONIFICATION` for the sounds; none shows `USAGE_ASSISTANCE_SONIFICATION`. Note the device and result: ____.
+- [ ] `adb shell dumpsys audio` while a 🔊 word plays: under "players" (`playback activity` / `PlaybackActivityMonitor`), the app's players (its uid: `adb shell dumpsys package org.linguaperta.tosk | findstr userId`; the speech player belongs to the TTS engine's uid, e.g. Google's) show `usage=USAGE_MEDIA` with `content=CONTENT_TYPE_SPEECH` for speech and `CONTENT_TYPE_SONIFICATION` for the sounds; none shows `USAGE_ASSISTANCE_SONIFICATION`. Note the device and result: ____.
 
 ## 5. Regressions to glance at
 

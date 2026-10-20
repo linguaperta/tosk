@@ -1,4 +1,4 @@
-package io.github.timoverlaan.tosk
+package org.linguaperta.tosk
 
 import android.app.Application
 import android.content.Context

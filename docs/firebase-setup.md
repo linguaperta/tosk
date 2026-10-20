@@ -40,7 +40,7 @@ Values you will collect (keep them in a note while you go):
 1. **Build → Authentication → Get started**.
 2. Tab **Sign-in method → Add new provider → Google**. Switch **Enable** on, pick your **Project support email**, click **Save**.
 3. Click the **Google** row again and expand **Web SDK configuration**: copy the **Web client ID**. That is `TOSK_GOOGLE_WEB_CLIENT_ID`.
-4. Tab **Settings → Authorized domains → Add domain**: add `<owner>.github.io` (e.g. `timoverlaan.github.io`). `localhost` is there already.
+4. Tab **Settings → Authorized domains → Add domain**: add `<owner>.github.io` (e.g. `linguaperta.github.io`). `localhost` is there already.
 5. Get the **Web API key**: click the gear icon (top left) → **Project settings → General**. Copy **Web API key**. That is `TOSK_FIREBASE_API_KEY`. (It identifies the project; it is not a secret. Access is controlled by the security rules.)
 
 ### Allow the web app's address (Google Cloud console)
@@ -71,7 +71,7 @@ Google's Credential Manager only hands an ID token to an app whose package name 
    & "C:\Users\timo\dev\jdk-17.0.20.1+1\bin\keytool.exe" -list -v -keystore "$env:USERPROFILE\.android\debug.keystore" -alias androiddebugkey -storepass android
    ```
 3. Firebase console → **Project settings → General → Your apps → Add app → Android**.
-4. Package name: **`io.github.timoverlaan.tosk`** (exactly). Nickname: `tosk Android`. Paste the upload key's **SHA-1** in *Debug signing certificate SHA-1* (the field accepts any certificate). Click **Register app**.
+4. Package name: **`org.linguaperta.tosk`** (exactly). Nickname: `tosk Android`. Paste the upload key's **SHA-1** in *Debug signing certificate SHA-1* (the field accepts any certificate). Click **Register app**.
 5. You may skip downloading `google-services.json` (the app doesn't use it; never commit it). Click **Next** through the remaining steps.
 6. Back on **Project settings → Your apps → tosk Android**, click **Add fingerprint** and add the debug key's SHA-1 too.
 
@@ -81,7 +81,7 @@ On an iPhone or iPad the recommended path is the **web app** (step 8): open it i
 
 Native sign-in in the unsigned IPA (AltStore/SideStore) is possible but fragile: those tools usually change the bundle id when they re-sign, and Google's iOS client is bound to the bundle id. If you still want it:
 
-1. Firebase console → **Add app → iOS**, bundle id `io.github.timoverlaan.tosk`, **Register app**, download `GoogleService-Info.plist` (don't commit it).
+1. Firebase console → **Add app → iOS**, bundle id `org.linguaperta.tosk`, **Register app**, download `GoogleService-Info.plist` (don't commit it).
 2. From the plist, copy `CLIENT_ID` (that is `TOSK_GOOGLE_IOS_CLIENT_ID`) and `REVERSED_CLIENT_ID`.
 3. Add the reversed client id as a URL scheme in `app/ios/Runner/Info.plist` (it is not a secret):
 

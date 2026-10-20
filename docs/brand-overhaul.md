@@ -6,7 +6,7 @@
 
 - **Names:** the app is **tosk** (after Ratatosk). The GitHub org is **linguaperta**, and the repos get renamed later.
   - The display name becomes "tosk" now.
-  - **Do not** change the Android/iOS package id (`io.github.timoverlaan.tosk`) or the Windows exe name `tosk.exe`. Changing them would orphan user data, and the Windows secure-storage key name is derived from the exe name.
+  - *(Superseded 20 Oct 2026: renamed to `org.linguaperta.tosk` / `tosk.exe`, see docs/hosting.md.)* **Do not** change the Android/iOS package id (`io.github.timoverlaan.tosk`) or the Windows exe name `tosk.exe`. Changing them would orphan user data, and the Windows secure-storage key name is derived from the exe name.
 - **Mascot:** Tosk, the red squirrel. The chosen art is the **storybook style, variant c** (upright, confident pose): `app/assets/brand/explore/storybook/tosk-c.svg` (+ `-mono`), with its generator `explore/storybook/make_storybook.py` and its palette.
 - **Wordmark:** "tosk" in **Gelasio Bold** as paths (OFL; font in `explore/storybook/fonts/`). Use the plain version; the leaf version is optional.
 - **Course paths are branches** of a tree (an ash; Yggdrasil in spirit). Keep it **light on Norse mythology**: no runes, dragon, eagle or well, because it clashes with learning other languages.
