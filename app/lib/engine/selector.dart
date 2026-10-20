@@ -29,6 +29,16 @@ const Map<ExerciseType, Map<FacetStage, double>> kStageAffinity = {
   ExerciseType.listenPick: {FacetStage.fresh: 0.5, FacetStage.learning: 2, FacetStage.stable: 2},
 };
 
+/// The exercise types that only ask to recognise: the only ones a
+/// recognition-only facet gets (multiple choice serves `#form` facets only
+/// for those, with its recognition variants).
+const Set<ExerciseType> kRecognitionTypes = {
+  ExerciseType.flashcard,
+  ExerciseType.multipleChoice,
+  ExerciseType.matchPairs,
+  ExerciseType.listenPick,
+};
+
 class ExerciseSelector {
   ExerciseSelector({
     List<ExerciseTemplate>? templates,
@@ -58,9 +68,13 @@ class ExerciseSelector {
     final restrict = ignoreSkillRestriction || skill == null || skill.exercises.isEmpty
         ? null
         : {for (final id in skill.exercises) ?ExerciseType.tryParse(id)};
+    // Recognition-only facets (`meta.recognition_skills`) never get a production
+    // exercise, in any mode (the lab's free choice of types included).
+    final recognition = ctx.index.recognitionOnly(facet);
     return [
       for (final t in templates.values)
         if (t.supports(facet) &&
+            (!recognition || kRecognitionTypes.contains(t.type)) &&
             (restrict == null || restrict.contains(t.type)) &&
             (only == null || only.contains(t.type)))
           t.type,

@@ -34,6 +34,15 @@ the features it introduces:
                        a finite verb of that person: ``Quiero levantarme``)
   ``nonfinite``        ``{form: gerund, pattern: regex}``  a verb token in that form (``comiendo``),
                        or a word matching the pattern (with attached clitics: ``haciéndolo``)
+  ``pattern``          ``{pattern: regex}``  the regex is found in the sentence text (lower case,
+                       apostrophes normalized): ``più \\w+ (di|che)``, ``\\w+issim[oaie]``
+  ``enclitic``         ``{tense: T}``  a verb token aligned to a form of tense T (any tense when
+                       absent) whose text is no spelling of that cell: the form carries attached
+                       pronouns (``dimmi``, ``fallo``; ``alzati`` is a table form and does not count)
+
+  ``words`` entries with spaces match consecutive words (``me lo``); ``reflexive`` with
+  ``unbound: true`` only counts pronouns that are no part of the verb's own form (a pronominal verb
+  aligns its pronoun to itself: ``mi alzo``), e.g. impersonal ``si dice``.
 
 Skills introduce ``introduces: [...]`` from course.yaml, plus ``tense:{T}`` for a grammar skill
 with ``verbs: {tense: T}``. ``base_features`` (course.yaml) are allowed from the start.
@@ -55,7 +64,7 @@ from . import query
 from .lang import get_lang
 
 DETECTOR_TYPES = {"compound_aux", "modal_infinitive", "words", "irregular_tense", "separable", "reflexive",
-                  "nonfinite"}
+                  "nonfinite", "pattern", "enclitic"}
 _APOS = str.maketrans({"’": "'", "‘": "'"})
 _CLAUSE_PUNCT = {",", ".", "?", "!", ";", ":", "...", "…", "—", "–", "(", ")", '"', "«", "»", "“", "”", "¿", "¡"}
 
@@ -105,7 +114,10 @@ class FeatureTagger:
             if kind not in DETECTOR_TYPES:
                 raise ValueError(f"{self.code}: feature detector {name!r} has unknown type {kind!r}")
             if kind == "words":
-                spec["_words"] = {_norm(w) for w in spec.get("words") or []}
+                spec["_words"] = {_norm(w) for w in spec.get("words") or [] if " " not in w.strip()}
+                spec["_seqs"] = [tuple(_norm(w).split()) for w in spec.get("words") or [] if " " in w.strip()]
+            if kind == "pattern":
+                spec["_re"] = re.compile(spec.get("pattern") or "(?!)")
             if kind == "modal_infinitive":
                 spec["_ids"] = {lemma_verb[v] for v in spec.get("verbs") or [] if v in lemma_verb}
                 pat = spec.get("infinitive_pattern")
@@ -122,6 +134,7 @@ class FeatureTagger:
                 spec["_pron"] = pron
                 spec["_clitics"] = set(pron) | {_norm(w) for w in spec.get("clitics") or []}
                 spec["_any"] = {_norm(w) for w in spec.get("enclitic_any") or []}
+                spec["_verbs"] = set(spec.get("verbs") or [])     # only these verbs (lemmas)
             self.detectors.append((name, kind, spec))
 
     # -- helpers ----------------------------------------------------------------------------------
@@ -252,6 +265,7 @@ class FeatureTagger:
         ('me levanto', 'se llama', 'nos hemos visto'), or attached to an infinitive/gerund/imperative
         ('levantarse'; 'levantarme' after a finite verb of the same person: 'Quiero levantarme')."""
         pron, clitics, any_ = spec["_pron"], spec["_clitics"], spec["_any"]
+        unbound = bool(spec.get("unbound"))
         persons_seen: set[str] = set()
         for i, t in enumerate(toks):
             if not _is_word(t):
@@ -260,13 +274,15 @@ class FeatureTagger:
                 continue
             if t.get("lex") not in self.verbs:
                 continue
+            if spec["_verbs"] and self.items.get(t["lex"], {}).get("lemma") not in spec["_verbs"]:
+                continue
             f = t.get("form") or ""
             person = f.split(".", 1)[1] if "." in f else "_"
             if person != "_":
                 persons_seen.add(person)
                 j = i - 1
                 while j >= 0 and _is_word(toks[j]) and _norm(toks[j]["t"]) in clitics:
-                    if person in pron.get(_norm(toks[j]["t"]), ()):
+                    if person in pron.get(_norm(toks[j]["t"]), ()) and not (unbound and toks[j].get("lex") in self.verbs):
                         return True
                     j -= 1
                 continue
@@ -312,7 +328,39 @@ class FeatureTagger:
     def _detect(self, kind, spec, toks, parts, part_aux, aux_pos, tenses_at, ipp=None) -> bool:
         if kind == "words":
             # a token aligned to a verb form is that verb, not the listed word (``tu dai`` is dare, not da+i)
-            return any(_is_word(t) and not t.get("form") and _norm(t["t"]) in spec["_words"] for t in toks)
+            if any(_is_word(t) and not t.get("form") and _norm(t["t"]) in spec["_words"] for t in toks):
+                return True
+            ws = [t for t in toks if _is_word(t)]
+            for seq in spec["_seqs"]:
+                n = len(seq)
+                for i in range(len(ws) - n + 1):
+                    if tuple(_norm(t["t"]) for t in ws[i:i + n]) == seq and not any(t.get("form") for t in ws[i:i + n]):
+                        return True
+            return False
+        if kind == "pattern":
+            if spec.get("annotate"):
+                # every word followed by its aligned form in braces: 'non{} preoccuparti{infinitive._}'
+                text = _norm("".join((t.get("pre") or "") + t["t"] + ("{" + (t.get("form") or "") + "}" if _is_word(t) else "")
+                                     for t in toks))
+            else:
+                text = _norm("".join((t.get("pre") or "") + t["t"] for t in toks))
+            return bool(spec["_re"].search(text))
+        if kind == "enclitic":
+            want = spec.get("tense")
+            for t in toks:
+                f, lex = t.get("form") or "", t.get("lex")
+                if not _is_word(t) or lex not in self.verbs or "." not in f or f.startswith("infl:"):
+                    continue
+                tense, person = f.split(".", 1)
+                if want and tense != want:
+                    continue
+                val = ((self.verbs[lex].get("forms") or {}).get(tense) or {}).get(person)
+                if val is None:
+                    continue
+                acc = [_norm(x) for x in [_form(val), *(val.get("alts", []) if isinstance(val, dict) else [])]]
+                if not any(_norm(t["t"]) in a.split() for a in acc):
+                    return True
+            return False
         if kind == "compound_aux":
             want = spec.get("aux")
             if ipp and self.aux_ids.get(toks[ipp[0]].get("lex")) == want:
@@ -497,7 +545,7 @@ class SkillGraph:
 
 
 def build(course: dict, items: list[dict], verbs: dict[str, dict]) -> tuple[FeatureTagger, SkillGraph]:
-    resolved = {s["id"]: query.resolve(s, items, verbs, course["persons"])
+    resolved = {s["id"]: query.resolve(s, items, verbs, query.course_persons(course))
                 for u in course["units"] for s in (u.get("skills") or [])}
     tagger = FeatureTagger(course, items, verbs)
     return tagger, SkillGraph(course, resolved, tagger)

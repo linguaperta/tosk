@@ -73,5 +73,7 @@ def test_course_schema_skill_needs_exactly_one_query(mini_pack_dir):
     c["units"][0]["skills"][0]["verbs"] = {"tense": "presente"}      # vocab skill with verbs + items
     assert _errors("course", c)
     c = json.loads(json.dumps(pack.course))
-    c["units"][0]["skills"][1]["exercises"] = ["listen_pick"]          # not a v1 exercise type
+    c["units"][0]["skills"][1]["exercises"] = ["listen_pick"]          # allowed since pack format 1.1
+    assert _errors("course", c) == []
+    c["units"][0]["skills"][1]["exercises"] = ["dictation"]            # no such exercise type
     assert _errors("course", c)

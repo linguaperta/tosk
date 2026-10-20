@@ -35,7 +35,7 @@ class Material:
         self.pack = pack
         c = pack.course
         self.persons = list(c["persons"])
-        self.resolved = {s["id"]: query.resolve(s, pack.items, pack.verbs, self.persons) for _, _, _, s in pack.skills()}
+        self.resolved = {s["id"]: query.resolve(s, pack.items, pack.verbs, query.course_persons(c)) for _, _, _, s in pack.skills()}
         self.tagger, self.graph = features.build(c, pack.items, pack.verbs)
         self.never = len(self.graph.order)
         self.feats: dict[str, set[str]] = {}
@@ -88,7 +88,7 @@ def analyze(pack: Pack, mat: Material | None = None) -> dict:
             slots = {}
             third = {mat.persons[2], mat.persons[5]} if len(mat.persons) == 6 else set(mat.persons)
             for i in ids:
-                for p in mat.persons:
+                for p in query.course_persons(pack.course).of(tense):
                     if lemma[i] in IMPERSONAL.get(pack.code, ()) and p not in third:
                         continue
                     slots[(lemma[i], p)] = sum(1 for x in by_cell.get((i, f"{tense}.{p}"), ()) if mat.easy(x, sid))

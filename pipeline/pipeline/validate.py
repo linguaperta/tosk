@@ -27,7 +27,7 @@ from jsonschema import Draft202012Validator
 
 from . import features, inflect, query
 from .compile import note_texts
-from .content import Pack
+from .content import Pack, required_translations
 from .paths import SCHEMA_DIR
 
 NON_FINITE = {"infinitive", "participle", "gerund"}
@@ -95,9 +95,19 @@ def validate(pack: Pack, check_notes: bool = True) -> list[str]:
     if errors:
         return errors   # structural problems: later checks would only produce noise
 
-    persons = list(c["persons"])
+    persons = query.course_persons(c)
     tenses = list(c["tenses"])
-    translations = list(c["translations"])
+    translations = required_translations(c)
+    for l in sorted(set(c.get("required_translations") or []) - set(c["translations"])):
+        errors.append(f"{code}: required translation {l!r} is not one of translations")
+    for key in ("tense_persons", "tense_person_labels", "tense_groups"):
+        for t, v in sorted((c.get(key) or {}).items()):
+            if t not in tenses:
+                errors.append(f"{code}: {key} names undeclared tense {t!r}")
+            if key != "tense_groups":
+                for p in v:
+                    if p not in persons:
+                        errors.append(f"{code}: {key}.{t} names undeclared person {p!r}")
     for adverb, fits in sorted((c.get("time_adverbs") or {}).items()):
         for t in fits:
             if t not in tenses:
@@ -166,6 +176,15 @@ def validate(pack: Pack, check_notes: bool = True) -> list[str]:
     for s in skills:
         if "verbs" in s and s["verbs"].get("tense") not in tenses:
             errors.append(f"{code}: skill {s['id']} trains undeclared tense {s['verbs'].get('tense')!r}")
+        # recognition-only skills (pack format 1.1): items (#rec only) or verbs (#form, recognition exercises)
+        if s.get("recognition") and s.get("facet"):
+            errors.append(f"{code}: skill {s['id']}: recognition cannot be combined with facet {s['facet']!r}")
+        eq = s.get("equivalent_tense")
+        if eq is not None:
+            if not s.get("recognition") or "verbs" not in s:
+                errors.append(f"{code}: skill {s['id']}: equivalent_tense needs a recognition verbs skill")
+            elif eq not in tenses or eq == s["verbs"].get("tense"):
+                errors.append(f"{code}: skill {s['id']}: equivalent_tense {eq!r} is no other declared tense")
 
     # ---- skill membership
     unit_index = {u: i for i, u in enumerate(unit_ids)}

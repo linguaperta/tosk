@@ -162,6 +162,13 @@ class CourseBuilder {
     _verbs.add(Verb(itemId: item.id, verbClass: cls, stem: stem, irregular: irregular, auxiliary: aux));
   }
 
+  /// Forms of [tense] for some persons only (an imperative without `io`).
+  void partialTable(String lemma, String tense, Map<String, String> forms) {
+    for (final e in forms.entries) {
+      _forms.add(VerbForm(itemId: id(lemma), tense: tense, person: e.key, form: e.value));
+    }
+  }
+
   static const _leading = '¿¡"«(“‘';
   static const _trailing = '.,!?;:"»)”…';
 

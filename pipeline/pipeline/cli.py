@@ -24,7 +24,7 @@ import sys
 import urllib.request
 from pathlib import Path
 
-PACK_FORMAT_VERSION = "1.0"
+PACK_FORMAT_VERSION = "1.1"
 TEMPLATE_DIR = Path(__file__).resolve().parent / "pack_template"
 COURSE_ID_RE = re.compile(r"^[a-z]{2,3}$")
 COUNT_TABLES = ("units", "skills", "notes", "items", "verbs", "verb_forms", "inflections", "sentences",

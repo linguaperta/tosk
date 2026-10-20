@@ -19,7 +19,7 @@ from .content import Pack
 
 
 def build_report(pack: Pack) -> dict:
-    persons = pack.course["persons"]
+    persons = query.course_persons(pack.course)
     by_lex: dict[str, set[str]] = defaultdict(set)
     by_form: dict[tuple[str, str], set[str]] = defaultdict(set)        # (verb, tense) -> sentence ids
     by_person: dict[tuple[str, str, str], int] = defaultdict(int)      # (verb, tense, person) -> count

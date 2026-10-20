@@ -31,6 +31,10 @@ class CourseMeta {
     this.description = const {},
     this.inflectionTables = const {},
     this.schemaMinor = 0,
+    this.tensePersons = const {},
+    this.tensePersonLabels = const {},
+    this.tenseGroups = const {},
+    this.recognitionSkills = const {},
   });
 
   final String id; // 'it'
@@ -67,11 +71,38 @@ class CourseMeta {
   /// `meta.schema_minor` (0 when absent).
   final int schemaMinor;
 
+  /// Tenses whose tables have only some persons (`meta.tense_persons`, schema
+  /// minor 2): an imperative without `io`.
+  final Map<String, List<String>> tensePersons;
+
+  /// Person labels that differ in one tense (`meta.tense_person_labels`):
+  /// tense -> person -> i18n (the Italian imperative's lui/lei row is the
+  /// formal "Lei (you, formal)").
+  final Map<String, Map<String, I18n>> tensePersonLabels;
+
+  /// Tense -> group, a mood (`meta.tense_groups`): the transform exercise
+  /// changes the tense only between tenses of the same group. Unlisted tenses
+  /// form one default group, so packs without the key behave as before.
+  final Map<String, String> tenseGroups;
+
+  /// Recognition-only skills (`meta.recognition_skills`, schema minor 2):
+  /// skill id -> the equivalent tense of a verbs skill (`passato_remoto` ->
+  /// `passato_prossimo`), or null. Their facets get recognition exercises
+  /// only; the learner never produces them (docs/engine.md, "Recognition-only skills").
+  final Map<String, String?> recognitionSkills;
+
   String tenseLabel(String tense, String lang) =>
       tenseLabels[tense] == null ? tense.replaceAll('_', ' ') : pickLang(tenseLabels[tense]!, lang);
 
-  String personLabel(String person, String lang) =>
-      personLabels[person] == null ? person : pickLang(personLabels[person]!, lang);
+  /// The person's label, or its label in [tense] when the pack has one.
+  String personLabel(String person, String lang, {String? tense}) {
+    final special = tense == null ? null : tensePersonLabels[tense]?[person];
+    if (special != null) return pickLang(special, lang);
+    return personLabels[person] == null ? person : pickLang(personLabels[person]!, lang);
+  }
+
+  /// The transform group of [tense] (`''` for unlisted tenses).
+  String tenseGroup(String tense) => tenseGroups[tense] ?? '';
 }
 
 /// A non-verb inflection table of a course (`meta.inflection_tables`).

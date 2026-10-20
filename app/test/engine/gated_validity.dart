@@ -165,7 +165,10 @@ void runGatedValidity(
       final cap = SentenceGate.capFor(focus, skill);
       if (focus == LessonFocus.grammar && cap == SentenceGate.capFor(LessonFocus.mixed, skill)) continue;
       for (final MapEntry(key: label, value: t) in templates.entries) {
-        final usable = [for (final f in facets) if (t.supports(f)) f];
+        final usable = [
+          for (final f in facets)
+            if (t.supports(f) && (!CourseIndex.of(course).recognitionOnly(f) || kRecognitionTypes.contains(t.type))) f,
+        ];
         if (usable.isEmpty) continue;
         GenContext ctx(int i, SkillFacet f) => GenContext(
               course: course,

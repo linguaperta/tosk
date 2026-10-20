@@ -235,7 +235,7 @@ class ClozeTemplate extends ExerciseTemplate {
     if (accepted.isEmpty) return null;
     final forbidden = [
       ...accepted,
-      for (final p in ix.ambiguousPersons(o.person))
+      for (final p in ix.ambiguousPersons(o.person, tense: o.tense))
         if (forms['${o.tense}.$p'] != null) ...partials(forms['${o.tense}.$p']!),
     ];
     final expected = surface[kk];
@@ -307,6 +307,9 @@ class ClozeTemplate extends ExerciseTemplate {
     final forbidden = [
       ...accepted,
       expected,
+      // the word's other number too ('signori' gap: 'signore', also the plural of signora)
+      ...item.spellings,
+      ?item.plural,
       for (final s in syn) ...[...s.spellings, ?s.plural],
     ];
     final picker = OptionPicker(forbidden: forbidden, max: optionCount - 1);

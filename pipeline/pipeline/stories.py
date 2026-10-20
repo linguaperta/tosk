@@ -50,6 +50,7 @@ import yaml
 
 from . import features, query, trcheck
 from .align import Aligner
+from .content import required_translations
 from .lang import get_lang
 from .tokens import tokenize
 
@@ -104,9 +105,11 @@ class StoryChecker:
         c = pack.course
         self.code = c["id"]
         self.translations = list(c["translations"])
+        # optional translations (course.yaml required_translations) are used and checked where given
+        self.required = required_translations(c)
         self.units = [u["id"] for u in c["units"]]
         self.items = {it["id"]: it for it in pack.items}
-        resolved = {s["id"]: query.resolve(s, pack.items, pack.verbs, c["persons"])
+        resolved = {s["id"]: query.resolve(s, pack.items, pack.verbs, query.course_persons(c))
                     for _, _, _, s in pack.skills()}
         self.tagger = features.FeatureTagger(c, pack.items, pack.verbs)
         self.graph = features.SkillGraph(c, resolved, self.tagger)
@@ -137,6 +140,8 @@ class StoryChecker:
         for t in al:
             if not t["is_word"]:
                 continue
+            if t.get("unsure"):
+                out.append(f"{where}: the mood of {t['t']!r} is unclear (indicative or subjunctive after 'che')")
             if t["t"] in names:          # a name, even when it is also a lexicon item (Roma)
                 continue
             if t["lex"]:
@@ -173,8 +178,9 @@ class StoryChecker:
             problems.append(f"{where0}: title needs the {self.code} text")
         title_tr = {l: str(title.get(l) or "").strip() for l in self.translations}
         for l, v in title_tr.items():
-            if not v:
+            if not v and l in self.required:
                 problems.append(f"{where0}: title needs a {l} translation")
+        title_tr = {l: v for l, v in title_tr.items() if v}
         if title.get(self.code):
             try:
                 al = self._align(title[self.code], title_tr.get("en"))
@@ -194,8 +200,9 @@ class StoryChecker:
                 problems.append(f"{where}: no {self.code} text")
                 continue
             for l, v in tr.items():
-                if not v:
+                if not v and l in self.required:
                     problems.append(f"{where}: no {l} translation")
+            tr = {l: v for l, v in tr.items() if v}
             try:
                 al = self._align(text, tr.get("en"))
             except ValueError as e:
@@ -223,8 +230,9 @@ class StoryChecker:
             q = q or {}
             prompt_tr = {l: str((q.get("q") or {}).get(l) or "").strip() for l in self.translations}
             for l, v in prompt_tr.items():
-                if not v:
+                if not v and l in self.required:
                     problems.append(f"{where}: no {l} question")
+            prompt_tr = {l: v for l, v in prompt_tr.items() if v}
             prompt = " ".join(str(q.get("prompt") or "").split()) or None
             if prompt:
                 try:
@@ -240,13 +248,15 @@ class StoryChecker:
                 problems.append(f"{where}: mixes target-language and translated options")
             out_opts: list = []
             if kinds == {True}:
-                for l in self.translations:
+                langs = [l for l in self.translations
+                         if l in self.required or any(str(o.get(l) or "").strip() for o in options)]
+                for l in langs:
                     vals = [str(o.get(l) or "").strip() for o in options]
                     if any(not v for v in vals):
                         problems.append(f"{where}: an option lacks its {l} text")
                     elif len({fold(v) for v in vals}) != len(vals):
                         problems.append(f"{where}: duplicate {l} options {vals}")
-                out_opts = [{l: str(o.get(l) or "").strip() for l in self.translations} for o in options]
+                out_opts = [{l: str(o.get(l) or "").strip() for l in langs} for o in options]
             else:
                 vals = [" ".join(str(o or "").split()) for o in options]
                 if any(not v or not fold(v) for v in vals):
@@ -266,7 +276,7 @@ class StoryChecker:
                 problems.append(f"{where}: answer {answer!r} is not an option index")
             why = q.get("why") or {}
             explanation = {l: str(why.get(l) or "").strip() for l in self.translations if why.get(l)}
-            if why and len(explanation) != len(self.translations):
+            if why and not all(l in explanation for l in self.required):
                 problems.append(f"{where}: explanation needs every translation language")
             questions.append({"prompt": prompt, "prompt_tr": prompt_tr, "options": out_opts,
                               "correct": answer, "explanation_tr": explanation})

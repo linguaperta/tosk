@@ -31,6 +31,14 @@ class Pack:
                 yield ui, unit, si, skill
 
 
+def required_translations(course: dict) -> list[str]:
+    """The source languages every taught item, sentence and story translation must have
+    (course.yaml `required_translations`, default: all `translations`). The other `translations`
+    are optional: used and checked where present, and the app falls back to English without them."""
+    req = course.get("required_translations")
+    return [l for l in course["translations"] if l in req] if req else list(course["translations"])
+
+
 def read_jsonl(path: Path) -> list[tuple[int, dict]]:
     out = []
     with open(path, encoding="utf-8") as f:

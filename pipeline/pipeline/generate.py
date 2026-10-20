@@ -37,9 +37,9 @@ import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 
-from . import gaps, trcheck
+from . import gaps, query, trcheck
 from .align import Aligner
-from .content import Pack, load_pack, read_jsonl, write_jsonl
+from .content import Pack, load_pack, read_jsonl, required_translations, write_jsonl
 from .importer import dedupe_key
 from .lang import get_lang
 from .tokens import tokenize
@@ -118,6 +118,7 @@ class Generator:
         for it in sorted(self.pack.items, key=lambda i: (i.get("freq") is None, i.get("freq") or 0, i["id"])):
             self.by_lemma[it["lemma"]].append(it["id"])
         self.translations = list(self.pack.course["translations"])
+        self.required = required_translations(self.pack.course)
         self.unit_order = [u["id"] for u in self.pack.course["units"]]
         self.skill_items = set(self.graph.item_skill)
         self.keys = {dedupe_key(s["text"]): s["id"] for s in self.pack.sentences}
@@ -162,8 +163,9 @@ class Generator:
         text = " ".join(str(d.get("text") or "").split())
         tr = {l: " ".join(str(d.get(l) or (d.get("tr") or {}).get(l) or "").split()) for l in self.translations}
         for l, v in tr.items():
-            if not v:
+            if not v and l in self.required:
                 problems.append(f"no {l} translation")
+        tr = {l: v for l, v in tr.items() if v}     # optional translations only where given
         try:
             toks = tokenize(text, self.code)
         except ValueError as e:
@@ -172,6 +174,10 @@ class Generator:
         words = [t for t in al if t["is_word"]]
         if not MIN_WORDS <= len(words) <= MAX_WORDS:
             problems.append(f"{len(words)} words")
+        unsure = [t["t"] for t in al if t.get("unsure")]
+        if unsure:
+            problems.append(f"mood of {unsure} unclear (indicative or subjunctive after 'che': add a trigger "
+                            f"such as 'penso che', or a subject pronoun)")
         for i, t in enumerate(words):
             if t["lex"] or t["t"].isdigit():
                 continue
@@ -336,7 +342,7 @@ class Generator:
             for iid in self.mat.resolved[skill]:
                 t = (self.pack.verbs.get(iid) or {}).get("forms", {}).get(tense, {})
                 cells = []
-                for p in self.pack.course["persons"]:
+                for p in query.course_persons(self.pack.course).of(tense):
                     v = t.get(p) or {}
                     f = v.get("form") if isinstance(v, dict) else v
                     alts = v.get("alts", []) if isinstance(v, dict) else []

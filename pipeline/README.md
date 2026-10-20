@@ -253,7 +253,8 @@ swapped as an article error by the app; keep it out of article skills (`exclude`
    so the alignment links the word to the taught item (*madre* noun, not the adjective; *solo* adverb,
    not the conjunction). Verbs keep their own score.
 3. Pool = top 3000 eligible lexemes (has English glosses, lowercase, no digits, no Italian pronominal
-   verbs) plus every seed item. IDs come from `ids.tsv` (see below).
+   verbs) plus every seed item (a seed item may be a pronominal verb: *alzarsi*, *andarsene*,
+   *volerci*; its tables carry the clitics, `Lang.pronominal`). IDs come from `ids.tsv` (see below).
 4. Translations: `tr.en` from Wiktionary (or seed); Italian `tr.nl` from seed (Claude) > Dutch
    Wiktionary > English translation-table pivot. Dutch items have only `tr.en`.
 5. Verb tables: simple tenses from Wiktionary (only complete tenses are kept), compound tenses built
@@ -323,9 +324,28 @@ conjugation tables. Rules:
   object follows: *Ik was moe*; *hij was* is only zijn) and conditional *zou* keep `lex` but get no
   `form`.
 * Italian imperatives look like present forms: a clause-initial tu/lui/noi/voi form (after *non* or
-  clitics at most) without a subject pronoun, not of essere/avere, in a sentence with `!` or whose
-  English translation starts with an imperative (*Ask …*, *Please …*, *Don't …*, *Let's …*) keeps
-  `lex` but gets no `form` (`Chiedi a un poliziotto!` is no `tu chiedi`).
+  clitics at most) without a subject pronoun, in a sentence with `!` (unless the English translation
+  has a subject: *Siamo pronti!* = We're ready!) or whose English translation starts with an
+  imperative (*Ask …*, *Please …*, *Don't …*, *Let's …*) is the imperative (`Chiedi a un
+  poliziotto!` is no `tu chiedi`); essere/avere only with a *Let's …* translation (*Siamo seri!*).
+  A course without an `imperativo` tense keeps `lex` with no `form` there. A form that can only be
+  an imperative (*divertiamoci*, *alzati* when no adjective reads so) is one anywhere.
+* Italian moods (`Lang.tense_moods`, 1.3): a form shared by several moods (*parli*: presente tu,
+  congiuntivo, Lei imperative) takes the mood its context calls for: the subjunctive after a strong
+  trigger + *che* (*penso che*, *voglio che*, *è importante che*, `subj_triggers`), a subjunctive
+  conjunction (*prima che*, *benché*), *se* + congiuntivo imperfetto (`subj_if`) or a trigger verb
+  that drops *che* right before it (`subj_che_drop`: *Pensavo foste a casa*); after a bare *che*
+  (*So che parli*) the mood is `unsure` and the importer drops the sentence; an interrogative *che*
+  (*A che ora parli?*) is no trigger. A subjunctive form shared by several persons (*parli*: io, tu,
+  lui/lei; *stessi*: io, tu) gets a person only from its subject, else no `form`. Multi-word pronominal forms (*mi alzo*, *mi sono
+  alzata*, *se ne va*) are aligned first on every word (`multiword_forms`), unless an adjacent subject
+  pronoun fits none of their persons (*che tu mi chiami*); attached pronouns (*alzati*, *dimmi*,
+  *farlo*) link their host verb (`enclitics`), the pronominal verb only with its own clitic: a
+  reflexive one of the subject's person for a si-verb (*Devo alzarmi*, not *Non trattarmi* →
+  trattarsi), *ci* for a ci-verb (not *tenermi* → tenerci). A passato remoto form that is also a noun, adjective
+  or participle (`homograph_tenses`: *chiese*, *prese*, *fu*, *sorpresi*) is that other word only
+  with a cue: a copula (maybe with adverbs) before it, a determiner before it, a noun before it after
+  the clause's finite verb, or the noun's English gloss in the translation; otherwise the verb.
 * An interjection item at the start of a clause wins over a homograph (*Prego.*, *Scusa, …*, *Dag
   Anna!*, *Bedankt!*); multi-word phrase items link every word (*per favore*, *tot ziens*).
 * Dutch adjective/verb homographs before a copula are the adjective (*dat ik laat ben*, *of het open
@@ -389,8 +409,11 @@ every skill with the features it **introduces**; the compiler writes them to `se
   introducing each non-base feature. Valid = every feature is introduced by the home skill, one of
   its prerequisites (transitively) or the base set. The importer selects only valid sentences and the
   validator checks every sentence again. Courses without `base_features` are tagged but not gated.
-* Features per course: it `tense:{imperfetto,futuro,passato_prossimo}`, `aux:essere`, `modal`,
-  `prep:articulated`, `irregular:futuro` (base `tense:presente`); nl `tense:{verleden_tijd,
+* Features per course: it `tense:{imperfetto,futuro,passato_prossimo,condizionale,
+  congiuntivo_presente,congiuntivo_imperfetto,imperativo,passato_remoto}`, `aux:essere`, `modal`,
+  `prep:articulated`, `irregular:{futuro,imperativo,condizionale,congiuntivo_presente,passato_remoto}`,
+  `reflexive`, `si`, `ci`, `ne`, `gerund`, `imperative:{negative,pronoun}`,
+  `pronoun:{combined,attached}`, `comparative`, `relative` (base `tense:presente`); nl `tense:{verleden_tijd,
   perfectum}`, `aux:zijn`, `modal`, `separable`, `irregular:verleden_tijd` (base
   `tense:tegenwoordige_tijd`).
 
@@ -399,7 +422,10 @@ every skill with the features it **introduces**; the compiler writes them to `se
 Units, skills (items; `*` = grammar) and the features each unit introduces. Every unit's skills
 require the previous unit's grammar, so a later skill allows everything taught before it.
 
-**Italian 1.2.0** — 41 skills, 738 taught items, 1613 facets, 20 805 sentences (2213 generated).
+**Italian 1.3.0** (pack format 1.1) — 78 skills, 1507 taught items, 3382 facets, 45 013 sentences
+(7979 generated), 30 stories. Units 10-15 have English only (`required_translations: [en]`); the
+passato remoto skills are recognition-only. Units 1-9 keep their 1.2.0 skill contents (explicit
+`lemmas` / `exclude` where the bigger seed would have changed them).
 
 | Unit | Skills (items) | Introduces |
 |---|---|---|
@@ -412,6 +438,12 @@ require the previous unit's grammar, so a later skill allows everything taught b
 | u7 Memories | weather (26), animals (21), clothes (22), imperfetto* (20) | `tense:imperfetto` |
 | u8 Plans for the future | leisure (23), shopping (20), futuro* (18), futuro-irregular* (16) | `tense:futuro`, `irregular:futuro` |
 | u9 Talking about life | more-verbs (30), ideas (28) | |
+| u10 Daily routine | little-words-2 (24), reflexive-present* (20), routine (42), reflexive-past* (18), health (39), services (39) | `reflexive` |
+| u11 Do it! | imperative* (18), directions (39), imperative-irregular* (14), food-more (40), imperative-pronouns* (10), media (37) | `tense:imperativo`, `imperative:negative`, `irregular:imperativo`, `imperative:pronoun` |
+| u12 I would like... | ci-ne* (6), emotions (38), combined-pronouns* (5), condizionale* (16), condizionale-irregular* (16), opinions (36), verbs-three (43) | `ci`, `ne`, `pronoun:combined`, `pronoun:attached`, `tense:condizionale`, `irregular:condizionale` |
+| u13 More or less | comparatives* (8), adjectives-more (40, + `#infl:agreement`), progressive* (1), nature (38), impersonal-si* (5), society (41), abstract (37) | `comparative`, `gerund`, `si` |
+| u14 Hopes and doubts | congiuntivo* (18), character (37), congiuntivo-irregular* (16), connectors (34), congiuntivo-imperfetto* (18), money (37) | `tense:congiuntivo_presente`, `irregular:congiuntivo_presente`, `tense:congiuntivo_imperfetto` |
+| u15 Reading Italian | passato-remoto* (18, recognition), crime (39), passato-remoto-irregular* (20, recognition), relatives* (5), reading (38) | `tense:passato_remoto`, `irregular:passato_remoto`, `relative` |
 
 **Dutch 1.2.0** — 37 skills, 712 taught items, 1597 facets, 16 539 sentences (2338 generated).
 

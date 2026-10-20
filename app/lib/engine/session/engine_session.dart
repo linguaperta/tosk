@@ -450,8 +450,9 @@ abstract class EngineSession implements PracticeSession, OverridableSession, Ret
       // Another word of a partly right answer: only facets the learner studies.
       if (o.secondary && !await _gradesSecondary(o.facetId)) continue;
       _practiced.add(o.facetId);
-      // An answered facet starts its skills: their grammar and words count as known from now on.
-      _gate?.markStarted(env.course.skillsForFacet(o.facetId));
+      // An answered facet starts the skill that introduces it: its grammar and words count as
+      // known from now on (not a later skill sharing the facet: SentenceGate.startedSkills).
+      _gate?.markStarted(SentenceGate.startedSkills(env.course, [o.facetId]));
       Rating? rating;
       final mistaken = _mistaken.contains(o.facetId);
       if (mistaken) {

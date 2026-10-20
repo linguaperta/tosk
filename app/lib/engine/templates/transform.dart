@@ -90,7 +90,10 @@ class TransformTemplate extends ExerciseTemplate {
       if (infinitive != null && o.wordCount == 1 && ix.acceptedKeys(infinitive).contains(foldAnswer(o.matched))) {
         continue;
       }
-      if (o.tense != tense && _tenseSwapOk(o, tense, ctx) && _adverbsAllow(o.sentence, tense, ctx)) {
+      // Tenses change only within a group (`meta.tense_groups`: the indicative
+      // tenses; never into or out of the conditional, subjunctive or imperative).
+      final sameGroup = meta.tenseGroup(o.tense) == meta.tenseGroup(tense);
+      if (o.tense != tense && sameGroup && _tenseSwapOk(o, tense, ctx) && _adverbsAllow(o.sentence, tense, ctx)) {
         final target = forms['$tense.${o.person}'];
         // A form shared by another person (`sono`: io and loro) is only
         // rewritten when that person's target form is the same.
@@ -110,7 +113,7 @@ class TransformTemplate extends ExerciseTemplate {
         }
       }
       if (_personSwapOk(o, ctx)) {
-        final ambiguous = ix.ambiguousPersons(o.person).toSet();
+        final ambiguous = ix.ambiguousPersons(o.person, tense: tense).toSet();
         for (final p in meta.persons) {
           if (p == o.person || ambiguous.contains(p) || !ix.dropsPronoun(p)) continue;
           // Singular <-> plural would leave an adjective unagreed (`Dice di
@@ -118,21 +121,21 @@ class TransformTemplate extends ExerciseTemplate {
           if (_plural(o.person, meta) != _plural(p, meta) && (_hasAgreeingWord(o, ctx) || _isCopula(o, ctx))) continue;
           final target = forms['$tense.$p'];
           if (target == null || _unsureAgreement(o, target, ctx)) continue;
-          if (o.tense != tense && !_adverbsAllow(o.sentence, tense, ctx)) continue;
+          if (o.tense != tense && (!sameGroup || !_adverbsAllow(o.sentence, tense, ctx))) continue;
           final r = _construct(o, target.form, tense, ctx);
           if (r == null) continue;
           final desc = o.tense == tense
-              ? '→ ${meta.personLabel(p, ctx.lang)}'
-              : '→ ${meta.personLabel(p, ctx.lang)}, ${meta.tenseLabel(tense, ctx.lang)}';
+              ? '→ ${meta.personLabel(p, ctx.lang, tense: tense)}'
+              : '→ ${meta.personLabel(p, ctx.lang, tense: tense)}, ${meta.tenseLabel(tense, ctx.lang)}';
           final sameTense = o.tense == tense;
           out.add(_Plan(o, target, r, desc,
               tenseSwap: false,
               fromLabel: sameTense
-                  ? meta.personLabel(o.person, ctx.lang)
-                  : '${meta.personLabel(o.person, ctx.lang)}, ${meta.tenseLabel(o.tense, ctx.lang)}',
+                  ? meta.personLabel(o.person, ctx.lang, tense: o.tense)
+                  : '${meta.personLabel(o.person, ctx.lang, tense: o.tense)}, ${meta.tenseLabel(o.tense, ctx.lang)}',
               toLabel: sameTense
-                  ? meta.personLabel(p, ctx.lang)
-                  : '${meta.personLabel(p, ctx.lang)}, ${meta.tenseLabel(tense, ctx.lang)}'));
+                  ? meta.personLabel(p, ctx.lang, tense: tense)
+                  : '${meta.personLabel(p, ctx.lang, tense: tense)}, ${meta.tenseLabel(tense, ctx.lang)}'));
         }
       }
     }
@@ -419,7 +422,7 @@ class TransformTemplate extends ExerciseTemplate {
     final ix = ctx.index;
     final answers = _answers(p, ctx);
     final forms = ctx.course.verbForms(p.occ.verbId);
-    final ambiguous = ix.ambiguousPersons(p.target.person);
+    final ambiguous = ix.ambiguousPersons(p.target.person, tense: p.target.tense);
     final forbidden = <String>[
       for (final a in answers) ...a,
       for (final a in p.target.accepted) ...splitWords(a),

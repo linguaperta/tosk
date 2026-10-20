@@ -78,7 +78,11 @@ ValidityReport runTemplateValidity(
         final label = entry.key;
         final t = entry.value;
         final key = (skill.id, label);
-        final usable = [for (final f in facets) if (t.supports(f)) f];
+        // the selector's rule: recognition-only facets only get recognition types
+        final usable = [
+          for (final f in facets)
+            if (t.supports(f) && (!CourseIndex.of(course).recognitionOnly(f) || kRecognitionTypes.contains(t.type))) f,
+        ];
         if (usable.isEmpty) continue;
         GenContext ctx(int i, SkillFacet f) {
           final stage = i % 3;
@@ -341,6 +345,10 @@ List<String> validateExercise(Exercise e, ExerciseTemplate t, CourseData c, Stri
   final item = c.item(facet.itemId);
   check(item != null, 'unknown item ${facet.itemId}');
   if (item == null) return p;
+  // Recognition-only skills (the passato remoto) never get a production exercise.
+  if (facet.kind == FacetKind.form && CourseIndex.of(c).recognitionTenses.contains(facet.tense)) {
+    check(kRecognitionTypes.contains(e.type), '${e.type.id} on a recognition-only facet');
+  }
 
   Result g(Answer a, [GradeOptions o = _tapGrade]) => t.grade(e, a, elapsed: _fast, options: o);
 
@@ -372,7 +380,37 @@ List<String> validateExercise(Exercise e, ExerciseTemplate t, CourseData c, Stri
 
     case MultipleChoiceExercise():
       check(e.prompt.trim().isNotEmpty, 'empty prompt');
-      if (facet.kind == FacetKind.article) {
+      if (facet.kind == FacetKind.form) {
+        // Recognition-only forms (passato remoto): never production.
+        final ix = CourseIndex.of(c);
+        check(ix.recognitionTenses.contains(facet.tense), 'multiple choice on a #form facet that is not recognition-only');
+        check(e.direction == Direction.recognize, 'recognition form exercise is not recognition');
+        final tense = facet.tense!;
+        final forms = c.verbForms(item.id);
+        if (e.isSentence) {
+          final s = _sentenceByText(c, e.prompt);
+          check(s != null, 'sentence not found');
+          if (s != null) {
+            check(ix.formOccurrencesIn(item.id, tense).any((o) => o.sentence.id == s.id), 'sentence shows no $tense form of the verb');
+            final valid = {for (final x in _sentencesByText(c, e.prompt)) _k(x.translation(lang)!)};
+            choiceChecks(e.options, e.correctIndex, (o) => valid.contains(_k(o)));
+          }
+        } else {
+          // the prompt is a form of the tense; the right option is the same person's equivalent
+          // form, or the person label
+          final cells = [for (final f in forms.values) if (f.tense == tense && f.accepted.any((a) => _k(a) == _k(e.prompt))) f];
+          check(cells.isNotEmpty, 'prompt "${e.prompt}" is no $tense form of ${item.lemma}');
+          final eq = c.skillsForFacet(e.facetId).map((s) => c.meta.recognitionSkills[s]).nonNulls.firstOrNull;
+          final valid = <String>{
+            for (final cell in cells) ...[
+              _k(c.meta.personLabel(cell.person, lang, tense: tense)),
+              if (eq != null && forms['$eq.${cell.person}'] != null)
+                for (final a in forms['$eq.${cell.person}']!.accepted) _k(a),
+            ],
+          };
+          choiceChecks(e.options, e.correctIndex, (o) => valid.contains(_k(o)));
+        }
+      } else if (facet.kind == FacetKind.article) {
         final valid = {for (final a in CourseIndex.of(c).articlesOf(item)) _k(a)};
         choiceChecks(e.options, e.correctIndex, (o) => valid.contains(_k(o)), minOptions: 2);
       } else if (!e.isSentence) {
