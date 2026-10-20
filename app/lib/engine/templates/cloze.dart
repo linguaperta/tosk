@@ -7,6 +7,7 @@ import '../gen_context.dart';
 import '../grading/rating.dart';
 import '../strings.dart';
 import '../template.dart';
+import '../text/answer_diff.dart';
 import '../text/normalize.dart';
 import 'alterations.dart';
 import 'inflection.dart';
@@ -393,11 +394,15 @@ class ClozeTemplate extends ExerciseTemplate {
     }
     if (answer is TextAnswer) {
       final m = matchAnswer(answer.text, e.accepted, options.accents, candidates: answer.candidates);
+      // A multi-word gap (`ho mangiato`) can be partly right: the diff marks
+      // the words. The gap is one facet, so grading stays whole-answer.
+      final accepted = [e.expected, for (final a in e.accepted) if (a != e.expected) a];
       return Result(
         correct: m.correct,
         expected: e.expected,
         given: answer.text,
         accentSlip: m.accentSlip,
+        diff: m.correct ? null : bestAnswerDiff([answer.text], [for (final a in accepted) textTokens(a)], options.accents),
         outcomes: [
           rateOutcome(e.type, e.facetId, correct: m.correct, elapsed: elapsed, options: options, accentSlip: m.accentSlip),
         ],

@@ -144,7 +144,10 @@ class DemoSessionFactory implements SessionFactory {
   }
 }
 
-class DemoPracticeSession implements PracticeSession, OverridableSession {
+/// Re-queues a wrong exercise once, at the end (as itself), and reports it
+/// as a retry ([RetryingSession]) so every player test shows the retry note
+/// and count.
+class DemoPracticeSession implements PracticeSession, OverridableSession, RetryingSession {
   DemoPracticeSession({
     required this.mode,
     required List<Exercise> source,
@@ -203,8 +206,22 @@ class DemoPracticeSession implements PracticeSession, OverridableSession {
       return null;
     }
     _served++;
-    return _queue.removeAt(0);
+    final e = _queue.removeAt(0);
+    _current = e.id;
+    _currentIsRetry = _requeued.contains(e) && _seen.contains(e.id);
+    _seen.add(e.id);
+    return e;
   }
+
+  final Set<String> _seen = {};
+  String? _current;
+  bool _currentIsRetry = false;
+
+  @override
+  int get pendingRetries => _queue.where(_requeued.contains).length;
+
+  @override
+  bool isRetry(String exerciseId) => _currentIsRetry && exerciseId == _current;
 
   /// Last verdict and the events it wrote, per exercise id ("I was right").
   final Map<String, (Result, List<ReviewEvent>)> _verdicts = {};

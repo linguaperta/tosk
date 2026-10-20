@@ -123,19 +123,30 @@ class FeedbackColors {
   Color get onWrongContainer => _scheme.onErrorContainer;
 }
 
-enum OptionState { idle, selected, correct, wrong, dimmed }
+enum OptionState {
+  idle,
+  selected,
+  correct,
+  wrong,
+  dimmed,
+
+  /// A right word in the wrong place (a sentence answer's tile after checking).
+  misplaced,
+}
 
 /// The mark shown on a right or wrong option in black & white (✓ / ✗).
 IconData? markIcon(OptionState s) => switch (s) {
   OptionState.correct => Icons.check,
   OptionState.wrong => Icons.close,
+  OptionState.misplaced => Icons.swap_horiz,
   _ => null,
 };
 
 /// Colors, border width and text style of an option or tile in [state]. In
 /// black & white: idle is outlined (2 px), selected is inverted (black fill,
 /// white text), correct has a 3.5 px border, bold text and ✓, wrong a 2 px
-/// border, struck-through text and ✗, dimmed is the one gray.
+/// border, struck-through text and ✗, dimmed is the one gray, misplaced a
+/// 2 px dashed-look border (dotted underline) and ⇄.
 ({Color bg, Color border, Color fg, double width, TextStyle style}) optionLook(
   BuildContext context,
   OptionState state, {
@@ -186,6 +197,19 @@ IconData? markIcon(OptionState s) => switch (s) {
         width: kBwBorder,
         style: b.copyWith(color: kBwGray),
       ),
+      OptionState.misplaced => (
+        bg: kBwWhite,
+        border: kBwBlack,
+        fg: kBwBlack,
+        width: kBwBorder,
+        style: b.copyWith(
+          color: kBwBlack,
+          decoration: TextDecoration.underline,
+          decorationStyle: TextDecorationStyle.dotted,
+          decorationColor: kBwBlack,
+          decorationThickness: 2,
+        ),
+      ),
     };
   }
   final (Color bg, Color border, Color fg) = switch (state) {
@@ -198,8 +222,18 @@ IconData? markIcon(OptionState s) => switch (s) {
       scheme.outlineVariant.withValues(alpha: 0.5),
       scheme.onSurface.withValues(alpha: 0.45),
     ),
+    OptionState.misplaced => (scheme.tertiaryContainer, scheme.tertiary, scheme.onTertiaryContainer),
   };
-  return (bg: bg, border: border, fg: fg, width: state == OptionState.idle ? 1.2 : 2, style: b.copyWith(color: fg));
+  final style = state == OptionState.misplaced
+      ? b.copyWith(
+          color: fg,
+          decoration: TextDecoration.underline,
+          decorationStyle: TextDecorationStyle.dotted,
+          decorationColor: fg,
+          decorationThickness: 2,
+        )
+      : b.copyWith(color: fg);
+  return (bg: bg, border: border, fg: fg, width: state == OptionState.idle ? 1.2 : 2, style: style);
 }
 
 /// A tappable answer option with an optional shortcut number.
@@ -238,6 +272,7 @@ class OptionButton extends StatelessWidget {
       hint: switch (state) {
         OptionState.correct => 'correct answer',
         OptionState.wrong => 'wrong answer',
+        OptionState.misplaced => 'right word, wrong place',
         _ => null,
       },
       child: Material(
@@ -337,6 +372,7 @@ class WordTile extends StatelessWidget {
       hint: switch (state) {
         OptionState.correct => 'correct',
         OptionState.wrong => 'wrong',
+        OptionState.misplaced => 'right word, wrong place',
         _ => null,
       },
       child: Material(

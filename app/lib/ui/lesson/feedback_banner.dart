@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/core.dart';
 import '../theme/bw_skin.dart';
+import 'answer_diff_view.dart';
 import 'exercises/common.dart';
 
 /// A secondary action in the [FeedbackBanner]'s actions row ("Why?",
@@ -105,7 +106,11 @@ class FeedbackBanner extends StatelessWidget {
                               style: theme.textTheme.titleMedium?.copyWith(color: fg),
                             ),
                           ],
-                          if (!ok && result.expected.isNotEmpty) ...[
+                          // Partly right: exactly the places to fix, word by word.
+                          if (!ok && result.diff != null && result.diff!.partial) ...[
+                            const SizedBox(height: 6),
+                            AnswerDiffView(diff: result.diff!, foreground: fg),
+                          ] else if (!ok && result.expected.isNotEmpty) ...[
                             const SizedBox(height: 6),
                             Text('Correct answer:', style: theme.textTheme.labelLarge?.copyWith(color: fg)),
                             Text(

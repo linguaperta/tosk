@@ -22,4 +22,5 @@ export 'template.dart';
 export 'word_lookup.dart';
 export 'templates/alterations.dart';
 export 'templates/templates.dart';
+export 'text/answer_diff.dart';
 export 'text/normalize.dart';

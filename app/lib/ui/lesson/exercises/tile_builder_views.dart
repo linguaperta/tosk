@@ -16,6 +16,7 @@ class TileAnswerArea extends StatefulWidget {
     this.locked = false,
     this.correct,
     this.keys,
+    this.diff,
   });
 
   final List<String> tiles;
@@ -25,6 +26,11 @@ class TileAnswerArea extends StatefulWidget {
   /// Null before checking; colors the answer line after.
   final bool? correct;
   final ExerciseKeys? keys;
+
+  /// A partly right answer ([AnswerDiff.partial]): each placed tile is
+  /// marked by its own word (right, wrong, or right but misplaced) instead
+  /// of all of them wrong.
+  final AnswerDiff? diff;
 
   @override
   State<TileAnswerArea> createState() => _TileAnswerAreaState();
@@ -81,6 +87,14 @@ class _TileAnswerAreaState extends State<TileAnswerArea> {
     final placedState = widget.correct == null
         ? OptionState.idle
         : (widget.correct! ? OptionState.correct : OptionState.wrong);
+    final diff = widget.correct == false && widget.diff != null && widget.diff!.partial ? widget.diff : null;
+    OptionState stateAt(int k) {
+      if (diff == null) return placedState;
+      final marks = {for (final t in diff.given) if (t.source == k && t.isWord) t.mark};
+      if (marks.contains(DiffMark.wrong) || marks.contains(DiffMark.extra)) return OptionState.wrong;
+      if (marks.contains(DiffMark.moved)) return OptionState.misplaced;
+      return OptionState.correct;
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -95,11 +109,11 @@ class _TileAnswerAreaState extends State<TileAnswerArea> {
             spacing: 8,
             runSpacing: 8,
             children: [
-              for (final t in _placed)
+              for (final (k, t) in _placed.indexed)
                 WordTile(
                   key: ValueKey('placed-$t'),
                   label: widget.tiles[t],
-                  state: placedState,
+                  state: stateAt(k),
                   onTap: widget.locked ? null : () => _remove(t),
                 ),
             ],
@@ -182,12 +196,14 @@ class _SentenceBuilderViewState extends State<SentenceBuilderView> {
           ? InkSentenceArea(
               locked: widget.locked,
               correct: widget.result?.correct,
+              partial: widget.result?.diff?.partial ?? false,
               onChanged: widget.onChanged,
             )
           : widget.typed
           ? TypedSentenceArea(
               locked: widget.locked,
               correct: widget.result?.correct,
+              partial: widget.result?.diff?.partial ?? false,
               hintText: 'Type the translation',
               onChanged: widget.onChanged,
               onSubmitted: widget.onCheck,
@@ -196,6 +212,7 @@ class _SentenceBuilderViewState extends State<SentenceBuilderView> {
               tiles: e.tiles,
               locked: widget.locked,
               correct: widget.result?.correct,
+              diff: widget.result?.diff,
               keys: widget.keys,
               onChanged: (words) => widget.onChanged(words == null ? null : TilesAnswer(words)),
             ),
@@ -213,10 +230,15 @@ class TypedSentenceArea extends StatelessWidget {
     this.correct,
     this.hintText,
     this.onSubmitted,
+    this.partial = false,
   });
 
   final bool locked;
   final bool? correct;
+
+  /// Wrong in a few places only: the feedback panel marks them, so the
+  /// answer isn't struck through as a whole.
+  final bool partial;
   final String? hintText;
   final ValueChanged<Answer?> onChanged;
   final VoidCallback? onSubmitted;
@@ -236,7 +258,7 @@ class TypedSentenceArea extends StatelessWidget {
           hintText: hintText,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
             // Black & white: a wrong answer is struck through after checking.
-            decoration: mark == false && fb.mono ? TextDecoration.lineThrough : null,
+            decoration: mark == false && !partial && fb.mono ? TextDecoration.lineThrough : null,
           ),
           onChanged: (text) => onChanged(text.trim().isEmpty ? null : TextAnswer(text, inputMode: InputMode.keyboard)),
           onSubmitted: onSubmitted,
@@ -249,7 +271,12 @@ class TypedSentenceArea extends StatelessWidget {
               children: [
                 Icon(mark ? Icons.check : Icons.close, size: 18, color: mark ? fb.correct : fb.wrong),
                 const SizedBox(width: 6),
-                Text(mark ? 'Right' : 'Not quite', style: Theme.of(context).textTheme.bodyMedium),
+                Flexible(
+                  child: Text(
+                    mark ? 'Right' : (partial ? 'Almost: see the marked words' : 'Not quite'),
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ),
               ],
             ),
           ),
@@ -262,10 +289,13 @@ class TypedSentenceArea extends StatelessWidget {
 /// on the pad, word by word or in a few parts ("Next word" commits a part),
 /// reported as an ink `TextAnswer` with combined candidates.
 class InkSentenceArea extends StatelessWidget {
-  const InkSentenceArea({super.key, required this.locked, required this.onChanged, this.correct});
+  const InkSentenceArea({super.key, required this.locked, required this.onChanged, this.correct, this.partial = false});
 
   final bool locked;
   final bool? correct;
+
+  /// Wrong in a few places only (the feedback panel marks them).
+  final bool partial;
   final ValueChanged<Answer?> onChanged;
 
   /// Sentences are written in parts; more combinations of the parts' readings count.
@@ -294,7 +324,12 @@ class InkSentenceArea extends StatelessWidget {
               children: [
                 Icon(mark ? Icons.check : Icons.close, size: 18, color: mark ? fb.correct : fb.wrong),
                 const SizedBox(width: 6),
-                Text(mark ? 'Right' : 'Not quite', style: Theme.of(context).textTheme.bodyMedium),
+                Flexible(
+                  child: Text(
+                    mark ? 'Right' : (partial ? 'Almost: see the marked words' : 'Not quite'),
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ),
               ],
             ),
           ),
@@ -358,12 +393,14 @@ class _TransformViewState extends State<TransformView> {
           ? InkSentenceArea(
               locked: widget.locked,
               correct: widget.result?.correct,
+              partial: widget.result?.diff?.partial ?? false,
               onChanged: widget.onChanged,
             )
           : widget.typed
           ? TypedSentenceArea(
               locked: widget.locked,
               correct: widget.result?.correct,
+              partial: widget.result?.diff?.partial ?? false,
               hintText: 'Type the new sentence',
               onChanged: widget.onChanged,
               onSubmitted: widget.onCheck,
@@ -372,6 +409,7 @@ class _TransformViewState extends State<TransformView> {
               tiles: e.tiles,
               locked: widget.locked,
               correct: widget.result?.correct,
+              diff: widget.result?.diff,
               keys: widget.keys,
               onChanged: (words) => widget.onChanged(words == null ? null : TilesAnswer(words)),
             ),

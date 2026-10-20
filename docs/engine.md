@@ -15,7 +15,8 @@
 | `focus_presets.dart` | Focus weights, parsed from `assets/config/focus_presets.json`, with identical embedded defaults |
 | `grading/rating.dart` | `RatingPolicy` (result → FSRS rating, fast-answer table) and `GradeOptions` |
 | `text/normalize.dart` | NFC, case, punctuation, apostrophes, accent folding, `matchAnswer` |
-| `session/` | `EngineSession` (serve, grade, record, re-queue, result stream), the builders, `assessment.dart` (test out, placement, tough words), and `EngineSessionFactory` |
+| `text/answer_diff.dart` | Word-level diff of a sentence answer (`diffAnswer`, `bestAnswerDiff`), display tokens (`textTokens`, `alignedTokens`), `facetOfToken`, `changedWords` (see "Partly right sentence answers") |
+| `session/` | `EngineSession` (serve, grade, record, retries, result stream), the builders, `assessment.dart` (test out, placement, tough words), and `EngineSessionFactory` |
 | `reference.dart` | Lookups for the UI's reference and word popovers: `glossForToken` (lemma, person, tense label, article, glosses), `CourseReference` (accent-insensitive search, verb tables with irregular forms, skills teaching an item, examples) |
 | `debug/exercise_printer.dart` | `exercisePrompt` (stored with mistakes), `formatExercise`, `sampleExercises` |
 
@@ -136,7 +137,7 @@ Every wrong option goes through `OptionPicker`. It rejects an option that is emp
   - A sentence is allowed when its features ⊆ `knownFeatures` and its unknown words ≤ the cap: `SentenceGate.capFor(focus, skill)` = 1 for a grammar focus or a grammar skill, else 2. A word aligned to an unknown item counts 1. An unaligned word counts 0 when it is a name or a number (a capitalized word inside a sentence, a sentence-initial word that also appears capitalized inside one, or digits) and 2 otherwise: in the packs those are rare (125 it / 329 nl sentences) and often an untagged grammar form (passato remoto `Comprai`), so such a sentence never passes the grammar cap.
   - Cloze, spot the error, transform, the sentence builder and sentence multiple choice only use allowed sentences; transform also needs its target tense and the facet skill's features to be known. `canGenerate` answers are memoized in the gate (`GenContext.memo`), so a template without an eligible sentence returns false and the selector picks another type. A lesson never falls back to ungated sentences: conjugation grids and picks, flashcards, word multiple choice and match pairs fill it.
 - **Variety** (`SentenceHistory`): a bounded LRU of the last 1000 sentence ids per course, stored as a JSON array in the settings key `engine.recent_sentences.{courseId}` (no schema change). `GenContext.prefer` ranks candidate sentences by 0.75 × unknown words + a recency penalty (0 unseen, 1–3 seen, higher when seen more recently) + a random jitter below 1. Generated sentences (`src` starting with `claude-gen`, written for the course by the pipeline's `gen` command where Tatoeba has too few easy sentences) add `kGeneratedSentenceWeight` = 1, so an unseen real sentence with as many unknown words always comes first, and a generated one ranks about level with a real one seen long ago. Sentences already shown in this session come last, so a session repeats a sentence only when the facet has nothing else. Templates record what they show (`GenContext.useSentence`). The session saves its sentences when `next()` runs out and on `stop()`: read, merge (moving re-seen ids to the end), trim, write, serialized per key, so concurrent sessions keep each other's exposures. A mistake re-ask is a new exercise and usually gets another sentence.
-- **Exercise types:** the selector tries the previous exercise's type (or the type a re-asked mistake was missed with) only after every other type of the same weight tier failed, and each of the last three types weighs 0.6× per occurrence.
+- **Exercise types:** the selector tries the previous exercise's type only after every other type of the same weight tier failed, and each of the last three types weighs 0.6× per occurrence. A retry is the exception: it asks for the missed type first ("Retries" below).
 
 `test/engine/gated_validity.dart` checks gated exercises against an independent computation of the learner's knowledge. `real_pack_gating_test.dart` runs it on the bundled packs for a fresh learner and for learners who started units 1..k, plays full lessons (every unit-1 skill for a fresh learner, every unit-3 skill after units 1–3) and a non-stop run, and checks variety across lessons. `runTemplateValidity` stays the "everything known" check.
 
@@ -150,11 +151,45 @@ Every wrong option goes through `OptionPicker`. It rejects an option that is emp
 
 - The first wrong answer writes one Again event and one `MistakeRecord`, with the same id as the event. The record holds the prompt from `exercisePrompt`, the expected and given answers, the skill and its grammar note.
 - After that mistake, wrong answers on the same facet write nothing.
-- The first correct answer after the mistake writes one Good, never Easy, as the relearning step.
+- The first fully right answer after the mistake (a retry or any later exercise on the facet) writes one Good, never Easy, as the relearning step.
 - Later answers on that facet in the session write nothing.
-- Facets with no mistake write an event for every answer.
+- Facets with no mistake write an event for every answer, except in a retry (below).
 
-A wrong facet is re-queued 2–4 exercises later, at most twice per session. Re-queues extend `plannedLength`.
+So **only the first attempt is graded**: the retry is practice. The one event it can write is the FSRS relearning step of a facet that already has its Again, which is the existing design (a short-term "I got it back" signal to the scheduler) and is kept. A retry of an exercise whose own facet was not rated wrong (a partly right sentence whose tested word was right) writes nothing for that facet.
+
+### Retries (mistakes come back until they are right)
+
+`EngineSession` re-queues every wrong exercise as a **retry** (`SessionSlot.reask`): the facets with a wrong outcome (not the [secondary](#partly-right-sentence-answers) words of a partly right sentence), or the exercise's own facet when the answer was wrong but no such facet was (a partly right sentence whose tested word was right, a word-order error). A retry is a fresh exercise on the same facet that tests the same thing: the type that was missed when the template can build it (`SessionSlot.retryType`, usually another sentence through the variety rules), any allowed type otherwise; a slot's `only` restriction (lab types, a bonus round) still holds.
+
+- **Finite sessions** (lesson, lab, fading, mistake review, starred, tough words): retries come **after the planned exercises**, in the order the mistakes were made; a retry answered wrong goes to the back of the queue again. The next retry is never the facet just asked while another one is waiting.
+- **Endless sessions** (non-stop): retry *n* of a facet comes `endlessRetryGap(n)` = 4–8, then 8–16, then 16–32 exercises later (uniform in the range), before the next planned slot.
+- **Cap:** at most `maxReasks` = 3 retries per facet per session, one waiting at a time. After the cap the facet is not asked again in the session; its `MistakeRecord` keeps it open for mistake review (a same-session right answer never resolves a mistake, see below). Test out and placement have no retries (`maxReasks: 0`).
+- **Progress:** every queued retry adds 1 to `plannedLength` (a retry that can no longer be built takes it back out; an override drops the exercise's waiting retries), so the bar's total grows honestly with each mistake. `RetryingSession.pendingRetries` (waiting now) and `isRetry(exerciseId)` let the player show the count and mark the retry (docs/ui.md).
+- `AnswerEvent.isReask` is true for a retry.
+
+### Partly right sentence answers
+
+Exercises whose answer is a sentence or phrase (sentence builder, transform, cloze with typing; tiles, typed or written) are compared **word by word** when wrong (`text/answer_diff.dart`, the model in `core/models/answer_diff.dart`):
+
+- **Tokens:** split on whitespace with elisions split off (`l'acqua` = `l'` + `acqua`, so tiles `l'` `acqua` and typed `l'acqua` agree); pure punctuation is shown but never compared. Words are compared by the answer key of the accent setting (`answerKey`: tapped tiles strict, typed and ink by `AccentStrictness`), so case, punctuation, apostrophe variants and, when lenient, accents never make a word wrong; under strict accents `citta` for `città` is a wrong word.
+- **Alignment:** a longest common subsequence of the words. An unmatched word that the other side has unmatched too is **moved** (a right word in the wrong place, both lines). The rest of each run between matches pairs up in order as **wrong** (learner) / correction (accepted answer); leftovers are **extra** (learner) or **missing** (accepted answer, with a marker in the learner's line where they belong).
+- **Closest answer:** the diff is taken against every accepted answer (the sentence builder's canonical sentence is its real text with case, punctuation and alignment; other sentences with the same translation; a transform's gendered alternatives; a cloze's accepted forms) and the one with the fewest places to fix wins (then most words in place, then the first). `Result.diff` carries it (null for right answers).
+- **Partial** (`AnswerDiff.partial`): at least one word in place, at least half the words right (in place or moved), and at most `min(4, max(1, words ~/ 2))` places to fix (wrong + extra + missing + moved). Only then does the UI mark the places and the engine give per-facet credit; otherwise the answer is graded and shown as a whole.
+
+**Per-facet credit** (`partialOutcomes`, `PartialCredit`): when the diff is partial and the template can map words to facets:
+
+- *Sentence builder* (`creditByAlignment`, only against the canonical sentence, whose `answerTokens` carry the pipeline alignment): the words aligned to the tested facet's item carry the tested facet. Every other aligned word maps to `facetOfToken`: a verb form `'{tense}.{person}'` to `{item}#form:{tense}`, an inflected word `'infl:{table}.{cell}'` to `{item}#infl:{table}`, any other word to `{item}#prod`.
+- *Transform*: the words the transform changes (those not in a common subsequence with the source sentence) carry the tested `#form`; the rest is copied from the given sentence, so a slip there is no lapse of any word.
+- *Typed cloze, and a sentence builder answer closest to another accepted sentence*: no mapping, so whole-answer grading, but the diff is still shown.
+
+The outcomes: the **tested facet** is right when all its words are right (in place or moved): `correct: true`, `partial: true`, rating **Good** (never Easy: the answer was wrong); otherwise Again. Each **other facet** with a wrong or missing word gets Again as a `secondary` outcome. A right other word earns nothing (a fully right answer doesn't rate the other words either, so a partly right answer never earns more reviews than a right one). Recording (`EngineSession.submit`):
+
+- The tested facet's partial outcome is written with rating Good but **`correct: false`**: the answer was a mistake, so XP (no XP for a wrong event), accuracy stats, perfect lessons, the non-stop replay and mistake resolution treat it as one, while FSRS counts no lapse for the word the learner got right. No `MistakeRecord` is stored for it, and it is no relearning step for a facet that already has a mistake.
+- A secondary outcome is recorded only for a facet the course trains (`skillsForFacet` non-empty) that the learner has studied (a state exists): a lapse never introduces a word. It writes Again and a `MistakeRecord` (with the word's own skill and note) under the usual no-double-penalty rule, so mistake review asks that word later. It is never re-queued as a retry of its own; the exercise is.
+- The exercise as a whole is a mistake: `Result.correct` is false, the streak breaks, and it comes back as a retry.
+- "I was right" overrides the tested facet's event (it is `correct: false`) like any wrong event and drops the exercise's retry.
+
+Tests: `test/engine/session_test.dart` (group "retries": at the end of the lesson with the missed type, again until right, the cap of 3 and mistake review afterwards, the order of several mistakes, `pendingRetries`, non-stop spacing 4–8 / 8–16 / 16–32 and no retry after a right one), `test/engine/answer_diff_test.dart` (tokens, wrong / missing / extra / moved words, reorderings, accents strict and lenient, case, punctuation and apostrophes, tile sources, the closest answer, `facetOfToken`, `changedWords`), `test/engine/partial_credit_test.dart` (outcomes of the sentence builder, typed cloze and transform; the review log: Good with `correct: false`, a studied wrong word's Again and mistake, an unstudied one ignored, the retry of a partly right answer recording nothing, "I was right"), `test/engine/real_pack_partial_test.dart` (a swapped tile on every bundled pack is a one-place partial answer, credited where the tested word was right).
 
 ## Sessions
 
@@ -167,7 +202,7 @@ A wrong facet is re-queued 2–4 exercises later, at most twice per session. Re-
 - **Fading** (`FadingBuilder`, mode `review`): due facets, then the lowest predicted recall, across all skills. No new facets.
 - **Mistake review** (`ReviewBuilder`, `factory.review(length:)`, mode `review`, `session/mistake_review.dart`): one exercise per *open* mistake, up to `length` (default 12). `openMistakes(store:, course:, scheduler:, now:)` lists them (the UI uses it for the count and the list):
   - It scans the latest 300 `MistakeRecord`s of the course and keeps the latest per facet, with a count.
-  - **Resolution rule:** a mistake is resolved once its facet is answered correctly in a *later session*: a correct event not before the mistake whose session id differs from the mistake event's (the record id is the event id). The re-ask 2–4 exercises later in the same session does not count. A new mistake on the facet (also during review) opens it again.
+  - **Resolution rule:** a mistake is resolved once its facet is answered correctly in a *later session*: a correct event not before the mistake whose session id differs from the mistake event's (the record id is the event id). The retry later in the same session does not count. A new mistake on the facet (also during review) opens it again.
   - Facets the course no longer trains (pack update) are skipped.
   - Order: still weak (predicted recall < 0.9, `kMistakeWeakRecall`) first, then the rest; most recent first within each group.
   - Each facet is asked with the exercise type that was missed when the skill allows it and the template can build it (`only: {type}`); flashcard mistakes (a self-graded Again) and types that can't serve the facet fall back to the normal selector. If the restricted generation still fails, the slot is retried unrestricted.

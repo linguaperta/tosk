@@ -83,6 +83,8 @@ It may also hold `story` (`kStoryReadType`): a **story read**, see "Stories" bel
 
 `1 = Again`, `2 = Hard`, `3 = Good`, `4 = Easy`. Auto-graded results: a wrong answer is Again, a right answer is Good, and a right answer faster than the type's fast-answer threshold is Easy. Flashcards use self-grade buttons (Again, Hard, Good, Easy).
 
+`review_log.correct` is whether the *answer* was right for that facet; the rating is what FSRS learns. They differ in one case: a **partly right sentence answer** whose tested word was right records that facet with rating Good and `correct = false` (per-facet credit: no lapse for the right word, but the answer counts as a mistake for XP, accuracy, perfect lessons, the non-stop replay and mistake resolution). The wrong words of such an answer get their own Again events when the learner already studies them. Retries of a mistake later in the same session record only the facet's relearning step. Details: `docs/engine.md`, "Retries" and "Partly right sentence answers".
+
 ## App layout (`app/lib/`)
 
 ```

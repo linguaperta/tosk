@@ -129,17 +129,20 @@ void main() {
       expect(served.every((e) => FocusPresets.defaults.typesFor(LessonFocus.vocab).contains(e.type)), isTrue);
     });
 
-    test('a mistake comes back 2-4 exercises later; events: Again then Good', () async {
+    test('a mistake comes back at the end of the lesson; events: Again then Good', () async {
       final s = await factory().lesson('presente-are');
       final results = <AnswerEvent>[];
       s.results.listen(results.add);
       final served = await drive(s, wrong: (i, e) => i == 0);
       final first = served.first;
-      final later = [for (var i = 1; i < served.length; i++) if (served[i].facetId == first.facetId) i];
-      expect(later, isNotEmpty);
-      expect(later.first, inInclusiveRange(2, 4));
+      final retries = [for (var i = 0; i < served.length; i++) if (s.isRetry(served[i].id)) i];
+      expect(retries, [12], reason: 'after the 12 planned exercises');
+      expect(served[12].facetId, first.facetId);
+      expect(served[12].type, first.type, reason: 'the same thing again: the missed type');
       expect(served.length, 13);
       expect(s.plannedLength, 13);
+      expect(s.pendingRetries, 0);
+      final later = [for (var i = 1; i < served.length; i++) if (served[i].facetId == first.facetId) i];
 
       final events = [for (final e in store.events) if (e.facetId == first.facetId) e];
       expect(events.map((e) => e.rating), [Rating.again, Rating.good]);
@@ -160,30 +163,119 @@ void main() {
       expect(results.first.mistake, isNotNull);
       expect(results.first.streak, 0);
       expect(results[1].streak, 1);
-      expect(results[later.first].isReask, isTrue);
+      expect(results[later.last].isReask, isTrue);
       expect(s.mistakeContext(first.id)?.note, contains('-are'));
       expect(s.summary().mistakes, [first.facetId]);
     });
+  });
 
-    test('a re-ask answered wrong writes nothing more and is re-queued once more', () async {
+  group('retries', () {
+    test('a wrong retry comes back again until it is right; nothing more is recorded', () async {
       final s = await factory(seed: 5).lesson('presente-are');
       String? facet;
-      var wrongs = 0;
+      var retriesWrong = 0;
       final served = await drive(s, wrong: (i, e) {
         facet ??= e.facetId;
-        if (e.facetId == facet && wrongs < 2) {
-          wrongs++;
+        if (e.facetId != facet) return false;
+        // Wrong the first time and on the first retry, right on the second.
+        if (!s.isRetry(e.id)) return true;
+        return retriesWrong++ < 1;
+      });
+      final retries = [for (final e in served) if (s.isRetry(e.id)) e];
+      expect(retries.map((e) => e.facetId), [facet, facet]);
+      expect(served.length, 14);
+      expect(s.plannedLength, 14, reason: 'every retry counts in the progress');
+      expect(s.answered, s.plannedLength);
+      final events = [for (final e in store.events) if (e.facetId == facet) e];
+      expect(events.map((e) => e.rating), [Rating.again, Rating.good], reason: 'first attempt + relearning step');
+      expect(store.mistakeList.length, 1);
+    });
+
+    test('at most 3 retries per facet, then it waits for mistake review', () async {
+      final s = await factory(seed: 2).lesson('presente-are');
+      String? facet;
+      final served = await drive(s, wrong: (i, e) {
+        facet ??= e.facetId;
+        return e.facetId == facet;
+      });
+      final retries = [for (final e in served) if (s.isRetry(e.id)) e];
+      expect(retries.length, 3);
+      expect(retries.every((e) => e.facetId == facet), isTrue);
+      expect(served.length, 15);
+      expect(s.plannedLength, 15);
+      expect(await s.next(), isNull);
+      final events = [for (final e in store.events) if (e.facetId == facet) e];
+      expect(events.map((e) => e.rating), [Rating.again], reason: 'no double penalty');
+      final open = await openMistakes(store: store, course: it, scheduler: const FakeScheduler(), now: clock.add(const Duration(days: 1)));
+      expect(open.map((m) => m.facet.facetId), [facet]);
+    });
+
+    test('several mistakes come back in the order they were made', () async {
+      final s = await factory(seed: 3).lesson('presente-are');
+      final missed = <String>[];
+      final served = await drive(s, wrong: (i, e) {
+        if (i < 3 && !missed.contains(e.facetId)) {
+          missed.add(e.facetId);
           return true;
         }
         return false;
       });
-      final appearances = [for (final e in served) if (e.facetId == facet) e];
-      expect(appearances.length, greaterThanOrEqualTo(3));
-      final events = [for (final e in store.events) if (e.facetId == facet) e];
-      expect(events.map((e) => e.rating), [Rating.again, Rating.good]);
-      expect(store.mistakeList.length, 1);
-      expect(s.plannedLength, 14);
+      final retries = [for (final e in served) if (s.isRetry(e.id)) e.facetId];
+      expect(retries, missed);
+      expect(served.length, 12 + missed.length);
     });
+
+    test('pendingRetries tracks the waiting mistakes', () async {
+      final s = await factory().lesson('presente-are');
+      final e = (await s.next())!;
+      expect(s.pendingRetries, 0);
+      await s.submit(e, wrongAnswer(e), elapsed: _elapsed);
+      expect(s.pendingRetries, 1);
+      expect(s.plannedLength, 13);
+    });
+
+    test('non-stop: a mistake comes back 4-8 exercises later, then spaced further', () async {
+      final s = await factory(seed: 4).nonStop();
+      final served = <Exercise>[];
+      String? facet;
+      for (var i = 0; i < 60; i++) {
+        final e = (await s.next())!;
+        served.add(e);
+        facet ??= e.facetId;
+        // The first facet is always answered wrong (it never gets right).
+        final wrong = e.facetId == facet && (i == 0 || s.isRetry(e.id));
+        await s.submit(e, wrong ? wrongAnswer(e) : correctAnswer(e), elapsed: _elapsed);
+        clock = clock.add(const Duration(seconds: 20));
+      }
+      final at = [for (var i = 0; i < served.length; i++) if (s.isRetry(served[i].id)) i];
+      expect(at.length, 3, reason: 'three retries, then mistake review');
+      final gaps = [at[0] - 0, at[1] - at[0], at[2] - at[1]];
+      expect(gaps[0], inInclusiveRange(4, 8));
+      expect(gaps[1], inInclusiveRange(8, 16));
+      expect(gaps[2], inInclusiveRange(16, 32));
+      expect(endlessRetryGap(1), (4, 8));
+      expect(endlessRetryGap(2), (8, 16));
+      expect(s.plannedLength, isNull);
+    });
+
+    test('non-stop: a retry answered right is not asked again', () async {
+      final s = await factory(seed: 6).nonStop();
+      String? facet;
+      var retries = 0;
+      for (var i = 0; i < 40; i++) {
+        final e = (await s.next())!;
+        facet ??= e.facetId;
+        if (s.isRetry(e.id)) retries++;
+        final wrong = i == 0;
+        await s.submit(e, wrong ? wrongAnswer(e) : correctAnswer(e), elapsed: _elapsed);
+        clock = clock.add(const Duration(seconds: 20));
+      }
+      expect(retries, 1);
+      expect(s.pendingRetries, 0);
+    });
+  });
+
+  group('lesson session: restrictions and grading', () {
 
     test('skill restrictions hold in lessons (essere-avere has no transform)', () async {
       for (var seed = 0; seed < 4; seed++) {

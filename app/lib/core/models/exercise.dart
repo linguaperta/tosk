@@ -8,7 +8,10 @@ library;
 
 import 'package:meta/meta.dart';
 
+import 'answer_diff.dart';
 import 'progress.dart';
+
+export 'answer_diff.dart';
 
 /// Base of all exercises. One subtype per [ExerciseType].
 @immutable
@@ -504,10 +507,30 @@ class TokenAnswer extends Answer {
 
 @immutable
 class FacetOutcome {
-  const FacetOutcome({required this.facetId, required this.correct, required this.rating});
+  const FacetOutcome({
+    required this.facetId,
+    required this.correct,
+    required this.rating,
+    this.partial = false,
+    this.secondary = false,
+  });
   final String facetId;
+
+  /// This facet's part of the answer was right.
   final bool correct;
   final Rating rating;
+
+  /// Partial credit: the tested word was right in a sentence answer that was
+  /// wrong elsewhere ([correct] is true, [rating] at most Good). The session
+  /// records it with `ReviewEvent.correct = false`, because the answer was a
+  /// mistake; the rating keeps FSRS from counting a lapse (docs/engine.md,
+  /// "Partly right sentence answers").
+  final bool partial;
+
+  /// A word of the answer other than the tested one, graded because it was
+  /// wrong (always [correct] false, rating Again). The session records it
+  /// only when the course trains the facet and the learner has studied it.
+  final bool secondary;
 }
 
 @immutable
@@ -519,6 +542,7 @@ class Result {
     required this.outcomes,
     this.cellCorrect,
     this.accentSlip = false,
+    this.diff,
   });
   final bool correct;
   final String expected; // canonical correct answer for feedback
@@ -528,4 +552,9 @@ class Result {
 
   /// Accepted only because accents were folded (lenient mode): show "watch the accent".
   final bool accentSlip;
+
+  /// A wrong sentence or phrase answer compared word by word with the
+  /// closest accepted answer (sentence builder, transform, typed cloze).
+  /// The UI marks the places when [AnswerDiff.partial]. Null otherwise.
+  final AnswerDiff? diff;
 }

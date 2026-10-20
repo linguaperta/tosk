@@ -64,7 +64,7 @@ abstract interface class PracticeSession {
   int get answered;
   int get correctCount;
 
-  /// Next exercise, or null when the session is finished. Mistakes are re-queued later in the session.
+  /// Next exercise, or null when the session is finished. Mistakes come back later in the session (retries).
   Future<Exercise?> next();
 
   /// Grades [answer], records every facet outcome in the progress store, stores a
@@ -90,6 +90,17 @@ abstract interface class OverridableSession {
   /// mistake. Returns the events written (none for an answer that recorded
   /// nothing, such as a wrong re-ask; the session still counts it right).
   Future<List<ReviewEvent>> overrideAnswer(String exerciseId);
+}
+
+/// A session that brings wrong answers back until they are right (engine
+/// sessions; docs/engine.md, "Retries"). The player shows how many are
+/// waiting and marks an exercise that is a retry.
+abstract interface class RetryingSession {
+  /// Mistakes waiting to come back (already counted in `plannedLength`).
+  int get pendingRetries;
+
+  /// Whether the exercise [exerciseId] is a mistake asked again.
+  bool isRetry(String exerciseId);
 }
 
 class SessionSummary {

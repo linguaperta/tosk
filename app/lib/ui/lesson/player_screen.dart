@@ -21,6 +21,7 @@ import '../common/async_view.dart';
 import '../feedback/flag_sheet.dart';
 import '../routes.dart';
 import '../slots/progression_slots.dart';
+import 'exercises/common.dart' show FeedbackColors;
 import 'exercises/exercise_layout.dart';
 import 'exercises/exercise_view.dart';
 import 'intro/exercise_intro_view.dart';
@@ -618,16 +619,81 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
         overflow: TextOverflow.ellipsis,
       );
     }
+    // Retries count in the planned length (the bar grows honestly with each
+    // mistake); how many are still waiting shows next to it.
     final planned = s?.plannedLength ?? 0;
     final value = planned == 0 ? 0.0 : (s!.answered / planned).clamp(0.0, 1.0);
     final motion = ref.watch(motionProvider);
-    return TweenAnimationBuilder<double>(
+    final pending = s is RetryingSession ? (s as RetryingSession).pendingRetries : 0;
+    final bar = TweenAnimationBuilder<double>(
       tween: Tween(end: value),
       duration: motion.long,
       curve: motion.curve,
       builder: (context, v, _) => ClipRRect(
         borderRadius: BorderRadius.circular(8),
         child: LinearProgressIndicator(key: const ValueKey('lesson-progress'), value: v, minHeight: 12),
+      ),
+    );
+    if (pending == 0) return bar;
+    final label = pending == 1 ? '1 mistake to retry' : '$pending mistakes to retry';
+    return Row(
+      children: [
+        Expanded(child: bar),
+        const SizedBox(width: 10),
+        Tooltip(
+          message: label,
+          child: Semantics(
+            label: label,
+            excludeSemantics: true,
+            child: Row(
+              key: const ValueKey('retry-count'),
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.replay, size: 20),
+                const SizedBox(width: 2),
+                Text('$pending', style: Theme.of(context).textTheme.titleMedium),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// "Again: you missed this one" above a retried exercise.
+  Widget _retryNote(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final mono = FeedbackColors.of(context).mono;
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 640),
+        child: Container(
+          key: const ValueKey('retry-note'),
+          width: double.infinity,
+          margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: mono ? null : scheme.tertiaryContainer,
+            border: mono ? Border.all(color: scheme.onSurface, width: 2) : null,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.replay, size: 18, color: mono ? scheme.onSurface : scheme.onTertiaryContainer),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Again: you missed this one earlier',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: mono ? scheme.onSurface : scheme.onTertiaryContainer,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -693,9 +759,12 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     final reduce = ref.watch(reduceMotionProvider);
     final aiAvailable = ref.watch(explainerAvailableProvider);
     final starred = result != null && ref.watch(exerciseStarredProvider(ex));
+    final Object? session = _session;
+    final retry = session is RetryingSession && session.isRetry(ex.id);
     return Column(
       children: [
         if (_endless) NonStopHudSlot(run: _run),
+        if (retry) _retryNote(context),
         Expanded(
           // The exercise fills at least the visible height, so its controls
           // (`ExerciseLayout`) sit at the bottom, in the thumb zone; the
