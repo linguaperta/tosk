@@ -33,12 +33,13 @@ Decisions agreed with the owner on 20 October 2026, and the checklist for making
 
 - [x] Move the copyrighted-source importers **and the local Sarnami data (`local/`)** to the private repo **`timoverlaan/tosk-data-private`** (checkout `C:\Users\timo\Repositories\tosk-data-private`, created by the owner on 20 Oct). Done 20 Oct: the importer is a private course plugin (`pipeline/pipeline/plugins.py`, `$TOSK_PRIVATE_PIPELINE`), the safeguard is the public `pipeline/pipeline/restricted.py`; see [private-importers.md](private-importers.md). The history rewrite still has to drop the old paths listed there.
 - [x] Scan the **whole git history** of both repos for Sarnami data, keys, `key.properties`, keystores, `google-services.json` (20 Oct: no secrets or Sarnami data; only the importer code and `docs/sarnami.md`, which the rewrite removes). `tosk-data` is clean.
-- [ ] Remove every remaining "tosk" reference (identifiers, channel/prefs/DB/cache names with a migration so the installed app keeps its data and keys, docs, file names), then **rewrite the whole history** of `linguaperta/tosk` with `git filter-repo` (drop the moved paths; replace "tosk" in contents, paths and messages), verify, force-push. Only after every open agent branch is merged. (The repo was made public on 20 Oct before this cleanup.)
-- [ ] Add `LICENSE` (Apache-2.0), `NOTICE`, `TRADEMARKS.md`, and `app/assets/brand/LICENSE` (CC BY-NC-ND 4.0); content repo keeps CC BY-SA 4.0.
-- [ ] Rename the app id to `org.linguaperta.tosk` (and the Windows exe/secure-storage name); update docs and signing.
+- [x] Remove every remaining old-name reference and **rewrite the whole history** (done 21 Oct): the moved Sarnami paths and every old course pack were dropped from all commits; the old name and the source names were replaced in contents, paths and messages; the current tree was byte-identical to the tested one; force-pushed with the preview tags. Backup of the old history: `C:\Users\timo\Repositories\tosk-before-rewrite.bundle` (local only). GitHub may still serve old commits by hash until its own garbage collection.
+- [x] Add `LICENSE` (Apache-2.0), `NOTICE`, `TRADEMARKS.md`, and `app/assets/brand/LICENSE` (CC BY-NC-ND 4.0); content repo keeps CC BY-SA 4.0.
+- [x] Rename the app id to `org.linguaperta.tosk` (and the Windows exe/secure-storage name); update docs and signing.
 - [ ] Add `license` / `authors` / `data_sources` to the it, nl and es `course.yaml`; the course preview shows them.
-- [ ] Owner: create the `linguaperta` GitHub org, move and rename the repos, enable GitHub Pages (Actions source).
-- [ ] Owner: create the Firebase project ([firebase-setup.md](firebase-setup.md)), add the Pages origin as an authorized domain, add the CI secrets.
+- [x] Owner: create the `linguaperta` GitHub org, move and rename the repos (public since 20 Oct).
+- [ ] Owner: enable GitHub Pages (Settings → Pages → Source: GitHub Actions).
+- [x] Owner: create the Firebase project ([firebase-setup.md](firebase-setup.md)), add the Pages origin as an authorized domain, add the CI secrets.
 - [ ] Privacy policy page on the website: what is synced (the answer log and settings, linked to the Google account), no analytics, crash reports stay on the device, "Delete my cloud data".
 - [ ] Small website (`linguaperta.github.io`): downloads, the web app, the pack docs, the privacy policy.
 - [ ] First public release: tag → CI builds the APK, Windows and web, attaches them to the GitHub Release and deploys Pages.

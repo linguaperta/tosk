@@ -1,0 +1,14 @@
+tosk
+Copyright 2026 the tosk authors (linguaperta)
+
+The code in this repository is licensed under the Apache License, Version 2.0 (see LICENSE),
+with these exceptions:
+
+- The name "tosk" and the Tosk mascot and brand art are not licensed under Apache-2.0;
+  see TRADEMARKS.md.
+- app/assets/brand/ (Tosk art, icons, wordmark): CC BY-NC-ND 4.0, see app/assets/brand/LICENSE.
+  The Gelasio font in app/assets/brand/fonts/ is under the SIL Open Font License 1.1 (OFL.txt there).
+- The bundled course packs (app/assets/courses/*.sqlite) are content, not code: CC BY-SA 4.0,
+  built from Wiktionary (via kaikki.org), Tatoeba and FrequencyWords; see ATTRIBUTION.md in
+  https://github.com/linguaperta/tosk-data.
+- Vendored third-party packages under app/packages/ keep their own licences (see each package).
