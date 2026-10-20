@@ -9,6 +9,10 @@ import '../common/markdown.dart';
 import '../routes.dart';
 import '../settings/app_settings.dart';
 import '../theme/skill_icons.dart';
+import 'branch_style.dart';
+import 'ink_art.dart';
+import 'node_painter.dart';
+import 'skill_node.dart' show nodeIconColor;
 import 'skill_stats.dart';
 
 /// What a skill is and where the learner stands, then what to do with it.
@@ -70,11 +74,8 @@ class _SkillSheetState extends ConsumerState<SkillSheet> {
           children: [
             Row(
               children: [
-                CircleAvatar(
-                  radius: 24,
-                  backgroundColor: theme.colorScheme.primaryContainer,
-                  child: Icon(skillIcon(skill), color: theme.colorScheme.onPrimaryContainer),
-                ),
+                // The skill's stone as on the map: its tier, and cracks when it fades.
+                _SkillMedal(skill: skill, stats: stats),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -321,6 +322,51 @@ String _tierLabel(MapTier t) => switch (t) {
   MapTier.silver => 'Silver',
   MapTier.gold => 'Gold',
 };
+
+/// The skill's map stone in the sheet's header: its tier (bronze matte,
+/// silver shiny, gold radiant), the strength ring, the cracks of decay and
+/// the skill's icon. Static (no twinkle motion).
+class _SkillMedal extends ConsumerWidget {
+  const _SkillMedal({required this.skill, required this.stats});
+  final Skill skill;
+  final SkillStats stats;
+
+  static const double size = 64;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final style = ref.watch(skinProvider).mapStyle(Theme.of(context).colorScheme);
+    final branchStyle = ref.watch(branchStyleProvider);
+    final stone = NodePainter.stoneRadius(size, branchStyle.extent) * 2;
+    final cracked = NodePainter.crackLevel(stats.tier, stats.decay, branchStyle) > 0;
+    return Semantics(
+      key: const ValueKey('skill-medal'),
+      label: '${_tierLabel(stats.tier)}${cracked ? ', fading' : ''}',
+      excludeSemantics: true,
+      child: SizedBox.square(
+        dimension: size,
+        child: CustomPaint(
+          painter: NodePainter(
+            tier: stats.tier,
+            ink: style.ink,
+            strength: stats.strength,
+            style: branchStyle,
+            decay: stats.decay,
+            seed: inkSeed(skill.id),
+            monochrome: style.monochrome,
+          ),
+          child: Center(
+            child: Icon(
+              skillIcon(skill),
+              size: stone * 0.5,
+              color: nodeIconColor(style, stats.tier),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 /// "il pane", "l'acqua", "mangiare".
 String itemLabel(Item item) {

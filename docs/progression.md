@@ -72,7 +72,7 @@ Tiers are computed at `now`, so a skill drops from gold to silver to bronze as r
 `SkillProgress` also carries:
 
 - **strength:** the mean R over all facets, where never-reviewed facets count as 0
-- **fading** (0..1, for desaturating the map): the mean over *reviewed* facets of `clamp((0.90 − R) / (0.90 − 0.50), 0, 1)`. It is 0 for a skill that was never started (new, not faded)
+- **fading** (0..1; the map cracks the skill's stone from 0.2 on, more as it grows, see `docs/ui.md`): the mean over *reviewed* facets of `clamp((0.90 − R) / (0.90 − 0.50), 0, 1)`. It is 0 for a skill that was never started (new, not faded)
 - `dueCount`, `minRetrievability`, `lastPracticed`, and `nextTierProgress` (the share of facets meeting the next tier's rule)
 
 **What the next tier needs** (`nextTierNeeds`, for the skill sheet): the next tier (bronze for a locked, available or started skill, then silver, gold; none at gold) and how many of the skill's **items** don't meet its rule yet (an item counts until all its facets in the skill do). The sheet words it as "Learn 6 more words to reach Bronze" or "Get every word to 85% recall and 7-day stability for Silver — 4 words to go" (verbs for conjugation skills, nouns for article skills).

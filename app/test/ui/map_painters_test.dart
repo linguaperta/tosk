@@ -86,20 +86,23 @@ void main() {
     testWidgets('black & white paints only black, white and gray', (tester) async {
       await tester.runAsync(() async {
         for (final tier in MapTier.values) {
-          for (final dashed in [false, true]) {
-            final px = await _render(
-              const Size.square(80),
-              (c) => NodePainter(
-                tier: tier,
-                ink: kBwInk,
-                strength: 0.6,
-                monochrome: true,
-                dashedRing: dashed,
-                twinkle: 0.3,
-              ).paint(c, const Size.square(80)),
-            );
-            expect(_coloured(px), isEmpty, reason: '${tier.name} dashed=$dashed');
-            expect(_anyInk(px), isTrue, reason: '${tier.name} painted nothing');
+          for (final decay in [0.0, 0.3, 0.6, 1.0]) {
+            for (final sweep in [null, 0.5]) {
+              final px = await _render(
+                const Size.square(80),
+                (c) => NodePainter(
+                  tier: tier,
+                  ink: kBwInk,
+                  strength: 0.6,
+                  monochrome: true,
+                  decay: decay,
+                  twinkle: 0.3,
+                  sweep: sweep,
+                ).paint(c, const Size.square(80)),
+              );
+              expect(_coloured(px), isEmpty, reason: '${tier.name} decay=$decay sweep=$sweep');
+              expect(_anyInk(px), isTrue, reason: '${tier.name} painted nothing');
+            }
           }
         }
       });

@@ -68,6 +68,8 @@ Vector sources: `icon.svg` / `icon-mono.svg` (512, rounded bookplate frame).
 
 - `node-states.svg` / `-mono`: locked, available, in progress, bronze, silver, gold in a row (r = 40).
 - `node-<state>.svg` / `-mono`: one state each (140 x 140, node at the centre, r = 40).
+- `node-decay.svg` / `-mono`: decay on a silver node at 0, 0.3, 0.5, 0.75 and 1 (600 x 140): whole,
+  hairline cracks, a chip out of the rim, a fragment breaking off, crumbling.
 - `twinkle.svg`: the four-point twinkle sprite.
 - `branch-tile.svg` / `-mono`: a fork between three nodes (400 x 400) showing boughs, twigs, leaves.
 - `leaf-a.svg`, `leaf-b.svg`, `leaf-c.svg` / `-mono`: ash leaf sprites (128 x 72): pinnate with three
@@ -77,15 +79,24 @@ Vector sources: `icon.svg` / `icon-mono.svg` (512, rounded bookplate frame).
 
 ### Sparkly tiers
 
-| Tier | Rings | Sparkle |
-| --- | --- | --- |
-| bronze | 2 | one glint: a small twinkle at the top right |
-| silver | 3 | two twinkles (top right, top left) and a dot |
-| gold | 3 + 8 rays | four twinkles, three dots, rays; a paper-coloured gleam arc on the metal |
+The three medals differ in colour **and** in shape (v0.7.1), so they read at a glance, in B/W
+and for colour-blind learners:
 
-In motion mode the twinkles may breathe (opacity 0.6-1, scale 0.85-1.15, 1.6-2.4 s sine,
-offset phases); with `reduceMotion` or in B/W they are static. Mono keeps the hierarchy by
-ring count, rays and the twinkle outlines (white fill, black stroke).
+| Tier | Colour, finish | Face | Rings | Sparkle |
+| --- | --- | --- | --- | --- |
+| bronze | copper brown `#9C5A30`, matte | stippled, a darker patina low on the left, no gleam | 2 | one glint at the top right |
+| silver | cool blue-grey `#ADB8C3`, shiny | cross-hatched with two bright diagonal shine bands (inked edges in mono) | 3 | two twinkles and a dot |
+| gold | warm yellow `#E3B23C`, radiant | polished: a lighter centre and the paper gleam arc | 3 | 7 long + 6 short rays over the top, a laurel round the bottom, four twinkles, three dots |
+
+**Decay** cracks a started or medal stone (`cracks` in the spec): from decay 0.2 hairline cracks run
+in from the rim, more (1-4), longer and branching as it fades; chips are knocked out of the rim at
+crack levels 0.3 / 0.6 / 0.85 (the first cracks start at them); from level 0.5 a fragment breaks off.
+In colour the stone also pales a little; in B/W the cracks are plain black.
+
+In motion mode the twinkles move (one shared ticker for the map): silver and gold breathe with an
+occasional flare, bronze's glint rests and flares now and then; with `reduceMotion` or in B/W they
+are static. Mono keeps the hierarchy by texture, ring count, rays, laurel and the twinkle outlines
+(white fill, black stroke).
 
 ## `branch-style.json`
 
@@ -105,10 +116,13 @@ length. Angles are degrees, 0 = right, positive = clockwise on screen.
 - `leaves`: the leaflet path (`LEAFLET`, 36 units long), fills, outline widths, hatch, the pinnate
   layout (stem path, pair positions 22/46/70, tip at 92, pair angle -57..-47) and placement rules.
 - `nodes`: radii, base fills, ring counts and widths, the shadow crescent hatch, per-state hatch,
-  the gleam arc, the progress ring (track radius 1.24 r, dashed 0.08/0.16 r; filled arc 0.16 r in
-  leaf_dk with an ink cap dot), the "available" sprout leaflet, `sparkle` per tier (twinkles as
-  angle / dist / size / rotate in units of r, dots, rays), the twinkle path for r = 1, and
-  `extent` (1.75 r: how far sparkles reach beyond the node, for hit testing and overflow).
+  the per-tier `texture` (bronze stipple, silver shine bands, gold polished), the gleam arc and the
+  tiers that get it (gold), the progress ring (track radius 1.24 r, dashed 0.08/0.16 r; filled arc
+  0.16 r in leaf_dk with an ink cap dot), the "available" sprout leaflet, `sparkle` per tier
+  (twinkles as angle / dist / size / rotate in units of r, dots; gold's `rays` with `arc_deg` and
+  `short_r1`, and its `laurel`: from / to angle, radius, leaves, leaf size), `cracks` (start, max,
+  chip thresholds, widths), the twinkle path for r = 1 and its motion, and `extent` (1.75 r: how
+  far sparkles reach beyond the node, for hit testing and overflow).
 
 ## Palette
 
@@ -124,9 +138,9 @@ length. Angles are degrees, 0 = right, positive = clockwise on screen.
 | bark dark | `#5B4333` |
 | leaf | `#7E9B5F` |
 | leaf dark | `#55733F` |
-| gold | `#D8B15C` |
-| silver | `#B9BDBD` |
-| bronze | `#B5713E` |
+| gold | `#E3B23C` |
+| silver | `#ADB8C3` |
+| bronze | `#9C5A30` |
 
 Suggested dark splash / dark theme background: `#2B1F17` (deep bark); text in paper.
 

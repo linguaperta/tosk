@@ -33,9 +33,9 @@
 | bark dark | `#5B4333` |
 | leaf | `#7E9B5F` |
 | leaf dark | `#55733F` |
-| gold | `#D8B15C` |
-| silver | `#B9BDBD` |
-| bronze | `#B5713E` |
+| gold | `#E3B23C` (v0.7.1: warmer yellow; was `#D8B15C`) |
+| silver | `#ADB8C3` (v0.7.1: cool blue-grey; was `#B9BDBD`) |
+| bronze | `#9C5A30` (v0.7.1: copper brown, so it no longer reads as gold; was `#B5713E`) |
 
 Dark theme: derive a warm dark variant (deep bark/ink backgrounds, paper-coloured text, the same accents), checked for contrast. B/W: pure black and white, as today.
 

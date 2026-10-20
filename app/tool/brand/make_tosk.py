@@ -41,9 +41,9 @@ COLOR = dict(
     bark_dk="#5B4333",
     leaf="#7E9B5F",
     leaf_dk="#55733F",
-    gold="#D8B15C",
-    silver="#B9BDBD",
-    bronze="#B5713E",
+    gold="#E3B23C",       # warm yellow: polished, radiant
+    silver="#ADB8C3",     # cool blue-grey: shiny
+    bronze="#9C5A30",     # copper brown: matte
     water="#A9BFC0",
     hatch="#3B2A1F",
     hatch_op="0.62",
@@ -1191,30 +1191,163 @@ NODE_STATES = ("locked", "available", "progress", "bronze", "silver", "gold")
 SPARKLE = {
     "bronze": dict(twinkles=[(-52, 1.24, 0.17, 0)], rays=0, dots=[]),
     "silver": dict(twinkles=[(-50, 1.30, 0.24, 0), (-152, 1.26, 0.14, 15)], rays=0, dots=[(-100, 1.42, 0.035)]),
-    "gold": dict(twinkles=[(-48, 1.42, 0.30, 0), (-150, 1.36, 0.19, 15), (118, 1.40, 0.15, 10), (24, 1.50, 0.12, 0)],
-                 rays=8, dots=[(-100, 1.56, 0.04), (62, 1.62, 0.035), (-14, 1.72, 0.03)]),
+    "gold": dict(twinkles=[(-48, 1.46, 0.30, 0), (-150, 1.40, 0.19, 15), (-98, 1.58, 0.14, 10), (-6, 1.52, 0.12, 0)],
+                 rays=7, dots=[(-122, 1.62, 0.04), (-72, 1.66, 0.035), (-176, 1.52, 0.03)], laurel=True),
 }
-RAYS = dict(count=8, start_deg=22.5, r0=1.12, r1=1.32, width=0.08)
+# Gold's rays: 7 long ones over the top half (the laurel takes the bottom), a short one between each pair.
+RAYS = dict(count=7, start_deg=22.5, arc_deg=[-180, 0], r0=1.12, r1=1.36, short_r1=1.24, width=0.08)
+# Gold's laurel: two sprigs along the lower rim (the left one; the right mirrors it).
+LAUREL = dict(from_deg=100, to_deg=172, radius=1.12, leaves=4, size=0.34)
+# Decay cracks the stone: hairline cracks from the rim from `start` decay on (up to `max`), a chip
+# knocked out of the rim at each crack level in `chips_at`, a fragment breaking off from level 0.5.
+CRACKS = dict(start=0.2, max=4, chips_at=[0.3, 0.6, 0.85], width=[0.035, 0.07],
+              rule="level = (decay - start) / (1 - start); cracks = min(max, 1 + floor(level * max)); "
+                   "length 0.3 + 0.6 level r, zig-zag steps of 0.1-0.17 r; a side branch from level 0.35")
 NODE_SPEC = dict(
     rings={"locked": 1, "available": 2, "progress": 2, "bronze": 2, "silver": 3, "gold": 3},
     outer_ring_width=[0.05, 0.16], locked_ring_width=[0.03, 0.08], inner_ring=dict(radius=0.78, width=[0.035, 0.06]),
     third_ring=dict(radius=0.66, width=[0.03, 0.045]),
     shadow_crescent=dict(angle=40, spacing=0.11, width=0.035, side="lower-left"),
-    hatch={"locked": dict(angle=45, spacing=0.14, opacity=0.45), "bronze": dict(angle=45, spacing=0.17, opacity=0.35, inner=True),
+    hatch={"locked": dict(angle=45, spacing=0.14, opacity=0.45),
            "silver": dict(angle=25, spacing=0.17, opacity=0.25, inner=True, cross=dict(angle=115, spacing=0.34, opacity=0.2))},
-    gleam=dict(tiers=["bronze", "silver", "gold"], radius=0.56, arc_deg=[-120, -40], width=0.07, opacity=0.75, colour="paper"),
+    texture={"bronze": dict(kind="stipple", note="matte: ink dots on the inner disc (0.72 r), about 1.1 per px of r (10-44), "
+                                                 "0.03 r each, opacity 0.5; a darker patina low on the left; no gleam"),
+             "silver": dict(kind="shine", bands=[[0.3, 0.1], [0.52, 0.042]],
+                            note="two bright bands perpendicular to the light, offset toward it by 0.3 / 0.52 r, half widths "
+                                 "0.1 / 0.042 r, clipped to 0.74 r; paper-white in mono (they cut through the hatching)"),
+             "gold": dict(kind="polished", note="a lighter centre (0.62 r), the gleam arc, rays and the laurel")},
+    gleam=dict(tiers=["gold"], radius=0.56, arc_deg=[-120, -40], width=0.07, opacity=0.75, colour="paper"),
     progress_ring=dict(radius=1.24, track_width=0.045, track_dash=[0.08, 0.16], fill_width=0.16, fill_colour="leaf_dk", cap_dot=0.11),
     available_sprout=dict(at=[0.62, -0.86], rotate=-50, scale="r/60", shape="LEAFLET"),
+    cracks=CRACKS,
     extent=1.75,
 )
 
 
-def node(p: dict, x, y, r, state="available", glyph=None, progress=0.4, seed=4, sparkle=True) -> str:
+def _ray_angles():
+    """Gold's ray angles (degrees), long and short alternating: long ones spread over arc_deg."""
+    a0, a1 = RAYS["arc_deg"]
+    step = (a1 - a0) / RAYS["count"]
+    long_ = [a0 + (k + 0.5) * step for k in range(RAYS["count"])]
+    out = []
+    for k, a in enumerate(long_):
+        out.append(a)
+        if k + 1 < len(long_):
+            out.append((a + long_[k + 1]) / 2)
+    return out
+
+
+def _polar(x, y, a, d):
+    return (x + math.cos(a) * d, y + math.sin(a) * d)
+
+
+def _rot(px, py, a):
+    return (px * math.cos(a) - py * math.sin(a), px * math.sin(a) + py * math.cos(a))
+
+
+def crack_pattern(level: float, seed: int):
+    """The cracks of a decaying node at crack level 0..1, in unit coordinates (the same rules as
+    the app's CrackPattern; the randomness differs).  Returns (lines, chips, shards): lines run
+    from the rim (or a chip) inward; a chip is (cut polygon, broken edge); a shard a polygon."""
+    if level <= 0:
+        return [], [], []
+    rnd = random.Random(seed * 7 + 13)
+    n = min(CRACKS["max"], 1 + int(level * CRACKS["max"]))
+    n_chips = min(n, sum(1 for t in CRACKS["chips_at"] if level >= t))
+    a0 = rnd.random() * math.tau
+    lines, chips, shards = [], [], []
+    for k in range(n):
+        a = a0 + k * math.tau / n + (rnd.random() - 0.5) * 0.9
+        start = _polar(0, 0, a, 0.99)
+        if k < n_chips:
+            d = 0.17 + rnd.random() * 0.09 + 0.05 * level
+            j1 = _polar(0, 0, a - d * 0.45, 0.86 + rnd.random() * 0.04)
+            j2 = _polar(0, 0, a + (rnd.random() - 0.5) * d * 0.3, 0.79 - 0.04 * level)
+            j3 = _polar(0, 0, a + d * 0.5, 0.85 + rnd.random() * 0.05)
+            r0, r1 = _polar(0, 0, a - d, 0.995), _polar(0, 0, a + d, 0.995)
+            chips.append(([_polar(0, 0, a - d * 1.05, 1.4), r0, j1, j2, j3, r1, _polar(0, 0, a + d * 1.05, 1.4)], [r0, j1, j2, j3, r1]))
+            start = j2
+            if k == 0 and level >= 0.5:
+                piece = [_polar(0, 0, a - d + 2 * d * i / 6, 1.0) for i in range(7)] + [j3, j2, j1]
+                cx = sum(q[0] for q in piece) / len(piece)
+                cy = sum(q[1] for q in piece) / len(piece)
+                ox, oy = _polar(0, 0, a, 0.2 + 0.08 * level)
+                oy += 0.06
+                turn = (1 if rnd.random() < 0.5 else -1) * (0.3 + 0.2 * level)
+                shards.append([(cx + ox + rx, cy + oy + ry) for rx, ry in
+                               (_rot((qx - cx) * 0.8, (qy - cy) * 0.8, turn) for qx, qy in piece)])
+        hx, hy = _rot(-math.cos(a), -math.sin(a), (rnd.random() - 0.5) * 0.6)
+        length = min(1.05, 0.3 + 0.6 * level + rnd.random() * 0.12)
+        pts = [start]
+        dx, dy = hx, hy
+        px, py = start
+        went = 0.0
+        while went < length:
+            dx, dy = _rot(dx * 0.6 + hx * 0.4, dy * 0.6 + hy * 0.4, (rnd.random() - 0.5) * 1.1)
+            m = math.hypot(dx, dy) or 1
+            dx, dy = dx / m, dy / m
+            step = 0.1 + rnd.random() * 0.07
+            nx, ny = px + dx * step, py + dy * step
+            if math.hypot(nx, ny) > 0.95:
+                break
+            pts.append((nx, ny))
+            px, py = nx, ny
+            went += step
+        if len(pts) >= 2:
+            lines.append(pts)
+        if level > 0.35 and len(pts) >= 3:
+            bx, by = pts[1 + rnd.randrange(len(pts) - 2)]
+            ddx, ddy = _rot(hx, hy, (1 if rnd.random() < 0.5 else -1) * (0.7 + rnd.random() * 0.4))
+            branch = [(bx, by)]
+            for _ in range(2 + (1 if level > 0.7 else 0)):
+                ddx, ddy = _rot(ddx, ddy, (rnd.random() - 0.5) * 0.9)
+                s = 0.08 + rnd.random() * 0.06
+                nx, ny = bx + ddx * s, by + ddy * s
+                if math.hypot(nx, ny) > 0.95:
+                    break
+                branch.append((nx, ny))
+                bx, by = nx, ny
+            if len(branch) >= 2:
+                lines.append(branch)
+    return lines, chips, shards
+
+
+def laurel(p: dict, x, y, r, seed=1) -> str:
+    """Gold's laurel: two sprigs of leaflets hugging the lower rim."""
+    out = []
+    a0, a1 = math.radians(LAUREL["from_deg"]), math.radians(LAUREL["to_deg"])
+    R = r * LAUREL["radius"]
+    sc = LAUREL["size"] * r / 36
+    for side in (1, -1):
+        def pt(a):
+            px, py = math.cos(a) * R, math.sin(a) * R
+            return (x + px * side, y + py)
+        stem = [pt(a0 + (a1 - a0) * i / 14) for i in range(15)]
+        out.append(ink_line(pts_d(stem, False), p, max(0.8, r * 0.05), "taper", seed=seed, wobble=0))
+        leaves = []
+        for i in range(LAUREL["leaves"]):
+            a = a0 + (a1 - a0) * (i + 0.45) / LAUREL["leaves"]
+            tx, ty = -math.sin(a), math.cos(a)
+            ox, oy = math.cos(a), math.sin(a)
+            s = 1 if i % 2 == 0 else -1
+            lx, ly = tx * math.cos(0.6) + ox * s * math.sin(0.6), ty * math.cos(0.6) + oy * s * math.sin(0.6)
+            leaves.append((pt(a), math.degrees(math.atan2(ly, lx * side))))
+        leaves.append((pt(a1), math.degrees(math.atan2(math.cos(a1), -math.sin(a1) * side))))
+        for (lx, ly), deg in leaves:
+            out.append(f'<g transform="translate({fmt(lx)} {fmt(ly)}) rotate({fmt(deg)}) scale({fmt(sc)})">'
+                       + fill(LEAFLET, p["leaf"])
+                       + f'<path d="{LEAFLET}" fill="none" stroke="{p["ink"]}" stroke-width="{fmt(max(0.7, r * 0.03) / sc)}" stroke-linejoin="round"/>'
+                       + f'<path d="M4 0L26 0" stroke="{p["ink"]}" stroke-width="{fmt(max(0.7, r * 0.03) / sc * 0.6)}"/></g>')
+    return "\n".join(out)
+
+
+def node(p: dict, x, y, r, state="available", glyph=None, progress=0.4, seed=4, sparkle=True, decay=0.0) -> str:
     """A skill node: a round medallion.  locked (hatched, faint ring) / available (clean,
-    bold ring, a sprouting leaflet) / progress (strength ring, filled fraction) / bronze,
-    silver, gold (metal fill; two or three rings; gold also gets rays).  The tiers sparkle:
-    bronze one glint, silver two twinkles, gold four twinkles plus rays and dots.  Mono keeps
-    the hierarchy with ring count, hatch texture, rays and twinkle shapes."""
+    bold ring, a sprouting leaflet) / progress (strength ring, filled fraction) / bronze (copper,
+    matte: stippled, two rings, one glint) / silver (cool grey, shiny: cross-hatched with two bright
+    bands, three rings, two twinkles) / gold (warm yellow, radiant: polished with a gleam, three
+    rings, rays over the top, a laurel round the bottom, four twinkles).  Mono keeps the hierarchy
+    with texture, ring count, rays, laurel and twinkle shapes.  `decay` (0..1) cracks the stone."""
     out = []
     circ = circle_d(x, y, r)
     inner = circle_d(x, y, r * 0.78)
@@ -1222,26 +1355,44 @@ def node(p: dict, x, y, r, state="available", glyph=None, progress=0.4, seed=4, 
     base = {"locked": p["paper"], "available": p["cream"], "progress": p["cream"],
             "bronze": p["bronze"], "silver": p["silver"], "gold": p["gold"]}[state]
     hw = max(0.8, r * 0.035)
-    # rays sit behind the medallion
-    if state == "gold" and sparkle:
-        for k in range(RAYS["count"]):
-            a = math.radians(k * 360 / RAYS["count"] + RAYS["start_deg"])
-            x0, y0 = x + math.cos(a) * r * RAYS["r0"], y + math.sin(a) * r * RAYS["r0"]
-            x1, y1 = x + math.cos(a) * r * RAYS["r1"], y + math.sin(a) * r * RAYS["r1"]
-            out.append(ink_line(f"M{fmt(x0)} {fmt(y0)}L{fmt(x1)} {fmt(y1)}", p, r * RAYS["width"], "in", seed=seed + k, wobble=0))
+    level = 0.0 if state in ("locked", "available") or decay < CRACKS["start"] else min(1.0, (decay - CRACKS["start"]) / (1 - CRACKS["start"]))
+    lines, chips, shards = crack_pattern(level, seed)
+    clip = ""
+    if chips:
+        _CLIP[0] += 1
+        clip = f"k{_CLIP[0]}"
+        cut = "".join(pts_d([(x + qx * r, y + qy * r) for qx, qy in c], True) for c, _ in chips)
+        out.append(f'<clipPath id="{clip}"><path clip-rule="evenodd" d="M{fmt(x - 2 * r)} {fmt(y - 2 * r)}h{fmt(4 * r)}v{fmt(4 * r)}h{fmt(-4 * r)}Z{cut}"/></clipPath><g clip-path="url(#{clip})">')
     out.append(fill(circ, base))
     if state == "locked":
         out.append(hatch([circ], 45, max(3.0, r * 0.14), p, hw, seed=seed, op="0.45" if not mono else "1"))
     elif state == "bronze":
-        out.append(hatch([inner], 45, max(3.0, r * 0.17), p, hw, seed=seed, op="0.35" if not mono else "1"))
+        if not mono:
+            out.append(clipped(f"M{fmt(x - r)} {fmt(y - r * 0.1)}L{fmt(x + r * 0.5)} {fmt(y + r)}L{fmt(x - r)} {fmt(y + r)}Z", circ, p["bark_dk"], 0.3))
+        rnd = random.Random(seed * 3 + 1)
+        for _ in range(max(10, min(44, round(r * 1.1)))):
+            a, d = rnd.random() * math.tau, math.sqrt(rnd.random()) * r * 0.72
+            out.append(fill(circle_d(x + math.cos(a) * d, y + math.sin(a) * d, max(0.55, r * 0.03) * (0.7 + rnd.random() * 0.6)),
+                            p["ink"], None if mono else 0.5))
     elif state == "silver":
         out.append(hatch([inner], 25, max(3.0, r * 0.17), p, hw, seed=seed, op="0.25" if not mono else "0.9"))
         out.append(hatch([inner], 115, max(3.0, r * 0.34), p, hw * 0.7, seed=seed + 5, op="0.2" if not mono else "0.55"))
+        lx, ly = LIGHT
+        ax, ay = -ly, lx
+        bands = ""
+        for off, half in NODE_SPEC["texture"]["silver"]["bands"]:
+            mx, my = x + lx * r * off, y + ly * r * off
+            q = [(mx - ax * r + lx * r * half, my - ay * r + ly * r * half), (mx + ax * r + lx * r * half, my + ay * r + ly * r * half),
+                 (mx + ax * r - lx * r * half, my + ay * r - ly * r * half), (mx - ax * r - lx * r * half, my - ay * r - ly * r * half)]
+            bands += pts_d(q, True)
+        out.append(clipped(bands, circle_d(x, y, r * 0.74), p["paper"] if mono else "#F4F7FA", None if mono else 0.9))
+    elif state == "gold" and not mono:
+        out.append(fill(circle_d(x, y, r * 0.62), "#E8BE5B"))
     if state != "locked":
         out.append(hatch([circ, f"M{x - r} {y - r * 0.3}L{x + r * 0.3} {y + r}L{x - r} {y + r}Z"],
                          40, max(2.6, r * 0.11), p, hw, seed=seed + 1))
-    if state in ("bronze", "silver", "gold") and not mono:
-        # a gleam: a short paper-coloured arc on the lit side of the metal
+    if state in NODE_SPEC["gleam"]["tiers"] and not mono:
+        # a gleam: a short paper-coloured arc on the lit side of the polished metal
         g = NODE_SPEC["gleam"]
         a0, a1 = math.radians(g["arc_deg"][0]), math.radians(g["arc_deg"][1])
         R = r * g["radius"]
@@ -1254,6 +1405,26 @@ def node(p: dict, x, y, r, state="available", glyph=None, progress=0.4, seed=4, 
         out.append(ink_shape(inner, p, r * 0.035, r * 0.06, step=1.5, wobble=0.25, seed=seed + 2))
     if state in ("silver", "gold"):
         out.append(ink_shape(circle_d(x, y, r * 0.66), p, r * 0.03, r * 0.045, step=1.5, wobble=0.2, seed=seed + 3))
+    w = max(0.8, r * (CRACKS["width"][0] + (CRACKS["width"][1] - CRACKS["width"][0]) * level))
+    for ln in lines:
+        d = pts_d([(x + qx * r, y + qy * r) for qx, qy in ln], False)
+        out.append(ink_line(d, p, w * 1.1, "in", seed=seed + 30, wobble=0.1))
+    if chips:
+        out.append("</g>")
+        for _, edge in chips:
+            out.append(ink_line(pts_d([(x + qx * r, y + qy * r) for qx, qy in edge], False), p, max(0.9, r * 0.06), "flat", seed=seed + 20, wobble=0.1))
+        for s in shards:
+            d = pts_d([(x + qx * r, y + qy * r) for qx, qy in s], True)
+            out.append(fill(d, base) + f'<path d="{d}" fill="none" stroke="{p["ink"]}" stroke-width="{fmt(max(0.8, r * 0.045))}" stroke-linejoin="round"/>')
+    if state == "gold" and sparkle:
+        for k, deg in enumerate(_ray_angles()):
+            a = math.radians(deg)
+            long_ = k % 2 == 0
+            x0, y0 = x + math.cos(a) * r * RAYS["r0"], y + math.sin(a) * r * RAYS["r0"]
+            r1 = RAYS["r1"] if long_ else RAYS["short_r1"]
+            x1, y1 = x + math.cos(a) * r * r1, y + math.sin(a) * r * r1
+            out.append(ink_line(f"M{fmt(x0)} {fmt(y0)}L{fmt(x1)} {fmt(y1)}", p, r * RAYS["width"], "in", seed=seed + k, wobble=0))
+        out.append(laurel(p, x, y, r, seed=seed + 40))
     if state == "progress":
         R = r * 1.24
         out.append(f'<path d="{circle_d(x, y, R)}" fill="none" stroke="{p["ink"]}" stroke-width="{fmt(r * 0.045)}" '
@@ -1288,6 +1459,14 @@ def node_states(p: dict) -> str:
 
 def node_single(p: dict, state: str) -> str:
     return node(p, 70, 70, 40, state, None, progress=0.6, seed=200 + NODE_STATES.index(state))
+
+
+DECAY_STEPS = (0.0, 0.3, 0.5, 0.75, 1.0)
+
+
+def node_decay(p: dict) -> str:
+    """Decay on a silver node: whole, hairline cracks, a chip, a fragment breaking off, crumbling."""
+    return "\n".join(node(p, 70 + i * 120, 70, 40, "silver", None, seed=31, decay=d) for i, d in enumerate(DECAY_STEPS))
 
 
 def twinkle_sprite(p: dict) -> str:
@@ -1446,10 +1625,13 @@ def branch_style() -> dict:
             **NODE_SPEC,
             "sparkle": {k: {"twinkles": [dict(angle=a, dist=d, size=s, rotate=r) for a, d, s, r in v["twinkles"]],
                             "dots": [dict(angle=a, dist=d, size=s) for a, d, s in v["dots"]],
-                            "rays": RAYS if v["rays"] else None} for k, v in SPARKLE.items()},
+                            "rays": RAYS if v["rays"] else None,
+                            "laurel": LAUREL if v.get("laurel") else None} for k, v in SPARKLE.items()},
             "twinkle": {"shape": "4-point star: tips at r on the axes, sides are quadratic curves with the control point at the centre",
                         "path_for_r1": twinkle_d(0, 0, 1, 0), "fill": "paper", "stroke": "ink", "stroke_width": "max(0.8, 0.11 * size)",
-                        "motion": "when motion is on: opacity 0.6-1 and scale 0.85-1.15 on a slow 1.6-2.4 s sine per twinkle, phases offset; static with reduceMotion or in mono"},
+                        "motion": "when motion is on (one shared ticker for the map): silver breathes (scale 1 +- 0.14, opacity 0.82-1, 2.4 s, phases offset) "
+                                  "with a flare every 6.5 s; gold breathes (scale 1 +- 0.18, opacity 0.75-1, 2.0 s) with a flare every 4.5 s; bronze's glint "
+                                  "rests and flares (scale to 1.45, a 34 deg turn) for 0.7 s every 5.2 s; static with reduceMotion or in mono"},
             "angles": "degrees, 0 = right, positive = clockwise on screen (SVG y down)",
         },
     }
@@ -1475,6 +1657,7 @@ def files() -> dict:
     f["node-states"] = (720, 140, node_states, "Skill node states")
     for st in NODE_STATES:
         f[f"node-{st}"] = (140, 140, (lambda q, st=st: node_single(q, st)), f"Skill node: {st}")
+    f["node-decay"] = (600, 140, node_decay, "Skill node decay: whole to crumbling")
     f["twinkle"] = (64, 64, twinkle_sprite, "Twinkle")
     for k in "abc":
         f[f"leaf-{k}"] = (128, 72, (lambda q, k=k: leaf_sprite(q, k)), f"Ash leaf {k}")
@@ -1598,7 +1781,7 @@ def render_sheet() -> None:
     if out.exists():
         out.unlink()
     subprocess.run([EDGE, "--headless=new", "--disable-gpu", "--hide-scrollbars", "--force-device-scale-factor=1",
-                    f"--user-data-dir={work / 'edgeprof'}", "--window-size=1600,2640", f"--screenshot={out}",
+                    f"--user-data-dir={work / 'edgeprof'}", "--window-size=1600,2980", f"--screenshot={out}",
                     "file:///" + str(page).replace("\\", "/")], capture_output=True)
     t0 = time.time()
     last = -1
@@ -1679,7 +1862,9 @@ figure{{margin:0}}
  <div style="width:700px">
   <figure class="card"><img src="{A}/node-states.svg" width="670"><div class="states">{states}</div>
    <img src="{A}/node-states-mono.svg" width="670" style="background:#fff;margin-top:6px"><div class="states">{states}</div>
-   <figcaption>node-states.svg: locked, available, in progress, bronze (one glint), silver (two twinkles), gold (four twinkles, rays, dots)</figcaption></figure>
+   <figcaption>node-states.svg: locked, available, in progress, bronze (copper, matte, one glint), silver (cool grey, shine, two twinkles), gold (warm yellow, rays, laurel, four twinkles)</figcaption>
+   <img src="{A}/node-decay.svg" width="560" style="margin-top:8px"><img src="{A}/node-decay-mono.svg" width="560" style="background:#fff;margin-top:4px">
+   <figcaption>node-decay.svg: decay cracks the stone (0, 0.3, 0.5, 0.75, 1): hairline cracks, a chip, a fragment breaking off, crumbling</figcaption></figure>
   <div class="row" style="margin-top:14px">
    <figure class="card"><div class="icons"><img src="{A}/node-gold.svg" width="48"><img src="{A}/node-silver.svg" width="48"><img src="{A}/node-bronze.svg" width="48"><img src="{A}/node-gold-mono.svg" width="48" style="background:#fff"><img src="{A}/node-silver-mono.svg" width="48" style="background:#fff"><img src="{A}/node-bronze-mono.svg" width="48" style="background:#fff"></div><figcaption>tiers at map size (48 px)</figcaption></figure>
    <figure class="card"><div class="icons"><img src="{A}/leaf-a.svg" width="128"><img src="{A}/leaf-b.svg" width="128"><img src="{A}/leaf-c.svg" width="128"><img src="{A}/twinkle.svg" width="48"></div>

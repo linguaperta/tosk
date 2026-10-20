@@ -17,9 +17,9 @@ abstract final class Tosk {
   static const barkDark = Color(0xFF5B4333);
   static const leaf = Color(0xFF7E9B5F);
   static const leafDark = Color(0xFF55733F);
-  static const gold = Color(0xFFD8B15C);
-  static const silver = Color(0xFFB9BDBD);
-  static const bronze = Color(0xFFB5713E);
+  static const gold = Color(0xFFE3B23C);
+  static const silver = Color(0xFFADB8C3);
+  static const bronze = Color(0xFF9C5A30);
 
   // Derived shades (not in the brand sheet; used for containers and the dark theme).
   static const paperLow = Color(0xFFF1E8D5);
