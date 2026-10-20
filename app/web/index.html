@@ -124,7 +124,20 @@
     // Screen" on iOS, or the install prompt on Android/desktop.
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
-        navigator.serviceWorker.register('sw.js').catch(function (e) { console.warn('[sw]', e); });
+        navigator.serviceWorker.register('sw.js').then(function () {
+          return navigator.serviceWorker.ready;
+        }).then(function (reg) {
+          // Hand the worker what this visit loaded before it took control
+          // (CanvasKit, fonts, ...), so the app also starts offline after a
+          // single visit. Again a little later for what loads after start-up.
+          function send() {
+            if (!reg.active) return;
+            var urls = performance.getEntriesByType('resource').map(function (e) { return e.name; });
+            reg.active.postMessage({ type: 'tosk-cache-urls', urls: [location.href].concat(urls) });
+          }
+          send();
+          setTimeout(send, 15000);
+        }).catch(function (e) { console.warn('[sw]', e); });
       });
     }
   </script>

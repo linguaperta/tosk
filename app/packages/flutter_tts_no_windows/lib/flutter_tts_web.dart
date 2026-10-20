@@ -34,7 +34,19 @@ class FlutterTtsPlugin {
     channel.setMethodCallHandler(instance.handleMethodCall);
   }
 
-  late final SpeechSynthesisUtterance utterance;
+  // tosk patch: a new utterance for every speak(), with the settings
+  // kept here. Upstream reused one utterance and only marked it stopped when
+  // the browser's (asynchronous) cancel event arrived, so a speak() right
+  // after stop() (a replay, the next exercise) was dropped and its awaited
+  // future never completed; a cancelled utterance's error also dropped the
+  // pending completer instead of completing it. Events of an utterance that
+  // is no longer the current one are ignored now.
+  SpeechSynthesisUtterance? _current;
+  SpeechSynthesisVoice? _voice;
+  String? _lang;
+  double _rate = 1.0;
+  double _volume = 1.0;
+  double _pitch = 1.0;
   List<SpeechSynthesisVoice> voices = [];
   List<String> languages = [];
   Timer? t;
@@ -42,22 +54,39 @@ class FlutterTtsPlugin {
 
   FlutterTtsPlugin() {
     try {
-      utterance = SpeechSynthesisUtterance();
-      _listeners();
+      SpeechSynthesisUtterance();
       supported = true;
     } catch (e) {
       print('Initialization of TTS failed. Functions are disabled. Error: $e');
     }
   }
 
-  void _listeners() {
+  /// Completes the awaited speak(), if any.
+  void _complete() {
+    final c = _speechCompleter;
+    _speechCompleter = null;
+    if (c != null && !c.isCompleted) c.complete();
+  }
+
+  SpeechSynthesisUtterance _newUtterance(String text) {
+    final utterance = SpeechSynthesisUtterance();
+    utterance.text = text;
+    if (_voice != null) utterance.voice = _voice;
+    if (_lang != null) utterance.lang = _lang!;
+    utterance.rate = _rate;
+    utterance.volume = _volume;
+    utterance.pitch = _pitch;
+    bool current() => identical(_current, utterance);
+
     utterance.onStart = (JSAny e) {
+      if (!current()) return;
       ttsState = TtsState.playing;
       channel.invokeMethod("speak.onStart", null);
       var bLocal = (utterance.voice?.isLocalService ?? false);
       if (!bLocal) {
+        t?.cancel();
         t = Timer.periodic(Duration(seconds: 14), (t) {
-          if (ttsState == TtsState.playing) {
+          if (current() && ttsState == TtsState.playing) {
             synth.pause();
             synth.resume();
           } else {
@@ -66,59 +95,59 @@ class FlutterTtsPlugin {
         });
       }
     }.toJS;
-    // js.JsFunction.withThis((e) {
-    //   ttsState = TtsState.playing;
-    //   channel.invokeMethod("speak.onStart", null);
-    // });
     utterance.onEnd = (JSAny e) {
+      if (!current()) return;
+      _current = null;
       ttsState = TtsState.stopped;
-      if (_speechCompleter != null) {
-        _speechCompleter?.complete();
-        _speechCompleter = null;
-      }
       t?.cancel();
+      _complete();
       channel.invokeMethod("speak.onComplete", null);
     }.toJS;
 
     utterance.onPause = (JSAny e) {
+      if (!current()) return;
       ttsState = TtsState.paused;
       channel.invokeMethod("speak.onPause", null);
     }.toJS;
 
     utterance.onResume = (JSAny e) {
+      if (!current()) return;
       ttsState = TtsState.continued;
       channel.invokeMethod("speak.onContinue", null);
     }.toJS;
 
     utterance.onError = (JSObject event) {
+      if (!current()) return;
+      _current = null;
       ttsState = TtsState.stopped;
-      if (_speechCompleter != null) {
-        _speechCompleter = null;
-      }
       t?.cancel();
-      print(event); // Log the entire event object to get more details
-      channel.invokeMethod("speak.onError", event["error"]);
+      _complete();
+      final error = event["error"];
+      channel.invokeMethod("speak.onError", error.isA<JSString>() ? (error as JSString).toDart : '$error');
     }.toJS;
 
     utterance.onBoundary = (JSObject event) {
-      int charIndex = event['charIndex'] as int;
-      String name = event['name'] as String;
-      if (name == 'sentence') return;
-      String text = utterance['text'] as String;
-      int endIndex = charIndex;
-      while (endIndex < text.length &&
-          !RegExp(r'[\s,.!?]').hasMatch(text[endIndex])) {
+      if (!current()) return;
+      final charIndex = event['charIndex'];
+      final name = event['name'];
+      if (!charIndex.isA<JSNumber>()) return;
+      if (name.isA<JSString>() && (name as JSString).toDart == 'sentence') return;
+      final start = (charIndex as JSNumber).toDartInt;
+      if (start > text.length) return;
+      int endIndex = start;
+      while (endIndex < text.length && !RegExp(r'[\s,.!?]').hasMatch(text[endIndex])) {
         endIndex++;
       }
-      String word = text.substring(charIndex, endIndex);
+      String word = text.substring(start, endIndex);
       Map<String, dynamic> progressArgs = {
         'text': text,
-        'start': charIndex,
+        'start': start,
         'end': endIndex,
         'word': word
       };
       channel.invokeMethod("speak.onProgress", progressArgs);
     }.toJS;
+    return utterance;
   }
 
   Future<dynamic> handleMethodCall(MethodCall call) async {
@@ -126,12 +155,15 @@ class FlutterTtsPlugin {
     switch (call.method) {
       case 'speak':
         final text = call.arguments as String?;
+        // tosk patch: a speak() still waiting is done (replaced).
+        _complete();
         if (awaitSpeakCompletion) {
           _speechCompleter = Completer();
         }
+        final future = _speechCompleter?.future;
         _speak(text);
         if (awaitSpeakCompletion) {
-          return _speechCompleter?.future;
+          return future;
         }
         break;
       case 'awaitSpeakCompletion':
@@ -179,21 +211,33 @@ class FlutterTtsPlugin {
   }
 
   void _speak(String? text) {
-    if (text == null || text.isEmpty) return;
-    if (ttsState == TtsState.stopped || ttsState == TtsState.paused) {
-      utterance.text = text;
-      if (ttsState == TtsState.paused) {
-        synth.resume();
-      } else {
-        synth.speak(utterance);
-      }
+    if (text == null || text.isEmpty) {
+      _complete();
+      return;
     }
+    if (ttsState == TtsState.paused && _current != null) {
+      synth.resume();
+      return;
+    }
+    // tosk patch: whatever is still speaking is cancelled first.
+    _cancelCurrent();
+    final utterance = _newUtterance(text);
+    _current = utterance;
+    ttsState = TtsState.playing;
+    synth.speak(utterance);
+  }
+
+  void _cancelCurrent() {
+    if (_current == null && ttsState == TtsState.stopped) return;
+    _current = null;
+    ttsState = TtsState.stopped;
+    t?.cancel();
+    synth.cancel();
   }
 
   void _stop() {
-    if (ttsState != TtsState.stopped) {
-      synth.cancel();
-    }
+    _cancelCurrent();
+    _complete();
   }
 
   void _pause() {
@@ -202,16 +246,16 @@ class FlutterTtsPlugin {
     }
   }
 
-  void _setRate(double rate) => utterance.rate = rate;
-  void _setVolume(double volume) => utterance.volume = volume;
-  void _setPitch(double pitch) => utterance.pitch = pitch;
+  void _setRate(double rate) => _rate = rate;
+  void _setVolume(double volume) => _volume = volume;
+  void _setPitch(double pitch) => _pitch = pitch;
   void _setLanguage(String language) {
     var targetList = synth.getVoices().toDart.where((e) {
       return e.lang.toLowerCase().startsWith(language.toLowerCase());
     });
     if (targetList.isNotEmpty) {
-      utterance.voice = targetList.first;
-      utterance.lang = targetList.first.lang;
+      _voice = targetList.first;
+      _lang = targetList.first.lang;
     }
   }
 
@@ -221,7 +265,8 @@ class FlutterTtsPlugin {
       return voice["name"] == e.name && voice["locale"] == e.lang;
     });
     if (targetList.isNotEmpty) {
-      utterance.voice = targetList.first;
+      _voice = targetList.first;
+      _lang = targetList.first.lang;
     }
   }
 

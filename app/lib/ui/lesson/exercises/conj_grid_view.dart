@@ -62,6 +62,8 @@ class _ConjGridViewState extends State<ConjGridView> with ExerciseKeysMixin<Conj
           });
       }
       _activeInput = _inputs.keys.firstOrNull;
+      final first = _activeInput;
+      if (first != null && !widget.locked) focusTypedAnswerSoon(this, _focus[first]!);
     }
   }
 

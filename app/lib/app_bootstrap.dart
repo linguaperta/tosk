@@ -69,7 +69,12 @@ Future<AppBoot> bootApp({
   FirebaseSyncConfig? syncConfig,
 }) async {
   final app = await openAppData(options: options);
-  if ((await app.availableCourses()).isNotEmpty) {
+  // From the web pack mirror (nothing bundled), no packs is the normal first
+  // visit: the learner downloads a course from the picker, so the real
+  // progress database is used from the start (the demo course only fills the
+  // map until then, unseeded); a separate demo database would lose the
+  // picked courses and the first answers at the next reload.
+  if (options.packsFromWebMirror || (await app.availableCourses()).isNotEmpty) {
     SyncSetup? sync;
     if (syncConfig != null) {
       try {

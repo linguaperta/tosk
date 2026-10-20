@@ -36,6 +36,7 @@ class AppDataOptions {
     this.appVersion,
     this.httpClient,
     this.packIndexUrl,
+    this.webPackMirror,
   });
 
   /// Base folder for `progress.sqlite` and `courses/` (native). Defaults to the
@@ -55,18 +56,46 @@ class AppDataOptions {
 
   /// Release index URL (default [kDefaultPackIndexUrl]).
   final Uri? packIndexUrl;
+
+  /// Courses come only from the web pack mirror, not from the app bundle
+  /// (null: [usesWebPackMirror] decides; tests set it).
+  final bool? webPackMirror;
+
+  /// Whether this start gets its courses from the web pack mirror; see
+  /// [usesWebPackMirror].
+  bool get packsFromWebMirror =>
+      webPackMirror ??
+      usesWebPackMirror(
+        web: kIsWeb,
+        bundledGiven: bundled != null,
+        downloads: appVersion != null,
+        webIndexPath: kWebPackIndexPath,
+      );
 }
 
+/// Whether a start reads its courses only from the same-origin web pack
+/// mirror: a web build with downloads, the mirror configured
+/// ([kWebPackIndexPath]) and no bundled packs passed in. Then the packs in
+/// the app bundle (`assets/courses/*.sqlite`, ~57 MB for three courses) are
+/// never fetched: the learner downloads the gzipped copy (~5 MB) of each
+/// course they pick. Without that, every first visit downloaded every
+/// bundled pack (and every start read them all again) just to list them.
+bool usesWebPackMirror({
+  required bool web,
+  required bool bundledGiven,
+  required bool downloads,
+  required String webIndexPath,
+}) => web && !bundledGiven && downloads && webIndexPath.isNotEmpty;
+
 Future<AppData> openAppData({AppDataOptions options = const AppDataOptions()}) async {
-  final String? base =
-      kIsWeb ? null : (options.dataDirectory ?? (await getApplicationSupportDirectory()).path);
+  final String? base = kIsWeb ? null : (options.dataDirectory ?? (await getApplicationSupportDirectory()).path);
   final scheduler = FsrsScheduler();
   final progress = ProgressRepo(
     await openProgressDb(name: options.progressDbName, directory: base),
     scheduler: scheduler,
   );
   final local = LocalPackSource(
-    bundled: options.bundled ?? AssetBundlePacks(),
+    bundled: options.bundled ?? (options.packsFromWebMirror ? const NoBundledPacks() : AssetBundlePacks()),
     store: platform.defaultPackFileStore(base),
     readMeta: platform.readPackMeta,
     onWarning: (m) => debugPrint('[packs] $m'),

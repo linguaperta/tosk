@@ -94,6 +94,37 @@ void main() {
     expect(await (await factory.lesson(course.skills.first.id)).next(), isNotNull);
   });
 
+  test('web pack mirror: no bundled pack is read; the real progress DB from the first visit', () async {
+    final dir = tempDir('tosk_boot_web_mirror');
+    final boot = await bootApp(options: AppDataOptions(dataDirectory: dir.path, webPackMirror: true));
+    addTearDown(boot.close);
+    // Nothing installed yet (the learner downloads from the picker), still
+    // the normal, unseeded progress database: picks and answers made before
+    // the next reload are kept.
+    expect(boot.demoMode, isFalse);
+    expect(await boot.app.availableCourses(), isEmpty);
+    expect(await boot.app.progress.logCount(), 0);
+    expect(File('${dir.path}/progress.sqlite').existsSync(), isTrue);
+    expect(File('${dir.path}/progress$demoProgressDbSuffix.sqlite').existsSync(), isFalse);
+    // The demo course fills the map until a pack is downloaded.
+    final container = ProviderContainer.test(overrides: boot.overrides);
+    expect((await container.read(availableCoursesProvider.future)).map((c) => c.id), ['it', 'nl']);
+    expect(container.read(courseCatalogProvider).isDemo('it'), isTrue);
+  });
+
+  test('the web pack mirror is used on web builds with downloads and no bundled packs passed in', () {
+    bool uses({bool web = true, bool bundledGiven = false, bool downloads = true, String path = 'packs/index.json'}) =>
+        usesWebPackMirror(web: web, bundledGiven: bundledGiven, downloads: downloads, webIndexPath: path);
+    expect(uses(), isTrue);
+    expect(uses(web: false), isFalse);
+    expect(uses(bundledGiven: true), isFalse);
+    expect(uses(downloads: false), isFalse, reason: 'no downloads: the bundled packs are all there is');
+    expect(uses(path: ''), isFalse, reason: 'TOSK_WEB_PACK_INDEX empty: the releases index');
+    // Off the web the option is false unless a test sets it.
+    expect(const AppDataOptions(appVersion: '1.0.0').packsFromWebMirror, isFalse);
+    expect(const AppDataOptions(webPackMirror: true).packsFromWebMirror, isTrue);
+  });
+
   test('bundled packs: pack mode on the normal progress DB, used automatically', () async {
     final dir = tempDir('tosk_boot_packs');
     final boot = await bootApp(options: AppDataOptions(dataDirectory: dir.path, bundled: fixtureBundledPacks()));
@@ -139,7 +170,9 @@ void main() {
   testWidgets('the app boots on openAppData against a temp dir and shows the map', (tester) async {
     final dir = tempDir('tosk_boot_ui');
     final boot = (await tester.runAsync(
-      () => bootApp(options: AppDataOptions(dataDirectory: dir.path, bundled: fixtureBundledPacks())),
+      () => bootApp(
+        options: AppDataOptions(dataDirectory: dir.path, bundled: fixtureBundledPacks()),
+      ),
     ))!;
     setSurface(tester, const Size(420, 900));
     await tester.pumpWidget(
@@ -154,7 +187,11 @@ void main() {
       ),
     );
     final node = find.byKey(const ValueKey('skill-node-greetings'));
-    for (var i = 0; i < 100 && (node.evaluate().isEmpty || find.byKey(const ValueKey('map-header')).evaluate().isEmpty); i++) {
+    for (
+      var i = 0;
+      i < 100 && (node.evaluate().isEmpty || find.byKey(const ValueKey('map-header')).evaluate().isEmpty);
+      i++
+    ) {
       await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
       await tester.pump();
     }
