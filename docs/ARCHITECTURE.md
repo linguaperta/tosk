@@ -1,7 +1,7 @@
 # Architecture and contracts
 
 This file holds the decisions every part of the codebase depends on. `docs/SPEC.md` is the product spec, and `BACKLOG.md` tracks the work.
-Change a contract here first, then in code.
+Change a contract here first, then in code. The pack format as a standalone spec for pack makers (source layout, ids, facets, compiled pack, catalogs, versioning, validator rules) is `docs/pack-format.md`; keep the two in step.
 
 ## Repositories
 

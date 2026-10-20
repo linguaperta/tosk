@@ -38,6 +38,18 @@ python -m pipeline import hns                # -> <main checkout>/local/content/
 python -m pipeline build hns --local [--desktop]   # -> local/dist/hns.sqlite (+ copy into the desktop app)
 ```
 
+The **pack toolkit** (`pack`, console script of this package, `pipeline/cli.py`; the format is
+specified in `docs/pack-format.md`) works on a pack directory anywhere on disk:
+
+```sh
+pack new eo my-course --title "Esperanto" --author "Ada"   # a starter that validates (pipeline/pack_template/)
+pack validate my-course                                     # validator, exit 1 with the errors
+pack build my-course -o eo.sqlite [--report]                # validate + compile
+pack info eo.sqlite [--json]                                # meta, licence, authors, counts
+pack index eo.sqlite --base-url https://example.org/packs   # index.json catalog for self-hosting
+pack publish it nl --dry-run                                # wraps `publish` below; --yes to really publish
+```
+
 Sarnami (`hns`) content is copyrighted and lives only in the git-ignored `local/` folder of the main
 checkout; the pipeline refuses to write it anywhere else (`pipeline/hns/safeguard.py`) and refuses
 `--install`. Details, sources and verification: `docs/sarnami.md`.

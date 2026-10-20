@@ -2,6 +2,7 @@
 temp dir, the catalog, publish's explicit flags, and the packaging of the console script. Offline;
 nothing is ever published."""
 import json
+import re
 import sqlite3
 import tomllib
 from pathlib import Path, PurePosixPath
@@ -164,6 +165,16 @@ def test_publish_dry_run_only_prints(scaffolded, tmp_path, capsys):
 def test_publish_refuses_restricted_courses(capsys):
     assert cli.main(["publish", "hns", "--dry-run"]) == 2
     assert "restricted" in capsys.readouterr().err
+
+
+def test_spec_worked_example_is_the_template(tmp_path):
+    """docs/pack-format.md section 18 shows `pack new xx --title "Demo course" --author Ada` verbatim."""
+    doc = (PIPELINE_DIR.parent / "docs" / "pack-format.md").read_text(encoding="utf-8")
+    blocks = dict(re.findall(r"<!-- example: (\S+) -->\n[^\n]*\n\n```[a-z]*\n(.*?)```\n", doc, re.S))
+    d = tmp_path / "xx"
+    cli.scaffold("xx", d, "Demo course", "Ada")
+    files = {p.relative_to(d).as_posix(): p.read_text(encoding="utf-8") for p in d.rglob("*") if p.is_file()}
+    assert blocks == files
 
 
 def test_console_script_and_template_are_packaged():
