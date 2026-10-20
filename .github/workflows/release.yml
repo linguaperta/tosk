@@ -1,0 +1,185 @@
+# Release builds on version tags (v*), or by hand:
+#
+# * Android: one APK per ABI, signed with the upload key when the ANDROID_*
+#   secrets exist (else the debug key, like a local build without
+#   key.properties), plus a release-build smoke test on an emulator: install,
+#   launch, fail if the app dies on start (the 0.5.0 crash only showed in
+#   release builds).
+# * Windows: the Release folder as a zip.
+# * iOS: an unsigned IPA for AltStore / SideStore (they re-sign it with your
+#   Apple ID).
+#
+# Firebase sync is compiled in when the FIREBASE_CONFIG_JSON secret exists.
+# Everything is uploaded as workflow artifacts; nothing is published.
+name: Release builds
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  FLUTTER_VERSION: '3.47.7'
+  APP_ID: io.github.timoverlaan.tosk
+
+jobs:
+  android:
+    name: Android APKs (per ABI)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: Signing (optional)
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ] && [ -n "$STORE_PASSWORD" ] && [ -n "$KEY_ALIAS" ]; then
+            printf '%s' "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/upload.jks"
+            {
+              echo "storeFile=$RUNNER_TEMP/upload.jks"
+              echo "storePassword=$STORE_PASSWORD"
+              echo "keyAlias=$KEY_ALIAS"
+              echo "keyPassword=${KEY_PASSWORD:-$STORE_PASSWORD}"
+            } > android/key.properties
+            echo "Signing with the upload key."
+          else
+            echo "::warning::No ANDROID_* signing secrets: the APKs are signed with the debug key (fine for testing, not for updating an installed release)."
+          fi
+      - name: Firebase config (optional)
+        env:
+          FIREBASE_CONFIG_JSON: ${{ secrets.FIREBASE_CONFIG_JSON }}
+        run: |
+          if [ -n "$FIREBASE_CONFIG_JSON" ]; then
+            printf '%s' "$FIREBASE_CONFIG_JSON" > firebase-config.json
+            echo "DEFINES=--dart-define-from-file=firebase-config.json" >> "$GITHUB_ENV"
+          else
+            echo "DEFINES=" >> "$GITHUB_ENV"
+          fi
+      - name: Build
+        run: |
+          flutter pub get
+          flutter build apk --release --split-per-abi $DEFINES
+          rm -f firebase-config.json android/key.properties
+          ls -l build/app/outputs/flutter-apk/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-apks
+          path: app/build/app/outputs/flutter-apk/app-*-release.apk
+          if-no-files-found: error
+
+  android-smoke:
+    name: Release smoke test (emulator)
+    needs: android
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/scripts
+      - uses: actions/download-artifact@v4
+        with:
+          name: android-apks
+          path: apks
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Install and launch the release APK
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          # The runner executes each line on its own, so the checks live in one script.
+          script: bash .github/scripts/android-smoke.sh apks/app-x86_64-release.apk ${{ env.APP_ID }}
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-logcat
+          path: logcat.txt
+          if-no-files-found: ignore
+
+  windows:
+    name: Windows
+    runs-on: windows-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: app
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter build windows --release
+      - name: Zip
+        shell: pwsh
+        run: Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath tosk-windows-x64.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: app/tosk-windows-x64.zip
+          if-no-files-found: error
+
+  ios:
+    name: iOS (unsigned IPA for AltStore/SideStore)
+    runs-on: macos-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: Firebase config (optional)
+        env:
+          FIREBASE_CONFIG_JSON: ${{ secrets.FIREBASE_CONFIG_JSON }}
+        run: |
+          if [ -n "$FIREBASE_CONFIG_JSON" ]; then
+            printf '%s' "$FIREBASE_CONFIG_JSON" > firebase-config.json
+            echo "DEFINES=--dart-define-from-file=firebase-config.json" >> "$GITHUB_ENV"
+          else
+            echo "DEFINES=" >> "$GITHUB_ENV"
+          fi
+      - name: Build (no code signing)
+        run: |
+          flutter pub get
+          flutter build ios --release --no-codesign $DEFINES
+          rm -f firebase-config.json
+          mkdir -p Payload
+          cp -R build/ios/iphoneos/Runner.app Payload/
+          zip -qr tosk-unsigned.ipa Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios-unsigned-ipa
+          path: app/tosk-unsigned.ipa
+          if-no-files-found: error

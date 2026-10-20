@@ -1,4 +1,4 @@
-"""CLI: python -m pipeline {fetch,import,build,validate,gen,flags,publish} ..."""
+"""CLI: python -m pipeline {fetch,import,build,validate,gen,flags,publish,mirror} ..."""
 from __future__ import annotations
 
 import argparse
@@ -54,7 +54,13 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--dry-run", action="store_true", help="write dist/index.json and print the gh commands only")
     p.add_argument("--min-app-version", help="oldest app version that can use these packs (default 0.3.0)")
     p.add_argument("--repo", help="GitHub repository (default timoverlaan/tosk-data)")
+    p.add_argument("--gz", action="store_true",
+                   help="also write <id>.sqlite.gz for the web app and add web_url/gz_sha256/gz_size to the index")
     p.add_argument("--content-root")
+
+    p = sub.add_parser("mirror", help="web pack mirror: gzipped packs + index.json (GitHub Pages workflow)")
+    p.add_argument("--out", required=True, help="output folder, e.g. site/packs")
+    p.add_argument("--index", help="release index URL or local index.json (default: the stable latest URL)")
 
     p = sub.add_parser("flags", help="triage exercise flags exported from the app")
     fsub = p.add_subparsers(dest="flags_cmd", required=True)
@@ -110,7 +116,11 @@ def _run(a) -> int:
         from . import publish as pub
         return pub.publish(a.langs, tag=a.tag, dry_run=a.dry_run, content_root=a.content_root,
                            repo=a.repo or pub.DATA_REPO_SLUG,
-                           min_app_version=a.min_app_version or pub.DEFAULT_MIN_APP_VERSION)
+                           min_app_version=a.min_app_version or pub.DEFAULT_MIN_APP_VERSION, gz=a.gz)
+    if a.cmd == "mirror":
+        from .webpacks import STABLE_INDEX_URL, mirror
+        mirror(a.out, a.index or STABLE_INDEX_URL)
+        return 0
     if a.cmd == "flags":
         from .flags import main_summarize
         return main_summarize(a.files, a.course, a.verdict, a.json)

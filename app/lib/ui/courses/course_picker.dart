@@ -10,6 +10,7 @@
 /// pack), or replaces an installed one with a newer file; progress is kept.
 library;
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -528,7 +529,7 @@ class _DownloadControls extends StatelessWidget {
           onPressed: onDownload,
           icon: Icon(update ? Icons.upgrade : Icons.download),
           label: Text(
-            update ? 'Update to v${r.version} (${formatMegabytes(r.size)})' : 'Download (${formatMegabytes(r.size)})',
+            update ? 'Update to v${r.version} (${formatMegabytes(r.downloadSize(web: kIsWeb))})' : 'Download (${formatMegabytes(r.downloadSize(web: kIsWeb))})',
           ),
         ),
       ),

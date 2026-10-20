@@ -30,6 +30,9 @@ class RemotePack {
     this.sources = const [],
     this.unverified = false,
     this.minAppVersion = '0.0.0',
+    this.webUrl,
+    this.gzSha256,
+    this.gzSize,
   });
 
   factory RemotePack.fromJson(Map<String, dynamic> j) {
@@ -54,6 +57,9 @@ class RemotePack {
       sha256: sha.toLowerCase(),
       size: size,
       url: url,
+      webUrl: j['web_url'] is String ? j['web_url'] as String : null,
+      gzSha256: j['gz_sha256'] is String ? (j['gz_sha256'] as String).toLowerCase() : null,
+      gzSize: j['gz_size'] is int ? j['gz_size'] as int : null,
     );
   }
 
@@ -74,7 +80,42 @@ class RemotePack {
   final String minAppVersion;
   final String sha256;
   final int size;
+
+  /// The pack itself (GitHub Releases); absolute, or relative to the index URL.
   final String url;
+
+  /// v0.7, optional: a gzipped copy for the web app (the GitHub Pages pack
+  /// mirror), with the checksum and size of the `.gz` file; [sha256] and
+  /// [size] stay those of the uncompressed pack. Absolute or relative to the
+  /// index URL. Older apps ignore these fields.
+  final String? webUrl;
+  final String? gzSha256;
+  final int? gzSize;
+
+  /// The gzipped copy can be used (all three fields present).
+  bool get hasWebPack => webUrl != null && gzSha256 != null && gzSize != null;
+
+  /// Bytes a download transfers: the `.gz` where the web copy is used.
+  int downloadSize({required bool web}) => web && hasWebPack ? gzSize! : size;
+
+  /// This entry with [url] and [webUrl] resolved against [base] (the URL the index came from).
+  RemotePack resolvedAgainst(Uri base) => RemotePack(
+    id: id,
+    version: version,
+    title: title,
+    description: description,
+    target: target,
+    sources: sources,
+    unverified: unverified,
+    schemaVersion: schemaVersion,
+    minAppVersion: minAppVersion,
+    sha256: sha256,
+    size: size,
+    url: base.resolve(url).toString(),
+    webUrl: webUrl == null ? null : base.resolve(webUrl!).toString(),
+    gzSha256: gzSha256,
+    gzSize: gzSize,
+  );
 
   int get schemaMajor => int.tryParse(schemaVersion.split('.').first) ?? -1;
 
@@ -91,6 +132,9 @@ class RemotePack {
     'sha256': sha256,
     'size': size,
     'url': url,
+    'web_url': ?webUrl,
+    'gz_sha256': ?gzSha256,
+    'gz_size': ?gzSize,
   };
 }
 
@@ -134,6 +178,14 @@ class RemoteIndex {
   final String? tag;
 
   RemotePack? operator [](String id) => courses.where((c) => c.id == id).firstOrNull;
+
+  /// Every course's URLs resolved against [base] (where the index was fetched).
+  RemoteIndex resolvedAgainst(Uri base) => RemoteIndex(
+    courses: [for (final c in courses) c.resolvedAgainst(base)],
+    indexVersion: indexVersion,
+    generatedAt: generatedAt,
+    tag: tag,
+  );
 
   String toJsonString() => jsonEncode({
     'index_version': indexVersion,

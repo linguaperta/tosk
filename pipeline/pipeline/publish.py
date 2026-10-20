@@ -43,8 +43,8 @@ def stable_index_url(repo: str = DATA_REPO_SLUG) -> str:
     return f"https://github.com/{repo}/releases/latest/download/index.json"
 
 
-def asset_url(tag: str, course_id: str, repo: str = DATA_REPO_SLUG) -> str:
-    return f"https://github.com/{repo}/releases/download/{tag}/{course_id}.sqlite"
+def asset_url(tag: str, course_id: str, repo: str = DATA_REPO_SLUG, suffix: str = ".sqlite") -> str:
+    return f"https://github.com/{repo}/releases/download/{tag}/{course_id}{suffix}"
 
 
 def default_tag(now: datetime | None = None) -> str:
@@ -74,7 +74,7 @@ def _json(meta: dict[str, str], key: str, default):
 
 
 def index_entry(path: Path, tag: str, repo: str = DATA_REPO_SLUG,
-                min_app_version: str = DEFAULT_MIN_APP_VERSION) -> dict:
+                min_app_version: str = DEFAULT_MIN_APP_VERSION, gz: bool = False) -> dict:
     """One course of the release index, read from the compiled pack itself."""
     path = Path(path)
     meta = read_pack_meta(path)
@@ -104,18 +104,24 @@ def index_entry(path: Path, tag: str, repo: str = DATA_REPO_SLUG,
         entry["license"] = meta["license"]
     if meta.get("authors"):
         entry["authors"] = _json(meta, "authors", [])
+    if gz:
+        # Web fields (docs/release.md, "Web packs"): a gzipped copy next to the pack.
+        from .webpacks import gzip_pack, web_fields
+        gz_path = gzip_pack(path, path.with_name(path.name + ".gz"))
+        entry.update(web_fields(gz_path, asset_url(tag, cid, repo, ".sqlite.gz")))
     return entry
 
 
 def build_index(dist: Path, langs, tag: str, repo: str = DATA_REPO_SLUG,
-                min_app_version: str = DEFAULT_MIN_APP_VERSION, generated_at: str | None = None) -> dict:
+                min_app_version: str = DEFAULT_MIN_APP_VERSION, generated_at: str | None = None,
+                gz: bool = False) -> dict:
     _refuse_restricted(langs)
     courses = []
     for code in sorted(set(langs)):
         path = Path(dist) / f"{code}.sqlite"
         if not path.exists():
             raise FileNotFoundError(f"{path} not found: run `python -m pipeline build {code}` first")
-        courses.append(index_entry(path, tag, repo, min_app_version))
+        courses.append(index_entry(path, tag, repo, min_app_version, gz=gz))
     return {
         "index_version": INDEX_VERSION,
         "generated_at": generated_at or datetime.now(timezone.utc).replace(microsecond=0)
@@ -142,7 +148,9 @@ def release_notes(doc: dict) -> str:
 def gh_commands(dist: Path, doc: dict, repo: str = DATA_REPO_SLUG) -> list[list[str]]:
     """The commands that publish [doc]: an auth check, then one release with every asset."""
     tag = doc["tag"]
-    assets = [str(Path(dist) / f"{c['id']}.sqlite") for c in doc["courses"]] + [str(Path(dist) / "index.json")]
+    assets = [str(Path(dist) / f"{c['id']}.sqlite") for c in doc["courses"]]
+    assets += [str(Path(dist) / f"{c['id']}.sqlite.gz") for c in doc["courses"] if c.get("web_url")]
+    assets.append(str(Path(dist) / "index.json"))
     return [
         ["gh", "auth", "status"],
         ["gh", "release", "create", tag, *assets, "--repo", repo, "--title", f"Course packs {tag}",
@@ -152,11 +160,11 @@ def gh_commands(dist: Path, doc: dict, repo: str = DATA_REPO_SLUG) -> list[list[
 
 def publish(langs, tag: str | None = None, dry_run: bool = False, content_root=None,
             repo: str = DATA_REPO_SLUG, min_app_version: str = DEFAULT_MIN_APP_VERSION,
-            run: Callable[..., subprocess.CompletedProcess] = subprocess.run) -> int:
+            run: Callable[..., subprocess.CompletedProcess] = subprocess.run, gz: bool = False) -> int:
     _refuse_restricted(langs)
     dist = content_dir(content_root).parent / "dist"
     tag = tag or default_tag()
-    doc = build_index(dist, langs, tag, repo, min_app_version)
+    doc = build_index(dist, langs, tag, repo, min_app_version, gz=gz)
     idx = write_index(dist, doc)
     print(f"wrote {idx} ({len(doc['courses'])} courses, tag {tag})", file=sys.stderr)
     for c in doc["courses"]:

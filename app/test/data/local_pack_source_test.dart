@@ -180,6 +180,5 @@ void main() {
     expect((await app.openCourse('it')).version, '0.2.0');
     final stats = await app.stats.forCourse(c1);
     expect(stats.length, 5);
-    expect((await app.syncNow()).pushed, 0); // NullSyncBackend
   });
 }

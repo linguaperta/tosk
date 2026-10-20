@@ -207,3 +207,6 @@ class _NativeStaging implements PackStaging {
     if (backup.existsSync()) await backup.delete();
   }
 }
+
+/// Only the web has a page URL.
+Uri? pageBaseUri() => null;

@@ -151,7 +151,7 @@ class CourseUpdates extends Notifier<CourseUpdatesState> {
     final pack = state.index?[id];
     if (remote == null || pack == null || (state.downloads[id]?.running ?? false)) return null;
     final cancel = DownloadCancel();
-    _setDownload(id, CourseDownload(received: 0, total: pack.size, cancel: cancel));
+    _setDownload(id, CourseDownload(received: 0, total: pack.downloadSize(web: kIsWeb), cancel: cancel));
     var lastPercent = -1;
     try {
       void progress(int got, int total) {
@@ -177,7 +177,7 @@ class CourseUpdates extends Notifier<CourseUpdatesState> {
           id,
           CourseDownload(
             received: 0,
-            total: pack.size,
+            total: pack.downloadSize(web: kIsWeb),
             error: e is PackDownloadException ? e.message : "The download didn't work. Try again later.",
           ),
         );

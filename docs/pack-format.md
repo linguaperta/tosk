@@ -504,7 +504,7 @@ A catalog lists downloadable packs. Anyone can host one: a static `index.json` n
 | `index_version` | yes | integer, 1. An app refuses a higher version ("needs a newer app") |
 | `generated_at`, `tag` | no | informational |
 | `courses[].id` | yes | course id; at most once per catalog |
-| `courses[].url` | yes | absolute `https://` URL of the `.sqlite` (redirects are followed); see section 19 for relative URLs |
+| `courses[].url` | yes | URL of the `.sqlite` (redirects are followed): absolute `https://`, or relative to the catalog's own URL (apps from 0.7) |
 | `courses[].sha256` | yes | lower-case hex SHA-256 of the file |
 | `courses[].size` | yes | integer byte size |
 | `courses[].version` | SHOULD | `meta.version` (default `0.0.0`) |
@@ -512,6 +512,10 @@ A catalog lists downloadable packs. Anyone can host one: a static `index.json` n
 | `courses[].min_app_version` | SHOULD | `meta.min_app_version`, else the publisher's default (official: `0.3.0`) |
 | `courses[].title`, `description`, `target`, `sources` (= `meta.translations`), `unverified` | SHOULD | shown before download |
 | `courses[].license`, `authors` | no | credits (ignored by apps before v0.8) |
+| `courses[].web_url` | no | a gzipped copy of the pack (`gzip -9`) for web apps, absolute or relative to the catalog URL. Web apps from 0.7 download it instead of `url` (it is served same-origin from the GitHub Pages mirror, which avoids CORS) and decompress it; native apps and older apps ignore it |
+| `courses[].gz_sha256`, `gz_size` | with `web_url` | SHA-256 and byte size of the `.gz` file; `sha256` and `size` stay those of the uncompressed `.sqlite`, which is checked after decompressing |
+
+The web fields are written by `pack index --gz`, `pack publish --gz` (and `python -m pipeline publish --gz`), and by `python -m pipeline mirror --out <dir>`, which builds the GitHub Pages mirror from a release (`<id>.sqlite.gz` next to an `index.json` with relative `web_url`s).
 
 The app checks size and checksum while downloading, then validates the file's meta (course id, version, schema major) before replacing an installed pack. Unknown fields are ignored. `pack index` writes a catalog for packs you host (section 17).
 
@@ -859,7 +863,7 @@ Current behaviour that is accidental or inconsistent. The rule stated in this do
 3. **The default attribution names tosk-data and CC BY-SA 4.0** for any pack without `attribution` or credits (`compile.attribution_text`). Intended: generated from the pack's credits only; packs without credits get "no licence declared". (Packs that declare credits already get a generic text.)
 4. **The official packs declare no `license`/`authors`/`data_sources`** (it, nl, es: licence only in the attribution text and ATTRIBUTION.md). They should add them to `course.yaml` in tosk-data.
 5. **`build` writes a different `dist/index.json`** (`build.write_index`: `schema_version` as an integer, a `note`, relative `url`s, no `index_version`) than `publish` (section 14), into the same file, merging into whatever is there; the tosk-data `dist/index.json` currently mixes both shapes. An app cannot read the build variant. Intended: `build` writes no catalog (or a valid one); only `publish`/`pack index` write catalogs.
-6. **Relative `url`s in catalogs** are not resolved by the app (`Uri.parse(pack.url)`). Intended: a relative `url` is resolved against the catalog's own URL, so a folder with `index.json` and the packs can be hosted anywhere.
+6. ~~**Relative `url`s in catalogs** are not resolved by the app.~~ Fixed in app 0.7: `url` and `web_url` resolve against the catalog's own URL (older apps still need absolute URLs).
 7. **Course id = target is not enforced** (neither schema nor validator compares `id` and `target`), while language rules are looked up by **course id** (`lang.get_lang(course["id"])`, `tokenize(text, code)`) and the app's language features by `target`. Intended: the validator enforces `id == target` in format 1.0, and the pipeline looks language rules up by `target` (needed for extension packs, section 20).
 8. **`facet: article` / `facet: infl` are allowed on vocab skills** (schema and validator only require `items`). Intended: they need `kind: grammar`.
 9. **`exercises:` in course.yaml cannot list `listen_pick`** (the schema enum predates v0.5), although the app accepts it.

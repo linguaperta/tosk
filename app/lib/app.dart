@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'providers.dart';
+import 'sync/sync_providers.dart';
 import 'ui/router.dart';
 
 /// Root widget: Material 3 theme from the active skin, light/dark/system mode,
@@ -15,6 +16,8 @@ class ToskApp extends ConsumerWidget {
     final mode = ref.watch(themeModeProvider);
     final reduceMotion = ref.watch(reduceMotionProvider);
     final router = ref.watch(routerProvider);
+    // Keeps sync's refresh wiring alive (no rebuilds; null without sync).
+    ref.listen(syncStatusProvider, (_, _) {});
 
     var light = skin.theme(Brightness.light);
     var dark = skin.theme(Brightness.dark);

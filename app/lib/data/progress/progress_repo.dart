@@ -16,12 +16,17 @@ import '../sync/progress_backup.dart' show SettingsLister;
 import 'event_importer.dart';
 import 'progress_db.dart';
 import 'replay.dart';
+import 'sequenced_log.dart';
 
-class ProgressRepo implements ProgressStore, EventImporter, SettingsLister {
+class ProgressRepo implements ProgressStore, EventImporter, SettingsLister, SequencedLog {
   ProgressRepo(this.db, {Scheduler? scheduler}) : scheduler = scheduler ?? FsrsScheduler();
 
   final ProgressDb db;
   final Scheduler scheduler;
+
+  /// Notified after [record] stores a new event and after [setSetting]
+  /// (cloud sync notes UTC offsets and setting change times this way).
+  final ProgressListeners listeners = ProgressListeners();
 
   /// SQLite has a bound-variable limit; `IN (...)` lists are chunked below it.
   static const int _chunk = 500;
@@ -31,14 +36,16 @@ class ProgressRepo implements ProgressStore, EventImporter, SettingsLister {
   // ------------------------------------------------------------------ record
 
   @override
-  Future<FacetState> record(ReviewEvent event) {
+  Future<FacetState> record(ReviewEvent event) async {
     final e = normalizeEvent(event);
-    return db.transaction(() async {
+    var fresh = false;
+    final result = await db.transaction(() async {
       final log = db.reviewLogEntries;
       final dup = await (db.select(log)..where((t) => t.id.equals(e.id))).getSingleOrNull();
       if (dup != null) {
         return (await state(e.facetId)) ?? (await _replayFacet(e.facetId))!;
       }
+      fresh = true;
       final latest = await (db.select(log)
             ..where((t) => t.facetId.equals(e.facetId))
             ..orderBy([(t) => OrderingTerm.desc(t.at), (t) => OrderingTerm.desc(t.id)])
@@ -57,6 +64,36 @@ class ProgressRepo implements ProgressStore, EventImporter, SettingsLister {
       }
       return (await _replayFacet(e.facetId))!;
     });
+    if (fresh) listeners.recorded(e);
+    return result;
+  }
+
+  // ------------------------------------------------------------------ sequence
+
+  @override
+  Future<List<(int, ReviewEvent)>> eventsAfter(int after, {int limit = 500}) async {
+    final rows = await db
+        .customSelect(
+          'SELECT rowid AS seq, * FROM review_log WHERE rowid > ? ORDER BY rowid LIMIT ?',
+          variables: [Variable.withInt(after), Variable.withInt(limit)],
+          readsFrom: {db.reviewLogEntries},
+        )
+        .get();
+    return [
+      for (final r in rows) (r.read<int>('seq'), rowToEvent(db.reviewLogEntries.map(r.data))),
+    ];
+  }
+
+  @override
+  Future<int> countAfter(int after) async {
+    final row = await db
+        .customSelect(
+          'SELECT COUNT(*) AS n FROM review_log WHERE rowid > ?',
+          variables: [Variable.withInt(after)],
+          readsFrom: {db.reviewLogEntries},
+        )
+        .getSingle();
+    return row.read<int>('n');
   }
 
   /// Merges [events] (sync pull, file import): inserts ids not yet present and
@@ -249,6 +286,7 @@ class ProgressRepo implements ProgressStore, EventImporter, SettingsLister {
     } else {
       await db.into(db.settings).insertOnConflictUpdate(SettingRow(key: key, value: value));
     }
+    listeners.settingChanged(key, value);
   }
 }
 

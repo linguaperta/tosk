@@ -13,7 +13,7 @@
 /// 5. `{"kind":"bookmark","course":…,"k":…,"id":…,"at":…,…}` per bookmark
 ///    (v0.4; tombstones included, see `core/models/bookmark.dart`).
 ///
-/// A plain review-log file (the `FileExportSyncBackend` format, no header)
+/// A plain review-log file (`encodeReviewLogJsonl`, no header)
 /// imports too. Unknown `kind`s are skipped, so later versions can add
 /// sections.
 ///

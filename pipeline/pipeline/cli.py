@@ -242,7 +242,7 @@ def cmd_info(a) -> int:
 
 # ----------------------------------------------------------------------------------------- index
 def build_catalog(files: list[str | Path], base_url: str, tag: str | None = None,
-                  min_app_version: str | None = None) -> dict:
+                  min_app_version: str | None = None, gz: bool = False) -> dict:
     """index.json (index_version 1) for packs hosted at `base_url` + '/' + file name."""
     from . import publish as pub
     from datetime import datetime, timezone
@@ -251,6 +251,11 @@ def build_catalog(files: list[str | Path], base_url: str, tag: str | None = None
         p = Path(f)
         e = pub.index_entry(p, tag or "", min_app_version=min_app_version or pub.DEFAULT_MIN_APP_VERSION)
         e["url"] = base_url.rstrip("/") + "/" + p.name
+        if gz:
+            # Web copy (section 14): <id>.sqlite.gz next to the pack.
+            from .webpacks import gzip_pack, web_fields
+            g = gzip_pack(p, p.with_name(p.name + ".gz"))
+            e.update(web_fields(g, base_url.rstrip("/") + "/" + g.name))
         courses.append(e)
     ids = [c["id"] for c in courses]
     dup = sorted({x for x in ids if ids.count(x) > 1})
@@ -266,7 +271,7 @@ def build_catalog(files: list[str | Path], base_url: str, tag: str | None = None
 
 def cmd_index(a) -> int:
     try:
-        doc = build_catalog(a.files, a.base_url, a.tag, a.min_app_version)
+        doc = build_catalog(a.files, a.base_url, a.tag, a.min_app_version, gz=a.gz)
     except (FileNotFoundError, ValueError) as e:
         _err(str(e))
         return 1
@@ -285,7 +290,7 @@ def cmd_publish(a) -> int:
     from . import publish as pub
     return pub.publish(a.ids, tag=a.tag, dry_run=a.dry_run, content_root=a.content_root,
                        repo=a.repo or pub.DATA_REPO_SLUG,
-                       min_app_version=a.min_app_version or pub.DEFAULT_MIN_APP_VERSION)
+                       min_app_version=a.min_app_version or pub.DEFAULT_MIN_APP_VERSION, gz=a.gz)
 
 
 # ------------------------------------------------------------------------------------------ main
@@ -330,6 +335,8 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("-o", "--out", default="index.json")
     p.add_argument("--tag", help="optional release tag recorded in the index")
     p.add_argument("--min-app-version", help="default min_app_version for packs that don't set one")
+    p.add_argument("--gz", action="store_true",
+                   help="also write <id>.sqlite.gz next to each pack and add web_url/gz_sha256/gz_size")
     p.set_defaults(fn=cmd_index)
 
     p = sub.add_parser("publish", help="the official GitHub Release of built packs (tosk-data)")
@@ -341,6 +348,8 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--repo", help="GitHub repository (default timoverlaan/tosk-data)")
     p.add_argument("--min-app-version", help="oldest app version that can use these packs (default 0.3.0)")
     p.add_argument("--content-root", help="the content/ folder whose sibling dist/ holds the packs")
+    p.add_argument("--gz", action="store_true",
+                   help="also upload <id>.sqlite.gz for web apps and add web_url/gz_sha256/gz_size")
     p.set_defaults(fn=cmd_publish)
     return ap
 

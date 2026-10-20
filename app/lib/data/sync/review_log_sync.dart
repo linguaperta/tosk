@@ -1,4 +1,5 @@
-/// Review-log export/import (JSON lines) and a file-based [SyncBackend]. Pure Dart.
+/// Review-log JSON lines: the event codec shared by the backup file
+/// (`progress_backup.dart`) and cloud sync batches (`lib/sync/`). Pure Dart.
 ///
 /// The file format is one JSON object per line, sorted by `(at, id)`:
 /// `{"id":"…","facet":"it:mangiare#rec","at":1767254400000,"rating":3,
@@ -9,7 +10,6 @@ library;
 import 'dart:convert';
 
 import '../../core/core.dart';
-import '../progress/event_importer.dart';
 import '../progress/replay.dart';
 
 export '../progress/event_importer.dart';
@@ -67,64 +67,4 @@ List<ReviewEvent> decodeReviewLogJsonl(String text) {
     }
   }
   return out;
-}
-
-/// A [SyncBackend] over one JSON-lines file (desktop/web export and import).
-/// The caller supplies the file I/O, so this works with `dart:io`, a save
-/// dialog, or a browser download alike.
-class FileExportSyncBackend implements SyncBackend {
-  FileExportSyncBackend({required this.read, required this.write});
-
-  /// Returns the file contents, or null if the file doesn't exist yet.
-  final Future<String?> Function() read;
-  final Future<void> Function(String contents) write;
-
-  @override
-  String get id => 'file';
-  @override
-  bool get isConfigured => true;
-
-  @override
-  Future<void> push(List<ReviewEvent> events) async {
-    final existing = await _readAll();
-    await write(encodeReviewLogJsonl([...existing, ...events]));
-  }
-
-  @override
-  Future<List<ReviewEvent>> pull({DateTime? since}) async {
-    final all = await _readAll();
-    if (since == null) return all;
-    final ms = since.millisecondsSinceEpoch;
-    return [for (final e in all) if (e.at.millisecondsSinceEpoch >= ms) e];
-  }
-
-  Future<List<ReviewEvent>> _readAll() async {
-    final text = await read();
-    return text == null ? const [] : decodeReviewLogJsonl(text);
-  }
-}
-
-/// Result of [syncReviewLog].
-class SyncReport {
-  const SyncReport({required this.pulled, required this.imported, required this.pushed});
-  final int pulled; // events received from the backend
-  final int imported; // of those, new to this device
-  final int pushed; // events sent
-  @override
-  String toString() => 'SyncReport(pulled=$pulled, imported=$imported, pushed=$pushed)';
-}
-
-/// Two-way sync: pull remote events and merge them (union by id, affected
-/// facets replayed), then push the full local log.
-Future<SyncReport> syncReviewLog({
-  required SyncBackend backend,
-  required ProgressStore store,
-  required EventImporter importer,
-}) async {
-  if (!backend.isConfigured) return const SyncReport(pulled: 0, imported: 0, pushed: 0);
-  final remote = await backend.pull();
-  final imported = await importer.importEvents(remote);
-  final local = await store.log();
-  await backend.push(local);
-  return SyncReport(pulled: remote.length, imported: imported, pushed: local.length);
 }

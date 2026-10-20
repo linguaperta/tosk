@@ -8,11 +8,15 @@ import '../fsrs/fsrs_scheduler.dart';
 import '../sync/progress_backup.dart' show SettingsLister;
 import 'event_importer.dart';
 import 'replay.dart';
+import 'sequenced_log.dart';
 
-class InMemoryProgressStore implements ProgressStore, EventImporter, SettingsLister {
+class InMemoryProgressStore implements ProgressStore, EventImporter, SettingsLister, SequencedLog {
   InMemoryProgressStore({Scheduler? scheduler}) : scheduler = scheduler ?? FsrsScheduler();
 
   final Scheduler scheduler;
+
+  /// Same notifications as `ProgressRepo.listeners`.
+  final ProgressListeners listeners = ProgressListeners();
 
   final Map<String, ReviewEvent> _events = {}; // id -> event
   final Map<String, List<ReviewEvent>> _byFacet = {}; // kept in (at, id) order
@@ -21,7 +25,27 @@ class InMemoryProgressStore implements ProgressStore, EventImporter, SettingsLis
   final Map<String, String> _settings = {};
 
   @override
-  Future<FacetState> record(ReviewEvent event) async => _record(normalizeEvent(event));
+  Future<FacetState> record(ReviewEvent event) async {
+    final e = normalizeEvent(event);
+    final fresh = !_events.containsKey(e.id);
+    final s = _record(e);
+    if (fresh) listeners.recorded(e);
+    return s;
+  }
+
+  /// Insertion order (the map keeps it): position i+1 is the i-th event inserted.
+  @override
+  Future<List<(int, ReviewEvent)>> eventsAfter(int after, {int limit = 500}) async {
+    final all = _events.values.toList();
+    final out = <(int, ReviewEvent)>[];
+    for (var i = after; i < all.length && out.length < limit; i++) {
+      out.add((i + 1, all[i]));
+    }
+    return out;
+  }
+
+  @override
+  Future<int> countAfter(int after) async => (_events.length - after).clamp(0, 1 << 62);
 
   FacetState _record(ReviewEvent e) {
     if (_events.containsKey(e.id)) {
@@ -150,5 +174,6 @@ class InMemoryProgressStore implements ProgressStore, EventImporter, SettingsLis
     } else {
       _settings[key] = value;
     }
+    listeners.settingChanged(key, value);
   }
 }
