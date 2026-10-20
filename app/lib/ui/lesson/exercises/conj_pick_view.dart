@@ -161,21 +161,15 @@ class _ConjPickViewState extends State<ConjPickView> with ExerciseKeysMixin<Conj
               onSubmitted: widget.onCheck,
             )
           else
-            Wrap(
-              alignment: WrapAlignment.center,
-              spacing: 10,
-              runSpacing: 10,
-              children: [
+            ChoiceGrid(
+              options: [
                 for (var i = 0; i < e.endings.length; i++)
-                  SizedBox(
-                    width: 120,
-                    child: OptionButton(
-                      key: ValueKey('ending-$i'),
-                      number: i + 1,
-                      label: endingLabel(e.endings[i]),
-                      state: choiceState(index: i, selected: sel, correctIndex: e.correctIndex, result: widget.result),
-                      onTap: widget.locked ? null : () => _select(i),
-                    ),
+                  ChoiceOption(
+                    key: ValueKey('ending-$i'),
+                    number: i + 1,
+                    label: endingLabel(e.endings[i]),
+                    state: choiceState(index: i, selected: sel, correctIndex: e.correctIndex, result: widget.result),
+                    onTap: widget.locked ? null : () => _select(i),
                   ),
               ],
             ),

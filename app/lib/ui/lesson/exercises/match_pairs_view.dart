@@ -109,21 +109,15 @@ class _MatchPairsViewState extends State<MatchPairsView> {
     return OptionState.idle;
   }
 
-  Widget _column(MatchSide side, List<String> labels) => Column(
-    children: [
-      for (var i = 0; i < labels.length; i++)
-        Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: OptionButton(
-            key: ValueKey('match-${side.name}-$i'),
-            label: labels[i],
-            center: true,
-            state: _state(side, i),
-            onTap: () => _tap(side, i),
-          ),
-        ),
-    ],
-  );
+  List<ChoiceOption> _cards(MatchSide side, List<String> labels) => [
+    for (var i = 0; i < labels.length; i++)
+      ChoiceOption(
+        key: ValueKey('match-${side.name}-$i'),
+        label: labels[i],
+        state: _state(side, i),
+        onTap: () => _tap(side, i),
+      ),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -136,14 +130,16 @@ class _MatchPairsViewState extends State<MatchPairsView> {
       controls: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: _column(MatchSide.left, e.left)),
-              const SizedBox(width: 10),
-              Expanded(child: _column(MatchSide.right, e.right)),
-            ],
+          // Two columns (left words, right words) of equal cards: every card
+          // as tall as the tallest, so the rows line up. A word too long for
+          // half the width even at 75 % stacks the columns (left words first).
+          ChoiceGrid(
+            keepColumns: true,
+            columnMajor: true,
+            center: true,
+            options: [..._cards(MatchSide.left, e.left), ..._cards(MatchSide.right, e.right)],
           ),
+          const SizedBox(height: 10),
           // After checking: which pairs were mixed up (both words, ✗).
           if (widget.locked && wrong.isNotEmpty)
             Padding(

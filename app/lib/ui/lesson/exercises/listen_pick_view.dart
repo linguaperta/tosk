@@ -143,25 +143,35 @@ class _ListenPickViewState extends State<ListenPickView> with ExerciseKeysMixin<
       controls: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          for (var i = 0; i < e.options.length; i++)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: OptionButton(
-                key: ValueKey('option-$i'),
-                number: i + 1,
-                label: e.options[i],
-                labelWidget: tappableAnswer && i == e.correctIndex
-                    ? TappableSentence(
-                        key: const ValueKey('listen-answer-sentence'),
-                        tokens: tokens,
-                        style: optionLook(context, OptionState.correct, base: theme.textTheme.titleMedium).style,
-                      )
-                    : null,
-                large: true,
-                state: choiceState(index: i, selected: _selected, correctIndex: e.correctIndex, result: widget.result),
-                onTap: widget.locked ? null : () => _select(i),
-              ),
-            ),
+          // A list, as multiple choice: tiles keep their own height.
+          ChoiceGrid(
+            maxColumns: 1,
+            uniformHeight: false,
+            large: true,
+            options: [
+              for (var i = 0; i < e.options.length; i++)
+                ChoiceOption(
+                  key: ValueKey('option-$i'),
+                  number: i + 1,
+                  label: e.options[i],
+                  labelWidget: tappableAnswer && i == e.correctIndex
+                      ? TappableSentence(
+                          key: const ValueKey('listen-answer-sentence'),
+                          tokens: tokens,
+                          style: optionLook(context, OptionState.correct, base: theme.textTheme.titleMedium).style,
+                        )
+                      : null,
+                  state: choiceState(
+                    index: i,
+                    selected: _selected,
+                    correctIndex: e.correctIndex,
+                    result: widget.result,
+                  ),
+                  onTap: widget.locked ? null : () => _select(i),
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
         ],
       ),
     );
