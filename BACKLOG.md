@@ -202,8 +202,17 @@ Each one at the expanded it/nl scale: 8–10 units, ~30 skills, ~1000 taught wor
 
 - [x] **Listening exercises are silent on the phone** (no audio from listen_pick or pronounce buttons). Investigate: TTS engine availability and language on the device (FP5, Android 15), the flutter_tts init, the audio focus/stream, the `<queries>` TTS_SERVICE entry, and the voice check. Deferred by the user to save tokens
 - [x] All app audio (TTS, correct/wrong/fanfare sounds) on the **media** stream (`USAGE_MEDIA`, controlled by the media volume like YouTube/music apps), not the general/notification stream as now. Set the audio attributes for the sound player and flutter_tts (Android `AudioAttributes`, iOS playback category). Check it together with the silent-TTS bug above; the wrong stream may be part of the cause
-- [ ] Confirm the audio fix on the phone (v0.6.2): likely cause was an Italian voice listed but not installed, swallowed by flutter_tts; now only installed voices count, a one-time "install a voice" notice, media stream, plugin patches. `adb logcat -s flutter TTS` shows `[tts]` lines
+- [x] Confirm the audio fix on the phone (v0.6.2): confirmed by the owner on 0.7.0: likely cause was an Italian voice listed but not installed, swallowed by flutter_tts; now only installed voices count, a one-time "install a voice" notice, media stream, plugin patches. `adb logcat -s flutter TTS` shows `[tts]` lines
 - [x] "Can't listen now (skip for 1 hour)" button on listening exercises: snoozes listen_pick (skipped in running sessions, not generated in new ones); in memory, so a restart ends it
+
+## v0.7.1: user testing (20 October)
+
+- [~] Wrong answers come back at the end of the lesson until right (capped); in non-stop they return after a few exercises
+- [~] Partial errors in sentence answers: token-level diff highlighting (wrong/missing/extra words) and per-facet credit instead of marking the whole sentence wrong
+- [~] Bronze, silver and gold clearly distinct (colour and shape); bronze looked like gold
+- [~] Decay drawn as a cracked, crumbling medal (map, skill sheet, summary)
+- [~] Promotion at the end of a lesson: the new medal with animated sparkles; map medals twinkle (motion on only)
+- [~] Map leaves sway with a little spring physics when scrolling (motion on only)
 
 ## Branding: tosk (decided 14 October)
 
