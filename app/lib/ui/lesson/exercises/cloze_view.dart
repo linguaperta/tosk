@@ -170,26 +170,20 @@ class _ClozeViewState extends State<ClozeView> with ExerciseKeysMixin<ClozeView>
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (options != null)
-            Wrap(
-              alignment: WrapAlignment.center,
-              spacing: 10,
-              runSpacing: 10,
-              children: [
+            ChoiceGrid(
+              options: [
                 for (var i = 0; i < options.length; i++)
-                  SizedBox(
-                    width: 140,
-                    child: OptionButton(
-                      key: ValueKey('cloze-option-$i'),
-                      number: i + 1,
-                      label: options[i],
-                      state: choiceState(
-                        index: i,
-                        selected: _selected,
-                        correctIndex: e.correctIndex ?? -1,
-                        result: result,
-                      ),
-                      onTap: widget.locked ? null : () => _select(i),
+                  ChoiceOption(
+                    key: ValueKey('cloze-option-$i'),
+                    number: i + 1,
+                    label: options[i],
+                    state: choiceState(
+                      index: i,
+                      selected: _selected,
+                      correctIndex: e.correctIndex ?? -1,
+                      result: result,
                     ),
+                    onTap: widget.locked ? null : () => _select(i),
                   ),
               ],
             )

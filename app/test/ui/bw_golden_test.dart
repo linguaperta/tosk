@@ -82,6 +82,9 @@ void main() {
     ExerciseType.conjGrid,
     ExerciseType.sentenceBuilder,
     ExerciseType.spotError,
+    // The option grid (ChoiceGrid): equal 2 x 2 tiles over the full width.
+    ExerciseType.cloze,
+    ExerciseType.conjPick,
   ]) {
     testWidgets('${type.id}: question and wrong answer', (tester) async {
       await pumpApp(

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/core.dart';
 import '../../theme/bw_skin.dart';
 
+export 'choice_grid.dart' show ChoiceGrid, ChoiceOption;
 export 'exercise_layout.dart' show ExerciseLayout;
 
 /// Shortcut presses forwarded from the player to the current exercise widget
@@ -237,6 +238,10 @@ IconData? markIcon(OptionState s) => switch (s) {
 }
 
 /// A tappable answer option with an optional shortcut number.
+///
+/// Options usually sit in a `ChoiceGrid`, which sizes them (equal tiles) and
+/// picks [textScale] so no word breaks; the layout constants below are what
+/// it measures against.
 class OptionButton extends StatelessWidget {
   const OptionButton({
     super.key,
@@ -247,9 +252,32 @@ class OptionButton extends StatelessWidget {
     this.large = false,
     this.center = false,
     this.labelWidget,
+    this.textScale = 1,
   });
 
+  /// Horizontal padding on each side of the content.
+  static const double hPadding = 12;
+
+  /// The number badge and the gap after it.
+  static const double badgeSize = 22, badgeGap = 10;
+
+  /// The black & white ✓ / ✗ mark and the gap before it.
+  static const double markSize = 22, markGap = 6;
+
+  /// Minimum height: a comfortable tap target.
+  static const double minHeight = 48;
+
+  /// The label's base text style (before the state's color and weight).
+  static TextStyle? baseStyle(BuildContext context, {bool large = false}) {
+    final text = Theme.of(context).textTheme;
+    return large ? text.titleMedium : text.bodyLarge;
+  }
+
   final String label;
+
+  /// Multiplies the label's font size (a `ChoiceGrid` shrinks every label of
+  /// a grid a little so its longest word fits on one line).
+  final double textScale;
 
   /// Replaces the label text (e.g. a sentence with tappable words); [label]
   /// still names the option for semantics.
@@ -263,8 +291,11 @@ class OptionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
-    final look = optionLook(context, state, base: large ? text.titleMedium : text.bodyLarge);
+    final look = optionLook(context, state, base: baseStyle(context, large: large));
     final (bg, border, fg) = (look.bg, look.border, look.fg);
+    final labelStyle = textScale == 1
+        ? look.style
+        : look.style.copyWith(fontSize: (look.style.fontSize ?? 14) * textScale);
     final mark = FeedbackColors.of(context).mono ? markIcon(state) : null;
     return Semantics(
       button: true,
@@ -286,14 +317,14 @@ class OptionButton extends StatelessWidget {
           onTap: onTap,
           child: Container(
             // At least 48 px tall: a comfortable tap target.
-            constraints: const BoxConstraints(minHeight: 48),
-            padding: EdgeInsets.symmetric(horizontal: 12, vertical: large ? 14 : 10),
+            constraints: const BoxConstraints(minHeight: minHeight),
+            padding: EdgeInsets.symmetric(horizontal: hPadding, vertical: large ? 14 : 10),
             child: Row(
               children: [
                 if (number != null) ...[
                   Container(
-                    width: 22,
-                    height: 22,
+                    width: badgeSize,
+                    height: badgeSize,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       border: Border.all(color: border),
@@ -301,14 +332,14 @@ class OptionButton extends StatelessWidget {
                     ),
                     child: Text('$number', style: text.labelSmall?.copyWith(color: fg)),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: badgeGap),
                 ],
                 Expanded(
                   child:
                       labelWidget ??
-                      Text(label, textAlign: center ? TextAlign.center : TextAlign.start, style: look.style),
+                      Text(label, textAlign: center ? TextAlign.center : TextAlign.start, style: labelStyle),
                 ),
-                if (mark != null) ...[const SizedBox(width: 6), Icon(mark, size: 22, color: fg)],
+                if (mark != null) ...[const SizedBox(width: markGap), Icon(mark, size: markSize, color: fg)],
               ],
             ),
           ),
