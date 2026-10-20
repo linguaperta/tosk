@@ -33,7 +33,9 @@ jobs:
           cache: true
       - run: flutter pub get
       - run: flutter analyze
-      - run: flutter test -j 4
+      # Real-font tests read Roboto from the SDK's material_fonts artifact.
+      - run: flutter precache --universal
+      - run: flutter test -j 4 --exclude-tags golden
       - name: Local packages
         run: |
           for pkg in packages/*/; do

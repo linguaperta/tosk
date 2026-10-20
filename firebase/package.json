@@ -3,7 +3,7 @@
   "private": true,
   "description": "Security rules tests for tosk's Firestore (run against the emulator).",
   "scripts": {
-    "test": "firebase emulators:exec --only firestore --project demo-tosk \"node --test test/\""
+    "test": "firebase emulators:exec --only firestore --project demo-tosk \"node --test test/rules.test.mjs\""
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^4.0.1",

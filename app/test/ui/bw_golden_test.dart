@@ -3,6 +3,11 @@
 // boxes), which keeps them stable across machines; layout, borders, marks and
 // patterns are what they guard. Update with:
 //   flutter test --update-goldens test/ui/bw_golden_test.dart
+// Pixel goldens are rendered on Windows; other platforms rasterise slightly differently,
+// so CI (Linux) skips them with --exclude-tags golden.
+@Tags(['golden'])
+library;
+
 import 'package:tosk/ai/ai_config.dart';
 import 'package:tosk/core/core.dart';
 import 'package:tosk/providers.dart';

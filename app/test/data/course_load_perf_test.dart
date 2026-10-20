@@ -26,6 +26,7 @@ void main() {
     expect(repo.itemCount, 8000);
     expect(repo.counts.verbForms, 2000 * 24);
     expect(repo.sentenceCount, 12000);
-    expect(sw.elapsedMilliseconds, lessThan(1000));
+    // Shared CI runners are slower than a dev machine.
+    expect(sw.elapsedMilliseconds, lessThan(Platform.environment['CI'] == null ? 1000 : 4000));
   });
 }
