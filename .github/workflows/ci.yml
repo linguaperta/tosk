@@ -37,7 +37,7 @@ jobs:
       - name: Local packages
         run: |
           for pkg in packages/*/; do
-            (cd "$pkg" && flutter pub get >/dev/null && flutter analyze && flutter test)
+            (cd "$pkg" && flutter pub get >/dev/null && flutter analyze && { [ ! -d test ] || flutter test; })
           done
 
   pipeline:
