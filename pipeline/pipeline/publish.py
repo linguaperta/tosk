@@ -99,6 +99,11 @@ def index_entry(path: Path, tag: str, repo: str = DATA_REPO_SLUG,
         "size": path.stat().st_size,
         "url": asset_url(tag, cid, repo),
     }
+    # optional credits (pack format 1.0, credits.py); apps ignore fields they don't know
+    if meta.get("license"):
+        entry["license"] = meta["license"]
+    if meta.get("authors"):
+        entry["authors"] = _json(meta, "authors", [])
     return entry
 
 

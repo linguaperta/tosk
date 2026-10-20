@@ -315,5 +315,15 @@ def validate(pack: Pack, check_notes: bool = True) -> list[str]:
 
     # ---- graded stories (stories.py)
     from .stories import validate_stories
+    if pack.stories:
+        from .lang import get_lang
+        try:
+            get_lang(code)
+        except KeyError:
+            # stories are aligned at build time with the pipeline's tokenizer and aligner, which
+            # exist only for some languages (docs/pack-format.md, "Generic and language-specific")
+            errors.append(f"{code}: stories/ needs the pipeline's language rules (tokenizer, aligner), "
+                          f"which do not exist for {code!r}; remove the stories or add the language")
+            return errors
     errors += validate_stories(pack)
     return errors

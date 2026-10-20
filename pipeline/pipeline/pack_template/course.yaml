@@ -1,0 +1,93 @@
+# Course definition of the pack '{{code}}' (pack format 1.0, docs/pack-format.md in the tosk repo).
+#
+# `pack new` wrote this starter. The words, verbs and sentences are EXAMPLE CONTENT in a made-up
+# language, only there so that the pack validates and builds and shows every part of the format:
+# replace them with your own (keep the structure, or delete what you don't need).
+#
+#   pack validate .            check the source
+#   pack build . -o {{code}}.sqlite
+#   pack info {{code}}.sqlite
+id: {{code}}
+version: 0.1.0
+title: {en: {{title}}}
+description: {en: "A new course. Describe it here."}
+target: {{code}}
+translations: [en]            # the learner's languages: every taught word needs a gloss in each
+note_langs: [en]              # every grammar skill needs a note in each (grammar/{skill}.md = en)
+unverified: true              # set to false once a speaker has checked the content
+
+# Credits (shown with the course). license is an SPDX identifier of the content licence.
+license: CC-BY-SA-4.0
+authors:
+  - {name: {{author}}, role: author}
+data_sources:
+  - {title: "Written by the course authors", license: CC-BY-SA-4.0}
+
+# Verb grammar of the language: person keys (display order) and tense keys.
+persons: [mi, tu, li, nos, vos, los]
+person_labels:
+  mi: {en: "mi (I)"}
+  tu: {en: "tu (you)"}
+  li: {en: "li (he/she)"}
+  nos: {en: "nos (we)"}
+  vos: {en: "vos (you, plural)"}
+  los: {en: "los (they)"}
+tenses: [present, past]
+tense_labels:
+  present: {en: present}
+  past: {en: past}
+articles: [le, la]            # options of the article exercise (each noun's `article` is one of them)
+
+# Inflection tables of non-verbs: here the plural of nouns (lexicon `infl.number`).
+inflection_tables:
+  number:
+    title: {en: singular and plural}
+    pos: [noun]
+    cells: [sg, pl]
+    base: sg
+    labels:
+      sg: {en: singular}
+      pl: {en: plural}
+
+# Grammar gating: what a sentence may use from the start. Every other feature is introduced by a
+# skill (a `verbs` skill introduces tense:{its tense} by itself).
+base_features: ["tense:present"]
+
+units:
+  - id: u1
+    title: {en: Basics}
+    skills:
+      - id: basics
+        kind: vocab
+        title: {en: Basics}
+        icon: wave
+        items: {tags: [basics]}
+      - id: present
+        kind: grammar
+        title: {en: Present tense}
+        icon: verb
+        requires: [basics]
+        verbs: {tense: present, min: 2}
+  - id: u2
+    title: {en: Things}
+    skills:
+      - id: things
+        kind: vocab
+        title: {en: Things}
+        icon: home
+        requires: [basics]
+        items: {tags: [things], min: 3}
+        inflections: {table: number}
+      - id: articles
+        kind: grammar
+        title: {en: The article}
+        icon: article
+        requires: [things]
+        facet: article
+        items: {tags: [things], min: 3}
+      - id: past
+        kind: grammar
+        title: {en: Past tense}
+        icon: past
+        requires: [present]
+        verbs: {tense: past, min: 2}

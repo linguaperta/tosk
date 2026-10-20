@@ -54,6 +54,10 @@ CREATE TABLE meta (
 --   time_adverbs     JSON {adverb: [tense, ...]}: time adverbs (one or more words) and the tenses they fit,
 --                    e.g. {"ieri":["passato_prossimo","imperfetto"]}; the app never rewrites a sentence
 --                    containing one into another tense (transform exercise)
+--   license          licence of the content, SPDX id ('CC-BY-SA-4.0'); absent = not declared
+--   authors          JSON [{"name": ..., "role"?, "url"?, "email"?}]
+--   data_sources     JSON [{"title": ..., "id"?, "author"?, "url"?, "license"?, "note"?}]
+--                    (credits from course.yaml; informational, no schema_minor bump; docs/pack-format.md)
 
 CREATE TABLE units (
   id     TEXT PRIMARY KEY,           -- 'u1'
