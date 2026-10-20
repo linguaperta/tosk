@@ -154,7 +154,7 @@ Resume by asking Claude to continue these. Worktrees live under `.claude/worktre
 - `agent-a3b91cacf2e5268e6`: v0.7 Firebase sync, Hosting, CI, PWA (was writing the sync interfaces, models and progress repo)
 - `agent-aee040951f04bbd11`: v0.6 Spanish pilot (content largely done and pushed to tosk-data `content/es`; was running the Flutter tests)
 - [x] v0.5.3: fixed the Android start-up crash in 0.5.0–0.5.2 (WorkManager 2.7.0 + Room 2.2.5 from ML Kit/Onyx → pinned work-runtime 2.11.2). Crash reporter on next start; Onyx SDK lazy with a native-crash guard
-- [ ] Map: the floating "Review mistakes" / "What's fading" buttons cover skill nodes on phones (move into the header or a bottom bar)
+- [x] Map: the floating "Review mistakes" / "What's fading" buttons cover skill nodes on phones → `MapActionBar` under the map (v0.6.2)
 - [ ] Add a release-build smoke test to CI/checks: install and launch the release APK on an emulator or device (the 0.5.0 crash only showed in release builds on a real device)
 - [x] v0.5 handwriting (ML Kit + Onyx pen SDK), e-ink full refresh, listen_pick, pronunciation buttons; preview 5 (v0.5.0). Needs on-device testing: see `docs/device-testing.md`
 
@@ -174,10 +174,11 @@ Resume by asking Claude to continue these. Worktrees live under `.claude/worktre
 - [-] Google Drive sync: skipped for now (user, 14 October); backup export/import covers it
 - [x] Inflection tables for any POS + `#infl:` facets: plurals, adjective agreement, possessives, split separable verbs
 
-- [ ] Bookmarks: star words, sentences or exercises; "Starred" practice session
+- [x] Bookmarks: star words, sentences or exercises; "Starred" practice session (progress DB v3; in the backup) (v0.6.2)
 - [x] Graded mini-stories per unit (it 18, nl 16; Practice → Stories + book button on unit bands) (pipeline-generated with only known vocab and grammar), with tap-for-translation and comprehension questions
-- [ ] Pronunciation button (on-device TTS); review forecast and stats (accuracy per type and tense)
-- [ ] AI conversation practice limited to unlocked grammar and vocab (needs an API key)
+- [x] Pronunciation button (v0.5); review forecast (14/30 days) and stats (accuracy per type, facet kind and tense) (v0.6.2)
+- [x] AI conversation practice limited to unlocked grammar and vocab (Practice → Chat, only with a key) (v0.6.2)
+- [ ] Chat: gloss words outside the pack; check the chat input with the keyboard open on a device
 - [x] Schema: generalize `verb_forms` into inflection tables for any POS, with a declension facet kind (unlocks German and Slavic noun/adjective cases)
 - [-] Optional on-the-fly AI sentences in the lab ("more like this"), clearly labelled as unvalidated
 
@@ -197,8 +198,9 @@ Each one at the expanded it/nl scale: 8–10 units, ~30 skills, ~1000 taught wor
 
 ## v0.6.x: user testing (15 October)
 
-- [ ] **Listening exercises are silent on the phone** (no audio from listen_pick or pronounce buttons). Investigate: TTS engine availability and language on the device (FP5, Android 15), the flutter_tts init, the audio focus/stream, the `<queries>` TTS_SERVICE entry, and the voice check. Deferred by the user to save tokens
-- [ ] All app audio (TTS, correct/wrong/fanfare sounds) on the **media** stream (`USAGE_MEDIA`, controlled by the media volume like YouTube/music apps), not the general/notification stream as now. Set the audio attributes for the sound player and flutter_tts (Android `AudioAttributes`, iOS playback category). Check it together with the silent-TTS bug above; the wrong stream may be part of the cause
+- [x] **Listening exercises are silent on the phone** (no audio from listen_pick or pronounce buttons). Investigate: TTS engine availability and language on the device (FP5, Android 15), the flutter_tts init, the audio focus/stream, the `<queries>` TTS_SERVICE entry, and the voice check. Deferred by the user to save tokens
+- [x] All app audio (TTS, correct/wrong/fanfare sounds) on the **media** stream (`USAGE_MEDIA`, controlled by the media volume like YouTube/music apps), not the general/notification stream as now. Set the audio attributes for the sound player and flutter_tts (Android `AudioAttributes`, iOS playback category). Check it together with the silent-TTS bug above; the wrong stream may be part of the cause
+- [ ] Confirm the audio fix on the phone (v0.6.2): likely cause was an Italian voice listed but not installed, swallowed by flutter_tts; now only installed voices count, a one-time "install a voice" notice, media stream, plugin patches. `adb logcat -s flutter TTS` shows `[tts]` lines
 - [x] "Can't listen now (skip for 1 hour)" button on listening exercises: snoozes listen_pick (skipped in running sessions, not generated in new ones); in memory, so a restart ends it
 
 ## Branding: tosk (decided 14 October)
