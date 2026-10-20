@@ -117,7 +117,7 @@ class CourseStats {
 }
 
 /// English labels of the exercise types (the UI is English).
-String exerciseTypeLabel(ExerciseType t) => switch (t) {
+String accuracyTypeLabel(ExerciseType t) => switch (t) {
   ExerciseType.flashcard => 'Flashcards',
   ExerciseType.multipleChoice => 'Multiple choice',
   ExerciseType.matchPairs => 'Match the pairs',
@@ -249,7 +249,7 @@ CourseStats computeCourseStats({
   final meta = course.meta;
   final typeRows = [
     for (final t in ExerciseType.values)
-      if (byType[t] case (final ok, final n)) AccuracyRow(key: t.id, label: exerciseTypeLabel(t), correct: ok, total: n),
+      if (byType[t] case (final ok, final n)) AccuracyRow(key: t.id, label: accuracyTypeLabel(t), correct: ok, total: n),
   ];
   final kindRows = [
     for (final k in FacetKind.values)

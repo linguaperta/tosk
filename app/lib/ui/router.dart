@@ -4,6 +4,9 @@ import 'package:go_router/go_router.dart';
 
 import '../core/core.dart';
 import '../providers.dart';
+import 'bookmarks/bookmarks_ui.dart';
+import 'bookmarks/starred_screen.dart';
+import 'chat/chat_screen.dart';
 import 'debug/debug_route.dart';
 import 'feedback/flags_screen.dart';
 import 'lesson/player_screen.dart';
@@ -80,6 +83,7 @@ GoRouter buildRouter({String initialLocation = Routes.map}) {
                 routes: [
                   GoRoute(path: 'verbs', builder: (_, _) => const VerbCollectionScreen()),
                   GoRoute(path: 'stats', builder: (_, _) => const StatsScreen()),
+                  GoRoute(path: 'starred', builder: (_, _) => const StarredScreen()),
                 ],
               ),
             ],
@@ -132,6 +136,23 @@ GoRouter buildRouter({String initialLocation = Routes.map}) {
           builder: (context, ref, _) =>
               PlayerScreen(request: ToughWordsRequest(minLapses: ref.read(settingsProvider).value?.leechLapses ?? 4)),
         ),
+      ),
+      GoRoute(
+        path: Routes.starredPlay,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (_, _) => Consumer(
+          builder: (context, ref, _) => PlayerScreen(
+            request: StarredRequest(
+              () async => starredPracticeOf(await ref.read(bookmarksProvider.future)),
+              length: kStarredSessionLength,
+            ),
+          ),
+        ),
+      ),
+      GoRoute(
+        path: '/chat/:id',
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (_, state) => ChatScreen(conversationId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/story/:storyId',

@@ -39,15 +39,15 @@ abstract final class Routes {
   static const stats = '/progress/stats';
 
   /// Starred words, sentences and exercises of the active course.
-  static const starred = '/starred';
+  static const starred = '/progress/starred';
 
   /// "Practice starred".
   static const starredPlay = '/play/starred';
 
-  /// AI conversation practice inside the practice tab (only with AI configured).
+  /// AI conversation practice: the Practice tab (only with AI configured).
   static const chats = '/practice?tab=chat';
 
-  /// One AI conversation (opens over anything, full screen).
+  /// One AI conversation (full screen, over the shell).
   static String chat(String conversationId) => '/chat/${Uri.encodeComponent(conversationId)}';
   static const debug = '/debug';
 

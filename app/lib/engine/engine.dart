@@ -19,6 +19,7 @@ export 'session/starred.dart';
 export 'special_letters.dart';
 export 'strings.dart';
 export 'template.dart';
+export 'word_lookup.dart';
 export 'templates/alterations.dart';
 export 'templates/templates.dart';
 export 'text/normalize.dart';
