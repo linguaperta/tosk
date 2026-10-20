@@ -58,7 +58,7 @@ import re
 from collections import defaultdict
 
 from .inflect import InflectionAligner
-from .lang import Lang
+from .lang import IT_BETWEEN_AUX_PART, Lang  # noqa: F401  (IT_BETWEEN_AUX_PART: re-exported)
 
 ELISION_IT = {
     "l'": ["la", "lo", "il"], "c'": ["ci"], "m'": ["mi"], "t'": ["ti"], "s'": ["si"], "v'": ["vi"],
@@ -72,19 +72,9 @@ ELISION_IT = {
 CLITIC_NL = {"'t": ["het"], "'k": ["ik"], "'n": ["een"], "m'n": ["mijn"], "z'n": ["zijn"], "d'r": ["haar"],
              "'m": ["hem"], "'r": ["haar"]}
 OBJECT_CLITICS_IT = {"lo", "la", "li", "le", "l'", "ne"}
-# Italian words that may stand between an auxiliary and its participle ('ho già mangiato', 'non
-# sono mai stato', 'abbiamo tutti capito'); any other word in between ends the search, so a noun
-# or adjective is never taken for a participle ('Sono sicura del suo successo', 'Non siete
-# coraggiosi come sembrate').
-IT_BETWEEN_AUX_PART = {
-    "già", "mai", "appena", "ancora", "sempre", "più", "anche", "ben", "bene", "molto", "tanto", "poco",
-    "spesso", "davvero", "proprio", "forse", "solo", "soltanto", "subito", "finalmente", "tutto", "tutti",
-    "tutte", "quasi", "veramente", "certo", "certamente", "sicuramente", "probabilmente", "ormai", "pure",
-    "mica", "neanche", "nemmeno", "neppure", "così", "appunto", "completamente", "davvero", "io", "tu",
-    "lui", "lei", "noi", "voi", "loro"}
 VAGUE = "?"   # pseudo-person of a vague subject pronoun (Dutch 'u'): fits no person
 QUOTES = {'"', "«", "»", "“", "”"}
-CLAUSE_PUNCT = {",", ".", "?", "!", ";", ":", "...", "…", "—", "–", "(", ")", '"', "«", "»", "“", "”"}
+CLAUSE_PUNCT = {",", ".", "?", "!", ";", ":", "...", "…", "—", "–", "(", ")", '"', "«", "»", "“", "”", "¿", "¡"}
 
 
 def norm(s: str) -> str:
@@ -93,6 +83,12 @@ def norm(s: str) -> str:
 
 def _form(val) -> str:
     return val["form"] if isinstance(val, dict) else val
+
+
+def by_lemma_verb_id(aligner: "Aligner", lemma: str) -> str | None:
+    """The id of the most frequent verb item with this lemma."""
+    ids = [i for i in aligner.verb_ids if aligner.items.get(i, {}).get("lemma") == lemma]
+    return aligner._best(ids) if ids else None
 
 
 class Aligner:
@@ -185,7 +181,9 @@ class Aligner:
         # interjections that share their spelling with another word ('Prego', 'Dag', 'Bedankt')
         self.intj: dict[str, str] = {}
         for it in items:
-            if it["pos"] == "verb":
+            if it["pos"] == "verb":   # verbs: only their inflections (Spanish enclitic forms: hacerlo)
+                for s in it.get("inflections") or []:
+                    self.infl_index[norm(s)].append(it["id"])
                 continue
             for s in [it["lemma"], *(it.get("variants") or [])]:
                 if " " not in s:
@@ -198,6 +196,17 @@ class Aligner:
                     self.phrases[tuple(norm(s).split())] = it["id"]
             for s in it.get("inflections") or []:
                 self.infl_index[norm(s)].append(it["id"])
+        # forms in an item's own inflection tables: a form that several items list as an inflection
+        # belongs to the item whose table has it (Wiktionary lists 'esa', 'esta', 'aquella' under
+        # each Spanish demonstrative; 'esa' is a cell of 'ese' only). Only between items of one part
+        # of speech: Italian 'dei' stays 'del' (of the), not the plural of 'dio'.
+        self.table_forms: dict[str, set[str]] = defaultdict(set)
+        for it in items:
+            for table in (it.get("infl") or {}).values():
+                for cell in table.values():
+                    for f in [cell.get("form"), *(cell.get("alts") or [])]:
+                        if f:
+                            self.table_forms[norm(f)].add(it["id"])
 
     # ------------------------------------------------------------------ lookups
     def _best(self, ids: list[str]) -> str:
@@ -216,7 +225,11 @@ class Aligner:
             return None
         for k in keys:
             if self.infl_index.get(k):
-                return self._best(self.infl_index[k])
+                ids = self.infl_index[k]
+                own = []
+                if len(ids) > 1 and len({self.items[i]["pos"] for i in ids}) == 1:
+                    own = [i for i in ids if i in self.table_forms.get(k, ())]
+                return self._best(own or ids)
         return None
 
     @staticmethod
@@ -268,7 +281,8 @@ class Aligner:
         lang = self.lang
         tenses = lang.tenses + ["infinitive", "gerund", "participle"]
         persons = lang.persons + ["_"]
-        return sorted(cands, key=lambda c: (tenses.index(c[0]) if c[0] in tenses else 99,
+        hint = getattr(self, "_tense_hint", None)
+        return sorted(cands, key=lambda c: (c[0] != hint, tenses.index(c[0]) if c[0] in tenses else 99,
                                             persons.index(c[1]) if c[1] in persons else 99))
 
     def _subject_before(self, words, toks, wi) -> bool:
@@ -282,6 +296,10 @@ class Aligner:
         if t[:1].isupper() and wi - 1 > 0 and not tok.get("lex"):
             return True
         lex = tok.get("lex")
+        if norm(t) in self.lang.adverbial_nouns:
+            return False                     # "Mañana hablaremos": a time noun is no subject
+        if wi >= 2 and norm(toks[words[wi - 2]]["t"]) in self.lang.interrogatives:
+            return False                     # '¿A qué hora llegáis?': the noun is no subject
         return bool(lex and self.items.get(lex, {}).get("pos") == "noun")
 
     def _choose(self, cands, words, toks, wi, finite_before: bool):
@@ -363,6 +381,12 @@ class Aligner:
             agrees = (nlex and self.items[nlex]["pos"] in ("adj", "noun")) or nxt in self.part_index
             want = "loro" if agrees and nxt[-1:] in ("i", "e") else "io"
             hit = [c for c in cands if c[1] == want]
+            if hit:
+                return self._order(hit)[0]
+        if lang.translation_subjects and not finite_before and self._tr_person:
+            # 'No sabía' = 'I didn't know': the English subject decides between persons that share
+            # the form (yo/él hablaba), for the first finite verb of the sentence only
+            hit = [c for c in cands if c[1] == self._tr_person]
             if hit:
                 return self._order(hit)[0]
         for p in (lang.third_sg, lang.third_pl):
@@ -498,9 +522,11 @@ class Aligner:
                     translation: str | None) -> bool:
         """Italian: whether a present form at word #wi is an imperative (see rule 4)."""
         lang = self.lang
-        if not lang.imperative_lead or self.items.get(vid, {}).get("lemma") in lang.imperative_exempt:
+        homograph = lang.imperative_homographs.get(norm(toks[words[wi]]["t"]), (None, None))[1]
+        if not lang.imperative_lead or (self.items.get(vid, {}).get("lemma") in lang.imperative_exempt
+                                        and homograph is None):
             return False
-        if person not in (lang.persons[1], lang.persons[2], lang.persons[3], lang.persons[4]):
+        if homograph is None and person not in (lang.persons[1], lang.persons[2], lang.persons[3], lang.persons[4]):
             return False
         k = wi - 1
         while k >= 0 and not self._punct_between(toks, words[k], words[k + 1]) \
@@ -517,14 +543,31 @@ class Aligner:
         if not m:
             return False
         w = m.group(1).replace("’", "'")
+        if lang.translation_subjects and re.match(r"^[\"'“‘«\s]*please\b", (translation or "").lower()):
+            return True                      # 'Por favor ve con Tom' = 'Please take Tom with you'
         if w in ("let's", "lets"):
             return person == lang.persons[3]
-        return w in self.en_heads.get(vid, set()) and not (translation or "").rstrip().endswith("?")
+        heads = self.en_heads.get(vid, set()) | (homograph or set())
+        return w in heads and not (translation or "").rstrip().endswith("?")
 
     # ------------------------------------------------------------------ main
     def align(self, toks: list[dict], translation: str | None = None) -> list[dict]:
         """Aligned copies of the tokens. `translation` (English) helps to recognize imperatives."""
         lang = self.lang
+        self._tr_person = None
+        # a form shared by two tenses ('hablamos': presente / indefinido) takes the tense of a time
+        # word in the sentence ('Ayer hablamos con Ana')
+        self._tense_hint = None
+        if lang.tense_hints:
+            for t in toks:
+                h = lang.tense_hints.get(norm(t["t"]))
+                if h:
+                    self._tense_hint = h
+                    break
+        if lang.translation_subjects and translation:
+            m = re.match(r"^[\"'“‘«¿¡\s]*([a-z]+)", translation.lower().replace("’", "'"))
+            if m:
+                self._tr_person = lang.translation_subjects.get(m.group(1))
         out = [dict(t, lex=None, form=None) for t in toks]
         words = [i for i, t in enumerate(out) if t["is_word"]]
         pos_in_words = {ti: wi for wi, ti in enumerate(words)}
@@ -538,13 +581,14 @@ class Aligner:
             if not pc or compound is None:
                 continue
             lo, hi = self._clause_range(out, ti)
-            if lang.code == "it":
+            if lang.aux_window:
+                # the auxiliary before the participle, with only aux_between words in between
                 cand_idx = []
-                for k in range(wi - 1, max(-1, wi - 5), -1):
+                for k in range(wi - 1, max(-1, wi - 1 - lang.aux_window), -1):
                     if words[k] < lo:
                         break
                     cand_idx.append(words[k])
-                    if norm(out[words[k]]["t"]) not in IT_BETWEEN_AUX_PART:
+                    if norm(out[words[k]]["t"]) not in lang.aux_between:
                         break
             else:
                 before = [x for x in reversed(words[:wi]) if x >= lo]
@@ -557,7 +601,7 @@ class Aligner:
                 if aj in done:
                     continue
                 awi = pos_in_words[aj]
-                if awi > 0 and norm(out[words[awi - 1]]["t"]) == "te":
+                if lang.clause_starters and awi > 0 and norm(out[words[awi - 1]]["t"]) == "te":   # Dutch te + infinitive
                     continue
                 a_s = norm(out[aj]["t"])
                 if self._perfect_infinitive(out, words, lo, aj, a_s) or self._possessive(out, words, awi):
@@ -640,6 +684,23 @@ class Aligner:
                 continue
             prev = norm(out[words[wi - 1]]["t"]) if wi > 0 else ""
             use_verb = bool(vc) and not (lex and prev in lang.determiners)
+            if use_verb and lex and s in lang.verb_needs_pronoun and not any(self._pronoun_persons(words, out, wi))                     and prev not in lang.preverbal_clitics:
+                use_verb = False             # Spanish 'como' (like, as) unless 'yo como', 'lo como'
+            copula_before = False
+            if use_verb and lang.copula_lemmas:
+                k = wi - 1
+                while k >= 0 and norm(out[words[k]]["t"]) in lang.skip_between                         and not self._punct_between(out, words[k], words[k + 1]):
+                    k -= 1
+                if k >= 0 and not self._punct_between(out, words[k], words[k + 1]):
+                    pt = out[words[k]]
+                    f = pt.get("form") or ""
+                    copula_before = self.items.get(pt.get("lex") or "", {}).get("lemma") in lang.copula_lemmas                         and bool(f) and not f.endswith("._")
+            if use_verb and lex and lang.object_noun_after_verb and wi > 0 and self.items[lex]["pos"] == "noun" \
+                    and not self._punct_between(out, words[wi - 1], ti) \
+                    and (out[words[wi - 1]].get("lex") in self.verb_ids
+                         or (prev in lang.noun_coordinators and wi > 1
+                             and self.items.get(out[words[wi - 2]].get("lex") or "", {}).get("pos") == "noun")):
+                use_verb = False             # 'Bebo vino', 'agua o vino': the noun (wine), not 'vino' (came)
             if vc and not use_verb and prev in lang.demonstratives and self.items[lex]["pos"] != "noun" \
                     and self._clause_initial(words, out, wi - 1):
                 use_verb = True              # 'Dat moest je ...': a demonstrative subject, not 'dat moest(e)'
@@ -652,6 +713,11 @@ class Aligner:
             if use_verb and noun and lang.clause_starters and self._clause_initial(words, out, wi) \
                     and not (wi + 1 < len(words) and norm(out[words[wi + 1]]["t"]) in lang.pronouns):
                 use_verb = False             # 'Leven is ...': a clause-initial noun, not a verb without subject
+            if use_verb and lex and lang.adj_over_first_person and self.items[lex]["pos"] == "adj" \
+                    and all(c[2] == lang.persons[0] for c in vc) and not self._clause_initial(words, out, wi) \
+                    and prev not in lang.skip_between \
+                    and lang.persons[0] not in sum(self._pronoun_persons(words, out, wi), []):
+                use_verb = False             # 'está enfermo', 'un día largo': the adjective, not 'yo enfermo'
             if use_verb and lex and prev in lang.degree_words and self.items[lex]["pos"] == "adj":
                 use_verb = False             # 'hoe laat', 'zo laat': the adjective
             if use_verb and lex and lang.copulas and self.items[lex]["pos"] == "adj" and wi + 1 < len(words) \
@@ -675,11 +741,29 @@ class Aligner:
             if use_verb and pc and lang.code == "nl" and finite_seen:
                 use_verb = False             # 'wordt als keuken gebruikt': participle, not present
                 lex = None
+            if use_verb and copula_before and all(p != "_" for _, _, p in vc):
+                # '¿Estás todavía despierta?': after 'to be' the word is an adjective, no finite verb
+                out[ti]["lex"] = lex or min({c[0] for c in vc}, key=lambda v: self.rank.get(v, (True, 0, v)))
+                continue
             if use_verb:
                 by_verb: dict[str, list[tuple[str, str]]] = defaultdict(list)
                 for vid, tense, person in vc:
                     by_verb[vid].append((tense, person))
-                vid = min(by_verb, key=lambda v: self.rank.get(v, (True, 0, v)))
+                pool = list(by_verb)
+                if len(pool) > 1 and lang.person_hint_verbs:
+                    # one spelling, several verbs ('viste': vestir él / ver tú; 'vengo': venir / vengar):
+                    # keep the verbs with a form of the person an adjacent subject pronoun or a
+                    # third-person clitic ('se viste') points to
+                    b_, a_ = self._pronoun_persons(words, out, wi)
+                    want = set(b_ or a_)
+                    if not want and wi > 0 and prev in lang.third_person_clitics:
+                        want = {lang.third_sg, lang.third_pl}
+                    fit = [v for v in pool if any(p in want for _, p in by_verb[v])]
+                    if want and fit:
+                        pool = fit
+                vid = min(pool, key=lambda v: self.rank.get(v, (True, 0, v)))
+                if len(pool) < len(by_verb):
+                    by_verb = {v: by_verb[v] for v in pool}
                 choice = self._choose(by_verb[vid], words, out, wi, finite_seen)
                 out[ti]["lex"] = vid
                 if choice and (self.items.get(vid, {}).get("lemma"), choice[0]) in lang.unlinked_forms:
@@ -691,6 +775,9 @@ class Aligner:
                 if choice and choice[0] == lang.present and choice[1] != "_" \
                         and self._imperative(out, words, wi, vid, choice[1], translation):
                     choice = None            # 'Chiedi a un poliziotto!': an imperative, not 'tu chiedi'
+                    other = lang.imperative_homographs.get(s, (None,))[0]
+                    if other and by_lemma_verb_id(self, other):
+                        out[ti]["lex"] = by_lemma_verb_id(self, other)   # 'Ven aquí': venir, not ver
                 if choice:
                     tense, person = choice
                     out[ti]["form"] = f"{tense}.{person}"
@@ -709,6 +796,8 @@ class Aligner:
             if lex:
                 out[ti]["lex"] = lex
                 continue
+            if pc and prev in lang.determiners and prev not in lang.pronouns:
+                continue                     # 'su pedido', 'el resultado': a noun the lexicon lacks, no participle
             if pc:
                 vid = min((e[0] for e in pc), key=lambda v: self.rank.get(v, (True, 0, v)))
                 out[ti]["lex"], out[ti]["form"] = vid, "participle._"
@@ -723,6 +812,10 @@ class Aligner:
                 span = words[wi:wi + n]
                 if tuple(norm(out[x]["t"]) for x in span) == seq \
                         and not any(self._punct_between(out, a, b) for a, b in zip(span, span[1:])):
+                    if " ".join(seq) in lang.standalone_phrases and not (
+                            self._clause_initial(words, out, wi)
+                            and (wi + n >= len(words) or self._punct_between(out, span[-1], words[wi + n]))):
+                        continue             # 'de nada' (you're welcome), not 'No me arrepiento de nada'
                     for x in span:
                         out[x]["lex"], out[x]["form"] = iid, None
         if self.infl:

@@ -22,14 +22,14 @@ import yaml
 from . import features, inflect, query, trcheck
 from .align import Aligner
 from .content import load_course_yaml, read_jsonl, write_jsonl
-from .fetch import load_freq_words
+from .fetch import SOURCES, load_freq_words
 from .ids import IdRegistry
 from .lang import Lang, get_lang
 from .paths import cache_dir, content_dir
 from .tokens import tokenize
 from .wikt import Lexeme, load_lexemes
 
-POOL_SIZE = {"it": 3000, "nl": 3000}
+POOL_SIZE = {"it": 3000, "nl": 3000}       # default 3000
 POS_PRIORITY = ["verb", "pron", "det", "prep", "conj", "num", "adv", "adj", "noun", "intj", "phrase", "particle"]
 FUNCTION_POS = {"pron", "det", "prep", "conj"}
 SINGLE_LETTER_OK ={"prep", "conj", "pron", "det", "intj", "adv", "verb"}
@@ -67,7 +67,8 @@ _INVISIBLE = dict.fromkeys(map(ord, "​‌‍⁠﻿­"))
 def clean_text(text: str) -> str:
     """Tatoeba text without invisible characters (zero-width spaces, soft hyphens) and with single
     plain spaces: 'draagt ​​een' would not re-render from tokens."""
-    return " ".join(text.translate(_INVISIBLE).replace(" ", " ").split())
+    s = " ".join(text.translate(_INVISIBLE).replace(" ", " ").replace("''", '"').split())   # ''quoted'' -> "quoted"
+    return re.sub(r"([¿¡]) +", r"\1", s)     # Spanish opening marks stick to the word: '¿ Dónde' -> '¿Dónde'
 
 
 def dedupe_key(text: str) -> str:
@@ -148,15 +149,16 @@ def _clean_nl(g: str) -> list[str]:
 
 
 class NlGlosser:
-    """Dutch glosses for Italian words: nl.wiktionary first, then the English translation-table pivot."""
+    """Dutch glosses for words of another course language (it, es, ...): nl.wiktionary first, then the
+    English translation-table pivot (en-trans-it-nl.jsonl for Italian, en-trans-nl.jsonl otherwise)."""
 
     POS_EQ = {"noun": {"noun"}, "verb": {"verb"}, "adj": {"adj"}, "adv": {"adv"}, "pron": {"pron"},
               "det": {"det", "article", "pron"}, "prep": {"prep"}, "conj": {"conj"}, "num": {"num"},
               "intj": {"intj", "phrase"}, "phrase": {"phrase", "intj", "adv"}}
 
-    def __init__(self, cache: Path):
+    def __init__(self, cache: Path, code: str = "it"):
         self.nlw: dict[tuple[str, str], list[str]] = defaultdict(list)
-        p = cache / "kaikki-nlwikt-it.jsonl"
+        p = cache / f"kaikki-nlwikt-{code}.jsonl"
         if p.exists():
             for line in open(p, encoding="utf-8"):
                 e = json.loads(line)
@@ -168,11 +170,13 @@ class NlGlosser:
                                 self.nlw[(e["word"], pos)].append(c)
         self.pivot: dict[str, list[tuple[str, str, list[str]]]] = defaultdict(list)
         p = cache / "en-trans-it-nl.jsonl"
+        if code != "it" or not p.exists():
+            p = cache / "en-trans-nl.jsonl"
         if p.exists():
             for line in open(p, encoding="utf-8"):
                 e = json.loads(line)
                 for s in e["senses"]:
-                    for w in s["it"]:
+                    for w in s.get(code) or []:
                         self.pivot[w].append((e["word"], e["pos"], s["nl"]))
 
     def gloss(self, lemma: str, pos: str, en: list[str]) -> tuple[list[str], str | None]:
@@ -251,11 +255,7 @@ def build_verb(lang: Lang, lx: Lexeme, aux_tables: dict[str, dict[str, str]], au
                 tab[p] = rec
             forms[ctense] = tab
     irregular = bool(set(irr) & set(lang.tenses)) or "irregular" in (lx.table_tags or "")
-    if lang.code == "it":
-        stem = lx.lemma[:-3] if cls in ("are", "ere", "ire", "isc") else None
-    else:
-        p = complete[lang.present]
-        stem = p["ik"] if lang.present not in irr else None
+    stem = lang.verb_stem(lx.lemma, cls, complete, irr)
     out = {"class": cls, "stem": stem, "irregular": irregular, "irregular_in": irr,
            "auxiliary": "|".join(aux) if aux else None, "forms": forms}
     return out
@@ -270,7 +270,7 @@ def _read_tsv_bz2(path: Path):
 
 def load_tatoeba(code: str, cache: Path) -> tuple[dict[int, str], dict[int, dict[str, tuple[int, str]]]]:
     tdir = cache / "tatoeba"
-    t3 = {"it": "ita", "nl": "nld"}[code]
+    t3 = SOURCES[code]["tatoeba"]
     target: dict[int, str] = {}
     for parts in _read_tsv_bz2(tdir / f"{t3}_sentences.tsv.bz2"):
         if len(parts) < 3:
@@ -281,8 +281,8 @@ def load_tatoeba(code: str, cache: Path) -> tuple[dict[int, str], dict[int, dict
             target[int(parts[0])] = text
     links: dict[str, dict[int, list[int]]] = {}
     pairs = [("en", f"{t3}-eng_links.tsv.bz2", "eng")]
-    if code == "it":
-        pairs.append(("nl", "ita-nld_links.tsv.bz2", "nld"))
+    if code != "nl":
+        pairs.append(("nl", f"{t3}-nld_links.tsv.bz2", "nld"))
     for lang, fname, _ in pairs:
         d: dict[int, list[int]] = defaultdict(list)
         for parts in _read_tsv_bz2(tdir / fname):
@@ -310,6 +310,38 @@ def load_tatoeba(code: str, cache: Path) -> tuple[dict[int, str], dict[int, dict
         if "en" in tr:
             trs[sid] = tr
     return target, trs
+
+
+MOOD_TRIGGERS = {"que", "si", "ojalá"}
+
+
+def mood_spellings(lexemes: dict, moods: set[str], items: list[dict], verbs: dict[str, dict])         -> tuple[set[str], set[str]]:
+    """(spellings only of excluded moods, spellings of excluded moods that are also other words).
+    Mood forms come from every Wiktionary verb; kept forms and other words only from the pack's
+    verb tables and items (the rare 'vengar' does not make 'vengas' an indicative)."""
+    if not moods:
+        return set(), set()
+    mood: set[str] = set()
+    for (lemma, pos), lx in lexemes.items():
+        if pos == "verb":
+            for m, forms in lx.mood_forms.items():
+                if m in moods:
+                    mood |= forms
+    kept: set[str] = set()
+    for v in verbs.values():
+        for table in (v.get("forms") or {}).values():
+            for val in table.values():
+                if isinstance(val, dict):
+                    kept |= {x.lower() for x in [val.get("form") or "", *(val.get("alts") or [])]}
+                else:
+                    kept.add(str(val).lower())
+    other: set[str] = set()
+    for it in items:
+        if it["pos"] != "verb":
+            other.add(it["lemma"].lower())
+            other |= {x.lower() for x in it.get("inflections") or []}
+    mood -= kept
+    return mood - other, mood & other
 
 
 # --------------------------------------------------------------------------------------- main
@@ -394,14 +426,14 @@ def run_import(code: str, content_root: str | None = None) -> None:
             return False
         if len(lx.lemma) == 1 and lx.pos not in SINGLE_LETTER_OK:
             return False
-        if lx.pos == "verb" and code == "it" and not lx.lemma.endswith(("are", "ere", "ire", "rre")):
-            return False   # pronominal verbs (alzarsi, farcela, andarsene) have clitic-laden tables
+        if lx.pos == "verb" and lang.infinitive_endings and not lx.lemma.endswith(lang.infinitive_endings):
+            return False   # pronominal verbs (alzarsi, farcela, levantarse) have clitic-laden tables
         if lx.lemma in excluded or f"{lx.lemma}/{lx.pos}" in excluded:
             return False
         return scores.get(key, 0) > 0
 
     ranked = sorted(lexemes, key=lambda k: (-scores.get(k, 0), k))
-    pool = [k for k in ranked if eligible(k, lexemes[k])][: POOL_SIZE[code]]
+    pool = [k for k in ranked if eligible(k, lexemes[k])][: POOL_SIZE.get(code, 3000)]
     selected = list(dict.fromkeys(pool + list(chosen)))
     rank_of = {k: i + 1 for i, k in enumerate(k for k in ranked if scores.get(k, 0) > 0)}
 
@@ -419,7 +451,7 @@ def run_import(code: str, content_root: str | None = None) -> None:
         if lx and lx.table.get(lang.present):
             aux_tables[a] = lx.table[lang.present]
 
-    glosser = NlGlosser(cache) if code == "it" else None
+    glosser = NlGlosser(cache, code) if code != "nl" else None
 
     # ---- inflection tables (inflect.py): wrong forms must be no word of the language
     infl_spec = course.get("inflection_tables") or {}
@@ -494,10 +526,20 @@ def run_import(code: str, content_root: str | None = None) -> None:
             rec["infl"] = tables
         items.append(rec)
         if lx.pos == "verb" and lx.table:
-            aux = lx.aux if code == "it" else aux_of.get(lx.lemma, [])
+            if code == "nl":
+                aux = aux_of.get(lx.lemma, [])
+            else:   # Italian tables name the auxiliary; a language with one auxiliary uses it for all verbs
+                aux = lx.aux or (list(lang.auxiliaries) if len(lang.auxiliaries) == 1 else [])
             v = build_verb(lang, lx, aux_tables, aux)
             if v:
                 verbs[iid] = {"id": iid, **v}
+            else:
+                # no complete present table (impersonal 'llover': only 'llueve'): its forms are
+                # inflections, so sentences still link the word to the verb item (without a form)
+                extra = {f.lower() for t in lx.table.values() for f in t.values() if " " not in f}
+                extra -= {lx.lemma.lower()}
+                if extra:
+                    rec["inflections"] = sorted(set(rec.get("inflections") or []) | extra)
 
     # ---- resolve skills -> units
     unit_of: dict[str, str] = {}
@@ -544,8 +586,21 @@ def run_import(code: str, content_root: str | None = None) -> None:
     tr_dropped: Counter = Counter()
     names = trcheck.invariant_names((target[s], tr["en"][1]) for s, tr in trs.items())
     tr_of: dict[int, dict[str, tuple[int, str]]] = {}
+    # moods the conjugation tables leave out (seed.yaml exclude_moods: subjunctive, conditional,
+    # imperative): sentences with such a form are not imported, so no exercise shows an untaught
+    # mood. A spelling that is also a kept verb form ('ven': they see / come!) never counts; one
+    # that is also another word ('fuera' outside / were, 'coma' comma) only after 'que' or 'si'.
+    mood_any, mood_after = mood_spellings(lexemes, set(seed.get("exclude_moods") or []), items, verbs)
+    mood_dropped = 0
+    bad_words = {w.lower() for w in (seed.get("exclude_words") or [])}
+    # Tatoeba sentences a review found wrong or odd (seed.yaml exclude_sentences: ids)
+    bad_sentences = {int(x) for x in (seed.get("exclude_sentences") or [])}
     for sid in sorted(trs):
+        if sid in bad_sentences:
+            continue
         text = target[sid]
+        if lang.no_apostrophes and ("'" in text or "’" in text):
+            continue        # foreign words or quotes ("Stayin' Alive"): no tile/cloze re-renders them
         low = dedupe_key(text)
         if low in seen_text:
             continue
@@ -558,6 +613,14 @@ def run_import(code: str, content_root: str | None = None) -> None:
         words = [t for t in al if t["is_word"]]
         if not words or len(words) > MAX_WORDS:
             continue
+        ws = [t["t"].lower() for t in words]
+        if bad_words and any(w in bad_words for w in ws):
+            continue                        # another variety's words (seed.yaml exclude_words: voseo 'tenés')
+        if mood_any or mood_after:
+            if any(w in mood_any or (w in mood_after and i > 0 and ws[i - 1] in MOOD_TRIGGERS)
+                   for i, w in enumerate(ws)):
+                mood_dropped += 1
+                continue                    # a mood the course does not teach ('que vengas', 'podría')
         unlinked = 0
         for i, t in enumerate(al):
             if not t["is_word"] or t["lex"]:
@@ -670,6 +733,8 @@ def run_import(code: str, content_root: str | None = None) -> None:
             "unit": unit_order[unit_idx],
             "tokens": toks_out,
         })
+    if mood_dropped:
+        log(f"[{code}] {mood_dropped} sentences with an untaught mood (subjunctive, conditional, imperative) skipped")
     log(f"[{code}] {len(cands)} candidate sentences, {len(sentences)} selected; translation check: "
         f"{tr_dropped['en']} sentences dropped (English), {tr_dropped['nl']} Dutch translations dropped")
 

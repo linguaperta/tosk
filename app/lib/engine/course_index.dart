@@ -120,6 +120,55 @@ class CourseIndex {
     ];
   }
 
+  /// The translation-language words in parentheses of [person]'s label in
+  /// [lang] (`él/ella/usted (he/she/you formal)` -> he, she, you, formal).
+  Set<String> translationPronouns(String person, String lang) {
+    final label = meta.personLabels[person]?[lang];
+    final m = label == null ? null : _parenContent.firstMatch(label);
+    if (m == null) return const {};
+    return {
+      for (final w in m.group(1)!.toLowerCase().split(_nonLetters))
+        if (w.isNotEmpty) w,
+    };
+  }
+
+  static final RegExp _parenContent = RegExp(r'\(([^)]*)\)');
+  static final RegExp _nonLetters = RegExp(r'[^\p{L}]+', unicode: true);
+
+  /// Whether [o]'s person and [other] can both be meant by [translation]
+  /// (English "you" is tú, usted, vosotros and ustedes) while the sentence
+  /// names no subject pronoun of either: swapping them leaves a sentence
+  /// that is still right for that translation (`¿Por qué no cierran la
+  /// ventana?` for "Why don't you shut the window?").
+  bool sharesTranslation(FormOccurrence o, String other, String? translation, String lang) {
+    if (translation == null) return false;
+    final shared = translationPronouns(o.person, lang).intersection(translationPronouns(other, lang));
+    if (shared.isEmpty) return false;
+    final trWords = translation.toLowerCase().split(_nonLetters).toSet();
+    if (!shared.any(trWords.contains)) return false;
+    // A subject pronoun of either person decides (accents kept: Spanish `él`
+    // is no `el`); not one after a preposition (`de él`, `con ella`).
+    final subjects = {..._personWords(o.person), ..._personWords(other)};
+    final tokens = o.sentence.tokens;
+    String? prevLex;
+    for (final t in tokens) {
+      if (!t.isWord) continue;
+      final afterPrep = prevLex != null && course.item(prevLex)?.pos == 'prep';
+      if (!afterPrep && subjects.contains(t.t.toLowerCase())) return false;
+      prevLex = t.lex;
+    }
+    return true;
+  }
+
+  /// Lower-cased (not folded) subject pronouns of [person], like
+  /// [_personComponents].
+  Set<String> _personWords(String person) => _personWordsCache[person] ??= {
+        for (final c in person.split('/')) c.trim().toLowerCase(),
+        for (final label in (meta.personLabels[person] ?? const <String, String>{}).values)
+          for (final c in label.replaceAll(_parens, ' ').split('/')) c.trim().toLowerCase(),
+      }..remove('');
+  final Map<String, Set<String>> _personWordsCache = {};
+
   /// Folded subject pronouns from the person keys plus lemmas of pronoun items.
   late final Set<String> pronounKeys = {
     for (final cs in _personComponents.values) ...cs,
@@ -153,9 +202,15 @@ class CourseIndex {
     for (final cs in _personComponents.values) ...cs,
   };
 
-  bool isPronounToken(Token t) {
+  /// Whether [t] is a pronoun: aligned to a pronoun item, or spelled like
+  /// one. With [trustAlignment], a token aligned to another part of speech is
+  /// none (Spanish articles and possessives `el`, `la`, `tu` fold like the
+  /// pronouns `él`, `la`, `tú`).
+  bool isPronounToken(Token t, {bool trustAlignment = false}) {
     final lex = t.lex;
-    if (lex != null && course.item(lex)?.pos == 'pron') return true;
+    final pos = lex == null ? null : course.item(lex)?.pos;
+    if (pos == 'pron') return true;
+    if (trustAlignment && pos != null) return false;
     return pronounKeys.contains(foldAnswer(t.t));
   }
 

@@ -233,6 +233,32 @@ class TransformTemplate extends ExerciseTemplate {
         s.tokens.any((t) => t.isWord && t.lex != null && ctx.course.item(t.lex!)?.isNoun == true);
   }
 
+  /// Whether a translation of [o]'s sentence contains a pronoun from [o]'s
+  /// person label in that language. True when the labels name no pronouns.
+  bool _translationNamesPerson(FormOccurrence o, GenContext ctx) {
+    var labelled = false;
+    for (final e in o.sentence.tr.entries) {
+      final pronouns = ctx.index.translationPronouns(o.person, e.key);
+      if (pronouns.isEmpty) continue;
+      labelled = true;
+      final words = e.value.toLowerCase().split(_nonLetters).toSet();
+      if (pronouns.any(words.contains)) return true;
+    }
+    return !labelled;
+  }
+
+  static final RegExp _nonLetters = RegExp(r'[^\p{L}]+', unicode: true);
+
+  /// An infinitive after the verb ([o]'s last word).
+  bool _infinitiveAfter(FormOccurrence o) {
+    final tokens = o.sentence.tokens;
+    for (var i = o.positions.last + 1; i < tokens.length; i++) {
+      final t = tokens[i];
+      if (t.isWord && t.lex != null && t.tense == 'infinitive') return true;
+    }
+    return false;
+  }
+
   /// An adjective or participle that may agree with the subject.
   bool _hasAgreeingWord(FormOccurrence o, GenContext ctx) {
     for (var i = 0; i < o.sentence.tokens.length; i++) {
@@ -257,11 +283,20 @@ class TransformTemplate extends ExerciseTemplate {
     for (final c in ix.finiteForms(o.verbId, o.tense)) {
       if (c.person != o.person && ix.acceptedKeys(c).contains(matched)) return false;
     }
-    final third = meta.persons.length == 6 && meta.persons.indexOf(o.person) == 2;
-    if (third && o.sentence.tr.values.any(_itWords.hasMatch)) return false;
+    // Third persons (plural too: `Son las diez`, it's ten o'clock) whose
+    // translation says "it"/"there" are impersonal.
+    final thirdAny = meta.persons.length == 6 && {2, 5}.contains(meta.persons.indexOf(o.person));
+    if (thirdAny && o.sentence.tr.values.any(_itWords.hasMatch)) return false;
+    // "to be" + an infinitive is impersonal (`Es necesario estudiar`, `È
+    // importante dormire`: it is necessary to ...), whatever the translation.
+    if (thirdAny && _isCopula(o, ctx) && _infinitiveAfter(o)) return false;
+    // A dropped third-person subject is a person: a translation names it
+    // with a pronoun of the person's label (he/she/you, they). Otherwise the
+    // verb is impersonal or has another subject (`Aún queda mucho por
+    // hacer`: much remains to be done).
+    if (thirdAny && !_translationNamesPerson(o, ctx)) return false;
     // A third person's subject may be a noun anywhere (`Dove sono i suoi
     // zii?`): only sentences without nouns.
-    final thirdAny = meta.persons.length == 6 && {2, 5}.contains(meta.persons.indexOf(o.person));
     if (thirdAny &&
         o.sentence.tokens.any((t) => t.isWord && t.lex != null && ctx.course.item(t.lex!)?.isNoun == true)) {
       return false;
@@ -272,7 +307,7 @@ class TransformTemplate extends ExerciseTemplate {
     for (var i = 0; i < s.tokens.length; i++) {
       final t = s.tokens[i];
       if (!t.isWord || o.positions.contains(i)) continue;
-      if (ix.isPronounToken(t)) return false;
+      if (ix.isPronounToken(t, trustAlignment: true)) return false;
       // A name anywhere may be the subject (`Heeft Tom … gezien?`).
       if (i != firstWord && t.t != lowerFirst(t.t)) return false;
       if (i < first) {

@@ -222,6 +222,11 @@ time_adverbs:
 
 ```yaml
 exclude: [coso, sulla/noun]              # never in the frequency pool
+exclude_sentences: [1234567]             # Tatoeba sentence ids a review found wrong or odd: never imported
+exclude_words: [vos, tenés]              # sentences with these words (another variety) are not imported
+exclude_moods: [subjunctive, conditional] # moods the tables leave out: sentences with their forms are
+                                         # not imported (a spelling that is also another word, 'fuera',
+                                         # only counts after que/si/ojalá)
 uncountable: [burro, latte]              # mass nouns: no plural in the lexicon (no 'burri' option)
 items:
   - {lemma: ciao, pos: intj, tags: [greetings], en: [hi, bye], nl: [hoi, doei]}
@@ -275,7 +280,8 @@ swapped as an article error by the app; keep it out of article skills (`exclude`
    the sentence. Translation check (`trcheck.py`): a pair whose numbers, weekdays/months or names
    (only names both languages write alike: Tom, Boston) differ is a link to another variant of the
    sentence; the sentence is dropped (Dutch translation of an Italian sentence: only that
-   translation). 2026-10: 643 it / 266 nl candidates dropped, 25 Dutch translations dropped.
+   translation). Compound numbers are read whole on both sides (*two hundred* = *doscientos* =
+   *tweehonderd* = 200, *treinta y dos* = *thirty-two*, *vijfentwintig*, *duemila*). 2026-10: 643 it / 266 nl candidates dropped, 25 Dutch translations dropped.
    Generated sentences (`sentences/gen-*.jsonl`) are kept, and a Tatoeba sentence with the same
    text is skipped.
 
@@ -333,6 +339,16 @@ conjugation tables. Rules:
   decides (`dat ik weg moet`); `je`/`ze`/`het` may be objects, so with them the person stays open.
   A clause-initial noun or a noun after an inflected adjective is not a verb (`Leven is …`, `het
   eeuwige leven`).
+* Spanish (`lang_es.py`, generic fields in `lang.py`): after a finite *ser*/*estar* (`copula_lemmas`, only
+  `skip_between` words in between) a word is no finite verb (*¿Estás todavía despierta?*: awake);
+  irregular tú-imperatives spelled like another verb's present (`imperative_homographs`: *ve*, *ven*,
+  *sé*, *di*, *sal*, *ten*) link to their own verb without a form when clause-initial and the sentence
+  has `!` or its English translation starts with that verb (*Ven enseguida* = Come right away);
+  `verb_needs_pronoun` words (*como*, *caso*) are verbs after an object clitic too (*lo como*).
+* A participle right after a determiner that is no pronoun (*su pedido*, *por supuesto*) is a noun the
+  lexicon lacks: it stays unlinked instead of tagging the perfect.
+* A form that several items of one part of speech list as an inflection goes to the item whose own
+  inflection table has it (Wiktionary lists *esa*, *esta*, *aquella* under every Spanish demonstrative).
 * Unmatched tokens stay unlinked.
 * **Split separable verbs** (Dutch): a finite verb whose cell (tense, person) together with the
   last word of its clause is a two-word form of a separable verb (`sta … op` = `opstaan`, ik)
@@ -409,6 +425,26 @@ require the previous unit's grammar, so a later skill allows everything taught b
 | u6 Around town | city (26), travel (22), kitchen (29), shopping (18) | |
 | u7 The simple past | weather (25), animals (21), clothes (22), verleden-tijd-weak* (20), verleden-tijd-strong* (20) | `tense:verleden_tijd`, `irregular:verleden_tijd` |
 | u8 Free time and ideas | leisure (22), more-verbs (31), ideas (27) | |
+
+**Spanish 1.0.0** (v0.6 pilot) — 46 skills, 1002 taught items, 2219 facets, 23 776 sentences (3244
+generated, 14 %); peninsular standard with all six persons (vosotros), notes on Latin America.
+
+| Unit | Skills (items) | Introduces |
+|---|---|---|
+| u1 Basics | greetings (23), little-words (45), people (32), ser* (1), estar* (1) | |
+| u2 The present tense | food (37), numbers (41), present-ar* (16), articles* (54), present-er-ir* (15) | |
+| u3 Everyday life | time (52), home (51), prepositions* (21), stem-changing* (15), irregular-present* (12) | `prep:contraction` |
+| u4 Wants and likes | everyday-verbs (30), body (41), adverbs (27), verb-phrases* (4), object-pronouns* (10), gustar* (8) | `modal`, `gerund` |
+| u5 People and things | family (26), adjectives* (53, + `#infl:agreement`), plurals* (17, `#infl:number`), colours (13, + `#infl:agreement`), possessives* (8, + `#infl:agreement`) | |
+| u6 Around town | city (40), travel (40), shopping (25), kitchen (30), reflexive* (12), clothes (31) | `reflexive` |
+| u7 The recent past | work (44), feelings (34), preterito-perfecto* (16), participles-irregular* (10) | `tense:preterito_perfecto`, `irregular:preterito_perfecto` |
+| u8 The simple past | weather (36), animals (35), leisure (29), indefinido* (16), indefinido-irregular* (14) | `tense:preterito_indefinido`, `irregular:preterito_indefinido` |
+| u9 Memories and plans | imperfecto* (16), futuro* (14), futuro-irregular* (9), more-verbs (30), ideas (46) | `tense:imperfecto`, `tense:futuro`, `irregular:futuro` |
+
+Spanish curation (seed.yaml): `exclude_moods` keeps subjunctive, conditional and imperative forms
+out (23 825 Tatoeba candidates skipped), `exclude_words` keeps voseo out, `exclude_sentences` lists
+the sentences the native review (`docs/samples/es_exercises.txt`) rejected. One grammar slot stays
+empty: `sentar.yo` (*me siento* is read as *sentir*, which shares the spelling).
 
 Notes: item-based grammar skills (pronouns, prepositions, separable; Dutch possessives, where
 only *ons/onze* inflects) train `#rec`/`#prod` of their words and come with a grammar note.

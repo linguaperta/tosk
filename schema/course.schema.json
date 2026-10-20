@@ -42,13 +42,23 @@
       "additionalProperties": {
         "type": "object", "required": ["type"], "additionalProperties": false,
         "properties": {
-          "type": {"enum": ["compound_aux", "modal_infinitive", "words", "irregular_tense", "separable"]},
+          "type": {"enum": ["compound_aux", "modal_infinitive", "words", "irregular_tense", "separable",
+                            "reflexive", "nonfinite"]},
           "aux": {"type": "string"},
           "verbs": {"type": "array", "items": {"type": "string"}},
           "infinitive_pattern": {"type": "string"},
           "words": {"type": "array", "items": {"type": "string"}},
           "tense": {"type": "string"},
-          "particles": {"type": "array", "items": {"type": "string"}}
+          "particles": {"type": "array", "items": {"type": "string"}},
+          "pronouns": {"type": "object", "additionalProperties": {
+            "oneOf": [{"type": "string"}, {"type": "array", "items": {"type": "string"}}]},
+            "description": "reflexive: pronoun -> the person(s) it is reflexive for"},
+          "clitics": {"type": "array", "items": {"type": "string"},
+                      "description": "reflexive: other clitics that may stand in the cluster before the verb"},
+          "enclitic_any": {"type": "array", "items": {"type": "string"},
+                           "description": "reflexive: attached pronouns that are reflexive without a finite verb of their person"},
+          "form": {"type": "string", "description": "nonfinite: the verb form key (gerund, participle, infinitive)"},
+          "pattern": {"type": "string", "description": "nonfinite: regex for that form with attached clitics"}
         }
       }
     },

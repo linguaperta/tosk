@@ -36,6 +36,9 @@ class Lexeme:
     aux: list[str] = field(default_factory=list)
     table_tags: str = ""
     n_senses: int = 0
+    # spellings of the first conjugation table's forms in moods the tables leave out (subjunctive,
+    # conditional, imperative): mood -> spellings (seed.yaml exclude_moods)
+    mood_forms: dict[str, set[str]] = field(default_factory=dict)
     # non-verbs: every (form, tags) of each Wiktionary entry, for the inflection tables (inflect.py)
     entry_forms: list[list[tuple[str, frozenset[str]]]] = field(default_factory=list)
     head: str = ""            # first head-template expansion ('uovo m (plural uova f, ...)')
@@ -168,7 +171,12 @@ def parse_entry(e: dict, lang: Lang) -> Lexeme | None:
                 templates_seen += 1
                 continue
             if templates_seen > 1:
-                break      # only the first (standard) conjugation table
+                if not lang.clitic_forms:
+                    break      # only the first (standard) conjugation table
+                # Spanish: the second template lists verb + enclitic pronouns (hacerlo, dímelo)
+                if "combined-form" in tags and "with-vos" not in tags and form and form != "-" and " " not in form:
+                    lx.inflections.add(form.lower())
+                continue
             if "table-tags" in tags:
                 lx.table_tags = lx.table_tags or form
                 continue
@@ -177,6 +185,9 @@ def parse_entry(e: dict, lang: Lang) -> Lexeme | None:
                 if sp not in lx.aux:
                     lx.aux.append(sp)
                 continue
+            for mood in MOODS & set(tags):
+                if sp and sp != "-" and " " not in sp and "/" not in sp:
+                    lx.mood_forms.setdefault(mood, set()).add(sp.lower())
             slot = lang.slot(tags)
             if not slot or not sp or sp == "-" or "/" in sp:
                 continue
@@ -232,6 +243,9 @@ def _head_info(e: dict, lx: Lexeme) -> None:
         lx.invariable = args.get("inv") == "1" or "(invariable" in exp
 
 
+MOODS = {"subjunctive", "conditional", "imperative"}
+
+
 def load_lexemes(path: Path, lang: Lang) -> dict[tuple[str, str], Lexeme]:
     """(lemma, pos) -> merged Lexeme (several etymologies with the same POS are merged)."""
     out: dict[tuple[str, str], Lexeme] = {}
@@ -258,6 +272,8 @@ def load_lexemes(path: Path, lang: Lang) -> dict[tuple[str, str], Lexeme]:
             cur.uncountable = cur.uncountable and lx.uncountable   # countable in any etymology: has a plural
             cur.invariable = cur.invariable and lx.invariable
             cur.plural_only = cur.plural_only and lx.plural_only
+            for mood, forms in lx.mood_forms.items():
+                cur.mood_forms.setdefault(mood, set()).update(forms)
             if not cur.table and lx.table:
                 cur.table, cur.alts, cur.aux, cur.table_tags = lx.table, lx.alts, lx.aux, lx.table_tags
     return out

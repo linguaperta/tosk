@@ -53,9 +53,12 @@ NAMES = {
            "Elena", "Lucia", "Tom", "Roma", "Milano", "Napoli", "Firenze", "Venezia", "Italia"},
     "nl": {"Tom", "Anna", "Sanne", "Daan", "Lieke", "Pieter", "Emma", "Bram", "Sophie", "Jan", "Eva", "Lisa",
            "Amsterdam", "Utrecht", "Rotterdam", "Nederland"},
+    "es": {"Juan", "María", "Carlos", "Ana", "Pedro", "Pablo", "Carmen", "Luis", "Sofía", "Javier",
+           "Elena", "Tom", "Madrid", "Barcelona", "Sevilla", "Valencia", "España", "México"},
 }
 # Place names that English writes differently (not compared by the translation check).
-PLACES = {"Roma", "Milano", "Napoli", "Firenze", "Venezia", "Italia", "Nederland"}
+PLACES = {"Roma", "Milano", "Napoli", "Firenze", "Venezia", "Italia", "Nederland", "Sevilla", "España",
+          "México"}
 
 
 def is_generated(s: dict) -> bool:

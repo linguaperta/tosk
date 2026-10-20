@@ -1039,49 +1039,49 @@ SKILL essere-avere (grammar)  Essere and avere
 
 --- transform: 8 example(s)
 [transform] it:essere#form:presente  (skill essere-avere)
-  Rewrite the sentence
-  Perché sei così brava a cucinare?   → lui/lei (he/she)
-  tiles: sei · brava · cucinare · siete · è · a · siamo · perché · così
-  => perché è così brava a cucinare
+  Change the person
+  Non è così povera, vero?   → tu
+  tiles: è · sono · vero · siete · non · così · sei · povera
+  => non sei così povera vero
 
 [transform] it:avere#form:presente  (skill essere-avere)
-  Rewrite the sentence
+  Change the person
   Non ho zucchero per il caffè.   → loro (they)
   tiles: il · ho · hai · per · non · ha · caffè · zucchero · hanno
   => non hanno zucchero per il caffè
 
 [transform] it:essere#form:presente  (skill essere-avere)
-  Rewrite the sentence
+  Change the person
   Siete in sette?   → noi
-  tiles: siete · sette · è · sono · in · siamo
+  tiles: siamo · siete · sei · in · sono · sette
   => siamo in sette
 
 [transform] it:avere#form:presente  (skill essere-avere)
-  Rewrite the sentence
+  Change the person
   Ho male qui.   → lui/lei (he/she)
   tiles: ha · abbiamo · hai · qui · ho · male
   => ha male qui
 
 [transform] it:essere#form:presente  (skill essere-avere)
-  Rewrite the sentence
-  Perché è così brava a nuotare?   → tu
-  tiles: siamo · così · è · nuotare · brava · a · sono · sei · perché
-  => perché sei così brava a nuotare
+  Change the person
+  Perché siete sempre così lente?   → loro (they)
+  tiles: è · così · sono · lente · siamo · perché · sempre · siete
+  => perché sono sempre così lente
 
 [transform] it:avere#form:presente  (skill essere-avere)
-  Rewrite the sentence
+  Change the person
   Ho fame e sete.   → tu
   tiles: ha · ho · sete · e · abbiamo · hai · fame
   => hai fame e sete
 
 [transform] it:essere#form:presente  (skill essere-avere)
-  Rewrite the sentence
-  Perché siete così brave a cucinare?   → loro (they)
-  tiles: brave · perché · a · sono · siete · è · siamo · così · cucinare
-  => perché sono così brave a cucinare
+  Change the person
+  Siete salve.   → loro (they)
+  tiles: sono · è · siete · salve · sei
+  => sono salve
 
 [transform] it:avere#form:presente  (skill essere-avere)
-  Rewrite the sentence
+  Change the person
   Ho così tanto da offrire.   → lui/lei (he/she)
   tiles: ho · ha · offrire · hanno · avete · così · da · tanto
   => ha così tanto da offrire
@@ -1882,52 +1882,52 @@ SKILL present-are (grammar)  Present tense of -are verbs
 
 --- transform: 8 example(s)
 [transform] it:pensare#form:presente  (skill present-are)
-  Rewrite the sentence
+  Change the person
   Non pensa di riuscire a vincere.   → loro (they)
   tiles: pensa · di · a · pensate · pensiamo · non · vincere · pensano · riuscire
   => non pensano di riuscire a vincere
 
 [transform] it:parlare#form:presente  (skill present-are)
-  Rewrite the sentence
+  Change the person
   Perché non parliamo davanti a un caffè?   → tu
   tiles: a · perché · parliamo · un · parla · non · parlano · parli · davanti · caffè
   => perché non parli davanti a un caffè
 
 [transform] it:aspettare#form:presente  (skill present-are)
-  Rewrite the sentence
+  Change the person
   Aspettiamo ancora.   → io
   tiles: aspettano · aspetta · ancora · aspettiamo · aspetto
   => aspetto ancora
 
 [transform] it:sembrare#form:presente  (skill present-are)
-  Rewrite the sentence
+  Change the person
   Sembriamo tristi.   → loro (they)
   tiles: tristi · sembrate · sembri · sembrano · sembriamo
   => sembrano tristi
 
 [transform] it:tornare#form:presente  (skill present-are)
-  Rewrite the sentence
+  Change the person
   Non tornate a chiamare.   → io
   tiles: a · torno · chiamare · non · torna · torni · tornate
   => non torno a chiamare
 
 [transform] it:lasciare#form:presente  (skill present-are)
-  Rewrite the sentence
+  Change the person
   Lasciamo il pane qui.   → io
   tiles: lascio · lascia · qui · pane · lasciate · il · lasciamo
   => lascio il pane qui
 
 [transform] it:cercare#form:presente  (skill present-are)
-  Rewrite the sentence
+  Change the person
   Cerchiamo felicità.   → io
   tiles: cercano · felicità · cerca · cerco · cerchiamo
   => cerco felicità
 
 [transform] it:entrare#form:presente  (skill present-are)
-  Rewrite the sentence
-  Adesso entra.   → noi
-  tiles: entriamo · entra · adesso · entrano · entro
-  => adesso entriamo
+  Change the person
+  Adesso entrate.   → lui/lei (he/she)
+  tiles: entra · entrate · entri · adesso · entro
+  => adesso entra
 
 ========================================================================
 SKILL articles (grammar)  The article
@@ -2304,49 +2304,49 @@ SKILL present-ere (grammar)  Present tense of -ere verbs
 
 --- transform: 8 example(s)
 [transform] it:prendere#form:presente  (skill present-ere)
-  Rewrite the sentence
+  Change the person
   Perché non prendete da bere?   → noi
   tiles: prendiamo · perché · prendo · non · prendono · da · bere · prendete
   => perché non prendiamo da bere
 
 [transform] it:credere#form:presente  (skill present-ere)
-  Rewrite the sentence
+  Change the person
   Credono di riuscire a vincere.   → noi
   tiles: a · vincere · crede · credete · credono · riuscire · di · crediamo
   => crediamo di riuscire a vincere
 
 [transform] it:mettere#form:presente  (skill present-ere)
-  Rewrite the sentence
-  Dove metti il pane?   → lui/lei (he/she)
-  tiles: dove · metto · mettono · il · metti · pane · mette
-  => dove mette il pane
+  Change the person
+  Non metto zucchero nel mio caffè.   → voi
+  tiles: mettete · metto · non · mio · mettono · caffè · nel · zucchero · mettiamo
+  => non mettete zucchero nel mio caffè
 
 [transform] it:vivere#form:presente  (skill present-ere)
-  Rewrite the sentence
+  Change the person
   Vivi da solo?   → io
   tiles: vivi · solo · da · vivo · vive · vivono
   => vivo da solo
 
 [transform] it:perdere#form:presente  (skill present-ere)
-  Rewrite the sentence
+  Change the person
   Non perdiamo mai.   → io
   tiles: perdo · perdiamo · non · perdono · perdi · mai
   => non perdo mai
 
 [transform] it:intendere#form:presente  (skill present-ere)
-  Rewrite the sentence
-  Dove intendete mangiare?   → noi
-  tiles: intendono · intendete · mangiare · intende · intendiamo · dove
-  => dove intendiamo mangiare
+  Change the person
+  Dove intendete mangiare?   → tu
+  tiles: intendi · intendete · intende · dove · mangiare · intendono
+  => dove intendi mangiare
 
 [transform] it:ricevere#form:presente  (skill present-ere)
-  Rewrite the sentence
+  Change the person
   Quando ricevi i soldi?   → lui/lei (he/she)
   tiles: ricevo · riceve · ricevi · quando · soldi · ricevete · i
   => quando riceve i soldi
 
 [transform] it:rispondere#form:presente  (skill present-ere)
-  Rewrite the sentence
+  Change the person
   Non rispondete.   → io
   tiles: non · risponde · rispondo · rispondete · rispondono
   => non rispondo
@@ -2584,52 +2584,52 @@ SKILL present-ire (grammar)  Present tense of -ire verbs
 
 --- transform: 8 example(s)
 [transform] it:capire#form:presente  (skill present-ire)
-  Rewrite the sentence
+  Change the person
   Finalmente capisco.   → noi
   tiles: capisce · finalmente · capisci · capisco · capiamo
   => finalmente capiamo
 
+[transform] it:servire#form:presente  (skill present-ire)
+  Change the person
+  Servo il tè o il caffè?   → tu
+  tiles: servo · serviamo · servi · il · caffè · servono · il · o · tè
+  => servi il tè o il caffè
+
 [transform] it:dormire#form:presente  (skill present-ire)
-  Rewrite the sentence
+  Change the person
   Non dormo bene.   → voi
   tiles: dormite · dorme · non · bene · dormo · dormiamo
   => non dormite bene
 
 [transform] it:finire#form:presente  (skill present-ire)
-  Rewrite the sentence
-  Qui finisce male.   → voi
-  tiles: finite · finisce · finisco · male · qui · finiamo
-  => qui finite male
+  Change the person
+  Finisci di bere il tuo latte.   → voi
+  tiles: finite · latte · di · finisci · finisco · il · tuo · bere · finiamo
+  => finite di bere il tuo latte
 
 [transform] it:aprire#form:presente  (skill present-ire)
-  Rewrite the sentence
+  Change the person
   Apro il latte nuovo.   → tu
   tiles: aprite · latte · il · nuovo · apro · apre · apri
   => apri il latte nuovo
 
+[transform] it:scoprire#form:presente  (skill present-ire)
+  Change the person
+  Come scopri la verità?   → io
+  tiles: come · scoprono · scopriamo · la · scopri · verità · scopro
+  => come scopro la verità
+
 [transform] it:offrire#form:presente  (skill present-ire)
-  Rewrite the sentence
+  Change the person
   Offrite anche il caffè?   → noi
   tiles: il · offro · caffè · anche · offriamo · offri · offrite
   => offriamo anche il caffè
 
 [transform] it:partire#form:presente  (skill present-ire)
-  Rewrite the sentence
+  Change the person
   Perché non partite?   → noi
   tiles: parti · partiamo · partite · non · partono · perché
   => perché non partiamo
-
-[transform] it:mentire#form:presente  (skill present-ire)
-  Rewrite the sentence
-  Perché menti?   → noi
-  tiles: mentiamo · menti · mentite · perché · mento
-  => perché mentiamo
-
-[transform] it:sparire#form:presente  (skill present-ire)
-  Rewrite the sentence
-  Scusa, ma adesso sparisco.   → loro (they)
-  tiles: ma · sparisce · sparite · scusa · sparisco · spariscono · adesso
-  => scusa ma adesso spariscono
 
 ========================================================================
 SKILL time (vocab)  Time and days
@@ -3950,52 +3950,52 @@ SKILL irregular-present (grammar)  Irregular verbs in the present
 
 --- transform: 8 example(s)
 [transform] it:stare#form:presente  (skill irregular-present)
-  Rewrite the sentence
-  Sta sperando di vincere, vero?   → tu
-  tiles: vincere · vero · di · stanno · sperando · stai · state · sta
-  => stai sperando di vincere vero
+  Change the person
+  Sto diventando piccola!   → tu
+  tiles: stai · stanno · sta · piccola · diventando · sto
+  => stai diventando piccola
 
 [transform] it:andare#form:presente  (skill irregular-present)
-  Rewrite the sentence
+  Change the person
   No, non andate.   → loro (they)
   tiles: vanno · andiamo · no · va · non · andate
   => no non vanno
 
 [transform] it:fare#form:presente  (skill irregular-present)
-  Rewrite the sentence
+  Change the person
   Facciamo il burro con il latte.   → io
-  tiles: facciamo · fanno · faccio · il · latte · fai · il · con · burro
+  tiles: fa · il · faccio · latte · il · con · fanno · facciamo · burro
   => faccio il burro con il latte
 
+[transform] it:dire#form:presente  (skill irregular-present)
+  Change the person
+  Dite solo sì o no.   → tu
+  tiles: no · solo · diciamo · dico · sì · o · dite · dici
+  => dici solo sì o no
+
 [transform] it:venire#form:presente  (skill irregular-present)
-  Rewrite the sentence
+  Change the person
   Vieni o no?   → loro (they)
   tiles: o · vengo · viene · vieni · no · vengono
   => vengono o no
 
 [transform] it:riuscire#form:presente  (skill irregular-present)
-  Rewrite the sentence
+  Change the person
   Riesco a lavorare fino a tardi.   → lui/lei (he/she)
   tiles: riesci · lavorare · a · fino · riesce · riescono · tardi · a · riesco
   => riesce a lavorare fino a tardi
 
 [transform] it:uscire#form:presente  (skill irregular-present)
-  Rewrite the sentence
-  Esce spesso a bere.   → noi
-  tiles: bere · uscite · usciamo · esce · spesso · a · esco
-  => usciamo spesso a bere
+  Change the person
+  Perché non usciamo a bere stasera?   → io
+  tiles: bere · esco · a · non · usciamo · uscite · escono · stasera · perché
+  => perché non esco a bere stasera
 
 [transform] it:tenere#form:presente  (skill irregular-present)
-  Rewrite the sentence
-  Dove teniamo il sale?   → loro (they)
-  tiles: il · dove · sale · tengono · tengo · teniamo · tieni
-  => dove tengono il sale
-
-[transform] it:morire#form:presente  (skill irregular-present)
-  Rewrite the sentence
-  Muoio di fame!   → voi
-  tiles: muoiono · muoio · fame · muore · di · morite
-  => morite di fame
+  Change the person
+  Dove teniamo il sale?   → io
+  tiles: tengo · il · tengono · dove · tiene · teniamo · sale
+  => dove tengo il sale
 
 ========================================================================
 SKILL pronouns (grammar)  Object pronouns
@@ -4470,52 +4470,52 @@ SKILL modal-verbs (grammar)  Can, must, want: modal verbs
 
 --- transform: 8 example(s)
 [transform] it:potere#form:presente  (skill modal-verbs)
-  Rewrite the sentence
-  Perché non possiamo lavorare insieme?   → voi
-  tiles: posso · può · lavorare · possiamo · potete · perché · non · insieme
-  => perché non potete lavorare insieme
+  Change the person
+  Non possiamo rimanere qui a lungo.   → voi
+  tiles: lungo · potete · non · a · possiamo · posso · può · qui · rimanere
+  => non potete rimanere qui a lungo
 
 [transform] it:dovere#form:presente  (skill modal-verbs)
-  Rewrite the sentence
-  Perché dovete lavorare fino a tardi?   → noi
-  tiles: a · dovete · devi · fino · perché · deve · tardi · lavorare · dobbiamo
-  => perché dobbiamo lavorare fino a tardi
+  Change the person
+  Perché devi lavorare fino a tardi?   → voi
+  tiles: lavorare · fino · dovete · a · dobbiamo · devi · devo · tardi · perché
+  => perché dovete lavorare fino a tardi
 
 [transform] it:volere#form:presente  (skill modal-verbs)
-  Rewrite the sentence
+  Change the person
   Voglio vivere in una grande città.   → tu
   tiles: vuole · una · città · vivere · voglio · vuoi · grande · vogliono · in
   => vuoi vivere in una grande città
 
 [transform] it:sapere#form:presente  (skill modal-verbs)
-  Rewrite the sentence
-  Sai cucinare bene il riso?   → lui/lei (he/she)
-  tiles: il · bene · sa · cucinare · sappiamo · sai · sanno · riso
-  => sa cucinare bene il riso
+  Change the person
+  Non so parlare con la gente.   → noi
+  tiles: parlare · sa · gente · con · sappiamo · sanno · so · non · la
+  => non sappiamo parlare con la gente
 
 [transform] it:potere#form:presente  (skill modal-verbs)
-  Rewrite the sentence
-  Non posso aspettare fino a domani.   → voi
-  tiles: posso · puoi · potete · non · a · possiamo · aspettare · domani · fino
-  => non potete aspettare fino a domani
+  Change the person
+  Dove posso prendere un taxi?   → loro (they)
+  tiles: dove · posso · taxi · prendere · un · possono · possiamo · può
+  => dove possono prendere un taxi
 
 [transform] it:dovere#form:presente  (skill modal-verbs)
-  Rewrite the sentence
+  Change the person
   Devi essere qui fino alle cinque.   → io
-  tiles: essere · cinque · fino · devo · dobbiamo · devi · alle · deve · qui
+  tiles: fino · deve · qui · devi · alle · essere · devo · devono · cinque
   => devo essere qui fino alle cinque
   => debbo essere qui fino alle cinque
 
 [transform] it:volere#form:presente  (skill modal-verbs)
-  Rewrite the sentence
+  Change the person
   No, non voglio.   → tu
   tiles: vuoi · no · voglio · non · vogliono · vuole
   => no non vuoi
 
 [transform] it:sapere#form:presente  (skill modal-verbs)
-  Rewrite the sentence
+  Change the person
   Sapete cucinare bene il riso?   → loro (they)
-  tiles: so · riso · il · sai · bene · sapete · cucinare · sanno
+  tiles: bene · sapete · sanno · cucinare · riso · sappiamo · sa · il
   => sanno cucinare bene il riso
 
 ========================================================================
@@ -8276,19 +8276,19 @@ SKILL passato-prossimo (grammar)  The passato prossimo with avere
 
 --- transform: 8 example(s)
 [transform] it:avere#form:passato_prossimo  (skill passato-prossimo)
-  Rewrite the sentence
+  Change the person
   Avete avuto troppo da bere.   → lui/lei (he/she)
   tiles: bere · da · avete · ho · avuto · troppo · ha · abbiamo
   => ha avuto troppo da bere
 
 [transform] it:volere#form:passato_prossimo  (skill passato-prossimo)
-  Rewrite the sentence
+  Change the tense
   No, non voglio.   → present perfect (passato prossimo)
-  tiles: non · ho · hanno · abbiamo · voluto · voglio · no
+  tiles: hai · no · ho · voluto · non · voglio · hanno
   => no non ho voluto
 
 [transform] it:potere#form:passato_prossimo  (skill passato-prossimo)
-  Rewrite the sentence
+  Change the person
   Avete potuto prendere l'autobus?   → lui/lei (he/she)
   tiles: potuto · prendere · avete · ho · ha · hai · autobus · l'
   => ha potuto prendere l' autobus
@@ -8296,36 +8296,36 @@ SKILL passato-prossimo (grammar)  The passato prossimo with avere
   => è potuta prendere l' autobus
 
 [transform] it:dovere#form:passato_prossimo  (skill passato-prossimo)
-  Rewrite the sentence
+  Change the tense
   No, non devi.   → present perfect (passato prossimo)
-  tiles: non · avete · dovuto · ha · hai · devi · no
+  tiles: ha · hanno · non · no · dovuto · hai · devi
   => no non hai dovuto
   => no non sei dovuto
   => no non sei dovuta
 
 [transform] it:dire#form:passato_prossimo  (skill passato-prossimo)
-  Rewrite the sentence
+  Change the person
   Hai detto "trenta euro"?   → noi
   tiles: euro · trenta · hanno · detto · ho · hai · abbiamo
   => abbiamo detto trenta euro
 
+[transform] it:pensare#form:passato_prossimo  (skill passato-prossimo)
+  Change the person
+  Perché avete pensato che stessi mentendo?   → io
+  tiles: avete · hai · perché · stessi · mentendo · hanno · ho · pensato · che
+  => perché ho pensato che stessi mentendo
+
+[transform] it:vedere#form:passato_prossimo  (skill passato-prossimo)
+  Change the person
+  Non ho mai visto la neve.   → loro (they)
+  tiles: neve · hanno · avete · mai · non · ho · ha · la · visto
+  => non hanno mai visto la neve
+
 [transform] it:parlare#form:passato_prossimo  (skill passato-prossimo)
-  Rewrite the sentence
+  Change the person
   Hanno parlato dalle 8 alle 10.   → io
   tiles: alle · 8 · 10 · ho · ha · dalle · abbiamo · parlato · hanno
   => ho parlato dalle 8 alle 10
-
-[transform] it:capire#form:passato_prossimo  (skill passato-prossimo)
-  Rewrite the sentence
-  Finalmente capisco.   → noi, present perfect (passato prossimo)
-  tiles: capisco · ha · finalmente · ho · abbiamo · capito
-  => finalmente abbiamo capito
-
-[transform] it:sentire#form:passato_prossimo  (skill passato-prossimo)
-  Rewrite the sentence
-  Hanno sentito piangere.   → voi
-  tiles: ho · ha · sentito · piangere · avete · hanno
-  => avete sentito piangere
 
 ========================================================================
 SKILL passato-prossimo-essere (grammar)  The passato prossimo with essere
@@ -8519,35 +8519,35 @@ SKILL passato-prossimo-essere (grammar)  The passato prossimo with essere
 
 --- transform: 8 example(s)
 [transform] it:essere#form:passato_prossimo  (skill passato-prossimo-essere)
-  Rewrite the sentence
+  Change the person
   Siamo stati qui abbastanza a lungo.   → voi
   tiles: sei · a · abbastanza · siamo · lungo · stato · qui · siete · stati
   => siete stati qui abbastanza a lungo
   => siete state qui abbastanza a lungo
 
 [transform] it:andare#form:passato_prossimo  (skill passato-prossimo-essere)
-  Rewrite the sentence
+  Change the tense
   Poi dove andiamo?   → present perfect (passato prossimo)
   tiles: sei · andati · siamo · andiamo · dove · è · poi
   => poi dove siamo andati
   => poi dove siamo andate
 
 [transform] it:venire#form:passato_prossimo  (skill passato-prossimo-essere)
-  Rewrite the sentence
+  Change the tense
   Perché Tom e Mary non vengono?   → present perfect (passato prossimo)
-  tiles: Tom · Mary · non · venuti · perché · sono · siete · vengono · venuto · e
+  tiles: perché · vengono · siete · Tom · venuti · sono · e · Mary · venuto · non
   => perché Tom e Mary non sono venuti
   => perché Tom e Mary non sono venute
 
 [transform] it:sembrare#form:passato_prossimo  (skill passato-prossimo-essere)
-  Rewrite the sentence
+  Change the person
   È sembrato sorpreso.   → io
   tiles: sembrato · siamo · sorpreso · sono · sembrati · è
   => sono sembrato sorpreso
   => sono sembrata sorpreso
 
 [transform] it:tornare#form:passato_prossimo  (skill passato-prossimo-essere)
-  Rewrite the sentence
+  Change the person
   Ecco perché sono tornata così presto.   → tu
   tiles: tornato · siamo · ecco · presto · così · sono · tornati · perché · sei
   => ecco perché sei tornato così presto
@@ -8555,25 +8555,25 @@ SKILL passato-prossimo-essere (grammar)  The passato prossimo with essere
   => ecco perché hai tornato così presto
 
 [transform] it:riuscire#form:passato_prossimo  (skill passato-prossimo-essere)
-  Rewrite the sentence
-  Sono riuscito a entrare.   → voi
-  tiles: riusciti · entrare · riuscito · siete · a · sono · siamo
-  => siete riusciti a entrare
-  => siete riuscite a entrare
+  Change the person
+  Sei riuscito a dormire?   → loro (they)
+  tiles: sono · a · sei · dormire · siamo · riuscito · riusciti
+  => sono riusciti a dormire
+  => sono riuscite a dormire
 
 [transform] it:uscire#form:passato_prossimo  (skill passato-prossimo-essere)
-  Rewrite the sentence
+  Change the tense
   Voi quanto spesso uscite?   → present perfect (passato prossimo)
   tiles: spesso · sei · usciti · quanto · è · uscito · voi · siete
   => voi quanto spesso siete usciti
   => voi quanto spesso siete uscite
 
 [transform] it:entrare#form:passato_prossimo  (skill passato-prossimo-essere)
-  Rewrite the sentence
-  Perché non entrate?   → noi, present perfect (passato prossimo)
-  tiles: entrati · perché · entrato · siamo · siete · non · sono
-  => perché non siamo entrati
-  => perché non siamo entrate
+  Change the person
+  Perché non entrate?   → io, present perfect (passato prossimo)
+  tiles: non · sono · perché · sei · entrato · entrate · siamo
+  => perché non sono entrato
+  => perché non sono entrata
 
 ========================================================================
 SKILL weather (vocab)  Weather and nature
@@ -9651,51 +9651,51 @@ SKILL imperfetto (grammar)  The imperfetto
 
 --- transform: 8 example(s)
 [transform] it:essere#form:imperfetto  (skill imperfetto)
-  Rewrite the sentence
-  Perché siete così bravi a nuotare?   → noi, imperfect
-  tiles: perché · bravi · a · siete · così · era · eri · nuotare · eravamo
-  => perché eravamo così bravi a nuotare
+  Change the person
+  Perché sei così bravo a nuotare?   → lui/lei (he/she), imperfect
+  tiles: nuotare · così · erano · sei · eravate · a · era · perché · bravo
+  => perché era così bravo a nuotare
 
 [transform] it:avere#form:imperfetto  (skill imperfetto)
-  Rewrite the sentence
+  Change the tense
   Ho molto da imparare da voi.   → imperfect
   tiles: ho · da · da · avevate · molto · voi · avevo · imparare · avevamo
   => avevo molto da imparare da voi
 
 [transform] it:stare#form:imperfetto  (skill imperfetto)
-  Rewrite the sentence
+  Change the tense
   Loro stanno solo cercando di aiutare.   → imperfect
-  tiles: stavano · stavamo · cercando · solo · aiutare · loro · di · stanno · stavate
+  tiles: stavano · stanno · cercando · di · stavate · loro · stavi · solo · aiutare
   => loro stavano solo cercando di aiutare
 
 [transform] it:andare#form:imperfetto  (skill imperfetto)
-  Rewrite the sentence
+  Change the tense
   Alle undici va bene per me.   → imperfect
   tiles: alle · me · per · andava · andavo · va · andavate · undici · bene
   => alle undici andava bene per me
 
 [transform] it:fare#form:imperfetto  (skill imperfetto)
-  Rewrite the sentence
+  Change the tense
   Come lo fanno Tom e Mary?   → imperfect
-  tiles: Mary · faceva · facevate · come · lo · fanno · e · facevano · Tom
+  tiles: Tom · e · fanno · facevo · facevi · Mary · facevano · come · lo
   => come lo facevano Tom e Mary
 
 [transform] it:volere#form:imperfetto  (skill imperfetto)
-  Rewrite the sentence
+  Change the tense
   Io lo voglio fuori da qui.   → imperfect
-  tiles: fuori · voglio · volevamo · lo · io · da · volevo · voleva · qui
+  tiles: voglio · qui · volevo · fuori · volevi · da · lo · volevamo · io
   => io lo volevo fuori da qui
 
 [transform] it:potere#form:imperfetto  (skill imperfetto)
-  Rewrite the sentence
+  Change the tense
   Lui non può rimanere a lungo.   → imperfect
-  tiles: può · a · potevano · non · potevamo · poteva · lui · lungo · rimanere
+  tiles: a · potevano · lungo · può · lui · non · potevi · poteva · rimanere
   => lui non poteva rimanere a lungo
 
 [transform] it:dovere#form:imperfetto  (skill imperfetto)
-  Rewrite the sentence
+  Change the tense
   Devi essere qui fino alle cinque.   → imperfect
-  tiles: dovevi · alle · devi · cinque · fino · qui · dovevate · doveva · essere
+  tiles: essere · alle · doveva · fino · devi · dovevi · qui · dovevano · cinque
   => dovevi essere qui fino alle cinque
 
 ========================================================================
@@ -10493,49 +10493,49 @@ SKILL futuro (grammar)  The future tense
 
 --- transform: 8 example(s)
 [transform] it:dire#form:futuro  (skill futuro)
-  Rewrite the sentence
-  Ho detto di venire da sole.   → loro (they), future
-  tiles: diranno · ho · venire · da · di · sole · detto · dirà
-  => diranno di venire da sole
+  Change the person
+  Diceva di essere felice.   → tu, future
+  tiles: dirai · direte · di · diremo · diceva · felice · essere
+  => dirai di essere felice
 
 [transform] it:pensare#form:futuro  (skill futuro)
-  Rewrite the sentence
+  Change the tense
   Io ho subito pensato a voi!   → future
-  tiles: penserai · subito · io · voi · penserò · pensato · ho · a
+  tiles: subito · ho · penserà · penserò · voi · pensato · a · io
   => io penserò subito a voi
 
 [transform] it:parlare#form:futuro  (skill futuro)
-  Rewrite the sentence
+  Change the tense
   Voi avete già parlato con lui?   → future
   tiles: voi · parleremo · lui · parlerete · parlato · già · con · avete
   => voi parlerete già con lui
 
 [transform] it:capire#form:futuro  (skill futuro)
-  Rewrite the sentence
+  Change the tense
   Grazie, tu sì che mi capisci!   → future
   tiles: tu · capirai · capisci · sì · mi · capirete · che · grazie · capirà
   => grazie tu sì che mi capirai
 
 [transform] it:sentire#form:futuro  (skill futuro)
-  Rewrite the sentence
+  Change the tense
   Perché mi sento così vuoto?   → future
   tiles: sento · sentirò · sentirai · vuoto · mi · sentiranno · così · perché
   => perché mi sentirò così vuoto
 
 [transform] it:aspettare#form:futuro  (skill futuro)
-  Rewrite the sentence
+  Change the tense
   Non ci aspettiamo molto da Tom.   → future
   tiles: aspetterai · Tom · ci · aspetterete · aspettiamo · da · molto · non · aspetteremo
   => non ci aspetteremo molto da Tom
 
 [transform] it:sembrare#form:futuro  (skill futuro)
-  Rewrite the sentence
+  Change the tense
   Sembrano essere pronte per lavorare.   → future
   tiles: sembreranno · sembrano · pronte · essere · lavorare · sembrerà · sembreremo · per
   => sembreranno essere pronte per lavorare
 
 [transform] it:prendere#form:futuro  (skill futuro)
-  Rewrite the sentence
+  Change the tense
   Perché non prendi un taxi?   → future
   tiles: un · prendi · prenderai · non · prenderanno · perché · prenderà · taxi
   => perché non prenderai un taxi
@@ -10732,51 +10732,51 @@ SKILL futuro-irregular (grammar)  Irregular futures
 
 --- transform: 8 example(s)
 [transform] it:essere#form:futuro  (skill futuro-irregular)
-  Rewrite the sentence
-  Perché siete così bravi a nuotare?   → noi, future
-  tiles: sarà · così · perché · siete · saremo · nuotare · bravi · a · saranno
-  => perché saremo così bravi a nuotare
+  Change the person
+  Perché sei così bravo a nuotare?   → lui/lei (he/she), future
+  tiles: a · perché · bravo · nuotare · sei · così · sarà · saremo · sarete
+  => perché sarà così bravo a nuotare
 
 [transform] it:avere#form:futuro  (skill futuro-irregular)
-  Rewrite the sentence
+  Change the tense
   Ho molto da imparare da voi.   → future
   tiles: ho · da · da · avrete · molto · voi · avrò · imparare · avremo
   => avrò molto da imparare da voi
 
 [transform] it:stare#form:futuro  (skill futuro-irregular)
-  Rewrite the sentence
+  Change the tense
   State offrendo di aiutare?   → future
-  tiles: state · staranno · aiutare · di · starai · starete · offrendo
+  tiles: aiutare · staranno · di · starai · state · offrendo · starete
   => starete offrendo di aiutare
 
 [transform] it:andare#form:futuro  (skill futuro-irregular)
-  Rewrite the sentence
+  Change the tense
   Voi siete mai andate a Parigi?   → future
   tiles: siete · a · voi · andremo · andate · Parigi · mai · andrete
   => voi andrete mai a Parigi
 
 [transform] it:fare#form:futuro  (skill futuro-irregular)
-  Rewrite the sentence
+  Change the tense
   Noi lo facevamo.   → future
-  tiles: noi · farò · faremo · lo · facevamo · faranno
+  tiles: noi · farà · farò · lo · facevamo · faremo
   => noi lo faremo
 
 [transform] it:volere#form:futuro  (skill futuro-irregular)
-  Rewrite the sentence
+  Change the tense
   Hai mai voluto essere ricco?   → future
-  tiles: essere · mai · ricco · voluto · hai · vorrai · vorremo
+  tiles: voluto · hai · ricco · essere · mai · vorremo · vorrai
   => vorrai mai essere ricco
 
 [transform] it:potere#form:futuro  (skill futuro-irregular)
-  Rewrite the sentence
+  Change the tense
   Come hai potuto fare questo?   → future
-  tiles: questo · potuto · potrai · come · hai · fare · potrà
+  tiles: potrai · hai · questo · potrà · potuto · come · fare
   => come potrai fare questo
 
 [transform] it:dovere#form:futuro  (skill futuro-irregular)
-  Rewrite the sentence
+  Change the tense
   Ha dovuto viaggiare su un autobus.   → future
-  tiles: dovrà · autobus · dovranno · viaggiare · su · dovuto · un · ha
+  tiles: viaggiare · un · dovrai · autobus · su · dovuto · dovrà · ha
   => dovrà viaggiare su un autobus
 
 ========================================================================

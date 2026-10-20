@@ -15,6 +15,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'fakes/fakes.dart';
 import 'gated_validity.dart';
 import 'helpers.dart';
+import 'real_packs.dart';
 
 final _now = DateTime.utc(2026, 10, 14, 12);
 
@@ -84,7 +85,7 @@ Future<List<Exercise>> _play(
 }
 
 void main() {
-  for (final id in ['it', 'nl']) {
+  for (final id in bundledPackIds()) {
     final path = 'assets/courses/$id.sqlite';
     group('real pack $id gating', () {
       late CourseData course;

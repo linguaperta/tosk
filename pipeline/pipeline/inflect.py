@@ -301,8 +301,76 @@ def nl_diminutive(lx: Lexeme, known: set[str]) -> dict | None:
     return t
 
 
+# ------------------------------------------------------------------------------------------ Spanish
+def _es_plural_cands(lemma: str) -> list[str]:
+    """Plausible plural mistakes: -s/-es confusions, z kept (lápizes), the accent kept or lost."""
+    plain = lemma.translate(str.maketrans("áéíóú", "aeiou"))
+    cands = [lemma + "s", lemma + "es", plain + "es", plain + "s"]
+    if lemma.endswith("z"):
+        cands += [lemma[:-1] + "zes", lemma[:-1] + "ses"]
+    return cands
+
+
+def es_number(lx: Lexeme, known: set[str]) -> dict | None:
+    """sg/pl of Spanish nouns: casa/casas, ciudad/ciudades, luz/luces, canción/canciones; nouns
+    whose plural equals the singular (el lunes / los lunes) are left out like Italian città."""
+    if lx.pos != "noun" or lx.uncountable or lx.plural_only or " " in lx.lemma:
+        return None
+    lemma = lx.lemma
+    plurals = _forms(lx, lambda t: "plural" in t and "diminutive" not in t and "augmentative" not in t)
+    plurals = [p for p in plurals if p != lemma] or ([lx.plural] if lx.plural and lx.plural != lemma else [])
+    plurals = [p for p in plurals if p[:2].lower() == lemma[:2].lower()]   # not 'reinas' for 'rey'
+    if not plurals:
+        return None
+    t = {"sg": _cell(lemma), "pl": _cell(plurals[0], plurals[1:])}
+    split_table(t, lemma)
+    if len(t["sg"].get("stem", lemma)) < len(lemma) - 2:
+        for c in t.values():               # 'ex' + amen / ámenes: an accent shift, no clean ending
+            c.pop("stem", None), c.pop("ending", None)
+    _add_wrong(t, "pl", _es_plural_cands(lemma), known)
+    return t
+
+
+def es_agreement(lx: Lexeme, known: set[str]) -> dict | None:
+    """m.sg / f.sg / m.pl / f.pl of adjectives and determiners (bonito/bonita/bonitos/bonitas,
+    fácil/fácil/fáciles/fáciles, nuestro, mi/mis). Forms from Wiktionary, with the regular -o/-a and
+    -e/consonant patterns as a fallback for adjectives."""
+    if lx.pos not in ("adj", "det") or " " in lx.lemma:
+        return None
+    lemma = lx.lemma
+    ok = {"error-unrecognized-form"}
+    fsg = _forms(lx, lambda t: "feminine" in t and "plural" not in t and t <= {"feminine", "singular"} | ok)
+    mpl = _forms(lx, lambda t: "plural" in t and "feminine" not in t and t <= {"masculine", "plural"} | ok)
+    fpl = _forms(lx, lambda t: "plural" in t and "masculine" not in t and t <= {"feminine", "plural"} | ok)
+    common_pl = _forms(lx, lambda t: "plural" in t and (t <= {"plural"} | ok
+                                                        or t <= {"masculine", "feminine", "plural"} | ok))
+    if common_pl:
+        mpl, fpl = mpl or common_pl, fpl or common_pl
+    if not fsg and not lemma.endswith("o"):
+        fsg = [lemma]                          # grande, fácil, azul, mi: m = f
+    if lx.pos == "adj":
+        if not fsg and lemma.endswith("o"):
+            fsg = [lemma[:-1] + "a"]
+        if not mpl:
+            mpl = [lemma + ("s" if lemma[-1:] in "aeiouáéó" else "es")]
+        if not fpl:
+            fpl = [fsg[0] + ("s" if fsg[0][-1:] in "aeiouáéó" else "es")]
+    if not (fsg and mpl and fpl):
+        return None
+    forms = {"m.sg": [lemma], "f.sg": fsg, "m.pl": mpl, "f.pl": fpl}
+    t = {c: _cell(v[0], v[1:]) for c, v in forms.items()}
+    split_table(t, lemma)
+    if "stem" in t["m.sg"]:
+        stem = t["m.sg"]["stem"]
+        cands = [stem + e for e in ("o", "a", "os", "as", "es", "e", "s")]
+        for c in t:
+            _add_wrong(t, c, cands, known)
+    return t
+
+
 BUILDERS: dict[str, dict[str, Callable[[Lexeme, set[str]], dict | None]]] = {
     "it": {"number": it_number, "agreement": it_agreement},
+    "es": {"number": es_number, "agreement": es_agreement},
     "nl": {"number": nl_number, "agreement": nl_agreement, "comparison": nl_comparison,
            "diminutive": nl_diminutive},
 }
@@ -502,4 +570,46 @@ def _nl_agreement(al: InflectionAligner, toks: list[dict], i: int, cells: list[s
     return "base"
 
 
-AGREEMENT: dict[str, Callable[..., str | None]] = {"it": _it_agreement, "nl": _nl_agreement}
+ES_DEGREE = {"muy", "tan", "demasiado", "bastante", "más", "menos", "poco", "algo", "realmente"}
+ES_COPULA = {"es", "son", "eres", "soy", "somos", "sois", "está", "están", "estás", "estoy", "estamos",
+             "estáis", "era", "eran", "estaba", "estaban", "parece", "parecen", "será", "serán", "fue",
+             "fueron", "sigue", "siguen", "queda", "quedan"}
+
+
+def _es_agreement(al: InflectionAligner, toks: list[dict], i: int, cells: list[str], item: dict) -> str | None:
+    """As Italian: the noun right after the word (determiners, 'buen día'), or before it over degree
+    words and a copula ('una casa muy bonita', 'la sopa está fría'), with gender m or f and a known
+    number decides the cell."""
+    if _norm(toks[i]["t"]) in ES_DEGREE:
+        return None
+    return _agreement_by_noun(al, toks, i, cells, ES_DEGREE, ES_COPULA)
+
+
+def _agreement_by_noun(al: InflectionAligner, toks: list[dict], i: int, cells: list[str], degree: set[str],
+                       copula: set[str]) -> str | None:
+    def noun_cell(j: int) -> str | None:
+        n = al._item(toks[j])
+        if not n or n.get("pos") != "noun" or n.get("gender") not in ("m", "f"):
+            return None
+        num = al._noun_number(toks[j])
+        return f"{n['gender']}.{num}" if num else None
+
+    found: set[str] = set()
+    if i + 1 < len(toks) and _is_word(toks[i + 1]):
+        c = noun_cell(i + 1)
+        if c:
+            found.add(c)
+    j = i - 1
+    while j >= 0 and _is_word(toks[j]) and _norm(toks[j]["t"]) in degree:
+        j -= 1
+    if j >= 0 and _is_word(toks[j]):
+        if _norm(toks[j]["t"]) in copula and j - 1 >= 0 and _is_word(toks[j - 1]):
+            j -= 1
+        c = noun_cell(j)
+        if c:
+            found.add(c)
+    hits = [c for c in found if c in cells]
+    return hits[0] if len(hits) == 1 and len(found) == 1 else None
+
+
+AGREEMENT: dict[str, Callable[..., str | None]] = {"it": _it_agreement, "nl": _nl_agreement, "es": _es_agreement}
