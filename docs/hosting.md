@@ -31,8 +31,9 @@ Decisions agreed with the owner on 20 October 2026, and the checklist for making
 
 ## Go-public checklist
 
-- [ ] Move the copyrighted-source importers to a private repo ([private-importers.md](private-importers.md)), replacing the hooks it lists.
-- [ ] Scan the **whole git history** of both repos for Sarnami/[source] data, keys, `key.properties`, keystores, `google-services.json`; rewrite history if anything turns up.
+- [ ] Move the copyrighted-source importers **and the local Sarnami data (`local/`)** to the private repo **`timoverlaan/tosk-data-private`** (checkout `C:\Users\timo\Repositories\tosk-data-private`, created by the owner on 20 Oct), replacing the hooks [private-importers.md](private-importers.md) lists (the safeguard becomes a generic public module; the private part plugs in when present).
+- [x] Scan the **whole git history** of both repos for Sarnami/[source] data, keys, `key.properties`, keystores, `google-services.json` (20 Oct: no secrets or Sarnami data; only the importer code and `docs/sarnami.md`, which the rewrite removes). `tosk-data` is clean.
+- [ ] Remove every remaining "tosk" reference (identifiers, channel/prefs/DB/cache names with a migration so the installed app keeps its data and keys, docs, file names), then **rewrite the whole history** of `linguaperta/tosk` with `git filter-repo` (drop the moved paths; replace "tosk" in contents, paths and messages), verify, force-push. Only after every open agent branch is merged. (The repo was made public on 20 Oct before this cleanup.)
 - [ ] Add `LICENSE` (Apache-2.0), `NOTICE`, `TRADEMARKS.md`, and `app/assets/brand/LICENSE` (CC BY-NC-ND 4.0); content repo keeps CC BY-SA 4.0.
 - [ ] Rename the app id to `org.linguaperta.tosk` (and the Windows exe/secure-storage name); update docs and signing.
 - [ ] Add `license` / `authors` / `data_sources` to the it, nl and es `course.yaml`; the course preview shows them.
