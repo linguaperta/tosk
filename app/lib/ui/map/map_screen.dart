@@ -9,6 +9,7 @@ import '../shell/course_switcher.dart';
 import '../slots/progression_slots.dart';
 import '../stories/story_providers.dart';
 import 'branch_style.dart';
+import 'map_action_bar.dart';
 import 'skill_map_view.dart';
 import 'skill_stats.dart';
 
@@ -49,7 +50,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final reduceMotion = ref.watch(reduceMotionProvider);
     final now = ref.watch(clockProvider)();
     final mistakeCount = ref.watch(openMistakesProvider).value?.length ?? 0;
-    final scheme = Theme.of(context).colorScheme;
     final anyPracticed = stats.value?.values.any((s) => s.practiced) ?? false;
     final c = course.value;
     final longMap = c != null && c.units.length >= _longMapUnits;
@@ -60,8 +60,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               for (final s in c.skills)
                 if (s.unitId == u.id) (unitId: u.id, skillId: s.id),
           ], stats.value ?? const {});
-    // Room below the last band for the action buttons.
-    final fabRoom = 96.0 + (mistakeCount > 0 ? 72 : 0) + (current != null ? 52 : 0);
+    final showBar = MapActionBar.shows(mistakes: mistakeCount > 0, fading: anyPracticed, jump: current != null);
 
     return Scaffold(
       appBar: AppBar(
@@ -80,46 +79,17 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           ),
         ],
       ),
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          // Long maps: back to where the learner is (first unfinished unit).
-          if (current != null) ...[
-            FloatingActionButton.small(
-              key: const ValueKey('jump-current-unit'),
-              heroTag: 'jump-fab',
-              tooltip: 'Jump to current unit',
-              onPressed: () => _jumpTo(current),
-              child: const Icon(Icons.my_location),
-            ),
-            const SizedBox(height: 12),
-          ],
-          if (mistakeCount > 0) ...[
-            FloatingActionButton.extended(
-              key: const ValueKey('mistakes-button'),
-              heroTag: 'mistakes-fab',
-              tooltip: 'Practice your open mistakes',
-              backgroundColor: scheme.tertiaryContainer,
-              foregroundColor: scheme.onTertiaryContainer,
-              onPressed: () => context.push(Routes.review),
-              icon: const Icon(Icons.replay),
-              label: Text('Review mistakes ($mistakeCount)'),
-            ),
-            const SizedBox(height: 12),
-          ],
-          // Hidden on a fresh profile: nothing can fade before anything was practiced.
-          if (anyPracticed)
-            FloatingActionButton.extended(
-              key: const ValueKey('fading-button'),
-              heroTag: 'fading-fab',
-              tooltip: 'Practice what you are forgetting',
-              onPressed: () => context.push(Routes.fading),
-              icon: const Icon(Icons.restore),
-              label: const Text("What's fading"),
-            ),
-        ],
-      ),
+      // The actions sit in a bar under the map (not floating over it), so
+      // they never cover a skill node.
+      bottomNavigationBar: showBar
+          ? MapActionBar(
+              mistakeCount: mistakeCount,
+              onMistakes: mistakeCount > 0 ? () => context.push(Routes.review) : null,
+              // Hidden on a fresh profile: nothing can fade before anything was practiced.
+              onFading: anyPracticed ? () => context.push(Routes.fading) : null,
+              onJump: current != null ? () => _jumpTo(current) : null,
+            )
+          : null,
       body: AsyncView(
         value: course,
         onRetry: () => ref.invalidate(courseDataProvider),
@@ -131,7 +101,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           }
           return SingleChildScrollView(
             key: const ValueKey('map-scroll'),
-            padding: EdgeInsets.only(top: 8, bottom: fabRoom),
+            padding: const EdgeInsets.only(top: 8, bottom: 24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -155,9 +125,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   onLongPress: (skill) => context.push(Routes.skill(skill.id)),
                   unitKeys: {for (final u in course.units) u.id: _unitKey(u.id)},
                   // Units with graded stories get a book button in their band.
-                  storyCounts: {
-                    for (final s in course.stories) s.unitId: 0,
-                  }..updateAll((unit, _) => course.stories.where((s) => s.unitId == unit).length),
+                  storyCounts: {for (final s in course.stories) s.unitId: 0}
+                    ..updateAll((unit, _) => course.stories.where((s) => s.unitId == unit).length),
                   storyUnitsOpen: ref.watch(storyUnitsUnlockedProvider).value ?? const {},
                   onUnitStories: (unitId) => context.push(Routes.unitStories(unitId)),
                 ),
