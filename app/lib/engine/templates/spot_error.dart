@@ -53,6 +53,11 @@ class SpotErrorTemplate extends ExerciseTemplate {
     Iterable<T> order<T>(List<T> occ, Sentence Function(T) sentence) =>
         shuffle ? ctx.prefer(occ, sentence) : occ.where((o) => ctx.sentenceOk(sentence(o)));
     if (facet.kind == FacetKind.form && facet.tense != null) {
+      // A tense with its own person list (pack `tense_persons`: the Italian
+      // imperative) has no subject: a person swap is a grammatical sentence of
+      // another person (`Fate come dico` -> `Facciamo come dico`), so no
+      // spot_error there.
+      if (ix.meta.tensePersons.containsKey(facet.tense)) return out;
       final occ = ix.formOccurrencesIn(facet.itemId, facet.tense!);
       for (final o in order(occ, (o) => o.sentence)) {
         if (out.length >= limit) break;

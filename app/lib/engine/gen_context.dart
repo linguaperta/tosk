@@ -59,6 +59,13 @@ bool isGeneratedSentence(Sentence s) => s.src?.startsWith('claude-gen') ?? false
 /// them after seeing them.
 const double kPreferredSentenceBonus = 10.0;
 
+/// Score subtracted in [GenContext.prefer] from a sentence that shows a
+/// grammar feature the exercise's skill introduces (the Italian `progressive`
+/// skill trains `stare#form:presente`; its sentences with a gerund, `Sto
+/// mangiando`, come before `Come stai?`). More than the jitter, less than two
+/// unknown words.
+const double kSkillFeatureBonus = 1.25;
+
 /// See [GenContext.shownRecently].
 const int kRecentSentenceWindow = 100;
 
@@ -108,6 +115,11 @@ class GenContext {
   final Set<String> preferredSentences;
 
   CourseIndex get index => CourseIndex.of(course);
+
+  /// The non-base features [skill] introduces ([kSkillFeatureBonus]).
+  late final Set<String> _ownFeatures = skill == null
+      ? const {}
+      : course.skillFeatures(skill!.id).difference(course.meta.baseFeatures.toSet());
   String get lang => options.sourceLang;
 
   String nextId() => _nextId?.call() ?? 'ex${_counter++}';
@@ -175,6 +187,7 @@ class GenContext {
     final reused = <(double, T)>[];
     final g = gate;
     final h = history;
+    final own = _ownFeatures;
     for (final c in candidates) {
       final s = sentenceOf(c);
       final preferred = preferredSentences.contains(s.id);
@@ -182,7 +195,8 @@ class GenContext {
       final score = (g == null ? 0 : g.unknownWords(s) * kUnknownWordWeight) +
           (h == null ? 0 : h.penalty(s.id)) +
           (isGeneratedSentence(s) ? kGeneratedSentenceWeight : 0) -
-          (preferred ? kPreferredSentenceBonus : 0) +
+          (preferred ? kPreferredSentenceBonus : 0) -
+          (own.isNotEmpty && course.sentenceFeatures(s.id).any(own.contains) ? kSkillFeatureBonus : 0) +
           random.nextDouble();
       (h != null && h.usedInSession(s.id) ? reused : fresh).add((score, c));
     }

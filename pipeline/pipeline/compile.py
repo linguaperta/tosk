@@ -24,6 +24,21 @@ COURSE_DB_SCHEMA_MINOR = 1
 # pack that trains inflection tables carries meta.min_app_version (publish.py puts it in the index;
 # the app offers such a pack only to newer apps).
 MIN_APP_VERSION_INFL = "0.4.0"
+#   2: moods and recognition-only skills (meta.tense_persons, tense_person_labels, tense_groups,
+#      recognition_skills; written only by packs that use them). Older apps would ask recognition-
+#      only forms as production and transform between moods, so such packs need this app version.
+COURSE_DB_SCHEMA_MINOR_MOODS = 2
+MIN_APP_VERSION_MOODS = "0.7.3"
+
+
+def recognition_skills(course: dict) -> dict[str, dict]:
+    """meta.recognition_skills: {skill id: {equivalent_tense?}} of the `recognition: true` skills."""
+    out = {}
+    for unit in course.get("units") or []:
+        for s in unit.get("skills") or []:
+            if s.get("recognition"):
+                out[s["id"]] = {"equivalent_tense": s["equivalent_tense"]} if s.get("equivalent_tense") else {}
+    return out
 
 SOURCE_ATTRIBUTION = {
     "wiktionary": "Wiktionary (en.wiktionary.org), via kaikki.org/wiktextract — CC BY-SA 4.0 (and GFDL)",
@@ -71,7 +86,7 @@ def skill_query_json(skill: dict) -> str:
 
 
 def resolve_all(pack: Pack) -> dict[str, list[str]]:
-    persons = pack.course["persons"]
+    persons = query.course_persons(pack.course)
     return {skill["id"]: query.resolve(skill, pack.items, pack.verbs, persons) for _, _, _, skill in pack.skills()}
 
 
@@ -97,6 +112,10 @@ def facets_for(skill: dict, item_ids: list[str], items: dict[str, dict] | None =
     elif skill.get("facet") == "infl":
         for i, iid in enumerate(item_ids):
             infl(i, iid)
+    elif skill.get("recognition"):
+        # recognition only: understand the words, never produce them
+        for i, iid in enumerate(item_ids):
+            out.append((f"{iid}#rec", iid, "rec", None, i))
     else:
         for i, iid in enumerate(item_ids):
             out.append((f"{iid}#rec", iid, "rec", None, i))
@@ -174,6 +193,20 @@ def compile_pack(pack: Pack, out: Path, built_at: str | None = None) -> dict:
             meta["inflection_tables"] = _j(inflection_tables_meta(c["inflection_tables"]))
         if c.get("time_adverbs"):
             meta["time_adverbs"] = _j({k: list(v) for k, v in sorted(c["time_adverbs"].items())})
+        # schema minor 2: moods and recognition-only skills
+        if c.get("tense_persons"):
+            meta["tense_persons"] = _j({t: list(ps) for t, ps in c["tense_persons"].items()})
+        if c.get("tense_person_labels"):
+            meta["tense_person_labels"] = _j(c["tense_person_labels"])
+        if c.get("tense_groups"):
+            meta["tense_groups"] = _j(dict(sorted(c["tense_groups"].items())))
+        recognition = recognition_skills(c)
+        if recognition:
+            meta["recognition_skills"] = _j(recognition)
+        if c.get("tense_persons") or c.get("tense_groups") or recognition:
+            meta["schema_minor"] = str(COURSE_DB_SCHEMA_MINOR_MOODS)
+            if not c.get("min_app_version"):
+                meta["min_app_version"] = MIN_APP_VERSION_MOODS
         con.executemany("INSERT INTO meta(key, value) VALUES (?, ?)", sorted(meta.items()))
 
         for ui, unit in enumerate(c["units"]):
@@ -264,7 +297,7 @@ def compile_pack(pack: Pack, out: Path, built_at: str | None = None) -> dict:
                 con.execute("INSERT INTO skill_facets(skill_id, facet_id, item_id, kind, tense, ord) VALUES (?,?,?,?,?,?)",
                             (skill["id"], fid, iid, kind, tense, o))
                 n_facets += 1
-                if kind == "infl" and not c.get("min_app_version"):
+                if kind == "infl" and not c.get("min_app_version") and not meta.get("min_app_version"):
                     con.execute("INSERT OR REPLACE INTO meta(key, value) VALUES ('min_app_version', ?)",
                                 (MIN_APP_VERSION_INFL,))
         if c.get("min_app_version"):

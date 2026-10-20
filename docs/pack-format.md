@@ -1,6 +1,6 @@
-# Pack format 1.0
+# Pack format 1.1
 
-*Status: **1.0**, 20 October 2026. Draft parts are marked **DRAFT**. Normative words (MUST, SHOULD, MAY) are used as in RFC 2119.*
+*Status: **1.1**, 20 October 2026 (1.1 adds moods and recognition-only skills, sections 3, 12.5 and 15; everything of 1.0 is unchanged). Draft parts are marked **DRAFT**. Normative words (MUST, SHOULD, MAY) are used as in RFC 2119.*
 
 A **language pack** is everything the app knows about one course: the words, their conjugation and inflection tables, example sentences with translations, grammar notes, the course structure (units, skills and their prerequisites), graded stories, and credits. The app is a player for packs; it contains no knowledge of any language. This document specifies the format so that anyone can make a pack, build it, and host it without reading the project's code.
 
@@ -49,7 +49,7 @@ Contents:
 - **Unit, skill.** A unit is a group of skills (a band on the course map). A skill is one node on the map: a lesson topic. Skills select their items with **queries**, resolved at build time.
 - **Facet.** One thing a learner can know about an item, scheduled on its own by spaced repetition (FSRS): recognising a word, producing it, its forms in one tense, its article, one of its inflection tables. Progress is stored **per facet id**, so ids are permanent (section 10).
 - **Feature.** A grammar construct a sentence uses (`tense:past`, `aux:essere`). Skills *introduce* features; the app only shows sentences whose features the learner has met (grammar gating, section 12.4).
-- **Pack format version** (this document, 1.0), **compiled schema version** (`schema_version` 1, `schema_minor` 1), **catalog version** (`index_version` 1) and **pack version** (the content's own semver, `version`) are four different numbers; section 15.
+- **Pack format version** (this document, 1.1), **compiled schema version** (`schema_version` 1, `schema_minor` 2), **catalog version** (`index_version` 1) and **pack version** (the content's own semver, `version`) are four different numbers; section 15.
 
 ## 2. Source layout
 
@@ -85,6 +85,7 @@ Schema: `schema/course.schema.json` (unknown keys are errors). Top level:
 | `description` | no | i18n | one or two sentences for the course picker |
 | `target` | yes | `^[a-z]{2,3}$` | target language code; MUST equal `id` in 1.0 |
 | `translations` | yes | list of codes | source languages, in order of preference; at least one |
+| `required_translations` | no | list of codes | (1.1) the `translations` every taught item, sentence, story and grammar check needs; the others are optional: used and checked where present, and the app falls back to English where one is missing. Default: all of `translations` |
 | `unverified` | no | bool | true while no speaker has checked the content (the app says so); default false |
 | `note_langs` | no | list of codes | languages every grammar skill needs a note in; default: see section 19 (intended: `translations`) |
 | `min_app_version` | no | semver | oldest app that can use the pack (section 15.4) |
@@ -96,6 +97,9 @@ Schema: `schema/course.schema.json` (unknown keys are errors). Top level:
 | `person_labels` | no | {person: i18n} | how to show a person key that is not self-explanatory |
 | `tenses` | yes | list of keys | tense keys (`^[a-z][a-z0-9_]*$`) in display order |
 | `tense_labels` | no | {tense: i18n} | names of the tenses in the source languages; SHOULD cover every tense |
+| `tense_persons` | no | {tense: [person, …]} | (1.1) tenses whose tables have only some persons (an imperative without `io`); a table of such a tense is complete with these persons |
+| `tense_person_labels` | no | {tense: {person: i18n}} | (1.1) person labels that differ in one tense (the Italian imperative's `lui/lei` row is the formal `Lei (you, formal)`). Persons whose labels in a tense share a word in parentheses (`tu (you)`, `Lei (you, formal)`) are interchangeable for the app's wrong options in that tense: an imperative names no subject |
+| `tense_groups` | no | {tense: group} | (1.1) the transform exercise changes the tense only between tenses of one group (a mood); unlisted tenses form one default group. Put each mood whose tenses cannot replace each other in its own group (Italian: the indicative tenses unlisted, `condizionale`, each subjunctive tense and `imperativo` apart) |
 | `articles` | no | list | the article strings offered in article exercises (`[il, lo, la, "l'"]`, `[de, het]`) |
 | `inflection_tables` | no | {table: spec} | non-verb inflection tables (section 6) |
 | `base_features` | no | list of features | grammar features allowed from the start; **declaring the key turns grammar gating on** (section 12.4) |
@@ -130,6 +134,8 @@ An **i18n** value is a mapping from language code to a non-empty string: `{en: "
 | `exercises` | no | allowed exercise type ids (section 12.3); empty or absent = all that apply |
 | `pos` | no | `{x: int, y: int}`: a layout override for the map (column, row) |
 | `note` | no | path of the English grammar note relative to the pack, instead of `grammar/{id}.md` (section 8) |
+| `recognition` | no | (1.1) `true`: a **recognition-only** skill: the learner recognises its words or forms and is never asked to produce them (section 12.5). Not with `facet` |
+| `equivalent_tense` | no | (1.1) a recognition verbs skill: the tense whose form of the same verb and person means the same (`passato_remoto` → `passato_prossimo`), offered as "which form means the same?" |
 
 Exactly one of `items` and `verbs` is present.
 
@@ -146,7 +152,7 @@ Exactly one of `items` and `verbs` is present.
 
 With `facet: article` only items with an `article` qualify; with `facet: infl` only items whose every listed table has at least two different forms.
 
-**Verbs query** (`verbs:`): `tense` (required, one of `tenses`) selects verb items whose table for that tense is **complete** (a form for every person). Optional: `class` (verb class or list), `tags`, `regular` (true: the tense is not in the verb's `irregular_in`; false: it is), `aux` (the verb's primary auxiliary, the first of `auxiliary`), `lemmas`, `exclude`, `top`, `min` (default: `len(lemmas)`, else `min(15, top)`).
+**Verbs query** (`verbs:`): `tense` (required, one of `tenses`) selects verb items whose table for that tense is **complete** (a form for every person, or every person of `tense_persons`). Optional: `class` (verb class or list), `tags`, `regular` (true: the tense is not in the verb's `irregular_in`; false: it is), `aux` (the verb's primary auxiliary, the first of `auxiliary`), `lemmas`, `exclude`, `top`, `min` (default: `len(lemmas)`, else `min(15, top)`).
 
 **Order.** Selected items are introduced by frequency rank (`freq` ascending, items without `freq` last, then by id), except an explicit `lemmas` list without `top`, which keeps its own order. The order becomes `skill_items.ord` and `skill_facets.ord`.
 
@@ -176,7 +182,7 @@ One item per line. Schema: `schema/lexicon.schema.json`.
 | `class` | no | no | the verb class (also in the verb record) |
 | `src` | no | no | provenance of the word, `; `-separated tags (section 11.2) |
 
-Every item with a `unit` MUST have glosses in every `translations` language. Pool items SHOULD (where a gloss in the learner's language is missing, the app falls back to English, then to any language, which looks wrong as an option).
+Every item with a `unit` MUST have glosses in every required translation language (`required_translations`, default all `translations`). Pool items SHOULD (where a gloss in the learner's language is missing, the app falls back to English, then to any language; wrong options of a multiple choice or match are then taken in the same language as the right one).
 
 ## 5. Verb tables (`verbs/*.jsonl`)
 
@@ -251,7 +257,8 @@ One sentence per line. Schema: `schema/sentences.schema.json`.
   - absent when unknown or ambiguous (a token whose person cannot be decided keeps its `lex` and gets no `form`).
 - **Multi-word verb forms** are aligned in one of two ways, and the app understands both:
   1. *Auxiliary + participle* (Italian, Dutch): the participle token gets the compound cell (`mangiato` → `passato_prossimo.noi`, whose table form is `abbiamo mangiato`); the auxiliary token is aligned to the auxiliary verb's present (`abbiamo` → `avere`, `presente.noi`). The app treats such an auxiliary as part of the compound form, never as an occurrence of the auxiliary's own present.
-  2. *Every word* of the form gets the same `lex` and `form` (Sarnami `kare hai`: both words → `kare`, `present.oe`).
+  2. *Every word* of the form gets the same `lex` and `form` (Sarnami `kare hai`: both words → `kare`, `present.oe`; Italian pronominal verbs: `mi alzo` → `alzarsi`, `presente.io`, and all three words of `mi sono alzato` → `alzarsi`, `passato_prossimo.io`).
+- A word whose text is no accepted form of its cell (a form with attached pronouns: Italian `dimmi` → `dire`, `imperativo.tu`; `parlarmi` → `parlare`, `infinitive._`) is valid: the app glosses it, tags its grammar, and never asks it in an exercise.
 
 The app also derives which grammar features each sentence uses (section 12.4); the compiled pack stores them, the source does not.
 
@@ -266,7 +273,7 @@ Graded reading per unit: 2–3 short stories per unit that use only what the lea
 ```yaml
 - id: u1-bar                      # permanent, unique in the course
   unit: u1                        # the unit whose vocabulary and grammar it uses (and that unlocks it)
-  title: {it: "Al bar", en: "At the bar", nl: "In de bar"}   # target language + every translation
+  title: {it: "Al bar", en: "At the bar", nl: "In de bar"}   # target language + every required translation (1.1)
   new_words: [cameriere]          # at most one lemma taught after the unit, glossed in the reader
   names: [Bella]                  # extra names the story may use
   sentences:                      # 5-10 sentences of at most 14 words
@@ -389,6 +396,7 @@ Decided at build time and stored in `skill_facets`:
 | `verbs: {tense: T}` | `#form:T` (recognition belongs to vocab skills; no `#rec` is added) |
 | `items:` + `facet: article` | `#article` |
 | `items:` + `facet: infl` + `inflections: {table: T}` | `#infl:T` |
+| `items:` + `recognition: true` (1.1) | `#rec` only |
 
 ### 12.2 What the app needs for each facet
 
@@ -422,11 +430,33 @@ The rule: a learner never meets a grammar construct in exercises before starting
   | `compound_aux` | `aux: lemma` | a compound form whose auxiliary is that verb (language rules) |
   | `modal_infinitive` | `verbs: [...]`, `infinitive_pattern: regex` | a finite form of one of the verbs plus a later infinitive |
   | `separable` | `particles: [...]` | a separable verb (Dutch `sta op`, `komt … terug`) |
+  | `reflexive` | `pronouns: {pron: person(s)}`, `clitics`, `enclitic_any`, `unbound`, `verbs` | a pronoun of the verb's own person in the clitic cluster before a finite verb (`me levanto`, `mi alzo`); `unbound: true` (1.1): only pronouns that are no part of the verb's own pronominal form (impersonal `si dice`); `verbs` (1.1): only these verbs (lemmas) |
+  | `nonfinite` | `form`, `pattern` | a verb token in that non-finite form (`gerund`: `sto mangiando`), or a word matching the pattern |
+  | `pattern` | `pattern: regex` | (1.1) the regex is found in the sentence text (lower case, apostrophes normalized): comparatives `più \w+ (di\|che)`, superlatives `\w+issimo` |
+  | `enclitic` | `tense: T` | (1.1) a verb token aligned to a cell of tense T whose text is no spelling of the cell: a form with attached pronouns (`dimmi`, `fallo`) |
+
+  `words` entries with spaces (1.1) match consecutive words (`me lo`, `ce l'`); a word aligned to a verb form never counts.
 
 - **Home-skill rule** (validator and importers): a sentence's *home skill* is the last skill, in course order, among the skills that introduce one of its aligned items (the first skill selecting the item), the verb skills whose tense it shows for one of their verbs, and the first skill introducing each of its non-base features. The sentence is valid when every feature is introduced by the home skill, one of its prerequisites (transitively), or the base set; and every non-base feature MUST be introduced by some skill.
 - **In the app**, at session start: known features = base ∪ the features of every started skill and of the current skill(s) ∪ those of their prerequisites (transitively). Sentence exercises only use sentences whose features are known, and at most 2 unknown words (1 for a grammar skill or grammar focus); wrong options never show a form of a tense the learner has not met.
 
 The compiled pack stores the result in `sentence_features`, `skill_features` and `meta.base_features`, so the app needs no language knowledge for gating.
+
+A skill counts as **started** when the learner has practised a facet that the skill *introduces* (the facet's first skill in course order). A later skill that only shares a facet with an earlier one (a progressive skill on `stare#form:presente`) is not started by practice in the earlier skill; otherwise its grammar, and that of all its prerequisites, would count as known long before the learner gets there.
+
+### 12.5 Recognition-only skills (1.1)
+
+Some grammar is only needed for reading: the Italian passato remoto of novels, a literary tense, archaic forms. A skill with `recognition: true` is **recognition-only**:
+
+- An `items:` skill trains only `#rec` of its items (the learner understands the words, never produces them).
+- A `verbs: {tense: T}` skill trains `#form:T` as usual, but the app serves these facets only with **recognition exercises**, in every mode (lessons, practice, the lab, assessments): multiple choice of three kinds:
+  1. a sentence with a form of T → its translation;
+  2. the form → the same person's form in `equivalent_tense` ("which form means the same?": `andò` → `è andato`), when the skill declares one;
+  3. the form → its person.
+  Wrong options never contain a right answer (persons that share the spelling count as right). A recognition facet is never asked in a grid, an ending picker, a cloze, spot the error or a transform; a transform may still *start* from a sentence in T and ask a production tense of the same `tense_groups` group (`Andò a Roma` → `È andato a Roma`).
+- The tense T is gated like any other (`tense:T`), so its sentences appear only after the skill.
+
+Compiled: `meta.recognition_skills` (schema minor 2) maps each recognition skill to `{"equivalent_tense": T}` or `{}`. Apps before minor 2 ignore the key and would ask the forms as production, so such packs carry `meta.min_app_version` 0.7.3.
 
 ## 13. The compiled pack (course.sqlite)
 
@@ -435,7 +465,7 @@ One SQLite 3 file per course. The DDL in `schema/course_db.sql` is normative; a 
 ### 13.1 File and versions
 
 - File name `{course_id}.sqlite` when shared, bundled, hosted or copied into the app's `courses/` folder (the app skips a misnamed file).
-- `PRAGMA user_version = 1` and `meta.schema_version = '1'`: the **major** schema version. `meta.schema_minor` (absent = 0) is the additive revision: `1` = inflection tables (`inflections`, `meta.inflection_tables`, facet kind `infl`, token forms `infl:…`). The app refuses a pack whose major version it does not know; `'1.1'` style versions also parse (major 1).
+- `PRAGMA user_version = 1` and `meta.schema_version = '1'`: the **major** schema version. `meta.schema_minor` (absent = 0) is the additive revision: `1` = inflection tables (`inflections`, `meta.inflection_tables`, facet kind `infl`, token forms `infl:…`); `2` = moods and recognition-only skills (`meta.tense_persons`, `tense_person_labels`, `tense_groups`, `recognition_skills`; written only by packs that use them, others stay at minor 1). The app refuses a pack whose major version it does not know; `'1.1'` style versions also parse (major 1).
 - JSON columns hold UTF-8 JSON; list columns are JSON arrays and never NULL (`'[]'`, `'{}'`). Output is deterministic apart from `meta.built_at` (fixed row order, `VACUUM` at the end).
 
 ### 13.2 meta
@@ -458,6 +488,8 @@ One SQLite 3 file per course. The DDL in `schema/course_db.sql` is normative; a 
 | `attribution` | yes | | text |
 | `base_features` | no | | JSON array; present = gated |
 | `person_labels`, `description`, `inflection_tables`, `time_adverbs` | no | | JSON (section 3) |
+| `tense_persons`, `tense_person_labels`, `tense_groups` | no | | JSON (section 3; schema minor 2) |
+| `recognition_skills` | no | | JSON `{skill: {equivalent_tense?}}` (section 12.5; schema minor 2) |
 | `min_app_version` | no | | semver (section 15.4) |
 | `license`, `authors`, `data_sources` | no | | credits (section 11.3) |
 
@@ -523,7 +555,7 @@ The app checks size and checksum while downloading, then validates the file's me
 
 ### 15.1 Pack format version
 
-This document versions the whole format: **1.0** = source format of sections 2–11, compiled schema 1 minor 1, catalog `index_version` 1. A minor format version adds optional things that older tools and apps may ignore; a major one breaks something.
+This document versions the whole format: **1.0** = source format of sections 2–11, compiled schema 1 minor 1, catalog `index_version` 1; **1.1** adds the optional keys marked (1.1) (`required_translations`, `tense_persons`, `tense_person_labels`, `tense_groups`, skill `recognition` and `equivalent_tense`, detector types `pattern` and `enclitic`) and compiled schema minor 2. A minor format version adds optional things that older tools and apps may ignore; a major one breaks something.
 
 ### 15.2 Compiled schema
 
@@ -537,7 +569,7 @@ This document versions the whole format: **1.0** = source format of sections 2�
 
 ### 15.4 Minimum app version
 
-`meta.min_app_version` is the oldest app that can use the pack. The compiler sets `0.4.0` for packs that train inflection tables; `course.yaml` `min_app_version` overrides it; catalogs copy it, defaulting to `0.3.0` (grammar gating and generated sentences). A new exercise type, facet kind or table that older apps would handle wrongly MUST come with a higher `min_app_version`.
+`meta.min_app_version` is the oldest app that can use the pack. The compiler sets `0.4.0` for packs that train inflection tables and `0.7.3` for packs of schema minor 2 (moods, recognition-only skills); `course.yaml` `min_app_version` overrides it; catalogs copy it, defaulting to `0.3.0` (grammar gating and generated sentences). A new exercise type, facet kind or table that older apps would handle wrongly MUST come with a higher `min_app_version`.
 
 ### 15.5 Toolkit
 
@@ -556,17 +588,18 @@ Generic:
 5. Unit and skill ids are unique; prerequisites exist, are not the skill itself, and form no cycle.
 6. A verbs skill's tense is declared; `time_adverbs` list only declared tenses.
 7. Each skill selects at least its minimum (`min`, else 5 items, or for verbs `len(lemmas)` / `min(15, top)`); every explicit verb lemma has a complete table for the tense.
-8. Every selected item has glosses in every `translations` language and a `unit` no later than the skill's unit; every item with a unit has all glosses.
+8. Every selected item has glosses in every required translation language (`required_translations`, default `translations`) and a `unit` no later than the skill's unit; every item with a unit has those glosses. `required_translations` lists only `translations` languages.
 9. Article skills: every selected noun's `article` is in `articles` (when `articles` is declared).
 10. Every grammar skill has a non-empty note in every `note_langs` language.
 11. Verb tables: tenses declared or non-finite; persons declared or `_`; non-finite tenses use `_` only; `stem` + `ending` both or neither, and equal to `form`.
 12. Inflection tables: `base` is a cell; labels name cells; an item's table is declared, allowed for its POS, has exactly the declared cells; stem + ending = form; `alts` don't repeat `form`; `wrong` forms are no form of the table. A `facet: infl` skill names a table; every trained table is declared; an `inflections` skill has at least one item that inflects.
 13. Tokens re-render the text; every `lex` exists; a verb `form` exists in the verb's table; an `infl:` form exists for the item and the token text is an accepted form of the cell.
+14a. (1.1) `tense_persons`, `tense_person_labels` and `tense_groups` name declared tenses (and persons); `recognition` is not combined with `facet`; `equivalent_tense` belongs to a recognition verbs skill and names another declared tense.
 14. Grammar gating: detector types are known; every base feature and `introduces` entry is a tense feature or has a detector; every sentence feature is introduced by some skill or the base set, and allowed at the sentence's home skill (only when `base_features` is declared).
 
 Language rules (only with pipeline support):
 
-15. Stories: every text aligns (each word an item taught by the unit, the one declared new word, a name or a number); grammar allowed at the unit; 5–10 sentences of at most 14 words; every translation present and passing the translation check; 3–5 questions with 3–4 distinct options, a valid answer index and complete i18n. A pack with stories in a language without rules fails with a clear error.
+15. Stories: every text aligns (each word an item taught by the unit, the one declared new word, a name or a number); grammar allowed at the unit; 5–10 sentences of at most 14 words; every required translation present and every given one passing the translation check; 3–5 questions with 3–4 distinct options, a valid answer index and complete i18n. A pack with stories in a language without rules fails with a clear error.
 16. Sentence features are computed with the language's compound-tense and auxiliary rules where they exist; otherwise only from token forms (no compound tenses).
 
 ## 17. Toolkit (`pack`) and what is generic
@@ -617,7 +650,7 @@ xx/
 **`xx/course.yaml`**
 
 ```yaml
-# Course definition of the pack 'xx' (pack format 1.0, docs/pack-format.md in the tosk repo).
+# Course definition of the pack 'xx' (pack format 1.1, docs/pack-format.md in the tosk repo).
 #
 # `pack new` wrote this starter. The words, verbs and sentences are EXAMPLE CONTENT in a made-up
 # language, only there so that the pack validates and builds and shows every part of the format:
@@ -866,7 +899,7 @@ Current behaviour that is accidental or inconsistent. The rule stated in this do
 6. ~~**Relative `url`s in catalogs** are not resolved by the app.~~ Fixed in app 0.7: `url` and `web_url` resolve against the catalog's own URL (older apps still need absolute URLs).
 7. **Course id = target is not enforced** (neither schema nor validator compares `id` and `target`), while language rules are looked up by **course id** (`lang.get_lang(course["id"])`, `tokenize(text, code)`) and the app's language features by `target`. Intended: the validator enforces `id == target` in format 1.0, and the pipeline looks language rules up by `target` (needed for extension packs, section 20).
 8. **`facet: article` / `facet: infl` are allowed on vocab skills** (schema and validator only require `items`). Intended: they need `kind: grammar`.
-9. **`exercises:` in course.yaml cannot list `listen_pick`** (the schema enum predates v0.5), although the app accepts it.
+9. ~~**`exercises:` in course.yaml cannot list `listen_pick`**~~ Fixed in format 1.1.
 10. **`persons` and `tenses` are required and non-empty** even for a pack without verbs. Intended: optional, default `[]` (the app reads empty lists fine); until then a verb-less pack declares a dummy person and tense.
 11. ~~**`tr_src` in the lexicon is a closed list.**~~ Fixed in v0.8: lexicon `tr_src` is an open tag (section 11.2) like sentence `tr_src` and every `src`; the registered tags are documented in section 11.2.
 12. **AI labels are Claude-specific** (`claude`, `claude-draft`, `claude-gen`), and the unsuffixed `claude` duplicates `claude-draft`. Intended: keep the three; other systems use `ai-{system}-gen` / `ai-{system}-draft`, and the app's "generated" ranking should match `*-gen` from any system.

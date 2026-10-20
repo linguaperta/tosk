@@ -21,7 +21,7 @@ import yaml
 
 from . import features, inflect, query, trcheck
 from .align import Aligner
-from .content import load_course_yaml, read_jsonl, write_jsonl
+from .content import load_course_yaml, read_jsonl, required_translations, write_jsonl
 from .fetch import SOURCES, load_freq_words
 from .ids import IdRegistry
 from .lang import Lang, get_lang
@@ -212,8 +212,19 @@ def build_verb(lang: Lang, lx: Lexeme, aux_tables: dict[str, dict[str, str]], au
     complete: dict[str, dict[str, str]] = {}
     for tense in lang.simple_tenses:
         t = table.get(tense, {})
-        if all(t.get(p) for p in lang.persons):
-            complete[tense] = t
+        if all(t.get(p) for p in lang.persons_of(tense)):
+            complete[tense] = {p: t[p] for p in lang.persons_of(tense)}
+    impersonal = None
+    if lang.present not in complete and lang.pronominal(lx.lemma):
+        # an impersonal pronominal verb ('volerci': only 'ci vuole', 'ci vogliono'): keep its
+        # third-person cells, so sentences align; no grammar skill selects it (incomplete tables)
+        third = [lang.third_sg, lang.third_pl]
+        if all((table.get(lang.present) or {}).get(p) for p in third):
+            impersonal = third
+            for tense in lang.simple_tenses:
+                t = table.get(tense, {})
+                if tense not in complete and all(t.get(p) for p in third):
+                    complete[tense] = {p: t[p] for p in third}
     if lang.present not in complete:
         return None
     cls = lang.verb_class(lx.lemma, complete, lx.table_tags)
@@ -228,7 +239,9 @@ def build_verb(lang: Lang, lx: Lexeme, aux_tables: dict[str, dict[str, str]], au
             continue
         regular = tense not in irr
         tab = {}
-        for p in lang.persons:
+        for p in lang.persons_of(tense):
+            if p not in complete[tense]:
+                continue                     # impersonal: third persons only
             f = complete[tense][p]
             rec: dict = {"form": f}
             stem, ending = lang.split(lx.lemma, cls, tense, p, f, regular, complete[tense])
@@ -241,7 +254,22 @@ def build_verb(lang: Lang, lx: Lexeme, aux_tables: dict[str, dict[str, str]], au
         forms[tense] = tab
     part = table.get("participle", {}).get("_")
     aux = [a for a in aux if a in aux_tables] if part else []
-    if aux:
+    pron = lang.pronominal(lx.lemma)
+    if pron and pron[1] not in ("si", "sene", "ci"):
+        aux = []           # farcela: 'ce l'ho fatta' is no auxiliary + participle of the table
+    elif pron and aux:
+        # pronominal verbs: 'mi sono alzato' (/alzata), 'me ne sono andato' (always essere);
+        # 'ci è voluto', 'ci ho messo' (the verb's own auxiliary)
+        aux = ["essere"] if pron[1] != "ci" else aux[:1]
+        aux = [a for a in aux if a in aux_tables]
+        for ctense in (lang.compound_tenses if aux else ()):
+            tab = {}
+            for p in (impersonal or lang.persons):
+                form, alts = lang.pronominal_compound(aux_tables[aux[0]], lang.base_participle(part), p, pron[1],
+                                                      aux[0])
+                tab[p] = {"form": form, **({"alts": alts} if alts else {})}
+            forms[ctense] = tab
+    elif aux:
         for ctense in lang.compound_tenses:
             tab = {}
             for p in lang.persons:
@@ -546,14 +574,15 @@ def run_import(code: str, content_root: str | None = None) -> None:
     unit_order = [u["id"] for u in course["units"]]
     for unit in course["units"]:
         for skill in unit.get("skills") or []:
-            for iid in query.resolve(skill, items, verbs, course["persons"]):
+            for iid in query.resolve(skill, items, verbs, query.course_persons(course)):
                 unit_of.setdefault(iid, unit["id"])
     for rec in items:
         if rec["id"] in unit_of:
             rec["unit"] = unit_of[rec["id"]]
-    missing = [r["id"] for r in items if r.get("unit") and any(not r["tr"].get(l) for l in translations)]
+    required = required_translations(course)
+    missing = [r["id"] for r in items if r.get("unit") and any(not r["tr"].get(l) for l in required)]
     if missing:
-        log(f"[{code}] WARNING skill items without all translations ({len(missing)}): {' '.join(missing)}")
+        log(f"[{code}] WARNING skill items without a required translation ({len(missing)}): {' '.join(missing)}")
 
     # ---- sentences
     log(f"[{code}] loading tatoeba")
@@ -567,10 +596,10 @@ def run_import(code: str, content_root: str | None = None) -> None:
         for skill in unit.get("skills") or []:
             if "verbs" in skill:
                 t = skill["verbs"]["tense"]
-                for iid in query.resolve(skill, items, verbs, course["persons"]):
+                for iid in query.resolve(skill, items, verbs, query.course_persons(course)):
                     grammar_targets.add((iid, t))
             for table in query.infl_tables(skill):
-                for iid in query.resolve(skill, items, verbs, course["persons"]):
+                for iid in query.resolve(skill, items, verbs, query.course_persons(course)):
                     if table in (item_by_id[iid].get("infl") or {}):
                         infl_targets.add((iid, table))
     # grammar gating (features.py): a sentence is only selected when its grammar features are
@@ -610,6 +639,9 @@ def run_import(code: str, content_root: str | None = None) -> None:
         except ValueError:
             continue
         al = aligner.align(toks, translation=trs[sid]["en"][1])
+        if any(t.get("unsure") for t in al):
+            mood_dropped += 1
+            continue                        # 'So che parli': indicative or subjunctive (align._mood_filter)
         words = [t for t in al if t["is_word"]]
         if not words or len(words) > MAX_WORDS:
             continue
@@ -734,7 +766,7 @@ def run_import(code: str, content_root: str | None = None) -> None:
             "tokens": toks_out,
         })
     if mood_dropped:
-        log(f"[{code}] {mood_dropped} sentences with an untaught mood (subjunctive, conditional, imperative) skipped")
+        log(f"[{code}] {mood_dropped} sentences with an untaught or unclear mood (subjunctive, conditional, imperative) skipped")
     log(f"[{code}] {len(cands)} candidate sentences, {len(sentences)} selected; translation check: "
         f"{tr_dropped['en']} sentences dropped (English), {tr_dropped['nl']} Dutch translations dropped")
 

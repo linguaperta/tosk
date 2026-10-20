@@ -18,6 +18,18 @@ BAD_FORM_TAGS = {
 }
 
 
+# accented monosyllables that Italian writes with the accent; others in Wiktionary's stress-marked
+# forms ('và', 'fà', 'stà', 'sò') lose it
+IT_ACCENTED_MONOSYLLABLES = {"è", "dà", "sì", "là", "lì", "già", "può", "più", "ciò", "giù", "né", "sé", "tè", "ché"}
+
+
+def _unstress_monosyllable(word: str) -> str:
+    vowels = sum(1 for ch in word.lower() if ch in "aeiouàèéìíòóùú")
+    if vowels == 1 and word[-1:] in "àèéìíòóùú" and word.lower().split("'")[-1] not in IT_ACCENTED_MONOSYLLABLES:
+        return word[:-1] + unicodedata.normalize("NFD", word[-1])[0]
+    return word
+
+
 def strip_inner_accents(word: str) -> str:
     """Remove pronunciation accents Wiktionary puts on non-final vowels (màngio -> mangio).
 
@@ -139,10 +151,49 @@ class Lang:
     # adjacent subject pronoun gives, or a third-person form after one of `third_person_clitics`
     person_hint_verbs: bool = False
     third_person_clitics: set[str] = field(default_factory=set)
+    # tenses whose table has only some persons (Italian imperative: no io, no loro); a table of such
+    # a tense is complete when it has these persons
+    tense_persons: dict[str, list[str]] = field(default_factory=dict)
+    # mood of each tense that is not plain indicative ('congiuntivo_presente' -> 'subjunctive',
+    # 'imperativo' -> 'imperative', 'condizionale' -> 'conditional'). The aligner uses it to pick
+    # between homographs of several moods (Italian 'parli': tu presente / congiuntivo / Lei imperative)
+    tense_moods: dict[str, str] = field(default_factory=dict)
+    # subjunctive contexts (aligner, _mood_context): conjunctions that always take the subjunctive
+    # (one or more words: 'affinché', 'prima che'), the complementizer that takes it after a trigger
+    # word ('che' after 'penso', 'voglio', 'è importante'), the trigger lemmas, and words that call
+    # for some subjunctive tenses only ('se' + congiuntivo imperfetto)
+    subj_conjunctions: set[str] = field(default_factory=set)
+    subj_complementizer: str = ""
+    subj_triggers: set[str] = field(default_factory=set)
+    subj_if: dict[str, set[str]] = field(default_factory=dict)
+    # trigger verbs after which the complementizer may be dropped ('Pensavo foste a casa', 'Credo
+    # sia vero'): a mood homograph right after one (clitics in between) is the subjunctive
+    subj_che_drop: set[str] = field(default_factory=set)
+    # multi-word verb forms (Italian pronominal verbs: 'mi alzo', 'mi sono alzato', 'me ne vado') are
+    # aligned on every word, like Sarnami 'kare hai' (docs/pack-format.md, 7: multi-word verb forms)
+    multiword_forms: bool = False
+    # clitic pronouns that may be attached to an infinitive, gerund or imperative ('farlo', 'dimmi',
+    # 'alzandosi', 'diglielo'), longest first; such a word links to its verb (aligner, _enclitic)
+    enclitics: tuple[str, ...] = ()
+    # rarely meant tenses whose forms are also adjectives or participles ('sorpresi': passato remoto
+    # io of sorprendere / surprised): such a word is read as the adjective or participle, unless an
+    # io subject stands next to it
+    homograph_tenses: set[str] = field(default_factory=set)
+    # absolute superlative endings ('bellissimo'): such a word links to its adjective (aligner)
+    elative: tuple[str, ...] = ()
 
     @property
     def tenses(self) -> list[str]:
         return self.simple_tenses + list(self.compound_tenses)
+
+    def persons_of(self, tense: str) -> list[str]:
+        """The persons a complete table of `tense` has."""
+        return self.tense_persons.get(tense, self.persons)
+
+    def pronominal(self, lemma: str) -> tuple[str, str] | None:
+        """(base verb lemma, attached pronouns) of a pronominal verb ('alzarsi' -> ('alzare', 'si')),
+        or None. Only languages with such verbs in their tables define it."""
+        return None
 
     # -- conjugation-table reading ------------------------------------------------------------
     def slot(self, tags: list[str]) -> tuple[str, str] | None:
@@ -185,6 +236,10 @@ class Lang:
 
     def spelling(self, form: str, link: str | None) -> str:
         s = link if link else form
+        if self.multiword_forms and " " in form.strip() and link and " " not in link.strip():
+            # 'mi àlzo' links only its first word ('mi'); the form text marks stress, also on
+            # monosyllables that are written without an accent ('se ne và' = 'se ne va')
+            s = " ".join(_unstress_monosyllable(w) for w in form.split())
         if self.code == "it":
             s = strip_inner_accents(s)
         return s.strip()
@@ -233,7 +288,58 @@ IT_ENDINGS = {
         "ire": ["irò", "irai", "irà", "iremo", "irete", "iranno"],
         "isc": ["irò", "irai", "irà", "iremo", "irete", "iranno"],
     },
+    "passato_remoto": {
+        "are": ["ai", "asti", "ò", "ammo", "aste", "arono"],
+        "ere": ["ei", "esti", "é", "emmo", "este", "erono"],
+        "ire": ["ii", "isti", "ì", "immo", "iste", "irono"],
+        "isc": ["ii", "isti", "ì", "immo", "iste", "irono"],
+    },
+    "condizionale": {
+        "are": ["erei", "eresti", "erebbe", "eremmo", "ereste", "erebbero"],
+        "ere": ["erei", "eresti", "erebbe", "eremmo", "ereste", "erebbero"],
+        "ire": ["irei", "iresti", "irebbe", "iremmo", "ireste", "irebbero"],
+        "isc": ["irei", "iresti", "irebbe", "iremmo", "ireste", "irebbero"],
+    },
+    "congiuntivo_presente": {
+        "are": ["i", "i", "i", "iamo", "iate", "ino"],
+        "ere": ["a", "a", "a", "iamo", "iate", "ano"],
+        "ire": ["a", "a", "a", "iamo", "iate", "ano"],
+        "isc": ["isca", "isca", "isca", "iamo", "iate", "iscano"],
+    },
+    "congiuntivo_imperfetto": {
+        "are": ["assi", "assi", "asse", "assimo", "aste", "assero"],
+        "ere": ["essi", "essi", "esse", "essimo", "este", "essero"],
+        "ire": ["issi", "issi", "isse", "issimo", "iste", "issero"],
+        "isc": ["issi", "issi", "isse", "issimo", "iste", "issero"],
+    },
+    # tu, lui/lei (= formal Lei), noi, voi; no io and no loro (None)
+    "imperativo": {
+        "are": [None, "a", "i", "iamo", "ate", None],
+        "ere": [None, "i", "a", "iamo", "ete", None],
+        "ire": [None, "i", "a", "iamo", "ite", None],
+        "isc": [None, "isci", "isca", "iamo", "ite", None],
+    },
 }
+# Regular -ere passato remoto with -etti (credetti, credette, credettero) next to -ei (credei)
+IT_REMOTO_ETTI = ["etti", "esti", "ette", "emmo", "este", "ettero"]
+# Tags of Wiktionary's Italian conjugation tables that select the moods the course teaches
+# (generic BAD_FORM_TAGS drops them for the other languages)
+IT_MOOD_TAGS = {"historic", "conditional", "subjunctive", "imperative"}
+IT_REFLEXIVE = {"io": "mi", "tu": "ti", "lui/lei": "si", "noi": "ci", "voi": "vi", "loro": "si"}
+IT_REFLEXIVE_NE = {"io": "me", "tu": "te", "lui/lei": "se", "noi": "ce", "voi": "ve", "loro": "se"}
+# attached (enclitic) pronouns, longest first: 'diglielo', 'fammelo', 'alzandosi', 'dimmi'
+IT_ENCLITICS = tuple(sorted({
+    "mi", "ti", "si", "ci", "vi", "lo", "la", "li", "le", "ne", "gli",
+    *(a + b for a in ("me", "te", "se", "ce", "ve", "glie") for b in ("lo", "la", "li", "le", "ne")),
+    "sene", "mene", "tene", "cene", "vene", "telo", "tela", "melo", "mela", "celo", "cela"}, key=lambda s: (-len(s), s)))
+# subjunctive triggers: lemmas (verbs, adjectives, nouns) after which 'che' takes the subjunctive
+IT_SUBJ_TRIGGERS = {
+    "pensare", "credere", "volere", "sperare", "immaginare", "temere", "dubitare", "sembrare", "parere",
+    "bisognare", "occorrere", "preferire", "desiderare", "aspettare", "supporre", "ritenere", "augurare",
+    "permettere", "dispiacere", "piacere", "importare", "aspettarsi", "augurarsi", "immaginarsi",
+    "importante", "necessario", "meglio", "possibile", "impossibile", "probabile", "improbabile", "strano",
+    "giusto", "normale", "naturale", "facile", "difficile", "utile", "inutile", "peccato", "contento",
+    "felice", "triste", "paura", "bene", "male", "assurdo", "incredibile", "ora", "tempo", "speriamo"}
 
 
 # Italian words that may stand between an auxiliary and its participle ('ho già mangiato', 'non
@@ -253,7 +359,8 @@ class Italian(Lang):
         super().__init__(
             code="it",
             persons=["io", "tu", "lui/lei", "noi", "voi", "loro"],
-            simple_tenses=["presente", "imperfetto", "futuro"],
+            simple_tenses=["presente", "imperfetto", "futuro", "passato_remoto", "condizionale",
+                           "congiuntivo_presente", "congiuntivo_imperfetto", "imperativo"],
             compound_tenses={"passato_prossimo": "presente"},
             present="presente",
             auxiliaries=["avere", "essere"],
@@ -264,7 +371,9 @@ class Italian(Lang):
             },
             articles=["il", "lo", "la", "l'"],
             pronouns={"io": ["io"], "tu": ["tu"], "lui": ["lui/lei"], "lei": ["lui/lei"], "noi": ["noi"],
-                      "voi": ["voi"], "loro": ["loro"], "egli": ["lui/lei"], "ella": ["lui/lei"]},
+                      "voi": ["voi"], "loro": ["loro"], "egli": ["lui/lei"], "ella": ["lui/lei"],
+                      # 'Tutti sono qui', 'Sono tutti stanchi': loro, not io
+                      "tutti": ["loro"], "tutte": ["loro"]},
             determiners={"il", "lo", "la", "l'", "i", "gli", "le", "un", "uno", "una", "un'", "del", "della",
                          "dello", "dell'", "dei", "degli", "delle", "al", "alla", "allo", "all'", "ai", "agli",
                          "alle", "nel", "nella", "nello", "nell'", "nei", "negli", "nelle", "sul", "sulla",
@@ -285,12 +394,82 @@ class Italian(Lang):
             aux_window=4,
             aux_between=IT_BETWEEN_AUX_PART,
             infinitive_endings=("are", "ere", "ire", "rre"),
+            tense_persons={"imperativo": ["tu", "lui/lei", "noi", "voi"]},
+            tense_moods={"condizionale": "conditional", "congiuntivo_presente": "subjunctive",
+                         "congiuntivo_imperfetto": "subjunctive", "imperativo": "imperative"},
+            subj_conjunctions={"affinché", "benché", "sebbene", "purché", "nonostante", "qualora", "malgrado",
+                               "prima che", "senza che", "a meno che", "a patto che", "nel caso che",
+                               "in modo che", "chiunque", "qualunque", "dovunque", "ovunque", "magari",
+                               "come se"},
+            subj_complementizer="che",
+            subj_triggers=IT_SUBJ_TRIGGERS,
+            subj_che_drop={"pensare", "credere", "sperare", "temere", "immaginare", "sembrare", "parere",
+                           "supporre", "ritenere", "immaginarsi"},
+            subj_if={"se": {"congiuntivo_imperfetto"}},
+            multiword_forms=True,
+            enclitics=IT_ENCLITICS,
+            homograph_tenses={"passato_remoto"},
+            interrogatives={"che", "quale", "quali", "quanto", "quanta", "quanti", "quante"},
+            # "Cosa fai?": the question word is no subject; nor is a time noun ('Quella sera andammo')
+            adverbial_nouns={"cosa", "sera", "mattina", "notte", "pomeriggio", "giorno", "settimana",
+                             "mese", "anno", "volta", "estate", "inverno", "primavera", "autunno"},
+            elative=("issimo", "issima", "issimi", "issime"),
         )
 
+    def pronominal(self, lemma):
+        """alzarsi -> (alzare, si); andarsene -> (andare, sene); sedersi -> (sedere, si); volerci ->
+        (volere, ci); farcela -> (fare, cela)."""
+        for att in ("sene", "cela", "sela", "si", "ci"):
+            if lemma.endswith(att) and lemma[: -len(att)].endswith(("ar", "er", "ir")) and len(lemma) >= len(att) + 3:
+                return lemma[: -len(att)] + "e", att
+        return None
+
+    def strip_pronouns(self, form: str) -> str:
+        """The verb word of a pronominal form: 'mi alzo' -> 'alzo', 'me ne vado' -> 'vado',
+        'ce la faccio' -> 'faccio'."""
+        words = form.split()
+        while len(words) > 1 and words[0] in {"mi", "ti", "si", "ci", "vi", "me", "te", "se", "ce", "ve", "ne",
+                                              "la", "l'"}:
+            words = words[1:]
+        return " ".join(words)
+
+    def slot(self, tags):
+        """Italian tables: also the conditional, the subjunctive (present, imperfect), the imperative
+        (tu, Lei, noi, voi; not the negative tu form, which is the infinitive) and the passato remoto."""
+        t = set(tags)
+        if "negative" in t:
+            return None
+        if "imperative" in t:
+            t = t - {"formal", "second-person-semantically", "imperative"}
+            if t & BAD_FORM_TAGS:
+                return None
+            persons = [p for p in self.persons_for(t) if p in self.tense_persons["imperativo"]]
+            return ("imperativo", ",".join(persons)) if persons else None
+        if t & (BAD_FORM_TAGS - IT_MOOD_TAGS):
+            return None
+        if t & {"infinitive", "participle", "gerund"}:
+            return super().slot(tags)
+        tense = None
+        if "conditional" in t:
+            tense = "condizionale"
+        elif "subjunctive" in t:
+            tense = "congiuntivo_presente" if "present" in t else "congiuntivo_imperfetto" if "imperfect" in t else None
+        elif "historic" in t:
+            tense = "passato_remoto" if {"indicative", "past"} <= t else None
+        else:
+            return super().slot(tags)
+        persons = self.persons_for(t) if tense else []
+        return (tense, ",".join(persons)) if persons else None
+
     def verb_stem(self, lemma, cls, complete, irr):
-        return lemma[:-3] if cls in ("are", "ere", "ire", "isc") else None
+        base = (self.pronominal(lemma) or (lemma, ""))[0]
+        return base[:-3] if cls in ("are", "ere", "ire", "isc") else None
 
     def verb_class(self, lemma, forms, table_tags):
+        base = self.pronominal(lemma)
+        if base:
+            stripped = {t: {p: self.strip_pronouns(f) for p, f in tab.items()} for t, tab in forms.items()}
+            return self.verb_class(base[0], stripped, table_tags)
         pres = forms.get("presente", {})
         if lemma.endswith("are"):
             return "are"
@@ -322,6 +501,16 @@ class Italian(Lang):
         return out
 
     def irregular_in(self, lemma, cls, forms):
+        base = self.pronominal(lemma)
+        if base:
+            # alzarsi: the tenses of 'alzo, alzi, ...' after the pronoun ('mi alzo'); the imperative
+            # carries attached pronouns ('alzati') and the participle 'alzatosi' -> 'alzato'
+            stripped = {t: {p: self.strip_pronouns(f) for p, f in tab.items()}
+                        for t, tab in forms.items() if t not in ("imperativo", "participle")}
+            part = (forms.get("participle") or {}).get("_")
+            if part:
+                stripped["participle"] = {"_": self.base_participle(part)}
+            return [t for t in self.irregular_in(base[0], cls, stripped) if t != "imperativo"]
         irr = []
         pres = forms.get("presente", {})
         paradigms = self.regular_present(lemma, cls) if cls else None
@@ -337,7 +526,51 @@ class Italian(Lang):
         reg_part = {"are": stem + "ato", "ere": stem + "uto", "ire": stem + "ito", "isc": stem + "ito"}.get(cls or "")
         if part is None or part != reg_part:
             irr.append("passato_prossimo")
+        # the moods (pack 1.3): compared with the regular paradigm, spelling variants included
+        for tense in ("passato_remoto", "condizionale", "congiuntivo_presente", "congiuntivo_imperfetto", "imperativo"):
+            persons = self.persons_of(tense)
+            actual = [forms.get(tense, {}).get(p) for p in persons]
+            if all(actual) and not self._regular_mood(lemma, cls, tense, actual):
+                irr.append(tense)
         return irr
+
+    def _regular_mood(self, lemma: str, cls: str | None, tense: str, actual: list[str]) -> bool:
+        if cls not in IT_ENDINGS.get(tense, {}):
+            return False
+        stem = lemma[:-3]
+        idx = [self.persons.index(p) for p in self.persons_of(tense)]
+        variants = [IT_ENDINGS[tense][cls]]
+        if tense == "passato_remoto" and cls == "ere":
+            variants.append(IT_REMOTO_ETTI)
+        for ends in variants:
+            want = [self._it_join(stem, ends[i], cls, tense) for i in idx]
+            # -ere remoto: either ending per cell (credei / credetti)
+            if all(a == w or (tense == "passato_remoto" and cls == "ere" and
+                              a in (self._it_join(stem, IT_ENDINGS[tense]["ere"][i], cls, tense),
+                                    self._it_join(stem, IT_REMOTO_ETTI[i], cls, tense)))
+                   for a, w, i in zip(actual, want, idx)):
+                return True
+        return False
+
+    @staticmethod
+    def _it_join(stem: str, ending: str, cls: str | None, tense: str) -> str:
+        """stem + ending with the regular spelling changes: cerc+i -> cerchi, mangi+iamo -> mangiamo,
+        mangi+erei -> mangerei (-ciare/-giare/-sciare drop the i before e)."""
+        if cls == "are" and stem.endswith(("c", "g")) and ending[:1] in ("e", "i"):
+            return stem + "h" + ending
+        if stem.endswith("i") and ending[:1] == "i":
+            return stem + ending[1:]
+        if cls == "are" and stem.endswith(("ci", "gi")) and ending[:1] == "e":
+            return stem[:-1] + ending
+        return stem + ending
+
+    def base_participle(self, participle: str) -> str:
+        """The participle of a pronominal verb without its attached pronouns: alzatosi -> alzato,
+        andatosene -> andato, volutoci -> voluto."""
+        for suf in ("sene", "cela", "sela", "si", "ci"):
+            if participle.endswith(suf) and len(participle) > len(suf) + 3:
+                return participle[: -len(suf)]
+        return participle
 
     def regular_simple(self, lemma: str, cls: str | None, tense: str) -> list[list[str]]:
         """Regular imperfetto/futuro paradigms (spelling variants included): parlavo, cercherò,
@@ -360,13 +593,18 @@ class Italian(Lang):
         if tense not in IT_ENDINGS or " " in form:
             return None, None
         i = self.persons.index(person)
+        if self.pronominal(lemma):
+            return None, None            # 'alzati', 'alziamoci': the ending is not word-final
         cands = []
         if cls in IT_ENDINGS[tense]:
             cands.append(IT_ENDINGS[tense][cls][i])
+        if tense == "passato_remoto" and cls == "ere":
+            cands.append(IT_REMOTO_ETTI[i])
         for c in ("are", "ere", "ire", "isc"):
             e = IT_ENDINGS[tense][c][i]
             if e not in cands:
                 cands.append(e)
+        cands = [e for e in cands if e]
         inf_stem = lemma[:-3] if len(lemma) > 3 else lemma
         for e in cands:
             if form.endswith(e) and len(form) > len(e):
@@ -403,10 +641,21 @@ class Italian(Lang):
         return f"{a} {base}o", [f"{a} {base}a"]
 
     def participle_variants(self, participle: str, aux: str) -> list[str]:
-        if aux != "essere" or participle[-1:] not in "oaie":
+        if aux != "essere" or participle[-1:] not in "oaie" or self.base_participle(participle) != participle:
             return [participle]
         b = participle[:-1]
         return [b + "o", b + "a", b + "i", b + "e"]
+
+    def pronominal_compound(self, aux_forms: dict[str, str], participle: str, person: str, attached: str,
+                            aux: str = "essere") -> tuple[str, list[str]]:
+        """Passato prossimo of a pronominal verb: mi sono alzato (/alzata), ci siamo alzati (/alzate),
+        me ne sono andato. `participle` is the bare one (alzato)."""
+        if attached == "ci":       # volerci, metterci: 'ci è voluto', 'ci ho messo'
+            form, alts = self.compound(aux_forms, participle, person, aux)
+            return f"ci {form}", [f"ci {a}" for a in alts]
+        form, alts = self.compound(aux_forms, participle, person, "essere")
+        refl = (IT_REFLEXIVE_NE[person] + " ne") if attached == "sene" else IT_REFLEXIVE[person]
+        return f"{refl} {form}", [f"{refl} {a}" for a in alts]
 
 
 # ------------------------------------------------------------------------------------------ nl

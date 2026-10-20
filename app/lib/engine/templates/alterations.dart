@@ -37,7 +37,7 @@ Set<String> contextKeys(CourseIndex ix, String verbId, String tense, String pers
   final keys = <String>{};
   final cell = forms['$tense.$person'];
   if (cell != null) keys.addAll(ix.acceptedKeys(cell));
-  for (final p in ix.ambiguousPersons(person)) {
+  for (final p in ix.ambiguousPersons(person, tense: tense)) {
     final f = forms['$tense.$p'];
     if (f != null) keys.addAll(ix.acceptedKeys(f));
   }
@@ -52,7 +52,7 @@ Set<String> contextKeys(CourseIndex ix, String verbId, String tense, String pers
 List<FormSwap> formSwaps(CourseIndex ix, FormOccurrence o) {
   final forms = ix.course.verbForms(o.verbId);
   final forbidden = contextKeys(ix, o.verbId, o.tense, o.person);
-  final ambiguous = ix.ambiguousPersons(o.person).toSet();
+  final ambiguous = ix.ambiguousPersons(o.person, tense: o.tense).toSet();
   final sameTense = <VerbForm>[];
   final otherTense = <VerbForm>[];
   for (final f in forms.values) {

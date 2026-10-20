@@ -262,7 +262,7 @@ class ConjGridTemplate extends ExerciseTemplate {
       for (var i = 0; i < n; i++)
         GridCell(
           person: forms[i].person,
-          personLabel: meta.personLabel(forms[i].person, ctx.lang),
+          personLabel: meta.personLabel(forms[i].person, ctx.lang, tense: forms[i].tense),
           expected: forms[i].form,
           accepted: forms[i].accepted,
           prefilled: prefilled.contains(i),

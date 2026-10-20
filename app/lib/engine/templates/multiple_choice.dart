@@ -29,16 +29,21 @@ class MultipleChoiceTemplate extends ExerciseTemplate {
   @override
   ExerciseType get type => ExerciseType.multipleChoice;
 
+  /// `#form` only for recognition-only facets (docs/engine.md, "Recognition-only skills").
   @override
-  Set<FacetKind> get kinds => const {FacetKind.rec, FacetKind.prod, FacetKind.article};
+  Set<FacetKind> get kinds => const {FacetKind.rec, FacetKind.prod, FacetKind.article, FacetKind.form};
 
   @override
   bool canGenerate(SkillFacet facet, GenContext ctx) => supports(facet) &&
+      (facet.kind != FacetKind.form || ctx.index.recognitionOnly(facet)) &&
       ctx.memo('multiple_choice/$sentenceShare/$optionCount|${facet.facetId}|${ctx.lang}', () => _can(facet, ctx));
 
   bool _can(SkillFacet facet, GenContext ctx) {
     final item = ctx.course.item(facet.itemId);
     if (item == null) return false;
+    if (facet.kind == FacetKind.form) {
+      return facet.tense != null && ctx.index.finiteForms(facet.itemId, facet.tense!).length >= 3;
+    }
     if (facet.kind == FacetKind.article) {
       return ctx.index.articlesOf(item).isNotEmpty && wrongArticles(ctx.index, item).isNotEmpty;
     }
@@ -52,6 +57,7 @@ class MultipleChoiceTemplate extends ExerciseTemplate {
     final item = ctx.course.item(facet.itemId);
     if (item == null) return null;
     if (facet.kind == FacetKind.article) return _article(facet, item, ctx);
+    if (facet.kind == FacetKind.form) return _form(facet, item, ctx);
     final rec = facet.kind == FacetKind.rec;
     final trySentence = sentenceShare >= 1 ||
         (sentenceShare > 0 && ctx.stage(facet.facetId) != FacetStage.fresh && ctx.random.nextDouble() < sentenceShare);
@@ -79,11 +85,15 @@ class MultipleChoiceTemplate extends ExerciseTemplate {
         ? {...ix.glossKeys(item), for (final s in ix.synonymsOf(item)) ...ix.glossKeys(s)}
         : const <String>{};
     final groups = ix.relatedItems(item);
+    // Meanings in the language the right answer is shown in: a pack may lack
+    // some glosses in the learner's language (the app then shows English), and
+    // one English option among Dutch ones would give the answer away.
+    final gl = glossLanguage(item, ctx.lang);
     for (final g in groups) {
       final list = shuffle ? ctx.shuffled(g) : g;
       for (final o in list) {
         if (picker.full) break;
-        final text = rec ? o.gloss(ctx.lang) : o.lemma;
+        final text = rec ? ((o.tr[gl]?.isNotEmpty ?? false) ? o.tr[gl]!.first : '') : o.lemma;
         if (text.trim().isEmpty) continue;
         // A gloss that is also a meaning of the target is never wrong.
         if (rec && ix.glossKeysIn(item, ctx.lang).contains(foldAnswer(text))) continue;
@@ -122,8 +132,107 @@ class MultipleChoiceTemplate extends ExerciseTemplate {
           if ((s.translation(ctx.lang) ?? '').trim().isNotEmpty && ctx.sentenceOk(s)) s,
       ];
 
-  Exercise? _sentence(SkillFacet facet, Item item, bool rec, GenContext ctx) {
-    final pool = _sentences(item, ctx);
+  // ---------------------------------------------------------------- recognition of forms
+
+  /// A recognition-only `#form` facet (the passato remoto): a sentence with
+  /// the form -> its translation, the form -> the same person's form in the
+  /// skill's equivalent tense (`andò` -> `è andato`), or the form -> its
+  /// person. The learner never produces a form of the tense.
+  Exercise? _form(SkillFacet facet, Item item, GenContext ctx) {
+    final ix = ctx.index;
+    final tense = facet.tense;
+    if (tense == null) return null;
+    final cells = ix.finiteForms(item.id, tense);
+    if (cells.length < 3) return null;
+    final r = ctx.random.nextDouble();
+    final attempts = <Exercise? Function()>[
+      if (r < 0.4) () => _formSentence(facet, item, tense, ctx),
+      if (r < 0.75) () => _formEquivalent(facet, item, cells, ctx),
+      () => _formPerson(facet, item, cells, ctx),
+      () => _formSentence(facet, item, tense, ctx),
+      () => _formEquivalent(facet, item, cells, ctx),
+    ];
+    for (final a in attempts) {
+      final e = a();
+      if (e != null) return e;
+    }
+    return null;
+  }
+
+  Exercise? _formSentence(SkillFacet facet, Item item, String tense, GenContext ctx) {
+    final pool = <Sentence>{
+      for (final o in ctx.index.formOccurrencesIn(item.id, tense))
+        if ((o.sentence.translation(ctx.lang) ?? '').trim().isNotEmpty && ctx.sentenceOk(o.sentence)) o.sentence,
+    }.toList();
+    return pool.isEmpty ? null : _sentence(facet, item, true, ctx, pool: pool);
+  }
+
+  /// Cells of [tense] spelled like [form] (several persons may share one).
+  List<VerbForm> _sameSpelling(GenContext ctx, String itemId, String tense, String form) {
+    final key = foldAnswer(form);
+    return [
+      for (final c in ctx.index.finiteForms(itemId, tense))
+        if (c.accepted.any((a) => foldAnswer(a) == key)) c,
+    ];
+  }
+
+  Exercise? _formEquivalent(SkillFacet facet, Item item, List<VerbForm> cells, GenContext ctx) {
+    final eq = ctx.index.equivalentTense(facet);
+    if (eq == null || !ctx.tenseShowable(eq)) return null;
+    final forms = ctx.course.verbForms(item.id);
+    final cell = ctx.pick(cells);
+    final target = forms['$eq.${cell.person}'];
+    if (target == null) return null;
+    final same = _sameSpelling(ctx, item.id, cell.tense, cell.form);
+    final forbidden = [
+      for (final s in same)
+        if (forms['$eq.${s.person}'] case final f?) ...f.accepted,
+    ];
+    final picker = OptionPicker(forbidden: forbidden, max: optionCount - 1);
+    picker.addGroups([
+      [for (final f in forms.values) if (f.tense == eq && f.person != kNoPerson) f.form],
+    ], ctx.random);
+    if (picker.picked.length < 2) return null;
+    final (options, idx) = placeOptions(target.form, picker.picked, ctx.random);
+    return MultipleChoiceExercise(
+      id: ctx.nextId(),
+      facetId: facet.facetId,
+      skillId: ctx.skill?.id,
+      instruction: instruction('mc.form.equivalent', ctx.lang),
+      prompt: cell.form,
+      options: options,
+      correctIndex: idx,
+      direction: Direction.recognize,
+      hint: '${item.lemma} · ${ctx.course.meta.tenseLabel(eq, ctx.lang)}',
+    );
+  }
+
+  Exercise? _formPerson(SkillFacet facet, Item item, List<VerbForm> cells, GenContext ctx) {
+    final meta = ctx.course.meta;
+    final cell = ctx.pick(cells);
+    String label(String p) => meta.personLabel(p, ctx.lang, tense: cell.tense);
+    final same = _sameSpelling(ctx, item.id, cell.tense, cell.form);
+    final picker = OptionPicker(forbidden: [for (final s in same) label(s.person)], max: optionCount - 1);
+    picker.addGroups([
+      [for (final c in cells) label(c.person)],
+    ], ctx.random);
+    if (picker.picked.length < 2) return null;
+    final (options, idx) = placeOptions(label(cell.person), picker.picked, ctx.random);
+    return MultipleChoiceExercise(
+      id: ctx.nextId(),
+      facetId: facet.facetId,
+      skillId: ctx.skill?.id,
+      instruction: instruction('mc.form.person', ctx.lang),
+      prompt: cell.form,
+      options: options,
+      correctIndex: idx,
+      direction: Direction.recognize,
+      hint: '${item.lemma} · ${meta.tenseLabel(cell.tense, ctx.lang)}',
+    );
+  }
+
+  Exercise? _sentence(SkillFacet facet, Item item, bool rec, GenContext ctx, {List<Sentence>? pool}) {
+    pool ??= _sentences(item, ctx);
     if (pool.isEmpty) return null;
     final ix = ctx.index;
     for (final s in ctx.prefer(pool, (s) => s, take: 4)) {
@@ -145,10 +254,12 @@ class MultipleChoiceTemplate extends ExerciseTemplate {
 
       final List<String> distractors;
       if (rec) {
+        // Translations in the language the right one is shown in (see glossLanguage).
+        final tl = s.tr.containsKey(ctx.lang) ? ctx.lang : 'en';
         final picker = OptionPicker(forbidden: [translation], max: optionCount - 1);
         for (final t in ordered) {
           if (picker.full) break;
-          picker.add(t.translation(ctx.lang)!);
+          if (t.tr[tl] != null) picker.add(t.tr[tl]!);
         }
         distractors = picker.picked;
       } else {

@@ -230,7 +230,7 @@ class VerbTenseCard extends StatelessWidget {
                     SizedBox(
                       width: 110,
                       child: Text(
-                        personIsLabel ? c.person : course.meta.personLabel(c.person, lang),
+                        personIsLabel ? c.person : course.meta.personLabel(c.person, lang, tense: tense.tense),
                         style: theme.textTheme.bodySmall,
                         overflow: TextOverflow.ellipsis,
                       ),

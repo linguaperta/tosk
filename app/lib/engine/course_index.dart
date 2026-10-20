@@ -5,6 +5,7 @@ library;
 
 import '../core/interfaces/course_data.dart';
 import '../core/models/course.dart';
+import '../core/models/facet.dart';
 import 'text/normalize.dart';
 
 /// A verb form found in a sentence.
@@ -95,6 +96,44 @@ class CourseIndex {
 
   CourseMeta get meta => course.meta;
 
+  /// The skill that introduces [facetId]: the first, in course order, of the
+  /// skills that train it (null for a facet no skill trains).
+  String? introducingSkill(String facetId) => _introducing.putIfAbsent(facetId, () {
+        final skills = course.skillsForFacet(facetId);
+        if (skills.isEmpty) return null;
+        return skills.reduce((a, b) => (_skillOrder[a] ?? 1 << 30) <= (_skillOrder[b] ?? 1 << 30) ? a : b);
+      });
+  final Map<String, String?> _introducing = {};
+  late final Map<String, int> _skillOrder = {
+    for (var i = 0; i < course.skills.length; i++) course.skills[i].id: i,
+  };
+
+  // ------------------------------------------------------------ recognition-only skills
+
+  /// Tenses trained by recognition-only verb skills (`meta.recognition_skills`):
+  /// the Italian passato remoto. Their `#form` facets are never asked as production.
+  late final Set<String> recognitionTenses = {
+    for (final s in course.skills)
+      if (meta.recognitionSkills.containsKey(s.id) && s.tense != null) s.tense!,
+  };
+
+  /// Whether [facet] may only get recognition exercises: it belongs to a
+  /// recognition-only skill, or it is a `#form` facet of a recognition tense.
+  bool recognitionOnly(SkillFacet facet) =>
+      meta.recognitionSkills.containsKey(facet.skillId) ||
+      (facet.kind == FacetKind.form && recognitionTenses.contains(facet.tense));
+
+  /// The equivalent tense of a recognition `#form` facet (`passato_prossimo`
+  /// for the passato remoto), or null.
+  String? equivalentTense(SkillFacet facet) {
+    final own = meta.recognitionSkills[facet.skillId];
+    if (own != null) return own;
+    for (final s in course.skills) {
+      if (s.tense == facet.tense && meta.recognitionSkills[s.id] != null) return meta.recognitionSkills[s.id];
+    }
+    return null;
+  }
+
   // ------------------------------------------------------------ persons
 
   /// Subject pronouns of each person: the parts of the person key (`hij/zij`)
@@ -112,18 +151,36 @@ class CourseIndex {
   /// Persons other than [person] that share a pronoun with it, e.g. Dutch
   /// `hij/zij` and `zij`. Swapping between them may still be correct in
   /// context, so they are never used as wrong options for each other.
-  List<String> ambiguousPersons(String person) {
+  ///
+  /// With [tense]: also the persons whose labels in that tense
+  /// (`meta.tense_person_labels`) share a translation word with [person]'s:
+  /// the Italian imperative `tu (you)`, `Lei (you, formal)` and `voi (you,
+  /// plural)` are all "you", and an imperative names no subject, so `Parla!`
+  /// and `Parli!` are both right for "Speak!".
+  List<String> ambiguousPersons(String person, {String? tense}) {
     final mine = _personComponents[person] ?? const <String>{};
+    final special = tense == null ? null : meta.tensePersonLabels[tense];
+    Set<String> words(String p) => {
+          for (final label in (special?[p] ?? const <String, String>{}).values)
+            for (final m in _parenContent.allMatches(label))
+              for (final w in m.group(1)!.toLowerCase().split(_nonLetters))
+                if (w.isNotEmpty && w != 'formal' && w != 'plural') w,
+        };
+    final myWords = special == null ? const <String>{} : words(person);
     return [
       for (final p in meta.persons)
-        if (p != person && (_personComponents[p] ?? const <String>{}).any(mine.contains)) p,
+        if (p != person &&
+            ((_personComponents[p] ?? const <String>{}).any(mine.contains) ||
+                (myWords.isNotEmpty && words(p).any(myWords.contains))))
+          p,
     ];
   }
 
   /// The translation-language words in parentheses of [person]'s label in
-  /// [lang] (`él/ella/usted (he/she/you formal)` -> he, she, you, formal).
-  Set<String> translationPronouns(String person, String lang) {
-    final label = meta.personLabels[person]?[lang];
+  /// [lang] (`él/ella/usted (he/she/you formal)` -> he, she, you, formal),
+  /// using its label in [tense] when the pack has one.
+  Set<String> translationPronouns(String person, String lang, {String? tense}) {
+    final label = (tense == null ? null : meta.tensePersonLabels[tense]?[person]?[lang]) ?? meta.personLabels[person]?[lang];
     final m = label == null ? null : _parenContent.firstMatch(label);
     if (m == null) return const {};
     return {
@@ -142,6 +199,12 @@ class CourseIndex {
   /// ventana?` for "Why don't you shut the window?").
   bool sharesTranslation(FormOccurrence o, String other, String? translation, String lang) {
     if (translation == null) return false;
+    // Tense-specific labels (an imperative: `tu (you)`, `Lei (you, formal)`)
+    // share their word whatever the translation says: "Speak!" has no "you".
+    if (ambiguousPersons(o.person, tense: o.tense).contains(other) &&
+        !ambiguousPersons(o.person).contains(other)) {
+      return !o.sentence.tokens.any((t) => t.isWord && {..._personWords(o.person), ..._personWords(other)}.contains(t.t.toLowerCase()));
+    }
     final shared = translationPronouns(o.person, lang).intersection(translationPronouns(other, lang));
     if (shared.isEmpty) return false;
     final trWords = translation.toLowerCase().split(_nonLetters).toSet();

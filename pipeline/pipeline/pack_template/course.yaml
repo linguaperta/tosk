@@ -1,4 +1,4 @@
-# Course definition of the pack '{{code}}' (pack format 1.0, docs/pack-format.md in the tosk repo).
+# Course definition of the pack '{{code}}' (pack format 1.1, docs/pack-format.md in the tosk repo).
 #
 # `pack new` wrote this starter. The words, verbs and sentences are EXAMPLE CONTENT in a made-up
 # language, only there so that the pack validates and builds and shows every part of the format:

@@ -204,7 +204,7 @@ class ConjPickTemplate extends ExerciseTemplate {
         tense: cell.tense,
         tenseLabel: meta.tenseLabel(cell.tense, ctx.lang),
         person: cell.person,
-        personLabel: meta.personLabel(cell.person, ctx.lang),
+        personLabel: meta.personLabel(cell.person, ctx.lang, tense: cell.tense),
         stem: cell.stem!,
         endings: options,
         correctIndex: idx,

@@ -14,6 +14,8 @@
     "description": {"$ref": "#/$defs/i18n"},
     "target": {"type": "string", "pattern": "^[a-z]{2,3}$"},
     "translations": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-z]{2,3}$"}},
+    "required_translations": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-z]{2,3}$"},
+                              "description": "the translations every taught item, sentence and story needs (default: all of translations); the others are optional and the app falls back to English where one is missing"},
     "unverified": {"type": "boolean"},
     "note_langs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-z]{2,3}$"},
                    "description": "languages every grammar skill needs a note in (default [en, nl])"},
@@ -33,6 +35,15 @@
     "person_labels": {"type": "object", "additionalProperties": {"$ref": "#/$defs/i18n"}},
     "tenses": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/key"}},
     "tense_labels": {"type": "object", "additionalProperties": {"$ref": "#/$defs/i18n"}},
+    "tense_persons": {"type": "object", "propertyNames": {"$ref": "#/$defs/key"},
+                      "description": "tenses whose tables have only some persons (an imperative without io): tense -> those persons; a table of the tense is complete with them",
+                      "additionalProperties": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}}},
+    "tense_person_labels": {"type": "object", "propertyNames": {"$ref": "#/$defs/key"},
+                            "description": "person labels that differ in one tense (imperative lui/lei = formal Lei): tense -> person -> i18n",
+                            "additionalProperties": {"type": "object", "additionalProperties": {"$ref": "#/$defs/i18n"}}},
+    "tense_groups": {"type": "object", "propertyNames": {"$ref": "#/$defs/key"},
+                     "description": "tense -> group (a mood): the transform exercise changes the tense only between tenses of one group; unlisted tenses form one default group",
+                     "additionalProperties": {"$ref": "#/$defs/key"}},
     "articles": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
     "base_features": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/feature"},
                       "description": "grammar features allowed from the start (docs/ARCHITECTURE.md, Grammar gating)"},
@@ -43,7 +54,7 @@
         "type": "object", "required": ["type"], "additionalProperties": false,
         "properties": {
           "type": {"enum": ["compound_aux", "modal_infinitive", "words", "irregular_tense", "separable",
-                            "reflexive", "nonfinite"]},
+                            "reflexive", "nonfinite", "pattern", "enclitic"]},
           "aux": {"type": "string"},
           "verbs": {"type": "array", "items": {"type": "string"}},
           "infinitive_pattern": {"type": "string"},
@@ -58,7 +69,9 @@
           "enclitic_any": {"type": "array", "items": {"type": "string"},
                            "description": "reflexive: attached pronouns that are reflexive without a finite verb of their person"},
           "form": {"type": "string", "description": "nonfinite: the verb form key (gerund, participle, infinitive)"},
-          "pattern": {"type": "string", "description": "nonfinite: regex for that form with attached clitics"}
+          "pattern": {"type": "string", "description": "nonfinite: regex for that form with attached clitics; pattern: regex searched in the lower-cased sentence text"},
+          "annotate": {"type": "boolean", "description": "pattern: match the text with every word followed by its aligned form in braces ('non{} parlare{infinitive._}')"},
+          "unbound": {"type": "boolean", "description": "reflexive: only pronouns that are no part of the verb's own (pronominal) form, e.g. impersonal 'si dice'"}
         }
       }
     },
@@ -114,6 +127,8 @@
         "introduces": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/feature"},
                        "description": "grammar features this skill teaches (a verbs skill also introduces tense:{T})"},
         "note": {"type": "string", "description": "path of the English grammar note relative to the course folder; the Dutch one is the same path with .nl.md"},
+        "recognition": {"type": "boolean", "description": "recognition only: the learner recognises the items or forms and is never asked to produce them (items: #rec only; verbs: #form with recognition exercises only)"},
+        "equivalent_tense": {"$ref": "#/$defs/key", "description": "recognition verbs skill: the tense whose form of the same verb and person means the same (passato remoto -> passato prossimo), offered in 'which form means the same?'"},
         "items": {"$ref": "#/$defs/itemsQuery"},
         "verbs": {"$ref": "#/$defs/verbsQuery"},
         "facet": {"enum": ["article", "infl"], "description": "train this facet of the selected items instead of #rec/#prod ('infl': only the #infl:{table} facets of `inflections`)"},
@@ -122,7 +137,7 @@
                         "properties": {"table": {"$ref": "#/$defs/strOrList"}}},
         "exercises": {"type": "array", "uniqueItems": true, "items": {"enum": [
           "flashcard", "multiple_choice", "match_pairs", "conj_pick", "conj_grid",
-          "sentence_builder", "cloze", "spot_error", "transform"]}},
+          "sentence_builder", "cloze", "spot_error", "transform", "listen_pick"]}},
         "pos": {"type": "object", "additionalProperties": false,
                 "properties": {"x": {"type": "integer"}, "y": {"type": "integer"}}}
       },

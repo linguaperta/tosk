@@ -45,6 +45,8 @@ class MatchPairsTemplate extends ExerciseTemplate {
       if (f.kind != FacetKind.rec || chosen.any((c) => c.$1.id == f.itemId)) return false;
       final item = course.item(f.itemId);
       if (item == null || !_usable(item, ctx)) return false;
+      // all meanings in one language (a gloss the learner's language lacks shows in English)
+      if (glossLanguage(item, ctx.lang) != glossLanguage(anchor, ctx.lang)) return false;
       if (chosen.any((c) => ctx.index.overlaps(c.$1, item))) return false;
       final lk = foldAnswer(item.lemma);
       final gk = foldAnswer(item.gloss(ctx.lang));

@@ -49,11 +49,28 @@ def _match_name(item: dict, names: list[str]) -> bool:
     return item["id"] in names or item["lemma"] in names
 
 
+class Persons(list):
+    """The course's persons (display order), plus the persons of tenses with fewer of them
+    (course.yaml `tense_persons`: an imperative without io and loro)."""
+
+    def __init__(self, persons, by_tense: dict | None = None):
+        super().__init__(persons)
+        self.by_tense = {t: list(ps) for t, ps in (by_tense or {}).items()}
+
+    def of(self, tense: str) -> list[str]:
+        return self.by_tense.get(tense, list(self))
+
+
+def course_persons(course: dict) -> Persons:
+    return Persons(course["persons"], course.get("tense_persons"))
+
+
 def complete_tense(verb: dict | None, tense: str, persons: list[str]) -> bool:
+    """The verb has a form for every person of `tense` (`Persons.of`: a tense may have fewer)."""
     if not verb:
         return False
     t = (verb.get("forms") or {}).get(tense) or {}
-    for p in persons:
+    for p in (persons.of(tense) if isinstance(persons, Persons) else persons):
         v = t.get(p)
         form = v.get("form") if isinstance(v, dict) else v
         if not form:

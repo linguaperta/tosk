@@ -78,6 +78,11 @@ List<TokenRef> tokenRefsOf(Sentence s) => [
       for (final t in s.tokens) TokenRef(t.t, pre: t.pre, itemId: t.lex, form: t.form, isWord: t.isWord),
     ];
 
+/// The language [item]'s meaning is shown in for a learner of [lang]: [lang]
+/// when the item has a gloss in it, else English (`Item.glosses` falls back).
+/// Wrong meanings are taken in the same language, so no option stands out.
+String glossLanguage(Item item, String lang) => (item.tr[lang]?.isNotEmpty ?? false) ? lang : 'en';
+
 (List<String>, int) placeOptions(String correct, List<String> distractors, Random random) {
   final options = [correct, ...distractors]..shuffle(random);
   return (options, options.indexOf(correct));
@@ -254,7 +259,7 @@ bool stemsEndAlike(String a, String b) {
 
 /// Display name of a verb for hints: `mangiare (noi, present)`.
 String formHint(CourseMeta meta, Item verb, String person, String tense, String lang) =>
-    '${verb.lemma} (${meta.personLabel(person, lang)}, ${meta.tenseLabel(tense, lang)})';
+    '${verb.lemma} (${meta.personLabel(person, lang, tense: tense)}, ${meta.tenseLabel(tense, lang)})';
 
 final RegExp _glossParens = RegExp(r'\([^)]*\)');
 final RegExp _nonLetters = RegExp(r"[^\p{L}\p{N}']+", unicode: true);

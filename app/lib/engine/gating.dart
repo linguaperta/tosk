@@ -32,8 +32,10 @@ import 'course_index.dart';
 ///   a word it could not align, e.g. a passato remoto `Comprai`), so such a
 ///   sentence never passes the grammar cap and only alone the vocabulary cap.
 ///
-/// A started skill is one with at least one reviewed facet. [markStarted]
-/// adds skills during a session (the facet's skills after each answer).
+/// A started skill is one with at least one reviewed facet that it
+/// introduces (its first skill in course order: [startedSkills]).
+/// [markStarted] adds skills during a session (the facet's introducing skill
+/// after each answer).
 ///
 /// Courses without `base_features` (packs built before grammar gating, or a
 /// course that does not declare it) are not gated: [supports] is false and
@@ -59,9 +61,14 @@ class SentenceGate {
   static int capFor(LessonFocus focus, Skill? skill) =>
       focus == LessonFocus.grammar || skill?.kind == SkillKind.grammar ? grammarCap : vocabCap;
 
-  /// Skills with at least one facet in [reviewedFacetIds].
+  /// Skills started by [reviewedFacetIds]: the skill that introduces each
+  /// facet (its first skill in course order). A later skill that shares the
+  /// facet (`ci#rec` in an early pronouns skill and a late ci-and-ne skill,
+  /// `stare#form:presente` in a progressive skill) is not started by it:
+  /// otherwise its grammar, and that of all its prerequisites, would count
+  /// as known long before the learner gets there.
   static Set<String> startedSkills(CourseData course, Iterable<String> reviewedFacetIds) => {
-        for (final f in reviewedFacetIds) ...course.skillsForFacet(f),
+        for (final f in reviewedFacetIds) ?CourseIndex.of(course).introducingSkill(f),
       };
 
   final CourseData course;

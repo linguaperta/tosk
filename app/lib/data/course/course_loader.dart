@@ -282,6 +282,10 @@ CourseMeta parseCourseMeta(Map<String, String> raw) {
       description: _i18n(raw['description']),
       inflectionTables: _inflectionTables(raw['inflection_tables']),
       schemaMinor: int.tryParse(raw['schema_minor'] ?? '') ?? 0,
+      tensePersons: _glosses(raw['tense_persons']),
+      tensePersonLabels: _tensePersonLabels(raw['tense_person_labels']),
+      tenseGroups: _stringMap(raw['tense_groups']),
+      recognitionSkills: _recognitionSkills(raw['recognition_skills']),
     );
   } on FormatException catch (e) {
     throw CourseFormatException('Malformed meta JSON: ${e.message}');
@@ -369,6 +373,38 @@ Map<String, I18n> _i18nMap(Object? v) {
       '${e.key}': e.value is Map
           ? {for (final x in (e.value as Map).entries) '${x.key}': '${x.value}'}
           : {'en': '${e.value}'},
+  };
+}
+
+/// `{tense: {person: i18n}}` (meta.tense_person_labels).
+Map<String, Map<String, I18n>> _tensePersonLabels(Object? v) {
+  if (v == null || v == '{}' || v == '') return const {};
+  final d = _json(v);
+  if (d is! Map) return const {};
+  return {
+    for (final e in d.entries)
+      if (e.value is Map) '${e.key}': _i18nMap(jsonEncode(e.value)),
+  };
+}
+
+/// `{key: value}` of strings (meta.tense_groups).
+Map<String, String> _stringMap(Object? v) {
+  if (v == null || v == '{}' || v == '') return const {};
+  final d = _json(v);
+  if (d is! Map) return const {};
+  return {for (final e in d.entries) '${e.key}': '${e.value}'};
+}
+
+/// `{skill: {equivalent_tense?}}` (meta.recognition_skills) -> skill -> equivalent tense or null.
+Map<String, String?> _recognitionSkills(Object? v) {
+  if (v == null || v == '{}' || v == '') return const {};
+  final d = _json(v);
+  if (d is! Map) return const {};
+  return {
+    for (final e in d.entries)
+      '${e.key}': e.value is Map && (e.value as Map)['equivalent_tense'] != null
+          ? '${(e.value as Map)['equivalent_tense']}'
+          : null,
   };
 }
 

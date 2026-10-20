@@ -78,7 +78,7 @@ Future<List<Exercise>> _play(
     }
     final r = await session.submit(e, correctAnswer(e), elapsed: const Duration(seconds: 4));
     for (final o in r.outcomes) {
-      known.addAll(c.skillsForFacet(o.facetId));
+      known.addAll(SentenceGate.startedSkills(c, [o.facetId]));   // the introducing skill only
     }
   }
   return out;

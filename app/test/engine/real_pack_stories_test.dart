@@ -26,10 +26,14 @@ void main() {
           expect(s.sentences.length, inInclusiveRange(5, 10), reason: s.id);
           expect(s.questions.length, inInclusiveRange(3, 5), reason: s.id);
           expect(s.newWords.length, lessThanOrEqualTo(1), reason: s.id);
+          // English is always there; another source language may fall back to
+          // it (pack format 1.1 `required_translations`), so check what is shown.
+          expect(s.titleTr['en'], isNotEmpty, reason: '${s.id} title en');
           for (final lang in course.meta.translations) {
-            expect(s.titleTr[lang], isNotEmpty, reason: '${s.id} title $lang');
+            expect(pickLang(s.titleTr, lang), isNotEmpty, reason: '${s.id} title $lang');
             for (final sent in s.sentences) {
-              expect(sent.tr[lang], isNotEmpty, reason: '${sent.id} $lang');
+              expect(sent.tr['en'], isNotEmpty, reason: '${sent.id} en');
+              expect(sent.translation(lang), isNotEmpty, reason: '${sent.id} $lang');
             }
           }
         }
@@ -84,8 +88,9 @@ void main() {
           for (final q in st.questions) {
             expect(q.options.length, inInclusiveRange(3, 4), reason: st.id);
             expect(q.correct, inInclusiveRange(0, q.options.length - 1), reason: st.id);
+            expect(q.promptTr['en'], isNotEmpty, reason: '${st.id} en');
             for (final lang in course.meta.translations) {
-              expect(q.promptTr[lang], isNotEmpty, reason: '${st.id} $lang');
+              expect(pickLang(q.promptTr, lang), isNotEmpty, reason: '${st.id} $lang');
               final labels = [for (final o in q.options) foldAnswer(o.label(lang))];
               expect(labels.toSet().length, labels.length, reason: '${st.id}: $labels');
               expect(labels.every((l) => l.isNotEmpty), isTrue, reason: st.id);

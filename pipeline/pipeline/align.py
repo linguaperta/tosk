@@ -125,9 +125,28 @@ class Aligner:
         for it in sorted(items, key=lambda i: self.rank[i["id"]]):
             if it["pos"] == "verb":
                 by_lemma_verb.setdefault(it["lemma"], it["id"])
+        # multi-word verb forms (lang.multiword_forms: Italian pronominal verbs 'mi alzo', 'mi sono
+        # alzato', 'me ne vado'): word tuple -> [(verb id, tense, person)], every word aligned
+        self.multi: dict[tuple[str, ...], list[tuple[str, str, str]]] = defaultdict(list)
+        # hosts of attached pronouns (lang.enclitics): 'parlar' (parlare), 'parlando', 'parla'
+        # (imperativo.tu), 'di' (di', doubling: dimmi) -> [(verb id, form key, doubles)]
+        self.enclitic_hosts: dict[str, list[tuple[str, str, bool]]] = defaultdict(list)
         for vid in sorted(verbs):
             v = verbs[vid]
             forms = v.get("forms") or {}
+            if lang.multiword_forms:
+                pronominal = lang.pronominal(self.items.get(vid, {}).get("lemma", "")) is not None
+                for tense, table in forms.items():
+                    if tense in lang.compound_tenses and not pronominal:
+                        continue             # 'ho mangiato': auxiliary + participle (pass 1)
+                    for person, val in table.items():
+                        alts = val.get("alts", []) if isinstance(val, dict) else []
+                        for f in [_form(val), *alts]:
+                            w = tuple(norm(f).split())
+                            if len(w) > 1 and (vid, tense, person) not in self.multi[w]:
+                                self.multi[w].append((vid, tense, person))
+            if lang.enclitics:
+                self._add_hosts(vid, forms)
             auxes = [a for a in (v.get("auxiliary") or "").split("|") if a]
             if lang.passive_aux and len(auxes) > 1 and auxes[0] != lang.passive_aux:
                 # nl.wiktionary lists 'zijn' second for most transitive verbs because of the
@@ -156,6 +175,15 @@ class Aligner:
                         entry = (vid, tense, person)
                         if entry not in self.verb_index[norm(f)]:
                             self.verb_index[norm(f)].append(entry)
+        # every agreeing participle spelling -> its most frequent verb ('sorpresi' -> sorprendere),
+        # for homographs of rare-tense forms (lang.homograph_tenses)
+        self.part_any: dict[str, str] = {}
+        if lang.homograph_tenses:
+            for vid in sorted(verbs, key=lambda v: self.rank.get(v, (True, 0, v)), reverse=True):
+                part = ((verbs[vid].get("forms") or {}).get("participle") or {}).get("_")
+                if part:
+                    for pv in lang.participle_variants(_form(part), "essere"):
+                        self.part_any[norm(pv)] = vid
         for aux in lang.auxiliaries:
             vid = by_lemma_verb.get(aux)
             if not vid or vid not in verbs:
@@ -207,6 +235,39 @@ class Aligner:
                     for f in [cell.get("form"), *(cell.get("alts") or [])]:
                         if f:
                             self.table_forms[norm(f)].add(it["id"])
+
+    def _add_hosts(self, vid: str, forms: dict) -> None:
+        """Hosts of attached pronouns for one verb: the infinitive without its final -e ('parlar',
+        'por' for porre, 'alzar' for alzarsi), the gerund ('parlando', 'alzando'), and the tu/noi/voi
+        imperative ('parla', 'parliamo', 'parlate'; truncated 'di'', 'fa'' double the consonant:
+        'dimmi', 'fallo')."""
+        def one(table: str) -> list[str]:
+            val = (forms.get(table) or {}).get("_")
+            return [norm(_form(val))] if val else []
+        pron = self.lang.pronominal(self.items.get(vid, {}).get("lemma", ""))
+        for inf in one("infinitive"):
+            if pron:
+                inf = inf[: -len(pron[1])] + "e" if inf.endswith(pron[1]) else inf
+            host = inf[:-2] if inf.endswith("rre") else inf[:-1]
+            self.enclitic_hosts[host].append((vid, "infinitive._", False))
+        for ger in one("gerund"):
+            if pron and ger.endswith(pron[1]):
+                ger = ger[: -len(pron[1])]
+            self.enclitic_hosts[ger].append((vid, "gerund._", False))
+        imp = forms.get("imperativo") or {}
+        for person in ("tu", "noi", "voi"):
+            val = imp.get(person)
+            if not val:
+                continue
+            alts = val.get("alts", []) if isinstance(val, dict) else []
+            for f in [_form(val), *alts]:
+                f = norm(f)
+                if " " in f or pron:
+                    continue
+                if f.endswith("'"):
+                    self.enclitic_hosts[f[:-1]].append((vid, f"imperativo.{person}", True))
+                else:
+                    self.enclitic_hosts[f].append((vid, f"imperativo.{person}", False))
 
     # ------------------------------------------------------------------ lookups
     def _best(self, ids: list[str]) -> str:
@@ -300,6 +361,17 @@ class Aligner:
             return False                     # "Mañana hablaremos": a time noun is no subject
         if wi >= 2 and norm(toks[words[wi - 2]]["t"]) in self.lang.interrogatives:
             return False                     # '¿A qué hora llegáis?': the noun is no subject
+        if self.lang.tense_moods and lex and self.items.get(lex, {}).get("pos") == "noun":
+            # 'Al tuo posto direi ...': a noun after a preposition (and its determiners) is no subject
+            k = wi - 2
+            while k >= 0 and not self._punct_between(toks, words[k], words[k + 1]):
+                plex = toks[words[k]].get("lex") or self.lex_lookup(norm(toks[words[k]]["t"]))
+                ppos = self.items.get(plex or "", {}).get("pos")
+                if ppos == "prep":
+                    return False
+                if ppos not in ("det", "pron", "adj"):
+                    break
+                k -= 1
         return bool(lex and self.items.get(lex, {}).get("pos") == "noun")
 
     def _choose(self, cands, words, toks, wi, finite_before: bool):
@@ -389,6 +461,11 @@ class Aligner:
             hit = [c for c in cands if c[1] == self._tr_person]
             if hit:
                 return self._order(hit)[0]
+        if lang.tense_moods and len({c[1] for c in cands}) > 1 \
+                and all(self._mood(c[0]) == "subjunctive" for c in cands):
+            # 'Pensavo stessi andando' (io or tu), 'Penso che parli' (io, tu or lui/lei): the
+            # subjunctive singular needs its subject; without one the person stays open
+            return None
         for p in (lang.third_sg, lang.third_pl):
             hit = [c for c in cands if c[1] == p]
             if hit:
@@ -496,6 +573,271 @@ class Aligner:
         return bool(nlex and self.items[nlex]["pos"] == "noun" and not verbal)
 
     _EN_IMPERATIVE = re.compile(r"^[\"'“‘«\s]*(?:please,?\s+)?(?:(?:don['’]t|do not|never)\s+)?([a-z]+(?:['’]s)?)")
+    _EN_SUBJECT = re.compile(r"^[\"'“‘«\s]*(?:i|you|he|she|it|we|they|i'm|you're|he's|she's|it's|we're|they're|"
+                             r"there|this|that|these|those)\b(?!\s*,)")
+
+    # ------------------------------------------------------------------ moods (lang.tense_moods)
+    def _mood(self, tense: str) -> str:
+        return self.lang.tense_moods.get(tense, "indicative")
+
+    # words between a che-less trigger and its subjunctive ('Credo non lo sappia')
+    _CHE_DROP_BETWEEN = {"non", "mi", "ti", "si", "ci", "vi", "lo", "la", "li", "le", "gli", "ne", "l'",
+                         "me", "te", "se", "ce", "ve", "glielo", "gliela", "glieli", "gliele", "gliene",
+                         "io", "tu", "lui", "lei", "noi", "voi", "loro"}
+
+    def _mood_context(self, toks: list[dict], words: list[int], wi: int):
+        """What calls for a subjunctive before word #wi: 'strong' (a conjunction that takes it, or
+        'che' after a trigger: 'Penso che', 'Voglio che', 'È importante che'), 'weak' ('che' after
+        anything else: relative or 'So che'), ('if', tenses) ('se' + congiuntivo imperfetto), or
+        None. The search stops at the end of the previous sentence and at a finite verb."""
+        lang = self.lang
+        conj_multi = [tuple(c.split()) for c in lang.subj_conjunctions if " " in c]
+        k = wi - 1
+        while k >= 0:
+            ti = words[k]
+            if any(not toks[x]["is_word"] and toks[x]["t"] in {".", "?", "!", ";", ":", "…", "..."}
+                   for x in range(ti + 1, words[k + 1])):
+                return None
+            w = norm(toks[ti]["t"])
+            for seq in conj_multi:
+                n = len(seq)
+                if k - n + 1 >= 0 and tuple(norm(toks[words[k - j]]["t"]) for j in range(n - 1, -1, -1)) == seq:
+                    return "strong"
+            if w in lang.subj_conjunctions:
+                return "strong"
+            if w in lang.subj_if:
+                return ("if", lang.subj_if[w])
+            if w == lang.subj_complementizer or w == "ch'":
+                # an interrogative or exclamative 'che' ('A che ora ...?', 'Che cosa fai?', 'Che
+                # bello!'): at the start of the sentence or a clause, after a preposition, or before
+                # a noun or adjective, it calls for no subjunctive
+                prev_w = norm(toks[words[k - 1]]["t"]) if k > 0 else ""
+                nxt_lex = self.lex_lookup(norm(toks[words[k + 1]]["t"])) if k + 1 < len(words) else None
+                if k == 0 or self._punct_between(toks, words[k - 1], ti) \
+                        or self.items.get(self.lex_lookup(prev_w) or "", {}).get("pos") == "prep" \
+                        or (nxt_lex and self.items[nxt_lex]["pos"] in ("noun", "adj") and k + 1 < wi):
+                    return None
+                for j in range(k - 1, max(-1, k - 5), -1):
+                    t = toks[words[j]]
+                    lemma = self.items.get(t.get("lex") or "", {}).get("lemma")
+                    if lemma in lang.subj_triggers or norm(t["t"]) in lang.subj_triggers:
+                        return "strong"
+                    if self._punct_between(toks, words[j], words[j + 1]):
+                        break
+                return "weak"
+            f = toks[ti].get("form") or ""
+            if toks[ti].get("lex") in self.verb_ids and "." in f and not f.endswith("._") \
+                    and f.split(".", 1)[0] not in lang.compound_tenses:
+                # 'Pensavo foste a casa', 'Credo lo sappia': a che-less trigger verb right before
+                # (only clitics or 'non' in between) calls for the subjunctive
+                if wi - k <= 3 and self.items.get(toks[ti]["lex"], {}).get("lemma") in lang.subj_che_drop \
+                        and self._mood(f.split(".", 1)[0]) != "subjunctive" \
+                        and all(norm(toks[words[j]]["t"]) in self._CHE_DROP_BETWEEN for j in range(k + 1, wi)) \
+                        and not any(self._punct_between(toks, words[j], words[j + 1]) for j in range(k, wi)):
+                    return "strong"
+                return None                  # a finite verb of its own clause comes first
+            k -= 1
+        return None
+
+    def _mood_filter(self, cands: list[tuple[str, str]], toks: list[dict], words: list[int], wi: int,
+                     imperative: bool) -> tuple[list[tuple[str, str]], bool]:
+        """The candidates (tense, person) of one verb that fit the context, and whether the mood is
+        unsure (an indicative/subjunctive homograph after a 'che' without a trigger: 'So che parli' /
+        'Dice che parli'; such a sentence is not used). `imperative`: the word stands where an
+        imperative can (clause-initial, no subject, '!' or an imperative translation)."""
+        if not self.lang.tense_moods:
+            return cands, False
+        imp = [c for c in cands if self._mood(c[0]) == "imperative"]
+        if imperative and imp:
+            return imp, False
+        rest = [c for c in cands if self._mood(c[0]) != "imperative"]
+        if not rest:
+            return [], False                 # only an imperative form outside an imperative context
+        subj = [c for c in rest if self._mood(c[0]) == "subjunctive"]
+        other = [c for c in rest if self._mood(c[0]) != "subjunctive"]
+        if not subj:
+            return rest, False
+        ctx = self._mood_context(toks, words, wi)
+        if ctx == "strong":
+            return subj, False
+        if isinstance(ctx, tuple):
+            hit = [c for c in subj if c[0] in ctx[1]]
+            return (hit, False) if hit else (other or subj, False)
+        if ctx == "weak" and other:
+            return other, True
+        return (other or subj), False
+
+    def _imperative_context(self, toks: list[dict], words: list[int], wi: int, vid: str,
+                            translation: str | None, cands: list[tuple[str, str]]) -> bool:
+        """Whether word #wi stands where an imperative can (rule 4). Verbs whose imperative is
+        distinct (essere, avere: sii, abbi) only count with a form that is no present form."""
+        if not any(self._mood(c[0]) == "imperative" for c in cands):
+            return False
+        lemma = self.items.get(vid, {}).get("lemma")
+        persons = {c[1] for c in cands if self._mood(c[0]) == "imperative"}
+        if lemma in self.lang.imperative_exempt and any(c[0] == self.lang.present for c in cands):
+            # 'Siamo pronti!' is a statement; only a 'Let's ...' translation makes the noi form an
+            # imperative ('Siamo seri!' = Let's be serious!, 'Abbiamo pazienza!' = Let's be patient!)
+            noi = self.lang.persons[3]
+            return noi in persons and bool(re.match(r"^[\"'“‘«\s]*let'?s\b", (translation or "").lower().replace("’", "'"))) \
+                and self._imperative(toks, words, wi, vid, noi, translation, check_exempt=False)
+        return any(self._imperative(toks, words, wi, vid, p, translation, check_exempt=False) for p in sorted(persons))
+
+    def _align_multiword(self, out: list[dict], words: list[int], done: set[int], translation: str | None) -> None:
+        """Pass 0: multi-word verb forms ('mi alzo', 'ti sei alzato', 'me ne vado', 'si sieda'): every
+        word gets the verb and the cell. Contiguous words; a compound form may have adverbs before its
+        participle ('mi sono già alzato')."""
+        lang = self.lang
+        lens = sorted({len(k) for k in self.multi}, reverse=True)
+        wi = 0
+        while wi < len(words):
+            hit = None
+            for n in lens:
+                if wi + n > len(words):
+                    continue
+                # contiguous span, or n-1 contiguous words + up to 2 adverbs + the participle
+                for gap in (0, 1, 2):
+                    if wi + n + gap > len(words):
+                        break
+                    span = words[wi:wi + n - 1] + [words[wi + n - 1 + gap]]
+                    between = words[wi + n - 1:wi + n - 1 + gap]
+                    if any(norm(out[x]["t"]) not in lang.aux_between for x in between):
+                        break
+                    key = tuple(norm(out[x]["t"]) for x in span)
+                    cands = self.multi.get(key)
+                    if not cands or any(x in done for x in span) or \
+                            any(self._punct_between(out, a, b) for a, b in zip(span, span[1:])):
+                        continue
+                    if gap and not any(c[1] in lang.compound_tenses for c in cands):
+                        continue
+                    hit = (span, cands)
+                    break
+                if hit:
+                    break
+            if not hit:
+                wi += 1
+                continue
+            span, cands = hit
+            by_verb: dict[str, list[tuple[str, str]]] = defaultdict(list)
+            for vid, tense, person in cands:
+                by_verb[vid].append((tense, person))
+            vid = min(by_verb, key=lambda v: self.rank.get(v, (True, 0, v)))
+            first = pos = words.index(span[0])
+            imperative = self._imperative_context(out, words, first, vid, translation, by_verb[vid])
+            cs, unsure = self._mood_filter(by_verb[vid], out, words, first, imperative)
+            before, after = self._pronoun_persons(words, out, pos)
+            if not cs or (before and lang.persons and set(before) <= set(lang.persons)
+                          and not any(c[1] in before for c in cs)):
+                # 'che tu mi chiami' is chiamare with an object 'mi', not '(io) mi chiami'
+                wi += 1
+                continue
+            choice = None
+            if not unsure:
+                fit = [c for c in cs if c[1] in before] or [c for c in cs if c[1] in after]
+                if not fit and len({c[1] for c in cs}) > 1:
+                    fit = [c for c in cs if c[1] in (lang.third_sg, lang.third_pl)] or cs
+                choice = self._order(fit or cs)[0]
+            for x in span:
+                out[x]["lex"], out[x]["form"] = vid, (f"{choice[0]}.{choice[1]}" if choice else None)
+                if unsure:
+                    out[x]["unsure"] = True
+            done |= set(span)
+            wi = words.index(span[-1]) + 1
+
+    def _align_enclitic(self, out: list[dict], words: list[int], translation: str | None) -> None:
+        """Words with attached pronouns ('farlo', 'dimmi', 'alzarmi', 'aspettandoti', 'parlagli'):
+        an infinitive, gerund or imperative host + clitics (lang.enclitics) links to its verb with
+        that cell ('imperativo.tu', 'infinitive._'; the token text is no form of the cell, so the
+        app never asks it). A reflexive clitic prefers the pronominal verb (alzarmi -> alzarsi)."""
+        lang = self.lang
+        refl = {"mi", "ti", "si", "ci", "vi"}
+        for wi, ti in enumerate(words):
+            t = out[ti]
+            if t["lex"] and not (self.items.get(t["lex"], {}).get("pos") != "verb"
+                                 and self._imperative_bang(out, words, wi, translation)):
+                continue
+            w = norm(t["t"])
+            best = None
+            for suf in lang.enclitics:
+                if not w.endswith(suf) or len(w) <= len(suf) + 1:
+                    continue
+                host = w[: -len(suf)]
+                cands = [(c, False) for c in self.enclitic_hosts.get(host, ())]
+                if suf[0] not in "aeiou" and host.endswith(suf[0]):       # di' + mmi, fa' + llo
+                    cands += [(c, True) for c in self.enclitic_hosts.get(host[:-1], ()) if c[2]]
+                elif suf.startswith("gli"):
+                    cands += [(c, True) for c in self.enclitic_hosts.get(host, ()) if c[2]]   # digli, fagli
+                cands = [c for c, doubled in cands if c[2] == doubled or suf.startswith("gli")]
+                if not cands:
+                    continue
+                own = self._enclitic_person_clitic(out, words, wi)
+
+                def fits(pron, cell) -> bool:
+                    # the clitics are the pronominal verb's own: a reflexive one for a si-verb
+                    # (alzarmi -> alzarsi), of the subject's person when that is known ('Devo
+                    # alzarmi', 'Alzati!'; not 'Non trattarmi' -> trattarsi), 'ci' for a ci-verb
+                    # (pensarci; not tenermi -> tenerci)
+                    att = pron[1]
+                    if att == "si":
+                        need = self._REFL_OF.get(cell.split(".", 1)[1]) if cell.startswith("imperativo.") else own
+                        return suf[:2] in refl and (need is None or suf[:2] == need)
+                    if att == "ci":
+                        return suf.startswith(("ci", "ce"))
+                    return suf.endswith(att[-2:]) and suf[:2] in {"me", "te", "se", "ce", "ve"}
+
+                def key(c):
+                    pron = lang.pronominal(self.items.get(c[0], {}).get("lemma", ""))
+                    return (0 if pron and fits(pron, c[1]) else 2 if pron else 1, self.rank.get(c[0], (True, 0, c[0])))
+                best = min(cands, key=key)
+                break
+            if best:
+                t["lex"], t["form"] = best[0], best[1]
+
+    _REFL_OF = {"io": "mi", "tu": "ti", "lui/lei": "si", "noi": "ci", "voi": "vi", "loro": "si"}
+
+    def _enclitic_person_clitic(self, out: list[dict], words: list[int], wi: int) -> str | None:
+        """The reflexive clitic an infinitive at word #wi would carry as a pronominal verb: of the
+        finite verb before it in the clause ('Devo alzarmi': mi), 'ti' for a negative tu-imperative
+        ('Non alzarti!'), or None when unknown."""
+        k = wi - 1
+        while k >= 0 and not self._punct_between(out, words[k], words[k + 1]):
+            t = out[words[k]]
+            f = t.get("form") or ""
+            if t.get("lex") in self.verb_ids and "." in f and not f.endswith("._"):
+                return self._REFL_OF.get(f.split(".", 1)[1])
+            k -= 1
+        first = wi - 1
+        if first >= 0 and norm(out[words[first]]["t"]) == "non" \
+                and (first == 0 or self._punct_between(out, words[first - 1], words[first])):
+            return "ti"
+        return None
+
+    def _align_elative(self, out: list[dict], words: list[int]) -> None:
+        """An unlinked word with an elative ending links to its adjective (or other non-verb):
+        'bellissimo' -> bello, 'facilissima' -> facile, 'lunghissimi' -> lungo, 'moltissimo' -> molto."""
+        for ti in words:
+            t = out[ti]
+            if t["lex"]:
+                continue
+            w = norm(t["t"])
+            suf = next((s for s in self.lang.elative if w.endswith(s) and len(w) > len(s) + 1), None)
+            if not suf:
+                continue
+            stem = w[: -len(suf)]
+            stems = [stem, stem[:-1]] if stem.endswith(("ch", "gh")) else [stem]
+            cands = [i for s in stems for end in ("o", "e") for i in self.lemma_index.get(s + end, ())
+                     if self.items[i]["pos"] != "verb"]
+            if cands:
+                adj = [i for i in cands if self.items[i]["pos"] == "adj"]
+                t["lex"] = self._best(adj or cands)
+
+    def _imperative_bang(self, toks: list[dict], words: list[int], wi: int, translation: str | None) -> bool:
+        """A clause-initial word in an exclamation or with an imperative translation ('Fallo!')."""
+        if not self._clause_initial(words, toks, wi):
+            return False
+        if any(not t["is_word"] and t["t"] == "!" for t in toks[words[wi]:]):
+            return not self._EN_SUBJECT.match((translation or "").lower())
+        return False
 
     def _other_verb_excluded(self, by_verb: dict, vid: str, choice: tuple[str, str], toks: list[dict],
                              words: list[int], wi: int) -> bool:
@@ -518,12 +860,55 @@ class Aligner:
             return False
         return True
 
+    # copulas after which a rare-tense homograph is the adjective/participle ('Erano sorpresi')
+    _COPULAS = {"essere", "sembrare", "stare", "rimanere", "restare", "diventare"}
+    # articles that are also object clitics ('le chiese' = the churches / asked her)
+    _CLITIC_ARTICLES = {"la", "le", "lo", "gli", "l'"}
+
+    def _homograph_nonverb(self, toks: list[dict], words: list[int], wi: int, lex: str | None,
+                           s: str, translation: str | None, finite_seen: bool) -> bool:
+        """Whether a rare-tense form at word #wi that is also a noun, an adjective or a participle
+        ('chiese' churches/asked, 'prese' taken/took, 'fu' late/was, 'sorpresi' surprised) is that
+        other word. The non-verb reading needs a cue: a copula before it ('Siamo sorpresi'), a
+        determiner before it ('delle prese', 'il fu Mattia'), a noun before it after a finite verb
+        ('Ho trovato le chiavi perse'), or the noun's English gloss in the translation ('Le chiese
+        sono antiche' = The churches are old). Otherwise the form is the verb ('Lei prese il treno',
+        'Mi chiese aiuto', 'Fu un errore')."""
+        pos = self.items[lex]["pos"] if lex else None
+        if not ((pos and pos != "verb") or s in self.part_any):
+            return False
+        if self._pronoun_persons(words, toks, wi)[0]:
+            return False                     # 'Io sorpresi tutti'
+        if pos == "noun" and translation:
+            tr = set(re.findall(r"[a-z]+", translation.lower()))
+            tr |= {x[:-1] for x in tr if x.endswith("s")} | {x[:-2] for x in tr if x.endswith("es")}
+            for g in (self.items[lex].get("tr") or {}).get("en") or []:
+                w = g.lower().split()
+                if w and w[-1].strip("(),;") in tr:
+                    return True
+        if wi == 0 or self._punct_between(toks, words[wi - 1], words[wi]):
+            return False
+        prev = toks[words[wi - 1]]
+        pt, plex = norm(prev["t"]), prev.get("lex")
+        k = wi - 1                           # a copula, maybe before adverbs ('sembrarono molto sorpresi')
+        while k > 0 and norm(toks[words[k]]["t"]) in self.lang.aux_between \
+                and not self._punct_between(toks, words[k - 1], words[k]):
+            k -= 1
+        ct, clex = norm(toks[words[k]]["t"]), toks[words[k]].get("lex")
+        if ct in self.essere_forms or (clex and self.items.get(clex, {}).get("lemma") in self._COPULAS):
+            return True
+        if pt in self.lang.determiners:
+            # 'le chiese' (the churches) / 'Le chiese aiuto' (he asked her for help): an
+            # article that is also a clitic counts only after the clause's finite verb
+            return pt not in self._CLITIC_ARTICLES or (pos == "noun" and finite_seen)
+        return bool(plex and self.items.get(plex, {}).get("pos") == "noun" and finite_seen)
+
     def _imperative(self, toks: list[dict], words: list[int], wi: int, vid: str, person: str,
-                    translation: str | None) -> bool:
+                    translation: str | None, check_exempt: bool = True) -> bool:
         """Italian: whether a present form at word #wi is an imperative (see rule 4)."""
         lang = self.lang
         homograph = lang.imperative_homographs.get(norm(toks[words[wi]]["t"]), (None, None))[1]
-        if not lang.imperative_lead or (self.items.get(vid, {}).get("lemma") in lang.imperative_exempt
+        if not lang.imperative_lead or (check_exempt and self.items.get(vid, {}).get("lemma") in lang.imperative_exempt
                                         and homograph is None):
             return False
         if homograph is None and person not in (lang.persons[1], lang.persons[2], lang.persons[3], lang.persons[4]):
@@ -535,10 +920,11 @@ class Aligner:
         if k >= 0 and not self._punct_between(toks, words[k], words[k + 1]):
             return False                     # not clause-initial
         before, after = self._pronoun_persons(words, toks, wi)
-        if before or after:
-            return False                     # 'Tu parli', 'Parli tu?'
+        if (before or after) and not (lang.tense_moods and person not in before + after):
+            return False                     # 'Tu parli', 'Parli tu?' (not 'Non parlate tutti insieme!')
         if any(not t["is_word"] and t["t"] == "!" for t in toks[words[wi]:]):
-            return True
+            # ... unless the translation has a subject ('Siamo pronti!' = We're ready!)
+            return not (lang.tense_moods and self._EN_SUBJECT.match((translation or "").lower()))
         m = self._EN_IMPERATIVE.match((translation or "").lower())
         if not m:
             return False
@@ -573,9 +959,15 @@ class Aligner:
         pos_in_words = {ti: wi for wi, ti in enumerate(words)}
         done: set[int] = set()
 
+        # pass 0: multi-word verb forms (Italian pronominal verbs: 'mi alzo', 'mi sono alzato')
+        if self.multi:
+            self._align_multiword(out, words, done, translation)
+
         # pass 1: compound tenses (participle + auxiliary in the same clause)
         compound = next(iter(lang.compound_tenses), None)
         for wi, ti in enumerate(words):
+            if ti in done:
+                continue
             s = norm(out[ti]["t"])
             pc = self.part_index.get(s)
             if not pc or compound is None:
@@ -764,8 +1156,35 @@ class Aligner:
                 vid = min(pool, key=lambda v: self.rank.get(v, (True, 0, v)))
                 if len(pool) < len(by_verb):
                     by_verb = {v: by_verb[v] for v in pool}
-                choice = self._choose(by_verb[vid], words, out, wi, finite_seen)
+                cands = by_verb[vid]
+                unsure = False
+                if lang.tense_moods:
+                    # several moods share the spelling ('parli': presente tu, congiuntivo, Lei
+                    # imperative): the context decides (_mood_filter)
+                    imperative = self._imperative_context(out, words, wi, vid, translation, cands)
+                    all_cands = cands
+                    cands, unsure = self._mood_filter(cands, out, words, wi, imperative)
+                    if not cands and not unsure and not ((lex and self.items[lex]["pos"] != "verb")
+                                                         or s in self.part_any):
+                        # a form that can only be an imperative ('Oggi divertiamoci!', 'Siamo in
+                        # vacanza, rilassiamoci!') is one wherever it stands
+                        cands = [c for c in all_cands if self._mood(c[0]) == "imperative"]
+                    # 'Siamo arrabbiati' (not 'arrabbiati!' = get angry), 'Sono sorpresi' (not
+                    # 'sorpresi' = I surprised): an imperative outside an imperative context, or a
+                    # rare-tense form that is also an adjective or a participle in a context that
+                    # calls for one (_homograph_nonverb), is that word
+                    if not unsure and (not cands or (
+                            all(c[0] in lang.homograph_tenses for c in cands)
+                            and self._homograph_nonverb(out, words, wi, lex, s, translation, finite_seen))):
+                        if lex:
+                            out[ti]["lex"] = lex
+                        elif s in self.part_any:
+                            out[ti]["lex"], out[ti]["form"] = self.part_any[s], "participle._"
+                        continue
+                choice = None if unsure or not cands else self._choose(cands, words, out, wi, finite_seen)
                 out[ti]["lex"] = vid
+                if unsure:
+                    out[ti]["unsure"] = True
                 if choice and (self.items.get(vid, {}).get("lemma"), choice[0]) in lang.unlinked_forms:
                     choice = None            # Dutch 'zou' is a conditional, not the past of 'zal'
                 if choice and len(by_verb) > 1 and choice[1] != "_" \
@@ -805,6 +1224,12 @@ class Aligner:
         # make a two-word form of a separable verb ('Ik sta morgen vroeg op' -> opstaan, ik)
         if self.separable:
             self._align_separable(out, words)
+        # attached pronouns: 'farlo', 'dimmi', 'alzarmi' (lang.enclitics)
+        if self.enclitic_hosts:
+            self._align_enclitic(out, words, translation)
+        # absolute superlatives: 'bellissimo' -> bello, 'lunghissima' -> lungo (lang.elative)
+        if lang.elative:
+            self._align_elative(out, words)
         # pass 4: multi-word phrases ('per favore', 'tot ziens'): every word links to the phrase
         for seq, iid in self.phrases.items():
             n = len(seq)
