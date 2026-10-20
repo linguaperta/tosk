@@ -205,14 +205,16 @@ Each one at the expanded it/nl scale: 8–10 units, ~30 skills, ~1000 taught wor
 - [x] Confirm the audio fix on the phone (v0.6.2): confirmed by the owner on 0.7.0: likely cause was an Italian voice listed but not installed, swallowed by flutter_tts; now only installed voices count, a one-time "install a voice" notice, media stream, plugin patches. `adb logcat -s flutter TTS` shows `[tts]` lines
 - [x] "Can't listen now (skip for 1 hour)" button on listening exercises: snoozes listen_pick (skipped in running sessions, not generated in new ones); in memory, so a restart ends it
 
-## v0.7.1: user testing (20 October)
+## v0.7.1: user testing (20 October; shipped in 0.7.2)
 
-- [~] Wrong answers come back at the end of the lesson until right (capped); in non-stop they return after a few exercises
-- [~] Partial errors in sentence answers: token-level diff highlighting (wrong/missing/extra words) and per-facet credit instead of marking the whole sentence wrong
-- [~] Bronze, silver and gold clearly distinct (colour and shape); bronze looked like gold
-- [~] Decay drawn as a cracked, crumbling medal (map, skill sheet, summary)
-- [~] Promotion at the end of a lesson: the new medal with animated sparkles; map medals twinkle (motion on only)
-- [~] Map leaves sway with a little spring physics when scrolling (motion on only)
+- [x] Wrong answers come back at the end of the lesson until right (capped); in non-stop they return after a few exercises
+- [x] Partial errors in sentence answers: token-level diff highlighting (wrong/missing/extra words) and per-facet credit instead of marking the whole sentence wrong
+- [x] Bronze, silver and gold clearly distinct (colour and shape); bronze looked like gold
+- [x] Decay drawn as a cracked, crumbling medal (map, skill sheet, summary)
+- [x] Promotion at the end of a lesson: the new medal with animated sparkles; map medals twinkle (motion on only)
+- [x] Map leaves sway with a little spring physics when scrolling (motion on only)
+- [ ] Check the twinkle/leaf feel and frame cost on a real phone; gold laurel and hairline cracks may be too subtle at map size (tunable in `branch-style.json`); leaves only react to vertical scrolling
+- [ ] Retry edge cases: a wrong article maps to the article item's facet (not the noun's `#article`); sentence-builder answers closest to an alternative sentence get whole-answer grading
 
 ## Branding: tosk (decided 14 October)
 
