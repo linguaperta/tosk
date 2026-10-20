@@ -11,6 +11,7 @@ import '../goal/daily_goal_providers.dart';
 import '../lesson/session_summary_view.dart' show facetLabel;
 import '../progression/progression_widgets.dart';
 import '../routes.dart';
+import 'stats_view.dart';
 
 /// Progress / profile page, per language: the active course's level and XP,
 /// verb collection, mistakes, tough words, challenges and badges. Only the
@@ -105,6 +106,7 @@ class ProgressScreen extends ConsumerWidget {
                   ),
                   key: const ValueKey('progress-heatmap'),
                 ),
+                section('Reviews and stats', const StatsSummaryCard(), key: const ValueKey('progress-stats')),
                 section(
                   'Verb collection',
                   Card(

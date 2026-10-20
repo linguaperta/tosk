@@ -16,6 +16,7 @@ import 'assessment.dart';
 import 'builders.dart';
 import 'engine_session.dart';
 import 'mistake_review.dart';
+import 'starred.dart';
 
 /// Creates sessions for one course.
 ///
@@ -104,4 +105,8 @@ class EngineSessionFactory implements SessionFactory {
   @override
   Future<ToughWordsSession> toughWords({int length = 12, int minLapses = kDefaultLeechLapses}) =>
       ToughWordsBuilder(length: length, minLapses: minLapses).start(_env());
+
+  @override
+  Future<StarredSession> starred(StarredPractice starred, {int length = 12}) =>
+      StarredBuilder(starred, length: length).start(_env());
 }

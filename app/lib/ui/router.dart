@@ -13,6 +13,7 @@ import 'map/skill_sheet.dart';
 import 'mistakes/mistakes_screen.dart';
 import 'practice/practice_screen.dart';
 import 'progress/progress_screen.dart';
+import 'progress/stats_view.dart';
 import 'progress/verb_collection_screen.dart';
 import 'reference/reference_screen.dart';
 import 'reference/word_screen.dart';
@@ -76,7 +77,10 @@ GoRouter buildRouter({String initialLocation = Routes.map}) {
               GoRoute(
                 path: Routes.progress,
                 builder: (_, _) => const ProgressScreen(),
-                routes: [GoRoute(path: 'verbs', builder: (_, _) => const VerbCollectionScreen())],
+                routes: [
+                  GoRoute(path: 'verbs', builder: (_, _) => const VerbCollectionScreen()),
+                  GoRoute(path: 'stats', builder: (_, _) => const StatsScreen()),
+                ],
               ),
             ],
           ),

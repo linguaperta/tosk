@@ -9,6 +9,7 @@ import 'challenges.dart';
 import 'nonstop.dart';
 import 'replay.dart';
 import 'session_summary.dart';
+import 'stats.dart';
 import 'streaks.dart';
 import 'tiers.dart';
 import 'verb_collection.dart';
@@ -321,6 +322,20 @@ class ProgressionService {
       if (best == null || r.score > best.score) best = r;
     }
     return best;
+  }
+
+  /// [course]'s statistics at [now] (forecast, accuracy, time, words
+  /// learned; see [computeCourseStats]), with labels in [lang].
+  Future<CourseStats> stats({DateTime? now, String lang = 'en'}) async {
+    await refresh();
+    return computeCourseStats(
+      course: course,
+      steps: _courseReplay.steps,
+      states: _courseReplay.states,
+      calendar: calendar,
+      now: (now ?? clock()).toUtc(),
+      lang: lang,
+    );
   }
 
   /// A fresh non-stop run state machine using this service's rules.

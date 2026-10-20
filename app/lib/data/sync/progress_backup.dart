@@ -19,12 +19,20 @@
 /// id (idempotent; `importEvents`), then every facet state is recomputed with
 /// `rebuildStates()`; mistakes are added when their id is new; settings only
 /// fill keys this device doesn't have (except "my courses", which is a
-/// union), and device-only keys (the reminder) are never imported.
+/// union, and the bookmarks, which merge per bookmark), and device-only keys
+/// (the reminder) are never imported.
+///
+/// **Bookmarks** (v0.4) travel as ordinary setting lines (`bookmarks.{course}`,
+/// `data/progress/bookmarks.dart`); importing merges them last-writer-wins
+/// per bookmark, so an unstarred bookmark stays unstarred. Older apps simply
+/// fill the key when it is missing, so the format tag stays `/1`. **AI
+/// conversations** (`chat.*`) are local only: never exported, never imported.
 library;
 
 import 'dart:convert';
 
 import '../../core/core.dart';
+import '../progress/bookmarks.dart';
 import 'review_log_sync.dart';
 
 const String kBackupFormat = 'tosk-backup/1';
@@ -38,6 +46,13 @@ const Set<String> kDeviceOnlySettings = {
   'packs.index_cache',
   'packs.last_check',
 };
+
+/// Prefixes of settings that stay on this device: never exported, never
+/// imported (AI conversation practice keeps its chats locally).
+const List<String> kLocalOnlySettingPrefixes = ['chat.'];
+
+/// Whether [key] is never exported nor imported.
+bool isLocalOnlySetting(String key) => kLocalOnlySettingPrefixes.any(key.startsWith);
 
 /// The setting "my courses" (comma-separated ids), merged as a union.
 const String kCoursesAddedKey = 'courses.added';
@@ -184,10 +199,11 @@ Future<ProgressBackup> exportBackup(
   final mistakes = await store.mistakes(limit: 1 << 30);
   final Map<String, String> settings;
   if (store is SettingsLister) {
-    settings = await (store as SettingsLister).allSettings();
+    settings = Map.of(await (store as SettingsLister).allSettings());
   } else {
     settings = {for (final k in keys) k: ?await store.getSetting(k)};
   }
+  settings.removeWhere((k, _) => isLocalOnlySetting(k));
   return ProgressBackup(events: events, mistakes: mistakes, settings: settings, exportedAt: now, app: app);
 }
 
@@ -234,7 +250,12 @@ Future<BackupImportReport> importBackup(
 
   var settings = 0;
   for (final e in backup.settings.entries) {
-    if (kDeviceOnlySettings.contains(e.key)) continue;
+    if (kDeviceOnlySettings.contains(e.key) || isLocalOnlySetting(e.key)) continue;
+    if (e.key.startsWith(kBookmarksKeyPrefix)) {
+      final course = e.key.substring(kBookmarksKeyPrefix.length);
+      if (await BookmarkStore(store).mergeIn(course, BookmarkSet.decode(e.value))) settings++;
+      continue;
+    }
     final mine = await store.getSetting(e.key);
     if (e.key == kCoursesAddedKey && mine != null) {
       final ids = [

@@ -53,6 +53,11 @@ const double kGeneratedSentenceWeight = 1.0;
 /// than taken from a corpus.
 bool isGeneratedSentence(Sentence s) => s.src?.startsWith('claude-gen') ?? false;
 
+/// Score subtracted in [GenContext.prefer] from a sentence the session
+/// prefers (starred practice: the learner's starred sentences), so it comes
+/// first whenever it is eligible.
+const double kPreferredSentenceBonus = 10.0;
+
 /// See [GenContext.shownRecently].
 const int kRecentSentenceWindow = 100;
 
@@ -69,6 +74,7 @@ class GenContext {
     this.gate,
     this.history,
     this.wordCap = SentenceGate.vocabCap,
+    this.preferredSentences = const {},
   })  : now = now ?? DateTime.now().toUtc(),
         _nextId = nextId; // ignore: prefer_initializing_formals
 
@@ -96,6 +102,9 @@ class GenContext {
 
   /// Unknown-word cap for sentences under [gate] ([SentenceGate.capFor]).
   final int wordCap;
+
+  /// Sentence ids [prefer] ranks first when eligible (starred sentences).
+  final Set<String> preferredSentences;
 
   CourseIndex get index => CourseIndex.of(course);
   String get lang => options.sourceLang;
@@ -130,6 +139,7 @@ class GenContext {
         gate: gate,
         history: history,
         wordCap: wordCap,
+        preferredSentences: preferredSentences,
       );
 
   // ------------------------------------------------------------ sentences
@@ -169,7 +179,8 @@ class GenContext {
       if (g != null && !g.allows(s, wordCap)) continue;
       final score = (g == null ? 0 : g.unknownWords(s) * kUnknownWordWeight) +
           (h == null ? 0 : h.penalty(s.id)) +
-          (isGeneratedSentence(s) ? kGeneratedSentenceWeight : 0) +
+          (isGeneratedSentence(s) ? kGeneratedSentenceWeight : 0) -
+          (preferredSentences.contains(s.id) ? kPreferredSentenceBonus : 0) +
           random.nextDouble();
       (h != null && h.usedInSession(s.id) ? reused : fresh).add((score, c));
     }

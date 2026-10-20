@@ -426,6 +426,14 @@ final verbCollectionProvider = FutureProvider<VerbCollection>((ref) async {
   return svc.verbCollection(ref.watch(clockProvider)());
 });
 
+/// The active course's statistics: review forecast, accuracy per type and
+/// per tense or table, time practiced, words learned over time.
+final courseStatsProvider = FutureProvider<CourseStats>((ref) async {
+  ref.watch(progressRevisionProvider);
+  final svc = await ref.watch(progressionServiceProvider.future);
+  return svc.stats(now: ref.watch(clockProvider)(), lang: ref.watch(sourceLangProvider));
+});
+
 /// Best non-stop run in the log (null when there is none).
 final bestNonStopRunProvider = FutureProvider<NonStopRecord?>((ref) async {
   ref.watch(progressRevisionProvider);
