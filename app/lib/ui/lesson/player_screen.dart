@@ -16,6 +16,7 @@ import '../../feedback/answer_context.dart';
 import '../../progression/nonstop.dart';
 import '../../providers.dart';
 import '../ai/ai_explanation_sheet.dart';
+import '../bookmarks/bookmarks_ui.dart';
 import '../common/async_view.dart';
 import '../feedback/flag_sheet.dart';
 import '../routes.dart';
@@ -691,6 +692,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     final result = _result;
     final reduce = ref.watch(reduceMotionProvider);
     final aiAvailable = ref.watch(explainerAvailableProvider);
+    final starred = result != null && ref.watch(exerciseStarredProvider(ex));
     return Column(
       children: [
         if (_endless) NonStopHudSlot(run: _run),
@@ -746,6 +748,13 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                   label: 'Explain answer with AI',
                   onPressed: _explain,
                 ),
+              // v0.4: star the exercise, its word or its sentence.
+              FeedbackAction(
+                key: const ValueKey('star-button'),
+                icon: starred ? Icons.star : Icons.star_border,
+                label: starred ? 'Starred' : 'Star',
+                onPressed: () => unawaited(showStarSheet(context, ex)),
+              ),
               FeedbackAction(
                 key: const ValueKey('flag-button'),
                 icon: _flagged ? Icons.flag : Icons.outlined_flag,

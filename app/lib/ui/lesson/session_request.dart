@@ -81,6 +81,24 @@ class ToughWordsRequest extends SessionRequest {
       factory.toughWords(length: length, minLapses: minLapses);
 }
 
+/// "Practice starred": the active course's bookmarks, loaded when the
+/// session starts ([load]; `starredPracticeOf` in `ui/bookmarks/`).
+class StarredRequest extends SessionRequest {
+  const StarredRequest(this.load, {this.length = 12});
+  final Future<StarredPractice> Function() load;
+  final int length;
+
+  @override
+  String get title => 'Starred';
+
+  @override
+  String get emptyMessage => 'Nothing starred yet. Tap ☆ on a word, or "Star" after checking an exercise.';
+
+  @override
+  Future<PracticeSession> start(SessionFactory factory, {required LessonFocus defaultFocus, int defaultLength = 12}) async =>
+      factory.starred(await load(), length: length);
+}
+
 class FadingRequest extends SessionRequest {
   const FadingRequest({this.length = 12});
   final int length;

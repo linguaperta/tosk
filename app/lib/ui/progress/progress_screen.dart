@@ -12,9 +12,12 @@ import '../goal/daily_goal_providers.dart';
 import '../lesson/session_summary_view.dart' show facetLabel;
 import '../progression/progression_widgets.dart';
 import '../routes.dart';
+import '../bookmarks/starred_screen.dart' show StarredEntry;
+import 'stats_view.dart';
 
 /// Progress / profile page, per language: the active course's level and XP,
-/// verb collection, mistakes, tough words, challenges and badges. Only the
+/// the review forecast and stats, verb collection, mistakes, tough words,
+/// starred items, challenges and badges. Only the
 /// streak, freezes, daily goal and the activity heatmap (which shows the
 /// streak) are account-wide, in their own labelled section.
 class ProgressScreen extends ConsumerWidget {
@@ -106,6 +109,7 @@ class ProgressScreen extends ConsumerWidget {
                   ),
                   key: const ValueKey('progress-heatmap'),
                 ),
+                section('Reviews and stats', const StatsSummaryCard(), key: const ValueKey('progress-stats')),
                 section(
                   'Verb collection',
                   Card(
@@ -166,6 +170,7 @@ class ProgressScreen extends ConsumerWidget {
                       ),
                     ),
                   ),
+                section('Starred', const StarredEntry(), key: const ValueKey('progress-starred')),
                 if (board != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 20),

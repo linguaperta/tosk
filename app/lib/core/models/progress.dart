@@ -104,7 +104,7 @@ class ReviewEvent {
   final bool correct;
   final String? answer; // the answer given (for mistake review)
   final String? sessionId;
-  final String? mode; // 'lesson' | 'lab' | 'nonstop' | 'review' | 'testOut' | 'placement'
+  final String? mode; // 'lesson' | 'lab' | 'nonstop' | 'review' | 'testOut' | 'placement' | 'starred' | 'story'
 
   /// A test-out credit rather than an answer (see [kTestOutCreditType]).
   bool get isCredit => exerciseType == kTestOutCreditType;

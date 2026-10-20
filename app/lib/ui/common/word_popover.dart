@@ -12,6 +12,7 @@ import '../../engine/reference.dart';
 import '../../providers.dart';
 import '../routes.dart';
 import '../theme/bw_skin.dart';
+import '../bookmarks/bookmarks_ui.dart' show WordStarButton;
 import 'pronounce_button.dart';
 
 /// Decoration of a tappable word: a dotted underline (black in black & white).
@@ -272,6 +273,8 @@ class _WordPopoverCard extends StatelessWidget {
                 ),
                 // v0.5: hear the word (only with a voice for the language).
                 PronounceButton(text: gloss.word, buttonKey: const ValueKey('word-popover-pronounce')),
+                // v0.4: star the word for later.
+                WordStarButton(itemId: gloss.item.id, buttonKey: const ValueKey('word-popover-star')),
               ],
             ),
             const SizedBox(height: 2),

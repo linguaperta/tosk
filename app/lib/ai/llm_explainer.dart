@@ -141,9 +141,7 @@ class ClaudeExplainer extends LlmExplainer {
         'model': model,
         'max_tokens': prompt.maxTokens,
         'system': prompt.system,
-        'messages': [
-          {'role': 'user', 'content': prompt.user},
-        ],
+        'messages': prompt.messages(),
         'stream': true,
       });
     final res = await send(req);
@@ -160,6 +158,12 @@ class ClaudeExplainer extends LlmExplainer {
           final delta = j['delta'];
           if (delta is Map && delta['type'] == 'text_delta' && delta['text'] is String) {
             yield delta['text'] as String;
+          }
+        case 'message_delta':
+          // A declined request ends with stop_reason "refusal" (HTTP 200).
+          final delta = j['delta'];
+          if (delta is Map && delta['stop_reason'] == 'refusal') {
+            throw const AiException(AiErrorKind.other, 'The model declined to answer this.');
           }
         case 'error':
           final err = j['error'] is Map ? j['error'] as Map : const {};
@@ -195,7 +199,7 @@ class OpenAiExplainer extends LlmExplainer {
         'model': model,
         'messages': [
           {'role': 'system', 'content': prompt.system},
-          {'role': 'user', 'content': prompt.user},
+          ...prompt.messages(),
         ],
         'stream': true,
         // OpenAI's current models take max_completion_tokens; compatible

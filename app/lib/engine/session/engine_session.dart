@@ -52,8 +52,12 @@ class SessionEnv {
 
 /// What to practice next: a facet, optionally restricted to some types.
 class SessionSlot {
-  const SessionSlot(this.facet, {this.only, this.reask = false, this.avoid});
+  const SessionSlot(this.facet, {this.only, this.reask = false, this.avoid, this.fixed});
   final SkillFacet facet;
+
+  /// Serve this exercise as it is instead of generating one (starred
+  /// practice replays a starred exercise). Its id must be unique in the session.
+  final Exercise? fixed;
   final Set<ExerciseType>? only;
 
   /// A mistake asked again later in the same session.
@@ -110,6 +114,16 @@ class _Served {
   List<ReviewEvent> events = const [];
   bool overridden = false;
 }
+
+/// The sentence a sentence-based exercise shows, or null.
+String? sentenceIdOf(Exercise e) => switch (e) {
+  SentenceBuilderExercise() => e.sentenceId,
+  ClozeExercise() => e.sentenceId,
+  SpotErrorExercise() => e.sentenceId,
+  TransformExercise() => e.sentenceId,
+  ListenPickExercise() => e.sentenceId,
+  _ => null,
+};
 
 /// Base class of every engine session. Subclasses decide what comes next
 /// ([nextSlot], [targetLength]); this class serves, grades and records.
@@ -187,6 +201,10 @@ abstract class EngineSession implements PracticeSession, OverridableSession {
   /// the started ones (grammar gating): the lesson's skill, the lab's skills.
   /// Non-stop, fading and review sessions use started skills only.
   Iterable<String> get currentSkillIds => const [];
+
+  /// Sentences the templates should pick first when eligible
+  /// ([GenContext.preferredSentences]; starred practice).
+  Set<String> get preferredSentences => const {};
 
   /// Grammar gating for this session (null before [prepare], or when the
   /// course carries no gating data).
@@ -293,6 +311,12 @@ abstract class EngineSession implements PracticeSession, OverridableSession {
   }
 
   Exercise? _generate(SessionSlot slot) {
+    final fixed = slot.fixed;
+    if (fixed != null) {
+      final sentence = sentenceIdOf(fixed);
+      if (sentence != null) _history?.use(sentence);
+      return fixed;
+    }
     final ctx = genContext(slot.facet);
     return env.selector.generate(
       slot.facet,
@@ -320,6 +344,7 @@ abstract class EngineSession implements PracticeSession, OverridableSession {
       gate: _gate,
       history: _history,
       wordCap: SentenceGate.capFor(focus, skill),
+      preferredSentences: preferredSentences,
     );
   }
 
@@ -454,14 +479,7 @@ abstract class EngineSession implements PracticeSession, OverridableSession {
   MistakeContext _mistakeContext(Exercise e, Result r, String facetId, SessionSlot? slot, DateTime at) {
     final course = env.course;
     final skillId = e.skillId ?? slot?.facet.skillId ?? course.skillsForFacet(facetId).firstOrNull;
-    String? sentenceId = switch (e) {
-      SentenceBuilderExercise() => e.sentenceId,
-      ClozeExercise() => e.sentenceId,
-      SpotErrorExercise() => e.sentenceId,
-      TransformExercise() => e.sentenceId,
-      ListenPickExercise() => e.sentenceId,
-      _ => null,
-    };
+    final sentenceId = sentenceIdOf(e);
     return MistakeContext(
       courseId: course.meta.id,
       facetId: facetId,

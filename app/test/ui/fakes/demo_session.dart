@@ -130,6 +130,18 @@ class DemoSessionFactory implements SessionFactory {
     final source = pool.where((e) => facets.contains(e.facetId)).toList();
     return _make(SessionMode.review, source, source.isEmpty ? 0 : length.clamp(1, source.length));
   }
+
+  /// The starred exercises as they are, then pool exercises on starred words.
+  @override
+  Future<PracticeSession> starred(StarredPractice starred, {int length = 12}) async {
+    String item(String facetId) => facetId.substring(0, facetId.lastIndexOf('#'));
+    final words = starred.itemIds.toSet();
+    final source = [
+      ...starred.exercises,
+      ...pool.where((e) => words.contains(item(e.facetId))),
+    ];
+    return _make(SessionMode.starred, source, source.isEmpty ? 0 : length.clamp(1, source.length));
+  }
 }
 
 class DemoPracticeSession implements PracticeSession, OverridableSession {

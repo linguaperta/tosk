@@ -57,6 +57,12 @@ String backupFileName(DateTime now) {
   return 'tosk-backup-${l.year}${two(l.month)}${two(l.day)}.jsonl';
 }
 
+/// ", 4 starred items" (bookmarks in the file, not counting unstarred ones).
+String _starredLine(ProgressBackup b) {
+  final n = b.bookmarks.values.fold(0, (n, s) => n + s.length);
+  return n == 0 ? '' : ', $n starred item${n == 1 ? '' : 's'}';
+}
+
 String _date(DateTime? t) {
   if (t == null) return '?';
   final l = t.toLocal();
@@ -84,6 +90,7 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
       final now = ref.read(clockProvider)();
       final backup = await exportBackup(
         store,
+        bookmarks: ref.read(bookmarkRepoProvider),
         keys: [...SettingKeys.all, ...LearnerSettingKeys.all],
         app: 'tosk',
         now: now,
@@ -129,7 +136,8 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
         content: Text(
           '${picked.name} has $answers answer${answers == 1 ? '' : 's'}$range, '
           '${backup.mistakes.length} mistake${backup.mistakes.length == 1 ? '' : 's'} and '
-          '${backup.settings.length} setting${backup.settings.length == 1 ? '' : 's'}.\n\n'
+          '${backup.settings.length} setting${backup.settings.length == 1 ? '' : 's'}'
+          '${_starredLine(backup)}.\n\n'
           'They are merged with the progress on this device. Nothing is deleted, and answers '
           'already here are skipped.',
         ),
@@ -161,7 +169,12 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
     try {
       final store = ref.read(progressStoreProvider);
       if (store is! EventImporter) throw StateError('This progress store cannot import');
-      final report = await importBackup(backup, store: store, importer: store as EventImporter);
+      final report = await importBackup(
+        backup,
+        store: store,
+        importer: store as EventImporter,
+        bookmarks: ref.read(bookmarkRepoProvider),
+      );
       if (!mounted) {
         refresh();
         return;
@@ -175,7 +188,8 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
             '${report.eventsAdded} new answer${report.eventsAdded == 1 ? '' : 's'} '
             '(${report.eventsKnown} already here), '
             '${report.mistakesAdded} mistake${report.mistakesAdded == 1 ? '' : 's'} and '
-            '${report.settingsAdded} setting${report.settingsAdded == 1 ? '' : 's'} added.',
+            '${report.settingsAdded} setting${report.settingsAdded == 1 ? '' : 's'} added'
+            '${report.bookmarksChanged == 0 ? '' : '; ${report.bookmarksChanged} starred item${report.bookmarksChanged == 1 ? '' : 's'} updated'}.',
           ),
           actions: [
             FilledButton(

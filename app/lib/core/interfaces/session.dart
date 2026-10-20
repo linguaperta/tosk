@@ -15,6 +15,9 @@ enum SessionMode {
 
   /// "Find my level": units in order until one is failed.
   placement,
+
+  /// "Practice starred" (v0.4): the learner's bookmarks ([SessionFactory.starred]).
+  starred,
 }
 
 /// Lesson lengths offered on the lesson start sheet.
@@ -143,6 +146,33 @@ abstract interface class SessionFactory {
   /// "Tough words": facets with at least [minLapses] lapses, each as a small
   /// recognition -> production ladder. Empty when there are none.
   Future<PracticeSession> toughWords({int length = 12, int minLapses = 4});
+
+  /// "Practice starred" (mode [SessionMode.starred]): the learner's
+  /// bookmarks. Starred exercises are served again as they were (when the
+  /// course still trains their facets; otherwise a fresh exercise on the same
+  /// facet), starred words through their facets (weakest first), starred
+  /// sentences through the facets of their words, preferring the sentence
+  /// itself. Empty (`plannedLength == 0`) when nothing is starred. See
+  /// docs/engine.md, "Starred practice".
+  Future<PracticeSession> starred(StarredPractice starred, {int length = 12});
+}
+
+/// What "Practice starred" practices: bookmarked words, sentences and
+/// exercises of one course (the UI decodes the stored exercise snapshots).
+class StarredPractice {
+  const StarredPractice({this.itemIds = const [], this.sentenceIds = const [], this.exercises = const []});
+
+  /// Starred words (item ids), most recently starred first.
+  final List<String> itemIds;
+
+  /// Starred sentences (sentence ids), most recently starred first.
+  final List<String> sentenceIds;
+
+  /// Starred exercises as they were shown, most recently starred first. Their
+  /// ids must be unique (the UI uses `starred:{bookmark id}`).
+  final List<Exercise> exercises;
+
+  bool get isEmpty => itemIds.isEmpty && sentenceIds.isEmpty && exercises.isEmpty;
 }
 
 /// The result of a test-out or placement session, available once the session

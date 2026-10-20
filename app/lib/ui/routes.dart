@@ -34,6 +34,21 @@ abstract final class Routes {
   static const settings = '/settings';
   static const progress = '/progress';
   static const verbs = '/progress/verbs';
+
+  /// Statistics of the active course (forecast, accuracy, time, words learned).
+  static const stats = '/progress/stats';
+
+  /// Starred words, sentences and exercises of the active course.
+  static const starred = '/progress/starred';
+
+  /// "Practice starred".
+  static const starredPlay = '/play/starred';
+
+  /// AI conversation practice: the Practice tab (only with AI configured).
+  static const chats = '/practice?tab=chat';
+
+  /// One AI conversation (full screen, over the shell).
+  static String chat(String conversationId) => '/chat/${Uri.encodeComponent(conversationId)}';
   static const debug = '/debug';
 
   /// Settings → Feedback & flags: flagged exercises and their export.
