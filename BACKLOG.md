@@ -216,6 +216,14 @@ Each one at the expanded it/nl scale: 8–10 units, ~30 skills, ~1000 taught wor
 - [ ] Check the twinkle/leaf feel and frame cost on a real phone; gold laurel and hairline cracks may be too subtle at map size (tunable in `branch-style.json`); leaves only react to vertical scrolling
 - [ ] Retry edge cases: a wrong article maps to the article item's facet (not the noun's `#article`); sentence-builder answers closest to an alternative sentence get whole-answer grading
 
+## Web app (QA 20 October)
+
+- [x] Web QA pass and fixes: first load ~10 MB (packs from the mirror instead of bundled), offline app shell after one visit, async web voices, flutter_tts web replay fix, typed-answer focus on desktop, English sign-in button, centred Lab on wide windows (`docs/release.md` "Web app QA")
+- [ ] Map on wide screens: leaf sprigs float free of the branches near unit boundaries; zoom steps subtle and zoom-out already at its limit at 1280×800; at 1920 the tree stays ~400 px wide; crowded labels ("Everyday verbs" / "Object pronouns")
+- [ ] Decide: autofocus the typed-answer field on phones/tablets too (now desktop only, so the on-screen keyboard doesn't pop up)
+- [ ] Service worker: network-first without timeout (slow starts on poor connections); content-hashed file names would allow a safe cache fallback
+- [ ] WebAssembly build blocked by JS-interop casts in the vendored `flutter_tts_web.dart`; `main.dart.js` 4.4 MB (1.2 MB gz)
+
 ## Branding: tosk (decided 14 October)
 
 - [x] Name **tosk** (after Ratatosk), GitHub org **linguaperta**, mascot Tosk the red squirrel; course paths are branches of Yggdrasil (light on Norse props)
