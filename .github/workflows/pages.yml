@@ -88,6 +88,10 @@ jobs:
           # installed PWA works offline.
           flutter build web --release --base-href "$BASE_HREF" --no-web-resources-cdn $DEFINES
           rm -f firebase-config.json
+          # The web app reads its courses from the pack mirror below (gzipped,
+          # only the ones the learner picks), never from the bundle, so the
+          # bundled packs (~57 MB) are not deployed.
+          rm -rf build/web/assets/assets/courses
       - name: Pack mirror (gzipped packs from the latest release)
         working-directory: pipeline
         env:

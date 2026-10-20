@@ -100,6 +100,24 @@ class RecordingTts extends FlutterTts {
   }
 }
 
+/// Like a browser before `voiceschanged`: no languages for the first
+/// [emptyCalls] calls.
+class _LateVoicesTts extends RecordingTts {
+  _LateVoicesTts({required this.emptyCalls, super.languages});
+
+  int emptyCalls;
+
+  @override
+  Future<dynamic> get getLanguages async {
+    calls.add('getLanguages');
+    if (emptyCalls > 0) {
+      emptyCalls--;
+      return <String>[];
+    }
+    return languages;
+  }
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -236,10 +254,45 @@ void main() {
   });
 
   test('TtsSpeaker elsewhere (web, macOS): no platform audio set-up', () async {
-    final tts = RecordingTts(languages: ['it-IT']);
-    final s = TtsSpeaker(tts: tts, platform: TtsPlatform.other);
-    expect(await s.voiceStatus('it'), VoiceStatus.ready);
-    expect(tts.calls, ['awaitSpeakCompletion(true)', 'getLanguages']);
+    for (final platform in [TtsPlatform.web, TtsPlatform.other]) {
+      final tts = RecordingTts(languages: ['it-IT']);
+      final s = TtsSpeaker(tts: tts, platform: platform);
+      expect(await s.voiceStatus('it'), VoiceStatus.ready);
+      expect(tts.calls, ['awaitSpeakCompletion(true)', 'getLanguages']);
+    }
+  });
+
+  group('TtsSpeaker on the web: voices load asynchronously', () {
+    test('an empty list at start-up is asked again until the voices are there', () async {
+      final tts = _LateVoicesTts(emptyCalls: 3, languages: ['en-US', 'it-IT']);
+      final s = TtsSpeaker(tts: tts, platform: TtsPlatform.web, webVoicesPoll: const Duration(milliseconds: 1));
+      expect(await s.voiceStatus('it'), VoiceStatus.ready);
+      expect(tts.calls.where((c) => c == 'getLanguages'), hasLength(4));
+      await s.speak('ciao', 'it');
+      expect(tts.calls, containsAllInOrder(['setLanguage(it-IT)', 'speak(ciao)']));
+    });
+
+    test('no voices after the wait: unavailable, and asked again next time', () async {
+      final tts = _LateVoicesTts(emptyCalls: 1000, languages: ['it-IT']);
+      final s = TtsSpeaker(
+        tts: tts,
+        platform: TtsPlatform.web,
+        webVoicesWait: const Duration(milliseconds: 30),
+        webVoicesPoll: const Duration(milliseconds: 5),
+      );
+      expect(await s.voiceStatus('it'), VoiceStatus.unavailable);
+      final asked = tts.calls.where((c) => c == 'getLanguages').length;
+      expect(asked, greaterThan(1));
+      tts.emptyCalls = 0;
+      expect(await s.voiceStatus('it'), VoiceStatus.ready);
+    });
+
+    test('natively an empty list is not waited for', () async {
+      final tts = _LateVoicesTts(emptyCalls: 3, languages: ['it-IT']);
+      final s = TtsSpeaker(tts: tts, platform: TtsPlatform.other, webVoicesPoll: const Duration(milliseconds: 1));
+      expect(await s.voiceStatus('it'), VoiceStatus.unavailable);
+      expect(tts.calls.where((c) => c == 'getLanguages'), hasLength(1));
+    });
   });
 
   group('voice notice', () {

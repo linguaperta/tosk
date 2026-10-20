@@ -171,10 +171,10 @@ const int kAndroidUsageMedia = 1;
 const int kAndroidContentTypeSpeech = 1;
 
 /// The platforms [TtsSpeaker] sets up differently.
-enum TtsPlatform { android, ios, other }
+enum TtsPlatform { android, ios, web, other }
 
 TtsPlatform get _currentTtsPlatform {
-  if (kIsWeb) return TtsPlatform.other;
+  if (kIsWeb) return TtsPlatform.web;
   return switch (defaultTargetPlatform) {
     TargetPlatform.android => TtsPlatform.android,
     TargetPlatform.iOS => TtsPlatform.ios,
@@ -200,12 +200,25 @@ class _Resolved {
 /// [onVoiceProblem] is told when a language turns out not to be speakable
 /// after all (the engine said "not installed" while speaking).
 class TtsSpeaker implements Speaker {
-  TtsSpeaker({FlutterTts? tts, TtsPlatform? platform, this.onVoiceProblem})
-    : _tts = tts ?? FlutterTts(),
-      platform = platform ?? _currentTtsPlatform;
+  TtsSpeaker({
+    FlutterTts? tts,
+    TtsPlatform? platform,
+    this.onVoiceProblem,
+    this.webVoicesWait = const Duration(seconds: 3),
+    this.webVoicesPoll = const Duration(milliseconds: 250),
+  }) : _tts = tts ?? FlutterTts(),
+       platform = platform ?? _currentTtsPlatform;
 
   final FlutterTts _tts;
   final TtsPlatform platform;
+
+  /// Web: browsers load their voices asynchronously (Chrome and Edge list
+  /// none until `voiceschanged`), so an empty language list is asked again
+  /// every [webVoicesPoll] for up to [webVoicesWait] before the language
+  /// counts as unspeakable. Otherwise the check at start-up hid the pronounce
+  /// buttons and listening exercises for the whole session.
+  final Duration webVoicesWait;
+  final Duration webVoicesPoll;
   final void Function(String languageCode, VoiceStatus status)? onVoiceProblem;
 
   Future<void>? _setup;
@@ -226,6 +239,7 @@ class TtsSpeaker implements Speaker {
           await _tts.setIosAudioCategory(IosTextToSpeechAudioCategory.playback, [
             IosTextToSpeechAudioCategoryOptions.mixWithOthers,
           ]);
+        case TtsPlatform.web:
         case TtsPlatform.other:
           break;
       }
@@ -264,17 +278,15 @@ class TtsSpeaker implements Speaker {
     }
     final List<String> langs;
     try {
-      final raw = await _tts.getLanguages.timeout(const Duration(seconds: 4));
-      langs = [
-        if (raw is Iterable)
-          for (final l in raw)
-            if (l != null) '$l',
-      ];
+      langs = await _languages();
     } catch (e) {
       debugPrint('[tts] no language list: $e');
       return const _Resolved(VoiceStatus.unavailable);
     }
-    if (langs.isEmpty) return const _Resolved(VoiceStatus.unavailable);
+    if (langs.isEmpty) {
+      debugPrint('[tts] $code: no voices');
+      return const _Resolved(VoiceStatus.unavailable);
+    }
     final locale = pickVoiceLocale(code, langs);
     if (locale == null) return const _Resolved(VoiceStatus.missing);
     if (platform == TtsPlatform.android) {
@@ -288,6 +300,21 @@ class TtsSpeaker implements Speaker {
     }
     debugPrint('[tts] $code: ready, $locale');
     return _Resolved(VoiceStatus.ready, locale: locale);
+  }
+
+  /// The engine's languages; on the web, waits for the browser's voices.
+  Future<List<String>> _languages() async {
+    final waitUntil = DateTime.now().add(webVoicesWait);
+    while (true) {
+      final raw = await _tts.getLanguages.timeout(const Duration(seconds: 4));
+      final langs = [
+        if (raw is Iterable)
+          for (final l in raw)
+            if (l != null && '$l'.trim().isNotEmpty) '$l',
+      ];
+      if (langs.isNotEmpty || platform != TtsPlatform.web || !DateTime.now().isBefore(waitUntil)) return langs;
+      await Future<void>.delayed(webVoicesPoll);
+    }
   }
 
   /// The Android engine's voices; empty when it lists none or doesn't answer.

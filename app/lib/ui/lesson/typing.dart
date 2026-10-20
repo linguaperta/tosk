@@ -11,12 +11,35 @@
 ///   exercise view sets it from [accentLettersProvider]).
 library;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../engine/special_letters.dart';
 import '../../providers.dart' show courseDataProvider;
 import '../theme/bw_skin.dart';
+
+/// Whether a typed answer takes the keyboard focus as its exercise appears:
+/// on desktops (the native apps and desktop browsers), where a physical
+/// keyboard is the norm, so "type, Enter, Enter, type" works without the
+/// mouse. Not on phones and tablets, where it would pop the on-screen
+/// keyboard over the exercise; there the learner taps the field.
+bool get focusTypedAnswers => switch (defaultTargetPlatform) {
+  TargetPlatform.windows || TargetPlatform.macOS || TargetPlatform.linux => true,
+  _ => false,
+};
+
+/// Gives [node] the focus after the current frame when [focusTypedAnswers].
+///
+/// A plain `autofocus` loses to the lesson player, which takes the focus
+/// for its keyboard shortcuts (Enter, number keys) whenever an exercise
+/// starts, so the field was never focused.
+void focusTypedAnswerSoon(State state, FocusNode node) {
+  if (!focusTypedAnswers) return;
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (state.mounted && node.canRequestFocus) node.requestFocus();
+  });
+}
 
 /// The active course's special letters, most frequent first (empty for
 /// courses written in plain ASCII).
@@ -149,12 +172,14 @@ class TypedAnswerField extends StatefulWidget {
 
 class _TypedAnswerFieldState extends State<TypedAnswerField> {
   final _controller = TextEditingController();
+  final _node = FocusNode(debugLabel: 'typed-answer');
   String _last = '';
 
   @override
   void initState() {
     super.initState();
     _controller.addListener(_changed);
+    if (widget.autofocus && widget.enabled) focusTypedAnswerSoon(this, _node);
   }
 
   void _changed() {
@@ -166,6 +191,7 @@ class _TypedAnswerFieldState extends State<TypedAnswerField> {
   @override
   void dispose() {
     _controller.dispose();
+    _node.dispose();
     super.dispose();
   }
 
@@ -175,6 +201,7 @@ class _TypedAnswerFieldState extends State<TypedAnswerField> {
     final field = TextField(
       key: widget.fieldKey,
       controller: _controller,
+      focusNode: _node,
       enabled: widget.enabled,
       autofocus: widget.autofocus,
       autocorrect: false,
