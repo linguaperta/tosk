@@ -1,6 +1,8 @@
 # tosk
 
-A free, offline-first language-learning app in the style of Duolingo, with a strong focus on grammar and conjugation. Courses: Italian and Dutch (v1), Sarnami later.
+A free, offline-first language-learning app with a strong focus on grammar and conjugation. Courses: Italian and Dutch (v1), Sarnami later. Tosk, the red squirrel (after Ratatosk), runs the course tree: each course is a branch with your skills as stone medallions, drawn in a storybook ink style that also works on e-ink. (The app was called tosk until v0.6; the repos and package ids keep that name for now, see `docs/brand-overhaul.md`.)
+
+![The tosk brand kit](docs/brand-sheet.png)
 
 - Spec: [docs/SPEC.md](docs/SPEC.md)
 - Architecture and contracts: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)

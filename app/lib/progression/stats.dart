@@ -115,6 +115,7 @@ String exerciseTypeLabel(ExerciseType t) => switch (t) {
   ExerciseType.cloze => 'Fill the gap',
   ExerciseType.spotError => 'Spot the error',
   ExerciseType.transform => 'Change tense or person',
+  ExerciseType.listenPick => 'Listen and pick',
 };
 
 /// Statistics of [course] at [now] from its replay [steps] (canonical order,

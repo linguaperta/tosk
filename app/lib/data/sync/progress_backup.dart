@@ -41,6 +41,9 @@ const String kBackupFormat = 'tosk-backup/1';
 const Set<String> kDeviceOnlySettings = {
   'reminder.enabled',
   'reminder.time',
+  // ONYX e-reader switches (v0.5).
+  'eink.full_refresh',
+  'eink.onyx_pen',
   // Course downloads: index URL override, cached index, time of the last check.
   'packs.index_url',
   'packs.index_cache',

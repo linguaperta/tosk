@@ -7,7 +7,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 
+import '../brand/tosk.dart';
 import '../../core/core.dart';
+import '../../speech/speech_providers.dart';
+import '../../device/device_providers.dart';
+import '../../device/onyx.dart';
 import '../../feedback/answer_context.dart';
 import '../../progression/nonstop.dart';
 import '../../providers.dart';
@@ -57,6 +61,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   /// exercise keeps its marks; the feedback panel shows [_bannerResult].
   bool _overridden = false;
   Result? _bannerResult;
+
   /// The current exercise was flagged (the Report action shows "Reported").
   bool _flagged = false;
 
@@ -82,6 +87,20 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
   bool get _endless => widget.request.endless;
 
+  /// E-ink (ONYX): a full refresh after the summary and when leaving the
+  /// player, against ghosting (Settings → E-reader). Read up front: `ref`
+  /// can't be used in [dispose].
+  EinkScreen _eink = const NoEinkScreen();
+
+  void _fullRefresh() {
+    if (!_refreshOnLeave) return;
+    final eink = _eink;
+    // After the next screen has been drawn.
+    unawaited(Future<void>.delayed(const Duration(milliseconds: 350), eink.fullRefresh));
+  }
+
+  bool _refreshOnLeave = false;
+
   /// Kept for [dispose], where `ref` can no longer be used.
   late final ProgressRevision _revision;
 
@@ -91,6 +110,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   @override
   void initState() {
     super.initState();
+    // Kept current (the device and settings may still be loading).
+    ref.listenManual(einkScreenProvider, (_, v) => _eink = v, fireImmediately: true);
+    ref.listenManual(fullRefreshAfterLessonsProvider, (_, v) => _refreshOnLeave = v, fireImmediately: true);
     _revision = ref.read(progressRevisionProvider.notifier);
     unawaited(_start());
   }
@@ -104,6 +126,10 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
   @override
   void dispose() {
+    if (_refreshOnLeave) {
+      final eink = _eink;
+      unawaited(Future<void>.delayed(const Duration(milliseconds: 350), eink.fullRefresh));
+    }
     // Left some other way (the route was replaced or removed) with answers
     // recorded: the map and progress pages must still see them.
     final s = _session;
@@ -163,7 +189,12 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       await pending.future.timeout(const Duration(seconds: 2), onTimeout: () {});
       _answerHandled = null;
     }
-    final next = await s.next();
+    var next = await s.next();
+    // "Can't listen now": the running session may still serve listening
+    // exercises; skip them while the snooze lasts (bounded).
+    for (var i = 0; i < 50 && next is ListenPickExercise && ref.read(listenSnoozeProvider.notifier).active; i++) {
+      next = await s.next();
+    }
     if (!mounted) return;
     // A type met for the first time gets its intro first.
     var intro = false;
@@ -303,6 +334,14 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     if (_result != null && !_busy) unawaited(_advance());
   }
 
+  /// "Can't listen now": skip this listening exercise (ungraded) and any
+  /// others for an hour; new sessions won't generate them meanwhile.
+  void _cantListen() {
+    if (_busy) return;
+    ref.read(listenSnoozeProvider.notifier).snooze();
+    unawaited(_advance());
+  }
+
   void _finish() {
     final s = _session;
     if (s == null) return;
@@ -314,6 +353,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       _summary = summary;
       _phase = PlayerPhase.summary;
     });
+    _fullRefresh();
   }
 
   /// The end-of-session sound: the level-up fanfare when this session gained
@@ -445,18 +485,20 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     final events = await s.overrideAnswer(ex.id);
     final course = ref.read(courseDataProvider).value;
     try {
-      await ref.read(feedbackStoreProvider).saveFlag(
-        overrideFlag(
-          id: const Uuid().v4(),
-          at: ref.read(clockProvider)(),
-          courseId: course?.meta.id ?? '',
-          exercise: ex,
-          result: r,
-          overrides: events,
-          packVersion: course?.meta.version,
-          sourceLang: ref.read(sourceLangProvider),
-        ),
-      );
+      await ref
+          .read(feedbackStoreProvider)
+          .saveFlag(
+            overrideFlag(
+              id: const Uuid().v4(),
+              at: ref.read(clockProvider)(),
+              courseId: course?.meta.id ?? '',
+              exercise: ex,
+              result: r,
+              overrides: events,
+              packVersion: course?.meta.version,
+              sourceLang: ref.read(sourceLangProvider),
+            ),
+          );
       ref.read(flagsRevisionProvider.notifier).bump();
     } catch (e) {
       debugPrint('[override] flag not saved: $e');
@@ -606,7 +648,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.inbox_outlined, size: 48),
+                // Nothing due, no mistakes, no tough words: Tosk is asleep.
+                const ToskImage(pose: ToskPose.sleeping, height: 112),
                 const SizedBox(height: 12),
                 Text(widget.request.emptyMessage, key: const ValueKey('player-empty'), textAlign: TextAlign.center),
                 const SizedBox(height: 12),
@@ -709,7 +752,16 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
               ),
             ],
           )
-        else if (!selfSubmitting(ex.type))
+        else if (!selfSubmitting(ex.type)) ...[
+          if (ex is ListenPickExercise)
+            Center(
+              child: TextButton.icon(
+                key: const ValueKey('cant-listen-button'),
+                onPressed: _busy ? null : _cantListen,
+                icon: const Icon(Icons.hearing_disabled_outlined),
+                label: const Text("Can't listen now (skip for 1 hour)"),
+              ),
+            ),
           SafeArea(
             top: false,
             child: Center(
@@ -729,6 +781,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
               ),
             ),
           ),
+        ],
       ],
     );
   }

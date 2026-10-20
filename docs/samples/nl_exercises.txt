@@ -243,6 +243,47 @@ SKILL greetings (vocab)  Greetings
   "Hi Tom, and welcome to Tatoeba!"
    Dag  |  *Hoi  |   Pardon  |   Bedankt
 
+--- listen_pick: 8 example(s)
+[listen_pick] nl:ja#rec  (skill greetings)
+  Which word do you hear?
+  (speak, nl) ja   "yes"
+   jee  |  *ja  |   jo  |   joe
+
+[listen_pick] nl:nee#rec  (skill greetings)
+  Which word do you hear?
+  (speak, nl) nee   "no"
+   jee  |  *nee  |   hoi  |   dag
+
+[listen_pick] nl:hoe.2#rec  (skill greetings)
+  Which word do you hear?
+  (speak, nl) hoe   "how"
+   hier  |   toe  |   heen  |  *hoe
+
+[listen_pick] nl:goed#rec  (skill greetings)
+  Which word do you hear?
+  (speak, nl) goed   "good"
+  *goed  |   gek  |   gewoon  |   groot
+
+[listen_pick] nl:sorry#rec  (skill greetings)
+  Which word do you hear?
+  (speak, nl) sorry   "sorry"
+   bedankt  |   dag  |  *sorry  |   goedenavond
+
+[listen_pick] nl:alsjeblieft#rec  (skill greetings)
+  Which word do you hear?
+  (speak, nl) alsjeblieft   "please"
+  *alsjeblieft  |   afschuwelijk  |   achteruit  |   hoe
+
+[listen_pick] nl:hallo#rec  (skill greetings)
+  Which word do you hear?
+  (speak, nl) hallo   "hello"
+   hoor  |   help  |  *hallo  |   huh
+
+[listen_pick] nl:hoi#rec  (skill greetings)
+  Which word do you hear?
+  (speak, nl) hoi   "hi"
+   help  |   hé  |  *hoi  |   hoor
+
 ========================================================================
 SKILL little-words (vocab)  Little words
 ========================================================================
@@ -484,6 +525,47 @@ SKILL little-words (vocab)  Little words
   "What do people eat in Egypt?"
    Het  |   Dat  |  *Wat  |   Wie
 
+--- listen_pick: 8 example(s)
+[listen_pick] nl:het#rec  (skill little-words)
+  Which word do you hear?
+  (speak, nl) het   "the"
+  *het  |   hij  |   haar  |   hen
+
+[listen_pick] nl:de#rec  (skill little-words)
+  Which word do you hear?
+  (speak, nl) de   "the"
+  *de  |   dier  |   geen  |   die
+
+[listen_pick] nl:dat#rec  (skill little-words)
+  Which word do you hear?
+  (speak, nl) dat   "that"
+   deze  |  *dat  |   dit  |   wat
+
+[listen_pick] nl:een.2#rec  (skill little-words)
+  Which word do you hear?
+  (speak, nl) een   "a"
+   de  |   geen  |   enig  |  *een
+
+[listen_pick] nl:niet#rec  (skill little-words)
+  Which word do you hear?
+  (speak, nl) niet   "not"
+   nog  |   nu  |  *niet  |   nou
+
+[listen_pick] nl:en#rec  (skill little-words)
+  Which word do you hear?
+  (speak, nl) en   "and"
+   eens  |   toen  |   maar  |  *en
+
+[listen_pick] nl:van#rec  (skill little-words)
+  Which word do you hear?
+  (speak, nl) van   "of"
+   voor  |   aan  |   via  |  *van
+
+[listen_pick] nl:wat#rec  (skill little-words)
+  Which word do you hear?
+  (speak, nl) wat   "what"
+  *wat  |   wie  |   dat  |   wij
+
 ========================================================================
 SKILL people (vocab)  People
 ========================================================================
@@ -723,6 +805,47 @@ SKILL people (vocab)  People
   Waar wonen ___ in Turkije?   (you (plural))
   "Where in Turkey do you live?"
    zij  |   ze  |  *jullie  |   we
+
+--- listen_pick: 8 example(s)
+[listen_pick] nl:ik#rec  (skill people)
+  Which word do you hear?
+  (speak, nl) ik   "I"
+  *ik  |   u  |   hij  |   iets
+
+[listen_pick] nl:je#rec  (skill people)
+  Which word do you hear?
+  (speak, nl) je   "you"
+  *je  |   zij  |   ik  |   ze
+
+[listen_pick] nl:we#rec  (skill people)
+  Which word do you hear?
+  (speak, nl) we   "we"
+   wie  |  *we  |   wat  |   welk
+
+[listen_pick] nl:ze#rec  (skill people)
+  Which word do you hear?
+  (speak, nl) ze   "she"
+   hij  |  *ze  |   zich  |   deze
+
+[listen_pick] nl:hij#rec  (skill people)
+  Which word do you hear?
+  (speak, nl) hij   "he"
+  *hij  |   zij  |   wij  |   jij
+
+[listen_pick] nl:u#rec  (skill people)
+  Which word do you hear?
+  (speak, nl) u   "you (formal)"
+   zij  |   ik  |   wij  |  *u
+
+[listen_pick] nl:jij#rec  (skill people)
+  Which word do you hear?
+  (speak, nl) jij   "you"
+   wij  |  *jij  |   zij  |   hij
+
+[listen_pick] nl:jullie#rec  (skill people)
+  Which word do you hear?
+  (speak, nl) jullie   "you (plural)"
+  *jullie  |   jezelf  |   ik  |   wij
 
 ========================================================================
 SKILL present-regular (grammar)  The present tense
@@ -1244,6 +1367,47 @@ SKILL food (vocab)  Food and drink
   "I have bread."
    avondeten  |   koffie  |  *brood  |   thee
 
+--- listen_pick: 8 example(s)
+[listen_pick] nl:koffie#rec  (skill food)
+  Which word do you hear?
+  (speak, nl) koffie   "coffee"
+  *koffie  |   relatie  |   kracht  |   kaas
+
+[listen_pick] nl:wijn#rec  (skill food)
+  Which word do you hear?
+  (speak, nl) wijn   "wine"
+   water  |   wc  |  *wijn  |   wang
+
+[listen_pick] nl:thee#rec  (skill food)
+  Which word do you hear?
+  (speak, nl) thee   "tea"
+   troep  |  *thee  |   teveel  |   truck
+
+[listen_pick] nl:lekker#rec  (skill food)
+  Which word do you hear?
+  (speak, nl) lekker   "tasty"
+   langzaam  |   logisch  |  *lekker  |   lokaal
+
+[listen_pick] nl:vlees#rec  (skill food)
+  Which word do you hear?
+  (speak, nl) vlees   "meat"
+  *vlees  |   varken  |   vis  |   vlak
+
+[listen_pick] nl:bier#rec  (skill food)
+  Which word do you hear?
+  (speak, nl) bier   "beer"
+   brood  |  *bier  |   suiker  |   boter
+
+[listen_pick] nl:ei#rec  (skill food)
+  Which word do you hear?
+  (speak, nl) ei   "egg"
+   eeuw  |   eten  |  *ei  |   ezel
+
+[listen_pick] nl:brood#rec  (skill food)
+  Which word do you hear?
+  (speak, nl) brood   "bread"
+  *brood  |   bier  |   boter  |   bal
+
 ========================================================================
 SKILL numbers (vocab)  Numbers
 ========================================================================
@@ -1483,6 +1647,47 @@ SKILL numbers (vocab)  Numbers
   Het is ___ uur.   (six)
   "It's six o'clock."
   *zes  |   nul  |   tien  |   duizend
+
+--- listen_pick: 8 example(s)
+[listen_pick] nl:een.2#rec  (skill numbers)
+  Which word do you hear?
+  (speak, nl) een   "a"
+   de  |   geen  |   enig  |  *een
+
+[listen_pick] nl:twee#rec  (skill numbers)
+  Which word do you hear?
+  (speak, nl) twee   "two"
+   twaalf  |  *twee  |   tien  |   acht
+
+[listen_pick] nl:drie#rec  (skill numbers)
+  Which word do you hear?
+  (speak, nl) drie   "three"
+   dertig  |   zeven  |  *drie  |   twee
+
+[listen_pick] nl:eerste#rec  (skill numbers)
+  Which word do you hear?
+  (speak, nl) eerste   "first"
+   eigen  |  *eerste  |   eerlijk  |   echt
+
+[listen_pick] nl:vijf#rec  (skill numbers)
+  Which word do you hear?
+  (speak, nl) vijf   "five"
+  *vijf  |   vier  |   zeven  |   nul
+
+[listen_pick] nl:nummer#rec  (skill numbers)
+  Which word do you hear?
+  (speak, nl) nummer   "number"
+   nacht  |  *nummer  |   dochter  |   kamer
+
+[listen_pick] nl:tien#rec  (skill numbers)
+  Which word do you hear?
+  (speak, nl) tien   "ten"
+   twaalf  |   negen  |   zeven  |  *tien
+
+[listen_pick] nl:zes.2#rec  (skill numbers)
+  Which word do you hear?
+  (speak, nl) zes   "six"
+   negen  |  *zes  |   zeven  |   elf
 
 ========================================================================
 SKILL present-irregular (grammar)  Key verbs: zijn, hebben and modals
@@ -1963,6 +2168,47 @@ SKILL home (vocab)  At home
   "Has the house got a garden?"
    lamp  |   tafel  |   telefoon  |  *huis
 
+--- listen_pick: 8 example(s)
+[listen_pick] nl:kamer#rec  (skill home)
+  Which word do you hear?
+  (speak, nl) kamer   "room"
+   kast  |   keuken  |   vloer  |  *kamer
+
+[listen_pick] nl:deur#rec  (skill home)
+  Which word do you hear?
+  (speak, nl) deur   "door"
+   dak  |   muur  |  *deur  |   dokter
+
+[listen_pick] nl:bed#rec  (skill home)
+  Which word do you hear?
+  (speak, nl) bed   "bed"
+   boek  |  *bed  |   bank  |   bord
+
+[listen_pick] nl:telefoon#rec  (skill home)
+  Which word do you hear?
+  (speak, nl) telefoon   "telephone"
+   ticket  |  *telefoon  |   trauma  |   televisie
+
+[listen_pick] nl:bank#rec  (skill home)
+  Which word do you hear?
+  (speak, nl) bank   "couch"
+  *bank  |   band  |   boek  |   bed
+
+[listen_pick] nl:muur#rec  (skill home)
+  Which word do you hear?
+  (speak, nl) muur   "wall"
+   muziek  |  *muur  |   deur  |   mes
+
+[listen_pick] nl:tafel#rec  (skill home)
+  Which word do you hear?
+  (speak, nl) tafel   "table"
+   spiegel  |   trap  |  *tafel  |   stoel
+
+[listen_pick] nl:huis#rec  (skill home)
+  Which word do you hear?
+  (speak, nl) huis   "house"
+  *huis  |   haar  |   hitte  |   helm
+
 ========================================================================
 SKILL de-het (grammar)  De or het
 ========================================================================
@@ -2345,6 +2591,47 @@ SKILL time (vocab)  Time and days
   "I have no homework today."
   *Vandaag  |   Morgen  |   Altijd  |   Later
 
+--- listen_pick: 8 example(s)
+[listen_pick] nl:nu#rec  (skill time)
+  Which word do you hear?
+  (speak, nl) nu   "now"
+   nou  |   nog  |   niet  |  *nu
+
+[listen_pick] nl:nooit#rec  (skill time)
+  Which word do you hear?
+  (speak, nl) nooit   "never"
+   niet  |  *nooit  |   nog  |   nou
+
+[listen_pick] nl:tijd#rec  (skill time)
+  Which word do you hear?
+  (speak, nl) tijd   "time"
+   tiener  |   taart  |  *tijd  |   tumor
+
+[listen_pick] nl:jaar#rec  (skill time)
+  Which word do you hear?
+  (speak, nl) jaar   "year"
+   war  |  *jaar  |   jurk  |   junior
+
+[listen_pick] nl:altijd#rec  (skill time)
+  Which word do you hear?
+  (speak, nl) altijd   "always"
+   anders  |  *altijd  |   amper  |   alleen
+
+[listen_pick] nl:dag#rec  (skill time)
+  Which word do you hear?
+  (speak, nl) dag   "day"
+   dorp  |  *dag  |   deur  |   derde
+
+[listen_pick] nl:uur#rec  (skill time)
+  Which word do you hear?
+  (speak, nl) uur   "hour"
+   ui  |   deur  |  *uur  |   muur
+
+[listen_pick] nl:vandaag#rec  (skill time)
+  Which word do you hear?
+  (speak, nl) vandaag   "today"
+  *vandaag  |   vanavond  |   veilig  |   graag
+
 ========================================================================
 SKILL family (vocab)  Family
 ========================================================================
@@ -2584,6 +2871,47 @@ SKILL family (vocab)  Family
   Wanneer is de ___?   (wedding)
   "When's the wedding?"
    tweeling  |  *bruiloft  |   grootmoeder  |   nicht
+
+--- listen_pick: 8 example(s)
+[listen_pick] nl:papa#rec  (skill family)
+  Which word do you hear?
+  (speak, nl) papa   "dad"
+   plek  |   opa  |   pijn  |  *papa
+
+[listen_pick] nl:mama#rec  (skill family)
+  Which word do you hear?
+  (speak, nl) mama   "mum"
+   oma  |   meid  |  *mama  |   mam
+
+[listen_pick] nl:oom#rec  (skill family)
+  Which word do you hear?
+  (speak, nl) oom   "uncle"
+   oma  |  *oom  |   opa  |   onzin
+
+[listen_pick] nl:oma#rec  (skill family)
+  Which word do you hear?
+  (speak, nl) oma   "grandma"
+   mama  |   opa  |  *oma  |   oom
+
+[listen_pick] nl:tante#rec  (skill family)
+  Which word do you hear?
+  (speak, nl) tante   "aunt"
+  *tante  |   site  |   hoogte  |   tas
+
+[listen_pick] nl:verjaardag#rec  (skill family)
+  Which word do you hear?
+  (speak, nl) verjaardag   "birthday"
+   verbinding  |  *verjaardag  |   voorkeur  |   woensdag
+
+[listen_pick] nl:opa#rec  (skill family)
+  Which word do you hear?
+  (speak, nl) opa   "grandpa"
+   oom  |   oma  |  *opa  |   papa
+
+[listen_pick] nl:bruiloft#rec  (skill family)
+  Which word do you hear?
+  (speak, nl) bruiloft   "wedding"
+  *bruiloft  |   bedoeling  |   broeder  |   burger
 
 ========================================================================
 SKILL everyday-verbs (vocab)  Everyday verbs
@@ -2826,6 +3154,47 @@ SKILL everyday-verbs (vocab)  Everyday verbs
   "I'll ask Tom tomorrow."
   *vragen  |   zoeken  |   verkopen  |   reizen
 
+--- listen_pick: 8 example(s)
+[listen_pick] nl:kijken#rec  (skill everyday-verbs)
+  Which word do you hear?
+  (speak, nl) kijken   "to look"
+  *kijken  |   slapen  |   spelen  |   reizen
+
+[listen_pick] nl:eten#rec  (skill everyday-verbs)
+  Which word do you hear?
+  (speak, nl) eten   "to eat"
+   zoeken  |  *eten  |   lezen  |   reizen
+
+[listen_pick] nl:werken#rec  (skill everyday-verbs)
+  Which word do you hear?
+  (speak, nl) werken   "to work"
+  *werken  |   vragen  |   wandelen  |   lezen
+
+[listen_pick] nl:spelen#rec  (skill everyday-verbs)
+  Which word do you hear?
+  (speak, nl) spelen   "to play"
+   zwemmen  |  *spelen  |   verkopen  |   lezen
+
+[listen_pick] nl:zoeken#rec  (skill everyday-verbs)
+  Which word do you hear?
+  (speak, nl) zoeken   "to search"
+   kijken  |   openen  |  *zoeken  |   lezen
+
+[listen_pick] nl:vergeten#rec  (skill everyday-verbs)
+  Which word do you hear?
+  (speak, nl) vergeten   "to forget"
+   luisteren  |   fietsen  |   wandelen  |  *vergeten
+
+[listen_pick] nl:slapen#rec  (skill everyday-verbs)
+  Which word do you hear?
+  (speak, nl) slapen   "to sleep"
+   zingen  |   wandelen  |   lezen  |  *slapen
+
+[listen_pick] nl:vragen#rec  (skill everyday-verbs)
+  Which word do you hear?
+  (speak, nl) vragen   "to ask"
+   kopen  |   wandelen  |  *vragen  |   werken
+
 ========================================================================
 SKILL pronouns (grammar)  Me, you, him: object pronouns
 ========================================================================
@@ -3065,6 +3434,47 @@ SKILL pronouns (grammar)  Me, you, him: object pronouns
   Ze voelt ___ niet goed, zie ik.   (himself, herself, itself)
   "I can see she's not feeling well."
    jou  |   mij  |  *zich  |   me
+
+--- listen_pick: 8 example(s)
+[listen_pick] nl:me#rec  (skill pronouns)
+  Which word do you hear?
+  (speak, nl) me   "me"
+   hen  |   haar  |   men  |  *me
+
+[listen_pick] nl:hem#rec  (skill pronouns)
+  Which word do you hear?
+  (speak, nl) hem   "him"
+   hij  |   hen  |   haar  |  *hem
+
+[listen_pick] nl:ons.2#rec  (skill pronouns)
+  Which word do you hear?
+  (speak, nl) ons   "us"
+  *ons  |   jou  |   mezelf  |   hem
+
+[listen_pick] nl:haar.2#rec  (skill pronouns)
+  Which word do you hear?
+  (speak, nl) haar   "her"
+   elkaar  |  *haar  |   hem  |   hen
+
+[listen_pick] nl:mij#rec  (skill pronouns)
+  Which word do you hear?
+  (speak, nl) mij   "me"
+   wij  |  *mij  |   hij  |   zij
+
+[listen_pick] nl:jou#rec  (skill pronouns)
+  Which word do you hear?
+  (speak, nl) jou   "you"
+   mij  |   mezelf  |   me  |  *jou
+
+[listen_pick] nl:hun#rec  (skill pronouns)
+  Which word do you hear?
+  (speak, nl) hun   "their"
+  *hun  |   jouw  |   haar  |   zijn
+
+[listen_pick] nl:zich#rec  (skill pronouns)
+  Which word do you hear?
+  (speak, nl) zich   "himself"
+   ze  |  *zich  |   zoiets  |   zij
 
 ========================================================================
 SKILL separable (grammar)  Separable verbs
@@ -3306,6 +3716,47 @@ SKILL separable (grammar)  Separable verbs
   Kan ik je ___?   (to pick up)
   "Can I pick you up?"
    uitgaan  |   aankomen  |   afmaken  |  *ophalen
+
+--- listen_pick: 8 example(s)
+[listen_pick] nl:meenemen#rec  (skill separable)
+  Which word do you hear?
+  (speak, nl) meenemen   "to take along"
+  *meenemen  |   ophouden  |   opletten  |   opbellen
+
+[listen_pick] nl:voorstellen#rec  (skill separable)
+  Which word do you hear?
+  (speak, nl) voorstellen   "to introduce"
+   uitnodigen  |  *voorstellen  |   thuiskomen  |   uitkijken
+
+[listen_pick] nl:nadenken#rec  (skill separable)
+  Which word do you hear?
+  (speak, nl) nadenken   "to think about"
+   opletten  |  *nadenken  |   opbellen  |   ophouden
+
+[listen_pick] nl:weggaan#rec  (skill separable)
+  Which word do you hear?
+  (speak, nl) weggaan   "to go away"
+   meegaan  |   uitgaan  |  *weggaan  |   opstaan
+
+[listen_pick] nl:opnemen#rec  (skill separable)
+  Which word do you hear?
+  (speak, nl) opnemen   "to pick up"
+  *opnemen  |   opletten  |   nadenken  |   meenemen
+
+[listen_pick] nl:uitleggen#rec  (skill separable)
+  Which word do you hear?
+  (speak, nl) uitleggen   "to explain"
+  *uitleggen  |   opletten  |   ophalen  |   opbellen
+
+[listen_pick] nl:ophouden#rec  (skill separable)
+  Which word do you hear?
+  (speak, nl) ophouden   "to stop"
+  *ophouden  |   ophalen  |   uitkijken  |   opletten
+
+[listen_pick] nl:ophalen#rec  (skill separable)
+  Which word do you hear?
+  (speak, nl) ophalen   "to pick up"
+   ophouden  |   uitleggen  |  *ophalen  |   meenemen
 
 ========================================================================
 SKILL plurals (grammar)  One and many: plurals
@@ -3690,6 +4141,47 @@ SKILL work (vocab)  Work and school
   "He cannot answer their questions."
    artsen  |   papieren  |  *vragen  |   dokters
 
+--- listen_pick: 8 example(s)
+[listen_pick] nl:dokter#rec  (skill work)
+  Which word do you hear?
+  (speak, nl) dokter   "doctor"
+   dollar  |   papier  |   ober  |  *dokter
+
+[listen_pick] nl:advocaat#rec  (skill work)
+  Which word do you hear?
+  (speak, nl) advocaat   "lawyer"
+   antwoord  |   adviseur  |  *advocaat  |   aantal
+
+[listen_pick] nl:werk#rec  (skill work)
+  Which word do you hear?
+  (speak, nl) werk   "work"
+   park  |   kerk  |   worm  |  *werk
+
+[listen_pick] nl:arts#rec  (skill work)
+  Which word do you hear?
+  (speak, nl) arts   "doctor"
+   advies  |   actie  |   aanbod  |  *arts
+
+[listen_pick] nl:collega#rec  (skill work)
+  Which word do you hear?
+  (speak, nl) collega   "colleague"
+  *collega  |   cijfer  |   clown  |   commando
+
+[listen_pick] nl:student#rec  (skill work)
+  Which word do you hear?
+  (speak, nl) student   "student"
+   soort  |   salaris  |  *student  |   president
+
+[listen_pick] nl:klas#rec  (skill work)
+  Which word do you hear?
+  (speak, nl) klas   "class"
+   tas  |   baas  |   kok  |  *klas
+
+[listen_pick] nl:vraag#rec  (skill work)
+  Which word do you hear?
+  (speak, nl) vraag   "question"
+   verband  |   veld  |   gedrag  |  *vraag
+
 ========================================================================
 SKILL feelings (vocab)  Feelings
 ========================================================================
@@ -3929,6 +4421,47 @@ SKILL feelings (vocab)  Feelings
   Ik ben ___ op je.   (proud)
   "I'm proud of you."
    bang  |   boos  |   bezorgd  |  *trots
+
+--- listen_pick: 8 example(s)
+[listen_pick] nl:zeker#rec  (skill feelings)
+  Which word do you hear?
+  (speak, nl) zeker   "sure"
+  *zeker  |   zelf  |   hier  |   zelfs
+
+[listen_pick] nl:bang#rec  (skill feelings)
+  Which word do you hear?
+  (speak, nl) bang   "afraid"
+  *bang  |   blij  |   bezig  |   boos
+
+[listen_pick] nl:rustig.2#rec  (skill feelings)
+  Which word do you hear?
+  (speak, nl) rustig   "calm"
+   nodig  |  *rustig  |   gelukkig  |   geweldig
+
+[listen_pick] nl:gevoel#rec  (skill feelings)
+  Which word do you hear?
+  (speak, nl) gevoel   "feeling"
+   gezicht  |  *gevoel  |   glimlach  |   geluk
+
+[listen_pick] nl:liefde#rec  (skill feelings)
+  Which word do you hear?
+  (speak, nl) liefde   "love"
+  *liefde  |   lichaam  |   woede  |   vreugde
+
+[listen_pick] nl:geluk#rec  (skill feelings)
+  Which word do you hear?
+  (speak, nl) geluk   "happiness"
+   gevoel  |  *geluk  |   gang  |   gat
+
+[listen_pick] nl:boos#rec  (skill feelings)
+  Which word do you hear?
+  (speak, nl) boos   "angry"
+   bang  |   bezig  |  *boos  |   braaf
+
+[listen_pick] nl:trots#rec  (skill feelings)
+  Which word do you hear?
+  (speak, nl) trots   "proud"
+   taai  |  *trots  |   typisch  |   tweede
 
 ========================================================================
 SKILL perfectum-hebben (grammar)  Perfect tense with hebben
@@ -4685,6 +5218,47 @@ SKILL adjectives (grammar)  Adjectives
   "This is not important."
   error: "belangrijke" -> "belangrijk"
 
+--- listen_pick: 8 example(s)
+[listen_pick] nl:groot#rec  (skill adjectives)
+  Which word do you hear?
+  (speak, nl) groot   "big"
+   gewoon  |   goed  |  *groot  |   gek
+
+[listen_pick] nl:lang#rec  (skill adjectives)
+  Which word do you hear?
+  (speak, nl) lang   "long"
+   leeg  |   lief  |  *lang  |   leuk
+
+[listen_pick] nl:mooi#rec  (skill adjectives)
+  Which word do you hear?
+  (speak, nl) mooi   "beautiful"
+   moe  |   mis  |   modern  |  *mooi
+
+[listen_pick] nl:leuk#rec  (skill adjectives)
+  Which word do you hear?
+  (speak, nl) leuk   "nice"
+   lelijk  |   lief  |  *leuk  |   leeg
+
+[listen_pick] nl:nieuw#rec  (skill adjectives)
+  Which word do you hear?
+  (speak, nl) nieuw   "new"
+   nodig  |   netjes  |  *nieuw  |   nep
+
+[listen_pick] nl:klein#rec  (skill adjectives)
+  Which word do you hear?
+  (speak, nl) klein   "small"
+   kapot  |   koud  |  *klein  |   kort
+
+[listen_pick] nl:oud#rec  (skill adjectives)
+  Which word do you hear?
+  (speak, nl) oud   "old"
+   oké  |   koud  |  *oud  |   open
+
+[listen_pick] nl:belangrijk#rec  (skill adjectives)
+  Which word do you hear?
+  (speak, nl) belangrijk   "important"
+   moeilijk  |   makkelijk  |  *belangrijk  |   duidelijk
+
 ========================================================================
 SKILL body (vocab)  Body and health
 ========================================================================
@@ -4925,6 +5499,47 @@ SKILL body (vocab)  Body and health
   "I think that Yumi is sick."
   *ziek  |   grappig  |   diep  |   snel
 
+--- listen_pick: 8 example(s)
+[listen_pick] nl:hand#rec  (skill body)
+  Which word do you hear?
+  (speak, nl) hand   "hand"
+  *hand  |   tand  |   huid  |   hart
+
+[listen_pick] nl:hoofd#rec  (skill body)
+  Which word do you hear?
+  (speak, nl) hoofd   "head"
+  *hoofd  |   hand  |   hart  |   huid
+
+[listen_pick] nl:pijn#rec  (skill body)
+  Which word do you hear?
+  (speak, nl) pijn   "pain"
+   papa  |  *pijn  |   plek  |   pizza
+
+[listen_pick] nl:lichaam#rec  (skill body)
+  Which word do you hear?
+  (speak, nl) lichaam   "body"
+   lunch  |   laars  |  *lichaam  |   liefde
+
+[listen_pick] nl:gezicht#rec  (skill body)
+  Which word do you hear?
+  (speak, nl) gezicht   "face"
+   gevoel  |   gunst  |   nacht  |  *gezicht
+
+[listen_pick] nl:hart#rec  (skill body)
+  Which word do you hear?
+  (speak, nl) hart   "heart"
+   hoofd  |  *hart  |   huid  |   hand
+
+[listen_pick] nl:mond#rec  (skill body)
+  Which word do you hear?
+  (speak, nl) mond   "mouth"
+   hand  |   tand  |  *mond  |   hond
+
+[listen_pick] nl:ziek#rec  (skill body)
+  Which word do you hear?
+  (speak, nl) ziek   "ill"
+  *ziek  |   zeer  |   zwaar  |   gek
+
 ========================================================================
 SKILL adverbs (vocab)  Useful adverbs
 ========================================================================
@@ -5164,6 +5779,47 @@ SKILL adverbs (vocab)  Useful adverbs
   Zijn er ___ stoelen?   (enough)
   "Are there enough chairs?"
    die  |  *genoeg  |   elkaars  |   ene
+
+--- listen_pick: 8 example(s)
+[listen_pick] nl:al#rec  (skill adverbs)
+  Which word do you hear?
+  (speak, nl) al   "already"
+   aan  |  *al  |   af  |   waarschijnlijk
+
+[listen_pick] nl:dus#rec  (skill adverbs)
+  Which word do you hear?
+  (speak, nl) dus   "so"
+   dan  |   daar  |  *dus  |   der
+
+[listen_pick] nl:echt#rec  (skill adverbs)
+  Which word do you hear?
+  (speak, nl) echt   "really"
+  *echt  |   er  |   erg  |   eerst
+
+[listen_pick] nl:alleen#rec  (skill adverbs)
+  Which word do you hear?
+  (speak, nl) alleen   "only"
+   even  |  *alleen  |   meteen  |   samen
+
+[listen_pick] nl:toch#rec  (skill adverbs)
+  Which word do you hear?
+  (speak, nl) toch   "still"
+  *toch  |   toe  |   totaal  |   terug
+
+[listen_pick] nl:misschien#rec  (skill adverbs)
+  Which word do you hear?
+  (speak, nl) misschien   "maybe"
+  *misschien  |   ondertussen  |   sindsdien  |   momenteel
+
+[listen_pick] nl:erg#rec  (skill adverbs)
+  Which word do you hear?
+  (speak, nl) erg   "very"
+  *erg  |   eerst  |   echt  |   even
+
+[listen_pick] nl:genoeg#rec  (skill adverbs)
+  Which word do you hear?
+  (speak, nl) genoeg   "enough"
+   ene  |   wat  |   geen  |  *genoeg
 
 ========================================================================
 SKILL colours (vocab)  Colours
@@ -5406,6 +6062,47 @@ SKILL colours (vocab)  Colours
   "Do Tom and Mary have gray hair?"
   *grijs  |   groen  |   rood  |   geel
 
+--- listen_pick: 8 example(s)
+[listen_pick] nl:rood#rec  (skill colours)
+  Which word do you hear?
+  (speak, nl) rood   "red"
+  *rood  |   recht  |   raar  |   roze
+
+[listen_pick] nl:wit#rec  (skill colours)
+  Which word do you hear?
+  (speak, nl) wit   "white"
+  *wit  |   warm  |   waar  |   wijs
+
+[listen_pick] nl:zwart#rec  (skill colours)
+  Which word do you hear?
+  (speak, nl) zwart   "black"
+   zwanger  |   kort  |  *zwart  |   zoet
+
+[listen_pick] nl:blauw#rec  (skill colours)
+  Which word do you hear?
+  (speak, nl) blauw   "blue"
+   braaf  |  *blauw  |   best  |   bruin
+
+[listen_pick] nl:groen#rec  (skill colours)
+  Which word do you hear?
+  (speak, nl) groen   "green"
+   grijs  |   geel  |  *groen  |   glad
+
+[listen_pick] nl:geel#rec  (skill colours)
+  Which word do you hear?
+  (speak, nl) geel   "yellow"
+  *geel  |   groen  |   grijs  |   geen
+
+[listen_pick] nl:roze#rec  (skill colours)
+  Which word do you hear?
+  (speak, nl) roze   "pink"
+   ruw  |   rood  |  *roze  |   raar
+
+[listen_pick] nl:grijs#rec  (skill colours)
+  Which word do you hear?
+  (speak, nl) grijs   "grey"
+   grof  |  *grijs  |   geel  |   groen
+
 ========================================================================
 SKILL possessives (grammar)  My, your, his: possessives
 ========================================================================
@@ -5645,6 +6342,47 @@ SKILL possessives (grammar)  My, your, his: possessives
   Waarom ___ mensen bang voor jou?   (his, its)
   "Why are people scared of you?"
    uw  |  *zijn  |   hun  |   jouw
+
+--- listen_pick: 8 example(s)
+[listen_pick] nl:zijn.2#rec  (skill possessives)
+  Which word do you hear?
+  (speak, nl) zijn   "his"
+   zelfde  |  *zijn  |   mijn  |   zat
+
+[listen_pick] nl:ons.2#rec  (skill possessives)
+  Which word do you hear?
+  (speak, nl) ons   "us"
+  *ons  |   hen  |   zich  |   jou
+
+[listen_pick] nl:haar.2#rec  (skill possessives)
+  Which word do you hear?
+  (speak, nl) haar   "her"
+   hem  |  *haar  |   elkaar  |   hen
+
+[listen_pick] nl:uw#rec  (skill possessives)
+  Which word do you hear?
+  (speak, nl) uw   "your (formal)"
+   mijn  |  *uw  |   zijn  |   hun
+
+[listen_pick] nl:hun#rec  (skill possessives)
+  Which word do you hear?
+  (speak, nl) hun   "their"
+  *hun  |   zijn  |   haar  |   mijn
+
+[listen_pick] nl:jouw#rec  (skill possessives)
+  Which word do you hear?
+  (speak, nl) jouw   "your"
+  *jouw  |   mijn  |   hun  |   zijn
+
+[listen_pick] nl:mijn#rec  (skill possessives)
+  Which word do you hear?
+  (speak, nl) mijn   "my"
+   meest  |  *mijn  |   zijn  |   hun
+
+[listen_pick] nl:zijn.2#rec  (skill possessives)
+  Which word do you hear?
+  (speak, nl) zijn   "his"
+   zat  |   mijn  |   zelfde  |  *zijn
 
 ========================================================================
 SKILL diminutives (grammar)  Small words: diminutives
@@ -6029,6 +6767,47 @@ SKILL city (vocab)  In the city
   "Do you live in this building?"
   *gebouw  |   brug  |   wereld  |   stad
 
+--- listen_pick: 8 example(s)
+[listen_pick] nl:wereld#rec  (skill city)
+  Which word do you hear?
+  (speak, nl) wereld   "world"
+  *wereld  |   held  |   woord  |   winkel
+
+[listen_pick] nl:politie#rec  (skill city)
+  Which word do you hear?
+  (speak, nl) politie   "police"
+   plein  |   familie  |  *politie  |   probleem
+
+[listen_pick] nl:stad#rec  (skill city)
+  Which word do you hear?
+  (speak, nl) stad   "city"
+   school  |   straat  |  *stad  |   schuld
+
+[listen_pick] nl:kantoor#rec  (skill city)
+  Which word do you hear?
+  (speak, nl) kantoor   "office"
+   kapitein  |   kerel  |  *kantoor  |   kracht
+
+[listen_pick] nl:ziekenhuis#rec  (skill city)
+  Which word do you hear?
+  (speak, nl) ziekenhuis   "hospital"
+  *ziekenhuis  |   begrafenis  |   gevangenis  |   gebeurtenis
+
+[listen_pick] nl:straat#rec  (skill city)
+  Which word do you hear?
+  (speak, nl) straat   "street"
+   stad  |  *straat  |   station  |   school
+
+[listen_pick] nl:hotel#rec  (skill city)
+  Which word do you hear?
+  (speak, nl) hotel   "hotel"
+   winkel  |   hoek  |  *hotel  |   regel
+
+[listen_pick] nl:gebouw#rec  (skill city)
+  Which word do you hear?
+  (speak, nl) gebouw   "building"
+   generaal  |   groep  |   gesprek  |  *gebouw
+
 ========================================================================
 SKILL travel (vocab)  Travel
 ========================================================================
@@ -6268,6 +7047,47 @@ SKILL travel (vocab)  Travel
   Tom heeft voor de ___ betaald.   (ticket)
   "Tom paid for the tickets."
    fietsen  |   vliegvelden  |  *kaartjes  |   stranden
+
+--- listen_pick: 8 example(s)
+[listen_pick] nl:auto#rec  (skill travel)
+  Which word do you hear?
+  (speak, nl) auto   "car"
+  *auto  |   april  |   arm  |   agenda
+
+[listen_pick] nl:schip#rec  (skill travel)
+  Which word do you hear?
+  (speak, nl) schip   "ship"
+  *schip  |   show  |   straat  |   strand
+
+[listen_pick] nl:vliegtuig#rec  (skill travel)
+  Which word do you hear?
+  (speak, nl) vliegtuig   "plane"
+   vliegveld  |   vakantie  |  *vliegtuig  |   vertaling
+
+[listen_pick] nl:zee#rec  (skill travel)
+  Which word do you hear?
+  (speak, nl) zee   "sea"
+   zorg  |  *zee  |   vee  |   zand
+
+[listen_pick] nl:eiland#rec  (skill travel)
+  Which word do you hear?
+  (speak, nl) eiland   "island"
+  *eiland  |   ervaring  |   strand  |   eikel
+
+[listen_pick] nl:vakantie#rec  (skill travel)
+  Which word do you hear?
+  (speak, nl) vakantie   "holiday"
+   vliegtuig  |   vliegveld  |  *vakantie  |   veiligheid
+
+[listen_pick] nl:taxi#rec  (skill travel)
+  Which word do you hear?
+  (speak, nl) taxi   "taxi"
+   type  |   trein  |  *taxi  |   toilet
+
+[listen_pick] nl:kaartje#rec  (skill travel)
+  Which word do you hear?
+  (speak, nl) kaartje   "ticket"
+  *kaartje  |   maatje  |   kwart  |   koffer
 
 ========================================================================
 SKILL kitchen (vocab)  In the kitchen
@@ -6509,6 +7329,47 @@ SKILL kitchen (vocab)  In the kitchen
   "Take the meat out of the pan."
   *pan  |   honger  |   soep  |   vork
 
+--- listen_pick: 8 example(s)
+[listen_pick] nl:taart#rec  (skill kitchen)
+  Which word do you hear?
+  (speak, nl) taart   "cake"
+  *taart  |   toegang  |   talent  |   toetje
+
+[listen_pick] nl:koekje#rec  (skill kitchen)
+  Which word do you hear?
+  (speak, nl) koekje   "cookie"
+   knoflook  |   toetje  |  *koekje  |   broodje
+
+[listen_pick] nl:broodje#rec  (skill kitchen)
+  Which word do you hear?
+  (speak, nl) broodje   "sandwich"
+   banaan  |   toetje  |  *broodje  |   koekje
+
+[listen_pick] nl:zoet#rec  (skill kitchen)
+  Which word do you hear?
+  (speak, nl) zoet   "sweet"
+   heet  |  *zoet  |   violet  |   zwaar
+
+[listen_pick] nl:recept#rec  (skill kitchen)
+  Which word do you hear?
+  (speak, nl) recept   "recipe"
+  *recept  |   rand  |   rijst  |   roman
+
+[listen_pick] nl:soep#rec  (skill kitchen)
+  Which word do you hear?
+  (speak, nl) soep   "soup"
+   schema  |  *soep  |   sap  |   stress
+
+[listen_pick] nl:chocolade#rec  (skill kitchen)
+  Which word do you hear?
+  (speak, nl) chocolade   "chocolate"
+   conclusie  |   citroen  |  *chocolade  |   champagne
+
+[listen_pick] nl:pan#rec  (skill kitchen)
+  Which word do you hear?
+  (speak, nl) pan   "pan"
+  *pan  |   peper  |   paus  |   pijl
+
 ========================================================================
 SKILL shopping (vocab)  Shopping
 ========================================================================
@@ -6748,6 +7609,47 @@ SKILL shopping (vocab)  Shopping
   Het is een ___ voor u.   (present)
   "It's a present for you."
    korting  |   boodschappen  |   klant  |  *cadeau
+
+--- listen_pick: 8 example(s)
+[listen_pick] nl:dollar#rec  (skill shopping)
+  Which word do you hear?
+  (speak, nl) dollar   "dollar"
+  *dollar  |   dame  |   dochter  |   deur
+
+[listen_pick] nl:klant#rec  (skill shopping)
+  Which word do you hear?
+  (speak, nl) klant   "customer"
+  *klant  |   keer  |   kassa  |   korting
+
+[listen_pick] nl:maat#rec  (skill shopping)
+  Which word do you hear?
+  (speak, nl) maat   "size"
+   macht  |   ma  |  *maat  |   muur
+
+[listen_pick] nl:rekening#rec  (skill shopping)
+  Which word do you hear?
+  (speak, nl) rekening   "bill"
+   beslissing  |   verrassing  |  *rekening  |   korting
+
+[listen_pick] nl:geld#rec  (skill shopping)
+  Which word do you hear?
+  (speak, nl) geld   "money"
+  *geld  |   gedrag  |   grap  |   schuld
+
+[listen_pick] nl:tas#rec  (skill shopping)
+  Which word do you hear?
+  (speak, nl) tas   "bag"
+   taxi  |   tante  |  *tas  |   tent
+
+[listen_pick] nl:gratis#rec  (skill shopping)
+  Which word do you hear?
+  (speak, nl) gratis   "free"
+   goedkoop  |   geheim  |  *gratis  |   gemeen
+
+[listen_pick] nl:cadeau#rec  (skill shopping)
+  Which word do you hear?
+  (speak, nl) cadeau   "present"
+   niveau  |   carrière  |   contract  |  *cadeau
 
 ========================================================================
 SKILL weather (vocab)  Weather and nature
@@ -6989,6 +7891,47 @@ SKILL weather (vocab)  Weather and nature
   "It's winter in Australia."
    sneeuw  |  *winter  |   mist  |   regen
 
+--- listen_pick: 8 example(s)
+[listen_pick] nl:aarde#rec  (skill weather)
+  Which word do you hear?
+  (speak, nl) aarde   "earth"
+   ader  |   orde  |   wade  |  *aarde
+
+[listen_pick] nl:ster#rec  (skill weather)
+  Which word do you hear?
+  (speak, nl) ster   "star"
+   winter  |   zomer  |  *ster  |   rivier
+
+[listen_pick] nl:bloem#rec  (skill weather)
+  Which word do you hear?
+  (speak, nl) bloem   "flower"
+   bos  |  *bloem  |   boom  |   basis
+
+[listen_pick] nl:rivier#rec  (skill weather)
+  Which word do you hear?
+  (speak, nl) rivier   "river"
+   regen  |  *rivier  |   ster  |   winter
+
+[listen_pick] nl:zomer#rec  (skill weather)
+  Which word do you hear?
+  (speak, nl) zomer   "summer"
+  *zomer  |   rivier  |   winter  |   ster
+
+[listen_pick] nl:natuur#rec  (skill weather)
+  Which word do you hear?
+  (speak, nl) natuur   "nature"
+   nier  |   nagel  |  *natuur  |   voorkeur
+
+[listen_pick] nl:seizoen#rec  (skill weather)
+  Which word do you hear?
+  (speak, nl) seizoen   "season"
+   storm  |   sneeuw  |  *seizoen  |   regen
+
+[listen_pick] nl:winter#rec  (skill weather)
+  Which word do you hear?
+  (speak, nl) winter   "winter"
+  *winter  |   wolk  |   zomer  |   ster
+
 ========================================================================
 SKILL animals (vocab)  Animals
 ========================================================================
@@ -7229,6 +8172,47 @@ SKILL animals (vocab)  Animals
   "Tom eats like a pig."
    wolf  |   vos  |  *varken  |   muis
 
+--- listen_pick: 8 example(s)
+[listen_pick] nl:hond#rec  (skill animals)
+  Which word do you hear?
+  (speak, nl) hond   "dog"
+  *hond  |   avond  |   hart  |   eend
+
+[listen_pick] nl:paard#rec  (skill animals)
+  Which word do you hear?
+  (speak, nl) paard   "horse"
+   partner  |   waard  |  *paard  |   plezier
+
+[listen_pick] nl:dier#rec  (skill animals)
+  Which word do you hear?
+  (speak, nl) dier   "animal"
+   beer  |   tijger  |  *dier  |   dader
+
+[listen_pick] nl:kip#rec  (skill animals)
+  Which word do you hear?
+  (speak, nl) kip   "chicken"
+   knul  |  *kip  |   kat  |   koe
+
+[listen_pick] nl:wolf#rec  (skill animals)
+  Which word do you hear?
+  (speak, nl) wolf   "wolf"
+  *wolf  |   wezen  |   wind  |   wiet
+
+[listen_pick] nl:aap#rec  (skill animals)
+  Which word do you hear?
+  (speak, nl) aap   "monkey"
+   april  |  *aap  |   alarm  |   pap
+
+[listen_pick] nl:slang#rec  (skill animals)
+  Which word do you hear?
+  (speak, nl) slang   "snake"
+   stilte  |   schaap  |  *slang  |   long
+
+[listen_pick] nl:varken#rec  (skill animals)
+  Which word do you hear?
+  (speak, nl) varken   "pig"
+  *varken  |   vlinder  |   vogel  |   vaarwel
+
 ========================================================================
 SKILL clothes (vocab)  Clothes
 ========================================================================
@@ -7468,6 +8452,47 @@ SKILL clothes (vocab)  Clothes
   Wil je dit ___ hebben?   (shirt)
   "Do you want this shirt?"
    jas  |   handschoen  |  *shirt  |   zak
+
+--- listen_pick: 8 example(s)
+[listen_pick] nl:dragen#rec  (skill clothes)
+  Which word do you hear?
+  (speak, nl) dragen   "to carry"
+   drinken  |   klinken  |  *dragen  |   schieten
+
+[listen_pick] nl:kleren#rec  (skill clothes)
+  Which word do you hear?
+  (speak, nl) kleren   "clothes"
+   schoen  |   klant  |  *kleren  |   kogel
+
+[listen_pick] nl:schoen#rec  (skill clothes)
+  Which word do you hear?
+  (speak, nl) schoen   "shoe"
+   kleren  |  *schoen  |   shirt  |   ster
+
+[listen_pick] nl:broek#rec  (skill clothes)
+  Which word do you hear?
+  (speak, nl) broek   "trousers"
+   borst  |  *broek  |   bevel  |   bril
+
+[listen_pick] nl:jurk#rec  (skill clothes)
+  Which word do you hear?
+  (speak, nl) jurk   "dress"
+  *jurk  |   jungle  |   jas  |   jood
+
+[listen_pick] nl:ring#rec  (skill clothes)
+  Which word do you hear?
+  (speak, nl) ring   "ring"
+   regel  |  *ring  |   riem  |   rok
+
+[listen_pick] nl:horloge#rec  (skill clothes)
+  Which word do you hear?
+  (speak, nl) horloge   "watch"
+   hoofdstuk  |   houding  |  *horloge  |   marge
+
+[listen_pick] nl:shirt#rec  (skill clothes)
+  Which word do you hear?
+  (speak, nl) shirt   "shirt"
+  *shirt  |   sok  |   special  |   schoen
 
 ========================================================================
 SKILL verleden-tijd-weak (grammar)  Simple past: weak verbs
@@ -8230,6 +9255,47 @@ SKILL leisure (vocab)  Free time
   "I heard her singing a song."
    spel  |   sport  |  *lied  |   krant
 
+--- listen_pick: 8 example(s)
+[listen_pick] nl:foto#rec  (skill leisure)
+  Which word do you hear?
+  (speak, nl) foto   "photo"
+  *foto  |   film  |   fout  |   feest
+
+[listen_pick] nl:team#rec  (skill leisure)
+  Which word do you hear?
+  (speak, nl) team   "team"
+   tennis  |   mam  |  *team  |   toetje
+
+[listen_pick] nl:muziek#rec  (skill leisure)
+  Which word do you hear?
+  (speak, nl) muziek   "music"
+   muur  |  *muziek  |   moeder  |   gesprek
+
+[listen_pick] nl:wedstrijd#rec  (skill leisure)
+  Which word do you hear?
+  (speak, nl) wedstrijd   "match"
+   wachtwoord  |   leeftijd  |   website  |  *wedstrijd
+
+[listen_pick] nl:krant#rec  (skill leisure)
+  Which word do you hear?
+  (speak, nl) krant   "newspaper"
+  *krant  |   kont  |   keu  |   cliënt
+
+[listen_pick] nl:film#rec  (skill leisure)
+  Which word do you hear?
+  (speak, nl) film   "film"
+   feest  |  *film  |   fles  |   foto
+
+[listen_pick] nl:radio#rec  (skill leisure)
+  Which word do you hear?
+  (speak, nl) radio   "radio"
+   rivier  |   roman  |  *radio  |   regen
+
+[listen_pick] nl:lied#rec  (skill leisure)
+  Which word do you hear?
+  (speak, nl) lied   "song"
+  *lied  |   lijf  |   lawaai  |   laptop
+
 ========================================================================
 SKILL more-verbs (vocab)  More verbs
 ========================================================================
@@ -8471,6 +9537,47 @@ SKILL more-verbs (vocab)  More verbs
   "I wish I hadn't believed Tom."
   *geloofd  |   gerend  |   getrokken  |   getekend
 
+--- listen_pick: 8 example(s)
+[listen_pick] nl:veranderen#rec  (skill more-verbs)
+  Which word do you hear?
+  (speak, nl) veranderen   "to change"
+  *veranderen  |   ontvangen  |   bedanken  |   ontmoeten
+
+[listen_pick] nl:ontmoeten#rec  (skill more-verbs)
+  Which word do you hear?
+  (speak, nl) ontmoeten   "to meet"
+   bedanken  |  *ontmoeten  |   verliezen  |   uitgeven
+
+[listen_pick] nl:winnen#rec  (skill more-verbs)
+  Which word do you hear?
+  (speak, nl) winnen   "to win"
+   stelen  |  *winnen  |   zetten  |   sturen
+
+[listen_pick] nl:beloven#rec  (skill more-verbs)
+  Which word do you hear?
+  (speak, nl) beloven   "to promise"
+   sturen  |   huilen  |  *beloven  |   winnen
+
+[listen_pick] nl:verliezen#rec  (skill more-verbs)
+  Which word do you hear?
+  (speak, nl) verliezen   "to lose"
+   beloven  |   tekenen  |  *verliezen  |   groeten
+
+[listen_pick] nl:zetten#rec  (skill more-verbs)
+  Which word do you hear?
+  (speak, nl) zetten   "to put"
+   stelen  |  *zetten  |   uitgeven  |   geloven
+
+[listen_pick] nl:sturen#rec  (skill more-verbs)
+  Which word do you hear?
+  (speak, nl) sturen   "to send"
+   rusten  |   leggen  |   winnen  |  *sturen
+
+[listen_pick] nl:geloven#rec  (skill more-verbs)
+  Which word do you hear?
+  (speak, nl) geloven   "to believe"
+   sturen  |   ontvangen  |   stelen  |  *geloven
+
 ========================================================================
 SKILL ideas (vocab)  Ideas and opinions
 ========================================================================
@@ -8710,5 +9817,46 @@ SKILL ideas (vocab)  Ideas and opinions
   Ik heb altijd de ___ gezegd.   (truth)
   "I've always told the truth."
   *waarheid  |   keuze  |   probleem  |   idee
+
+--- listen_pick: 8 example(s)
+[listen_pick] nl:nodig#rec  (skill ideas)
+  Which word do you hear?
+  (speak, nl) nodig   "necessary"
+  *nodig  |   aardig  |   bezig  |   nieuw
+
+[listen_pick] nl:probleem#rec  (skill ideas)
+  Which word do you hear?
+  (speak, nl) probleem   "problem"
+   politie  |   pastoor  |  *probleem  |   planeet
+
+[listen_pick] nl:idee#rec  (skill ideas)
+  Which word do you hear?
+  (speak, nl) idee   "idea"
+   thee  |   twee  |  *idee  |   ingang
+
+[listen_pick] nl:manier#rec  (skill ideas)
+  Which word do you hear?
+  (speak, nl) manier   "way"
+   moment  |   mening  |   minuut  |  *manier
+
+[listen_pick] nl:soort#rec  (skill ideas)
+  Which word do you hear?
+  (speak, nl) soort   "kind"
+  *soort  |   schuld  |   stad  |   hart
+
+[listen_pick] nl:woord#rec  (skill ideas)
+  Which word do you hear?
+  (speak, nl) woord   "word"
+   wapen  |  *woord  |   wodka  |   wiet
+
+[listen_pick] nl:juist.2#rec  (skill ideas)
+  Which word do you hear?
+  (speak, nl) juist   "right"
+   bewust  |   vast  |  *juist  |   jarig
+
+[listen_pick] nl:waarheid#rec  (skill ideas)
+  Which word do you hear?
+  (speak, nl) waarheid   "truth"
+  *waarheid  |   wortel  |   wonder  |   weekend
 
 

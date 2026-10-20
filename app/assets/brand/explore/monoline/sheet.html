@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>tosk - monoline exploration</title>
+<style>
+  body { margin: 0; padding: 28px 36px; background: #F3EEE4; color: #2B2622;
+         font: 15px/1.4 Georgia, 'Times New Roman', serif; }
+  h1 { font-size: 40px; margin: 0 0 4px; letter-spacing: -0.5px; }
+  p.sub { margin: 0 0 22px; color: #5a514a; }
+  .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 18px; }
+  .card { background: #FBF8F2; border: 1px solid #DDD4C6; border-radius: 14px; padding: 12px; }
+  .card.mono { background: #FFFFFF; }
+  .card h2 { font-size: 13px; font-weight: normal; text-transform: uppercase; letter-spacing: 1.5px;
+             margin: 0 0 8px; color: #7a6f64; }
+  .card img.big { display: block; width: 100%; height: auto; }
+  .row img { display: block; }
+  .row { display: flex; gap: 14px; align-items: flex-end; flex-wrap: wrap; }
+  .sw { display: inline-block; width: 64px; margin: 0 8px 8px 0; font-size: 11px; text-align: center; }
+  .sw i { display: block; height: 44px; border-radius: 8px; border: 1px solid #DDD4C6; margin-bottom: 4px; }
+  .cap { font-size: 11px; color: #7a6f64; text-align: center; margin-top: 4px; }
+</style></head><body>
+<h1>tosk <span style="font-size:16px;color:#7a6f64;font-weight:normal">&nbsp; monoline exploration</span></h1>
+<p class="sub">One line weight, long flowing strokes. Colour blocks sit a touch off-register under the line; the e-ink version is the pure line.</p>
+<div class="grid">
+  <div class="card" style="grid-column: span 3"><h2>Tosk</h2><img class="big" src="tosk.svg"></div>
+  <div class="card mono" style="grid-column: span 3"><h2>Tosk - e-ink</h2><img class="big" src="tosk-mono.svg"></div>
+  <div class="card" style="grid-column: span 6"><h2>Logo</h2><img class="big" src="logo.svg" style="max-width:560px;margin:10px auto">
+    <div class="row" style="margin-top:14px">
+      <div><img src="icon.svg" width="48" height="48"><div class="cap">48</div></div>
+      <div><img src="icon.svg" width="96" height="96"><div class="cap">96</div></div>
+      <div><img src="icon-mono.svg" width="48" height="48"><div class="cap">48 e-ink</div></div>
+      <div><img src="icon-mono.svg" width="96" height="96"><div class="cap">96 e-ink</div></div>
+      <div><img src="icon.svg" width="192" height="192"><div class="cap">192</div></div>
+      <div><img src="icon-mono.svg" width="192" height="192"><div class="cap">192 e-ink</div></div>
+    </div>
+    <h2 style="margin-top:16px">Palette</h2>
+    <div><span class="sw"><i style="background:#2B2622"></i>ink #2B2622</span><span class="sw"><i style="background:#E38A5C"></i>rust #E38A5C</span><span class="sw"><i style="background:#F5E6C6"></i>cream #F5E6C6</span><span class="sw"><i style="background:#A7BE92"></i>sage #A7BE92</span><span class="sw"><i style="background:#D4B48C"></i>tan #D4B48C</span><span class="sw"><i style="background:#EAC36E"></i>gold #EAC36E</span><span class="sw"><i style="background:#F7F2E8"></i>paper #F7F2E8</span><span class="sw"><i style="background:#CFE0DE"></i>sky #CFE0DE</span></div>
+  </div>
+  <div class="card" style="grid-column: span 3"><h2>Yggdrasil - course tree</h2><img class="big" src="yggdrasil.svg"></div>
+  <div class="card mono" style="grid-column: span 3"><h2>Yggdrasil - e-ink</h2><img class="big" src="yggdrasil-mono.svg"></div>
+  <div class="card" style="grid-column: span 3"><h2>Branch tile</h2><img class="big" src="branch-tile.svg"><h2 style="margin-top:10px">Branch tile - e-ink</h2><img class="big" src="branch-tile-mono.svg" style="background:#fff;border-radius:8px"></div>
+  <div class="card" style="grid-column: span 3"><h2>Tosk at 160 / 96</h2>
+    <div class="row"><img src="tosk.svg" width="160" height="160"><img src="tosk-mono.svg" width="160" height="160" style="background:#fff"></div>
+    <div class="row" style="margin-top:10px"><img src="tosk.svg" width="96" height="96"><img src="tosk-mono.svg" width="96" height="96" style="background:#fff"><img src="branch-tile.svg" width="96" height="96"><img src="branch-tile-mono.svg" width="96" height="96" style="background:#fff"></div>
+    <div class="row" style="margin-top:10px"><img src="yggdrasil.svg" width="120"><img src="yggdrasil-mono.svg" width="120" style="background:#fff"></div>
+  </div>
+</div>
+</body></html>

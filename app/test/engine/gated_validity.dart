@@ -84,6 +84,10 @@ class Knowledge {
     TransformExercise() => (byId(e.sentenceId), const []),
     SentenceBuilderExercise() => (byId(e.sentenceId), const []),
     MultipleChoiceExercise(isSentence: true, direction: Direction.recognize) => (byText[e.prompt], const []),
+    ListenPickExercise(isSentence: true) => (
+        byId(e.sentenceId),
+        [for (final (i, o) in e.options.indexed) if (i != e.correctIndex && byText[o] != null) byText[o]!],
+      ),
     MultipleChoiceExercise(isSentence: true) => (
         byText[e.options[e.correctIndex]],
         [for (final (i, o) in e.options.indexed) if (i != e.correctIndex && byText[o] != null) byText[o]!],
@@ -119,7 +123,8 @@ bool isSentenceExercise(Exercise e) =>
     e is SpotErrorExercise ||
     e is TransformExercise ||
     e is SentenceBuilderExercise ||
-    (e is MultipleChoiceExercise && e.isSentence);
+    (e is MultipleChoiceExercise && e.isSentence) ||
+    (e is ListenPickExercise && e.isSentence);
 
 class GatedReport {
   final List<String> failures = [];
@@ -164,7 +169,7 @@ void runGatedValidity(
         if (usable.isEmpty) continue;
         GenContext ctx(int i, SkillFacet f) => GenContext(
               course: course,
-              options: SessionOptions(sourceLang: l),
+              options: SessionOptions(sourceLang: l, listening: true),
               random: Random(i * 131 + skillId.hashCode),
               states: {
                 if (i % 3 == 1) f.facetId: _state(f.facetId, 2, now),

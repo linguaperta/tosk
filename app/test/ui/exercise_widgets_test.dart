@@ -294,6 +294,7 @@ void main() {
         VoidCallback? onSubmitted,
         bool enabled = true,
         String? hintText,
+        String? preContext,
       }) => _FakeInk(onChanged: onChanged);
       final p = Probe();
       await host(tester, ClozeView(exercise: e, onChanged: p.onChanged, inputBuilder: builder));

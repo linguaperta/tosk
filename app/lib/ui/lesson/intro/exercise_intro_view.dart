@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../../brand/tosk.dart';
 import '../../../core/core.dart';
 import '../../settings/app_settings.dart' show exerciseTypeIcon;
 import '../../theme/bw_skin.dart';
+import '../../theme/tosk_palette.dart';
 import 'exercise_intros.dart';
 
 /// One screen explaining an exercise type: icon, title, what to do, a small
@@ -76,8 +78,11 @@ class ExerciseIntroContent extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(intro.title, key: const ValueKey('intro-title'), style: theme.textTheme.headlineSmall),
+              child: Text(intro.title, key: const ValueKey('intro-title'), style: theme.textTheme.serifHeadline),
             ),
+            const SizedBox(width: 8),
+            // Tosk explains.
+            const ToskImage(pose: ToskPose.pointing, height: 72),
           ],
         ),
         const SizedBox(height: 16),

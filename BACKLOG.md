@@ -147,11 +147,23 @@ Each item says what "done" means. Add newly discovered work at the bottom of its
 - [x] First-time intro for every exercise type, re-openable via (?)
 - [x] Transform renamed "Change the tense" / "Change the person", with a from → to chip
 
-## v0.7: accounts and sync (proposed, awaiting user decision)
+## Paused 14 October (usage); work in progress, uncommitted, in local worktrees
 
-- [ ] Firebase: Google sign-in, Firestore per-user answer log (union merge, offline-first, per-event UTC offset, future-timestamp clamp), settings last-writer-wins, "Delete my cloud data"
-- [ ] Firebase Hosting: web app + pack mirror (fixes web CORS); GitHub Actions for tests, web deploy, and release APK/Windows builds
-- [ ] Decide on the name and domain ("tosk" is close to the Duolingo trademark)
+Resume by asking Claude to continue these. Worktrees live under `.claude/worktrees/` in the main checkout:
+- `agent-a4b8843896e5d5aa5`: v0.4 bookmarks, stats/forecast, AI conversation (was building the bookmarks UI)
+- `agent-a3b91cacf2e5268e6`: v0.7 Firebase sync, Hosting, CI, PWA (was writing the sync interfaces, models and progress repo)
+- `agent-aee040951f04bbd11`: v0.6 Spanish pilot (content largely done and pushed to tosk-data `content/es`; was running the Flutter tests)
+- [x] v0.5.3: fixed the Android start-up crash in 0.5.0–0.5.2 (WorkManager 2.7.0 + Room 2.2.5 from ML Kit/Onyx → pinned work-runtime 2.11.2). Crash reporter on next start; Onyx SDK lazy with a native-crash guard
+- [ ] Map: the floating "Review mistakes" / "What's fading" buttons cover skill nodes on phones (move into the header or a bottom bar)
+- [ ] Add a release-build smoke test to CI/checks: install and launch the release APK on an emulator or device (the 0.5.0 crash only showed in release builds on a real device)
+- [x] v0.5 handwriting (ML Kit + Onyx pen SDK), e-ink full refresh, listen_pick, pronunciation buttons; preview 5 (v0.5.0). Needs on-device testing: see `docs/device-testing.md`
+
+## v0.7: accounts and sync (approved 14 October: Firebase, everything free)
+
+- [~] Firebase: Google sign-in, Firestore per-user answer log (union merge, offline-first, per-event UTC offset, future-timestamp clamp), settings last-writer-wins, "Delete my cloud data"
+- [~] Firebase Hosting: web app + pack mirror (fixes web CORS); GitHub Actions for tests, web deploy, and release APK/Windows builds
+- [~] iOS for free: PWA (Add to Home Screen) as the default; unsigned IPA from CI for AltStore/SideStore (7-day re-signing with a free Apple ID)
+- [-] Own domain: not now (free → `<project>.web.app`). Name stays "tosk" while personal; rename before any public listing (Duolingo trademark)
 
 ## v0.4 (in progress, started 14 October)
 
@@ -183,10 +195,36 @@ Each one at the expanded it/nl scale: 8–10 units, ~30 skills, ~1000 taught wor
 - [ ] Danish (`da`)
 - [ ] `index.json` listing all courses (the course picker itself is in v0.3)
 
+## v0.6.x: user testing (15 October)
+
+- [ ] **Listening exercises are silent on the phone** (no audio from listen_pick or pronounce buttons). Investigate: TTS engine availability and language on the device (FP5, Android 15), the flutter_tts init, the audio focus/stream, the `<queries>` TTS_SERVICE entry, and the voice check. Deferred by the user to save tokens
+- [ ] All app audio (TTS, correct/wrong/fanfare sounds) on the **media** stream (`USAGE_MEDIA`, controlled by the media volume like YouTube/music apps), not the general/notification stream as now. Set the audio attributes for the sound player and flutter_tts (Android `AudioAttributes`, iOS playback category). Check it together with the silent-TTS bug above; the wrong stream may be part of the cause
+- [x] "Can't listen now (skip for 1 hour)" button on listening exercises: snoozes listen_pick (skipped in running sessions, not generated in new ones); in memory, so a restart ends it
+
+## Branding: tosk (decided 14 October)
+
+- [x] Name **tosk** (after Ratatosk), GitHub org **linguaperta**, mascot Tosk the red squirrel; course paths are branches of Yggdrasil (light on Norse props)
+- [x] Style explorations (8 styles, Fable agents) in `app/assets/brand/explore/`; **storybook** chosen; Tosk **variant c**; wordmark Gelasio Bold as paths (OFL)
+- [x] Sparklier gold, silver and bronze node states (rings, rays, twinkles; animated only with motion on)
+- [x] Map art kit: branch segment, fork and join pieces, an optional trunk spine, node states, leaves, a Tosk position marker (colour + e-ink). Decide top-down vs bottom-up (roots first) scrolling
+- [x] In-app branding (v0.6.0): app name "tosk", launcher icons (adaptive Android, iOS, web, Windows) from the storybook icon, splash, Tosk on empty states and the summary, a wordmark in the header
+- [ ] Rename repos/package ids when the owner is ready (tosk → tosk, linguaperta org)
+
+## v0.8: pack toolkit (the pack format is the product; see docs/VISION.md)
+
+- [ ] Publish the pack format as a versioned spec (`docs/pack-format.md`) from schema/course_db.sql, the JSON schemas and the conventions
+- [ ] Pipeline as a reusable toolkit (`pack` CLI, pip-installable): `new`, generic importers, `validate` / `build` / `publish`
+- [ ] Move source-specific importers for copyrighted sources (Sarnami [source], [source]�, [source]) into a private module or repo before any repo goes public
+- [ ] Extension packs: `extends: <course> >= <version>`, reuse of base item IDs (shared progress), a base-pack check in the app
+- [ ] `pack from-text <book>`: lemmatise with the base course tables, per-chapter frequency, drop known words (from an exported progress log), chapter units, sentences from the text, AI glosses for missing/dialect words (labelled), reading readiness per chapter. First target: Montalbano (Camilleri, Sicilian vigatese)
+- [ ] `pack draft --ai`: AI drafts (glosses, sentences, tables, notes), always `src: claude-*`
+- [ ] App: custom catalog URLs (any index.json); the course preview shows license, sources and authors; reading readiness view for book packs
+- [ ] Claude Code skill: "make a pack for this book / language"
+
 ## Later (not v1)
 
 - [x] Phase 6: Sarnami (`hns`): 9 units, 35 skills, 394 taught words, 742 verb tables, 3,004 sentences. Sources: [source] dictionary, [source] 1991, [source]� 1985 (checking), [source], NT (checking only), plus Claude-drafted/generated material, with per-record `src` and a SOURCES manifest. Local-only (copyright), unverified; see `docs/sarnami.md`.
 - [ ] Sarnami: review by a speaker (open questions in `docs/sarnami.md`); [source]�'s past habitual/conditional not modelled; [source] readers blocked by a bot challenge
 - [-] Phase 7: `GitHubPackSource`, `DriveSyncBackend`. Interfaces only in v1.
-- [ ] v0.5: ink `AnswerInput` (ML Kit Digital Ink) + Onyx pen SDK behind an ONYX device check (user approved, 14 October); e-ink full refresh; listen_pick with on-device TTS. The AI explainer and the B/W e-ink mode moved up to v0.3.
+- [x] v0.5: ink `AnswerInput` (ML Kit Digital Ink) + Onyx pen SDK behind an ONYX device check (user approved, 14 October); e-ink full refresh; listen_pick with on-device TTS. The AI explainer and the B/W e-ink mode moved up to v0.3.
 - [-] `listen_pick` exercise (needs audio/TTS)

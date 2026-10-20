@@ -8,6 +8,7 @@ import '../routes.dart';
 import '../shell/course_switcher.dart';
 import '../slots/progression_slots.dart';
 import '../stories/story_providers.dart';
+import 'branch_style.dart';
 import 'skill_map_view.dart';
 import 'skill_stats.dart';
 
@@ -144,6 +145,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   now: now,
                   zoom: _zoom,
                   reduceMotion: reduceMotion,
+                  twinkle: ref.watch(twinkleProvider),
+                  branchStyle: ref.watch(branchStyleProvider),
                   // A tap opens the skill's sheet first: what it is, the
                   // learner's tier and what the next one needs, then Start
                   // lesson, Test out, the grammar note and the word list

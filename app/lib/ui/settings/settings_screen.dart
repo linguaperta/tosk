@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../theme/tosk_palette.dart';
+import '../../app_version.dart';
+import '../brand/tosk.dart';
 import '../../core/core.dart';
 import '../../providers.dart';
 import '../common/async_view.dart';
@@ -14,6 +17,7 @@ import 'answer_input_section.dart';
 import 'app_settings.dart';
 import 'backup_section.dart';
 import 'daily_goal_section.dart';
+import 'device_section.dart';
 
 /// Settings, persisted through the progress store (see `setting_keys.dart`).
 class SettingsScreen extends ConsumerWidget {
@@ -178,6 +182,14 @@ class SettingsScreen extends ConsumerWidget {
                     onTap: () => context.push(Routes.flags),
                   ),
                   const _Section('About'),
+                  const Padding(
+                    key: ValueKey('about-brand'),
+                    padding: EdgeInsets.fromLTRB(16, 4, 16, 8),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: BrandLockup(caption: 'Version $kAppVersion · free and offline-first'),
+                    ),
+                  ),
                   if (meta != null && meta.attribution.isNotEmpty)
                     ListTile(
                       leading: const Icon(Icons.info_outline),
@@ -212,6 +224,7 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                   // v0.3 practice extras (their own settings and widgets).
                   const AnswerInputSection(),
+                  const DeviceSection(),
                   const DailyGoalSection(),
                   const BackupSection(),
                 ],
@@ -233,7 +246,7 @@ class _Section extends StatelessWidget {
     padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
     child: Text(
       title,
-      style: Theme.of(context).textTheme.labelLarge?.copyWith(color: Theme.of(context).colorScheme.primary),
+      style: Theme.of(context).textTheme.serifSection?.copyWith(color: Theme.of(context).colorScheme.primary),
     ),
   );
 }

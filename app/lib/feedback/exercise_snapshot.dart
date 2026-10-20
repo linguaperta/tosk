@@ -100,6 +100,15 @@ Map<String, Object?> exerciseToJson(Exercise e) {
       if (e.fromLabel != null) 'from_label': e.fromLabel,
       if (e.toLabel != null) 'to_label': e.toLabel,
     },
+    ListenPickExercise() => {
+      'text': e.text,
+      'language_code': e.languageCode,
+      'options': e.options,
+      'correct_index': e.correctIndex,
+      'is_sentence': e.isSentence,
+      'translation': e.translation,
+      'sentence_id': e.sentenceId,
+    },
   };
   return {...base, ...specific, 'facet_ids': e.facetIds};
 }
@@ -251,6 +260,19 @@ Exercise exerciseFromJson(Map<String, Object?> j) {
       fromLabel: j['from_label'] as String?,
       toLabel: j['to_label'] as String?,
     ),
+    'listen_pick' => ListenPickExercise(
+      id: id,
+      facetId: facetId,
+      skillId: skillId,
+      instruction: instruction,
+      text: req('text'),
+      languageCode: req('language_code'),
+      options: strings('options'),
+      correctIndex: req('correct_index'),
+      isSentence: (j['is_sentence'] as bool?) ?? true,
+      translation: j['translation'] as String?,
+      sentenceId: j['sentence_id'] as String?,
+    ),
     _ => throw FormatException('Exercise snapshot: unknown type "$type"', j),
   };
 }
@@ -266,6 +288,7 @@ List<String> exerciseChoices(Exercise e) => switch (e) {
   ClozeExercise() => e.options ?? const [],
   SpotErrorExercise() => e.tokens,
   TransformExercise() => e.tiles,
+  ListenPickExercise() => e.options,
 };
 
 /// Accepted answers besides the canonical one, as display strings.
@@ -286,5 +309,6 @@ String? exerciseSentenceId(Exercise e) => switch (e) {
   ClozeExercise() => e.sentenceId,
   SpotErrorExercise() => e.sentenceId,
   TransformExercise() => e.sentenceId,
+  ListenPickExercise() => e.sentenceId,
   _ => null,
 };

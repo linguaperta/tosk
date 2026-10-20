@@ -1,3 +1,5 @@
+import 'device/crash_report.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
@@ -14,6 +16,8 @@ const _dataDirOverride = String.fromEnvironment('TOSK_DATA_DIR');
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await installCrashLogging();
+  final crash = await takeCrashReport();
 
   // Real data: the progress database, course packs (falling back to the demo
   // courses while none is installed) and the FSRS scheduler.
@@ -30,5 +34,12 @@ Future<void> main() async {
     debugPrint('Could not open the data layer, running without persistence: $e\n$st');
   }
 
-  runApp(ProviderScope(retry: (_, _) => null, overrides: overrides, child: const ToskApp()));
+  const app = ToskApp();
+  runApp(
+    ProviderScope(
+      retry: (_, _) => null,
+      overrides: overrides,
+      child: crash == null ? app : CrashReportGate(report: crash, child: app),
+    ),
+  );
 }

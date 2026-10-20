@@ -401,6 +401,48 @@ class TransformExercise extends Exercise {
   ExerciseType get type => ExerciseType.transform;
 }
 
+/// Listen and pick (v0.5): the UI speaks [text] with on-device
+/// text-to-speech in [languageCode]; the learner picks what they heard among
+/// target-language [options] (sentences, or words when [isSentence] is
+/// false). Trains `#rec`. The prompt is audio only: the UI never shows
+/// [text] before the answer is checked.
+@immutable
+class ListenPickExercise extends Exercise {
+  const ListenPickExercise({
+    required super.id,
+    required super.facetId,
+    super.skillId,
+    super.instruction,
+    required this.text,
+    required this.languageCode,
+    required this.options,
+    required this.correctIndex,
+    this.isSentence = true,
+    this.translation,
+    this.sentenceId,
+    this.tokens,
+  });
+
+  /// What to speak (the correct option).
+  final String text;
+
+  /// The course's target language (`CourseMeta.target`, BCP-47 base code);
+  /// the UI picks a voice for it.
+  final String languageCode;
+  final List<String> options;
+  final int correctIndex;
+  final bool isSentence;
+
+  /// Meaning of [text] in the source language, shown after checking.
+  final String? translation;
+  final String? sentenceId;
+
+  /// Tokens of [text] (tap-for-gloss after checking), sentence variant only.
+  final List<TokenRef>? tokens;
+  @override
+  ExerciseType get type => ExerciseType.listenPick;
+}
+
 // ---------------------------------------------------------------- answers
 
 @immutable
@@ -440,8 +482,12 @@ class MatchAnswer extends Answer {
 }
 
 class GridAnswer extends Answer {
-  const GridAnswer(this.cells, {super.inputMode});
+  const GridAnswer(this.cells, {super.inputMode, this.candidates = const []});
   final List<String> cells; // one per cell, '' for prefilled
+
+  /// Recognizer alternatives per cell (ink), parallel to [cells] when not
+  /// empty: a cell is accepted if its text or any of its candidates matches.
+  final List<List<String>> candidates;
 }
 
 class TilesAnswer extends Answer {

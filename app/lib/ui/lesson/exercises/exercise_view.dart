@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/core.dart';
 import '../../../providers.dart';
+import '../../../speech/speech_providers.dart';
+import '../../ink/ink_providers.dart';
 import '../../settings/learner_settings.dart' show typingModeProvider;
 import '../typing.dart';
 import 'cloze_view.dart';
@@ -10,12 +12,16 @@ import 'common.dart';
 import 'conj_grid_view.dart';
 import 'conj_pick_view.dart';
 import 'flashcard_view.dart';
+import 'listen_pick_view.dart';
 import 'match_pairs_view.dart';
 import 'multiple_choice_view.dart';
 import 'spot_error_view.dart';
 import 'tile_builder_views.dart';
 
 export 'common.dart' show ExerciseKeys;
+
+/// How production exercises take answers (Settings → Answer input).
+enum AnswerMode { tap, type, ink }
 
 /// Types that submit themselves (no Check button).
 bool selfSubmitting(ExerciseType t) => t == ExerciseType.flashcard || t == ExerciseType.matchPairs;
@@ -47,21 +53,28 @@ class ExerciseView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final reduce = ref.watch(reduceMotionProvider);
-    // Typing ("challenge") mode: production types take typed answers.
-    final typed = ref.watch(typingModeProvider);
+    // Typing ("challenge") mode and handwriting: production types take
+    // typed or handwritten answers.
+    final mode = ref.watch(inkModeProvider)
+        ? AnswerMode.ink
+        : ref.watch(typingModeProvider)
+        ? AnswerMode.type
+        : AnswerMode.tap;
     final tick = onSelect;
     // Draft changes from taps (choices, tiles, tokens, grid cells) tick;
-    // typed text doesn't.
+    // typed and handwritten text doesn't.
     final ValueChanged<Answer?> onChanged = tick == null
         ? this.onChanged
         : (a) {
-            if (a is! TextAnswer && !typed) tick();
+            if (a is! TextAnswer && mode == AnswerMode.tap) tick();
             this.onChanged(a);
           };
-    return AccentLetters(letters: ref.watch(accentLettersProvider), child: _view(ref, reduce, typed, onChanged));
+    return AccentLetters(letters: ref.watch(accentLettersProvider), child: _view(ref, reduce, mode, onChanged));
   }
 
-  Widget _view(WidgetRef ref, bool reduce, bool typed, ValueChanged<Answer?> onChanged) {
+  Widget _view(WidgetRef ref, bool reduce, AnswerMode mode, ValueChanged<Answer?> onChanged) {
+    final typed = mode == AnswerMode.type;
+    final ink = mode == AnswerMode.ink;
     return switch (exercise) {
       FlashcardExercise e => FlashcardView(
         exercise: e,
@@ -95,6 +108,7 @@ class ExerciseView extends ConsumerWidget {
         reduceMotion: reduce,
         onCheck: onCheck,
         typed: typed,
+        ink: ink,
       ),
       ConjGridExercise e => ConjGridView(
         exercise: e,
@@ -104,6 +118,7 @@ class ExerciseView extends ConsumerWidget {
         reduceMotion: reduce,
         onCheck: onCheck,
         typed: typed,
+        ink: ink,
       ),
       SentenceBuilderExercise e => SentenceBuilderView(
         exercise: e,
@@ -113,6 +128,7 @@ class ExerciseView extends ConsumerWidget {
         reduceMotion: reduce,
         onCheck: onCheck,
         typed: typed,
+        ink: ink,
       ),
       ClozeExercise e => ClozeView(
         exercise: e,
@@ -122,7 +138,7 @@ class ExerciseView extends ConsumerWidget {
         keys: keys,
         reduceMotion: reduce,
         inputBuilder: ref.watch(answerInputBuilderProvider),
-        typed: typed,
+        typed: typed || ink,
       ),
       SpotErrorExercise e => SpotErrorView(
         exercise: e,
@@ -139,6 +155,15 @@ class ExerciseView extends ConsumerWidget {
         reduceMotion: reduce,
         onCheck: onCheck,
         typed: typed,
+        ink: ink,
+      ),
+      ListenPickExercise e => ListenPickView(
+        exercise: e,
+        onChanged: onChanged,
+        result: result,
+        keys: keys,
+        reduceMotion: reduce,
+        speaker: ref.watch(speakerProvider),
       ),
     };
   }

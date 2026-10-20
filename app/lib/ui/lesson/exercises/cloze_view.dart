@@ -197,6 +197,7 @@ class _ClozeViewState extends State<ClozeView> with ExerciseKeysMixin<ClozeView>
             widget.inputBuilder(
               enabled: !widget.locked,
               hintText: 'Type the missing word',
+              preContext: e.before,
               onChanged: (answer) {
                 setState(() => _typed = answer?.text.trim() ?? '');
                 widget.onChanged(answer);

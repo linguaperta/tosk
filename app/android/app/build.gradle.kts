@@ -46,6 +46,8 @@ android {
     packaging {
         jniLibs {
             useLegacyPackaging = true
+            // The Onyx pen SDK ships its own copy of the C++ runtime.
+            pickFirsts += "**/libc++_shared.so"
         }
     }
 
@@ -62,6 +64,8 @@ android {
 
     buildTypes {
         release {
+            // Keep rules for the Onyx SDK (reflection into the e-reader framework).
+            proguardFiles("proguard-rules.pro")
             signingConfig = if (keystorePropertiesFile.exists()) {
                 signingConfigs.getByName("release")
             } else {
@@ -83,4 +87,22 @@ flutter {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    // ML Kit (handwriting) and the Onyx SDK drag in WorkManager 2.7.0 + Room
+    // 2.2.5, which crash at app start on current Android/R8 ("Failed to create
+    // an instance of androidx.work.impl.WorkDatabase", v0.5.0-0.5.2). Pin a
+    // current WorkManager, which brings a matching Room.
+    implementation("androidx.work:work-runtime:2.11.2")
+    // Onyx (Boox) SDK, used only on ONYX devices behind a Build.MANUFACTURER
+    // check (OnyxBridge.kt): low-latency pen raw drawing (TouchHelper) and
+    // full e-ink refreshes (EpdController). Repository: repo.boox.com.
+    implementation("com.onyx.android.sdk:onyxsdk-pen:1.5.8") {
+        // Pre-AndroidX permission helper (JCenter era) that drags in the old
+        // support library, which clashes with AndroidX. The pen and EPD code
+        // paths don't ask for permissions.
+        exclude(group = "pub.devrel", module = "easypermissions")
+        exclude(group = "com.android.support")
+    }
+    implementation("com.onyx.android.sdk:onyxsdk-device:1.3.6")
+    // The SDK calls Onyx framework APIs that Android 9+ hides from apps.
+    implementation("org.lsposed.hiddenapibypass:hiddenapibypass:6.1")
 }

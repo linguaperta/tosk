@@ -37,6 +37,7 @@ const Set<ExerciseType> kAssessmentTypes = {
   ExerciseType.cloze,
   ExerciseType.spotError,
   ExerciseType.transform,
+  ExerciseType.listenPick,
 };
 
 /// Production-leaning types per facet kind, tried first in an assessment.

@@ -28,9 +28,12 @@ import 'data/progress/in_memory_progress_store.dart';
 import 'data/stats/skill_stats.dart' as data;
 import 'engine/engine.dart' show CourseIndex, EngineSessionFactory, FocusPresets, OpenMistake, openMistakes;
 import 'progression/progression.dart';
+import 'speech/speech_providers.dart';
 import 'ui/common/fx.dart';
 import 'ui/course_catalog.dart';
 import 'ui/demo/demo_courses.dart';
+import 'ui/ink/ink_answer_input.dart';
+import 'ui/ink/ink_providers.dart';
 import 'ui/lesson/answer_input.dart';
 import 'ui/map/map_layout.dart';
 import 'ui/map/skill_stats.dart';
@@ -108,9 +111,14 @@ final fxProvider = Provider<Fx>(
   (ref) => Fx(enabled: !ref.watch(settingsProvider.select((s) => s.value?.reduceMotion ?? false))),
 );
 
-/// Visual skin (theme + map style): black & white for e-ink, else the default.
-/// A forest skin can come later.
-final skinProvider = Provider<Skin>((ref) => ref.watch(bwProvider) ? const BwSkin() : const DefaultSkin());
+/// Visual skin (theme + map style): black & white for e-ink, else tosk's
+/// storybook look. Another skin can come later.
+final skinProvider = Provider<Skin>((ref) => ref.watch(bwProvider) ? const BwSkin() : const ToskSkin());
+
+/// Whether the map's medal twinkles animate: motion on, and never under
+/// `flutter test` (a repeating animation would never settle; tests that want
+/// it override this).
+final twinkleProvider = Provider<bool>((ref) => !ref.watch(reduceMotionProvider) && !runningInFlutterTest);
 
 // ------------------------------------------------------------------ course
 
@@ -242,9 +250,15 @@ final sessionOptionsProvider = Provider<SessionOptions>(
   (ref) => SessionOptions(
     sourceLang: ref.watch(sourceLangProvider),
     accents: ref.watch(settingsProvider.select((s) => s.value?.accents ?? AccentStrictness.lenient)),
-    // Typing ("challenge") mode: cloze takes free text (other production
-    // types switch to typed input in the UI).
-    preferredInput: ref.watch(typingModeProvider) ? InputMode.keyboard : InputMode.tap,
+    // Typing ("challenge") mode and handwriting: cloze takes free text
+    // (other production types switch to typed or handwritten input in the UI).
+    preferredInput: ref.watch(inkModeProvider)
+        ? InputMode.ink
+        : ref.watch(typingModeProvider)
+        ? InputMode.keyboard
+        : InputMode.tap,
+    // listen_pick only with a voice for the course language (v0.5).
+    listening: ref.watch(listeningProvider),
   ),
 );
 
@@ -266,6 +280,8 @@ final sessionFactoryProvider = FutureProvider<SessionFactory>((ref) async {
   final course = await ref.watch(courseDataProvider.future);
   await ref.watch(settingsProvider.future);
   await ref.watch(learnerSettingsProvider.future);
+  // Whether the device can speak the course language (listen_pick).
+  await ref.watch(courseVoiceProvider.future).timeout(const Duration(seconds: 3), onTimeout: () => false);
   final presets = await ref.watch(focusPresetsProvider.future);
   return EngineSessionFactory(
     course: course,
@@ -284,8 +300,11 @@ final explainerProvider = Provider<Explainer>((ref) => ref.watch(aiExplainerProv
 
 final explainerAvailableProvider = Provider<bool>((ref) => ref.watch(explainerProvider).isAvailable);
 
-/// Free-text input widget: keyboard now, handwriting later.
-final answerInputBuilderProvider = Provider<AnswerInputBuilder>((ref) => keyboardAnswerInputBuilder);
+/// Free-text input widget: the keyboard, or the handwriting pad when
+/// "Answer input: Handwrite" is on (and supported here).
+final answerInputBuilderProvider = Provider<AnswerInputBuilder>(
+  (ref) => ref.watch(inkModeProvider) ? inkAnswerInputBuilder : keyboardAnswerInputBuilder,
+);
 
 // ------------------------------------------------------------------ progression
 

@@ -243,6 +243,47 @@ SKILL greetings (vocab)  Greetings
   "Hello. Are you Jackie Scott?"
   *Buongiorno  |   Prego  |   Grazie  |   Scusa
 
+--- listen_pick: 8 example(s)
+[listen_pick] it:no#rec  (skill greetings)
+  Which word do you hear?
+  (speak, it) no   "no"
+   come  |  *no  |   ni  |   non
+
+[listen_pick] it:bene.2#rec  (skill greetings)
+  Which word do you hear?
+  (speak, it) bene   "well"
+   no  |   male  |  *bene  |   infine
+
+[listen_pick] it:sì.2#rec  (skill greetings)
+  Which word do you hear?
+  (speak, it) sì   "yes"
+   solo  |  *sì  |   sodo  |   così
+
+[listen_pick] it:ciao#rec  (skill greetings)
+  Which word do you hear?
+  (speak, it) ciao   "hi"
+   grazie  |   prego  |   arrivederci  |  *ciao
+
+[listen_pick] it:come#rec  (skill greetings)
+  Which word do you hear?
+  (speak, it) come   "how"
+   così  |   eccome  |   ce  |  *come
+
+[listen_pick] it:signore#rec  (skill greetings)
+  Which word do you hear?
+  (speak, it) signore   "gentleman"
+   signora  |   madre  |  *signore  |   straniero
+
+[listen_pick] it:grazie.2#rec  (skill greetings)
+  Which word do you hear?
+  (speak, it) grazie   "thank you"
+   prego  |   arrivederci  |   ciao  |  *grazie
+
+[listen_pick] it:buongiorno#rec  (skill greetings)
+  Which word do you hear?
+  (speak, it) buongiorno   "good morning"
+   grazie  |   buonanotte  |   buonasera  |  *buongiorno
+
 ========================================================================
 SKILL little-words (vocab)  Little words
 ========================================================================
@@ -482,6 +523,47 @@ SKILL little-words (vocab)  Little words
   Sembra essere forte e ___ salute.   (to)
   "He appears to be strong and healthy."
    da  |  *in  |   di  |   con
+
+--- listen_pick: 8 example(s)
+[listen_pick] it:e#rec  (skill little-words)
+  Which word do you hear?
+  (speak, it) e   "and"
+   quando  |  *e  |   dove  |   ma
+
+[listen_pick] it:non#rec  (skill little-words)
+  Which word do you hear?
+  (speak, it) non   "not"
+   no  |  *non  |   ni  |   lì
+
+[listen_pick] it:uno.3#rec  (skill little-words)
+  Which word do you hear?
+  (speak, it) uno   "a"
+  *uno  |   no  |   quale  |   meno
+
+[listen_pick] it:che#rec  (skill little-words)
+  Which word do you hear?
+  (speak, it) che   "that"
+   dove  |  *che  |   o  |   perché
+
+[listen_pick] it:di#rec  (skill little-words)
+  Which word do you hear?
+  (speak, it) di   "of"
+   dopo  |   dal  |   del  |  *di
+
+[listen_pick] it:a#rec  (skill little-words)
+  Which word do you hear?
+  (speak, it) a   "to"
+   di  |   con  |   al  |  *a
+
+[listen_pick] it:per#rec  (skill little-words)
+  Which word do you hear?
+  (speak, it) per   "for"
+   più  |   con  |   di  |  *per
+
+[listen_pick] it:in#rec  (skill little-words)
+  Which word do you hear?
+  (speak, it) in   "in"
+   con  |   da  |  *in  |   di
 
 ========================================================================
 SKILL people (vocab)  People
@@ -723,6 +805,47 @@ SKILL people (vocab)  People
   L'___ giovane abita in una casa vecchia.   (man)
   "The young man lives in an old house."
    madre  |   figlia  |   padre  |  *uomo
+
+--- listen_pick: 8 example(s)
+[listen_pick] it:io#rec  (skill people)
+  Which word do you hear?
+  (speak, it) io   "I"
+   lui  |   mio  |   ciò  |  *io
+
+[listen_pick] it:tu#rec  (skill people)
+  Which word do you hear?
+  (speak, it) tu   "you"
+   lui  |  *tu  |   loro  |   noi
+
+[listen_pick] it:lei#rec  (skill people)
+  Which word do you hear?
+  (speak, it) lei   "she"
+  *lei  |   li  |   lui  |   lo
+
+[listen_pick] it:lui#rec  (skill people)
+  Which word do you hear?
+  (speak, it) lui   "he"
+  *lui  |   lei  |   loro  |   li
+
+[listen_pick] it:noi#rec  (skill people)
+  Which word do you hear?
+  (speak, it) noi   "we"
+   nulla  |   voi  |   ne  |  *noi
+
+[listen_pick] it:loro#rec  (skill people)
+  Which word do you hear?
+  (speak, it) loro   "they"
+  *loro  |   altro  |   vostro  |   lui
+
+[listen_pick] it:persona#rec  (skill people)
+  Which word do you hear?
+  (speak, it) persona   "person"
+  *persona  |   donna  |   padre  |   bambina
+
+[listen_pick] it:uomo#rec  (skill people)
+  Which word do you hear?
+  (speak, it) uomo   "man"
+   uscita  |  *uomo  |   ultimo  |   primo
 
 ========================================================================
 SKILL essere-avere (grammar)  Essere and avere
@@ -1203,6 +1326,47 @@ SKILL food (vocab)  Food and drink
   "I prefer coffee without sugar."
    zucchero  |  *caffè  |   formaggio  |   mela
 
+--- listen_pick: 8 example(s)
+[listen_pick] it:buono#rec  (skill food)
+  Which word do you hear?
+  (speak, it) buono   "good"
+   bello  |  *buono  |   piano  |   carino
+
+[listen_pick] it:acqua#rec  (skill food)
+  Which word do you hear?
+  (speak, it) acqua   "water"
+  *acqua  |   argento  |   anno  |   attimo
+
+[listen_pick] it:cibo#rec  (skill food)
+  Which word do you hear?
+  (speak, it) cibo   "food"
+   cena  |   carne  |  *cibo  |   caffè
+
+[listen_pick] it:birra#rec  (skill food)
+  Which word do you hear?
+  (speak, it) birra   "beer"
+   verdura  |   lettera  |   borsa  |  *birra
+
+[listen_pick] it:vino#rec  (skill food)
+  Which word do you hear?
+  (speak, it) vino   "wine"
+   divano  |  *vino  |   vagina  |   treno
+
+[listen_pick] it:carne#rec  (skill food)
+  Which word do you hear?
+  (speak, it) carne   "meat"
+   caffè  |   pane  |  *carne  |   cena
+
+[listen_pick] it:pesce#rec  (skill food)
+  Which word do you hear?
+  (speak, it) pesce   "fish"
+   pane  |  *pesce  |   pranzo  |   pollo
+
+[listen_pick] it:caffè#rec  (skill food)
+  Which word do you hear?
+  (speak, it) caffè   "coffee"
+   carne  |   cena  |   cibo  |  *caffè
+
 ========================================================================
 SKILL numbers (vocab)  Numbers
 ========================================================================
@@ -1443,6 +1607,47 @@ SKILL numbers (vocab)  Numbers
   Mio cugino ha già ___ anni.   (four)
   "My cousin is already four years old."
    cinque  |  *quattro  |   nove  |   undici
+
+--- listen_pick: 8 example(s)
+[listen_pick] it:uno.3#rec  (skill numbers)
+  Which word do you hear?
+  (speak, it) uno   "a"
+   meno  |  *uno  |   quale  |   no
+
+[listen_pick] it:due#rec  (skill numbers)
+  Which word do you hear?
+  (speak, it) due   "two"
+   cento  |  *due  |   dieci  |   cinquanta
+
+[listen_pick] it:tre#rec  (skill numbers)
+  Which word do you hear?
+  (speak, it) tre   "three"
+   quaranta  |   nove  |  *tre  |   zero
+
+[listen_pick] it:sei#rec  (skill numbers)
+  Which word do you hear?
+  (speak, it) sei   "six"
+   cinque  |   sette  |   cento  |  *sei
+
+[listen_pick] it:primo#rec  (skill numbers)
+  Which word do you hear?
+  (speak, it) primo   "first"
+   pronto  |   ultimo  |  *primo  |   piccolo
+
+[listen_pick] it:numero#rec  (skill numbers)
+  Which word do you hear?
+  (speak, it) numero   "number"
+   carro  |   dollaro  |  *numero  |   nostro
+
+[listen_pick] it:cinque#rec  (skill numbers)
+  Which word do you hear?
+  (speak, it) cinque   "five"
+   dodici  |   venti  |   cento  |  *cinque
+
+[listen_pick] it:quattro#rec  (skill numbers)
+  Which word do you hear?
+  (speak, it) quattro   "four"
+   quaranta  |  *quattro  |   quindici  |   mille
 
 ========================================================================
 SKILL present-are (grammar)  Present tense of -are verbs
@@ -2667,6 +2872,47 @@ SKILL time (vocab)  Time and days
   "He's working on it now, isn't he?"
   *adesso  |   mai  |   tardi  |   prima
 
+--- listen_pick: 8 example(s)
+[listen_pick] it:ora.2#rec  (skill time)
+  Which word do you hear?
+  (speak, it) ora   "hour"
+   ovest  |   sera  |   paura  |  *ora
+
+[listen_pick] it:mai#rec  (skill time)
+  Which word do you hear?
+  (speak, it) mai   "never"
+  *mai  |   mica  |   male  |   ormai
+
+[listen_pick] it:anno#rec  (skill time)
+  Which word do you hear?
+  (speak, it) anno   "year"
+   amico  |  *anno  |   giorno  |   umano
+
+[listen_pick] it:sempre#rec  (skill time)
+  Which word do you hear?
+  (speak, it) sempre   "always"
+  *sempre  |   solo  |   stavolta  |   stasera
+
+[listen_pick] it:tempo#rec  (skill time)
+  Which word do you hear?
+  (speak, it) tempo   "time"
+   lupo  |  *tempo  |   tesoro  |   capo
+
+[listen_pick] it:poi#rec  (skill time)
+  Which word do you hear?
+  (speak, it) poi   "then"
+   sempre  |   presto  |   prima  |  *poi
+
+[listen_pick] it:dopo.2#rec  (skill time)
+  Which word do you hear?
+  (speak, it) dopo   "after"
+   da  |   dentro  |  *dopo  |   dietro
+
+[listen_pick] it:adesso#rec  (skill time)
+  Which word do you hear?
+  (speak, it) adesso   "now"
+   anche  |  *adesso  |   allora  |   ancora
+
 ========================================================================
 SKILL home (vocab)  At home
 ========================================================================
@@ -2907,6 +3153,47 @@ SKILL home (vocab)  At home
   Una mela è sotto il ___.   (table)
   "An apple is under the desk."
    finestra  |  *tavolo  |   cucina  |   stanza
+
+--- listen_pick: 8 example(s)
+[listen_pick] it:casa#rec  (skill home)
+  Which word do you hear?
+  (speak, it) casa   "house"
+   cucina  |  *casa  |   chiave  |   camera
+
+[listen_pick] it:stanza#rec  (skill home)
+  Which word do you hear?
+  (speak, it) stanza   "room"
+  *stanza  |   tazza  |   specchio  |   scala
+
+[listen_pick] it:libro#rec  (skill home)
+  Which word do you hear?
+  (speak, it) libro   "book"
+   muro  |  *libro  |   letto  |   lampada
+
+[listen_pick] it:chiave#rec  (skill home)
+  Which word do you hear?
+  (speak, it) chiave   "key"
+   casa  |   computer  |   cucina  |  *chiave
+
+[listen_pick] it:camera#rec  (skill home)
+  Which word do you hear?
+  (speak, it) camera   "room"
+  *camera  |   coltello  |   cucina  |   finestra
+
+[listen_pick] it:appartamento#rec  (skill home)
+  Which word do you hear?
+  (speak, it) appartamento   "apartment"
+   aggressione  |   prosciutto  |  *appartamento  |   passaporto
+
+[listen_pick] it:computer#rec  (skill home)
+  Which word do you hear?
+  (speak, it) computer   "computer"
+   camera  |  *computer  |   chiave  |   coltello
+
+[listen_pick] it:tavolo#rec  (skill home)
+  Which word do you hear?
+  (speak, it) tavolo   "table"
+  *tavolo  |   tetto  |   telefono  |   coltello
 
 ========================================================================
 SKILL family (vocab)  Family
@@ -3149,6 +3436,47 @@ SKILL family (vocab)  Family
   "Where's your granddaughter?"
    fidanzato  |   genitore  |   nonno  |  *nipote
 
+--- listen_pick: 8 example(s)
+[listen_pick] it:mamma#rec  (skill family)
+  Which word do you hear?
+  (speak, it) mamma   "mum"
+   mondo  |   momento  |   madre  |  *mamma
+
+[listen_pick] it:papà#rec  (skill family)
+  Which word do you hear?
+  (speak, it) papà   "dad"
+   colpa  |   piede  |   punto  |  *papà
+
+[listen_pick] it:matrimonio#rec  (skill family)
+  Which word do you hear?
+  (speak, it) matrimonio   "wedding"
+   montagna  |  *matrimonio  |   omicidio  |   esercizio
+
+[listen_pick] it:genitore#rec  (skill family)
+  Which word do you hear?
+  (speak, it) genitore   "parent"
+   gemello  |   genere  |   signore  |  *genitore
+
+[listen_pick] it:compleanno#rec  (skill family)
+  Which word do you hear?
+  (speak, it) compleanno   "birthday"
+  *compleanno  |   coraggio  |   cervello  |   cellulare
+
+[listen_pick] it:sposato#rec  (skill family)
+  Which word do you hear?
+  (speak, it) sposato   "married"
+   pensato  |   sbagliato  |   aperto  |  *sposato
+
+[listen_pick] it:cugino#rec  (skill family)
+  Which word do you hear?
+  (speak, it) cugino   "cousin"
+  *cugino  |   nonno  |   coltello  |   destino
+
+[listen_pick] it:nipote#rec  (skill family)
+  Which word do you hear?
+  (speak, it) nipote   "grandchild"
+  *nipote  |   nascita  |   parente  |   nonna
+
 ========================================================================
 SKILL everyday-verbs (vocab)  Everyday verbs
 ========================================================================
@@ -3388,6 +3716,47 @@ SKILL everyday-verbs (vocab)  Everyday verbs
   Ho molto da ___ da voi.   (to learn)
   "I've got a lot to learn from you."
   *imparare  |   lavare  |   ricordare  |   preparare
+
+--- listen_pick: 8 example(s)
+[listen_pick] it:aiutare#rec  (skill everyday-verbs)
+  Which word do you hear?
+  (speak, it) aiutare   "to help"
+   imparare  |   camminare  |   comprare  |  *aiutare
+
+[listen_pick] it:portare#rec  (skill everyday-verbs)
+  Which word do you hear?
+  (speak, it) portare   "to bring"
+   giocare  |  *portare  |   vendere  |   aiutare
+
+[listen_pick] it:giocare#rec  (skill everyday-verbs)
+  Which word do you hear?
+  (speak, it) giocare   "to play"
+   imparare  |  *giocare  |   cantare  |   pulire
+
+[listen_pick] it:cominciare#rec  (skill everyday-verbs)
+  Which word do you hear?
+  (speak, it) cominciare   "to begin"
+   ricordare  |   telefonare  |  *cominciare  |   comprare
+
+[listen_pick] it:ricordare#rec  (skill everyday-verbs)
+  Which word do you hear?
+  (speak, it) ricordare   "to remember"
+  *ricordare  |   scendere  |   dimenticare  |   cucinare
+
+[listen_pick] it:comprare#rec  (skill everyday-verbs)
+  Which word do you hear?
+  (speak, it) comprare   "to buy"
+   camminare  |   cominciare  |   pulire  |  *comprare
+
+[listen_pick] it:pagare#rec  (skill everyday-verbs)
+  Which word do you hear?
+  (speak, it) pagare   "to pay"
+   aiutare  |   ballare  |   amare  |  *pagare
+
+[listen_pick] it:imparare#rec  (skill everyday-verbs)
+  Which word do you hear?
+  (speak, it) imparare   "to learn"
+   giocare  |  *imparare  |   insegnare  |   cantare
 
 ========================================================================
 SKILL irregular-present (grammar)  Irregular verbs in the present
@@ -3867,6 +4236,47 @@ SKILL pronouns (grammar)  Object pronouns
   Che ___ dici di domani notte?   (of it, of them, some)
   "How about tomorrow night?"
    ti  |   si  |   mi  |  *ne
+
+--- listen_pick: 8 example(s)
+[listen_pick] it:li#rec  (skill pronouns)
+  Which word do you hear?
+  (speak, it) li   "them"
+   lo  |  *li  |   la  |   lui
+
+[listen_pick] it:mi.2#rec  (skill pronouns)
+  Which word do you hear?
+  (speak, it) mi   "me"
+   te  |   mio  |  *mi  |   vi
+
+[listen_pick] it:si#rec  (skill pronouns)
+  Which word do you hear?
+  (speak, it) si   "oneself"
+   suo  |  *si  |   vi  |   ci
+
+[listen_pick] it:ti.2#rec  (skill pronouns)
+  Which word do you hear?
+  (speak, it) ti   "you"
+   mi  |   ci  |   ne  |  *ti
+
+[listen_pick] it:ci#rec  (skill pronouns)
+  Which word do you hear?
+  (speak, it) ci   "us"
+   cosa  |   ciò  |   che  |  *ci
+
+[listen_pick] it:me#rec  (skill pronouns)
+  Which word do you hear?
+  (speak, it) me   "me"
+   ti  |  *me  |   te  |   mio
+
+[listen_pick] it:te#rec  (skill pronouns)
+  Which word do you hear?
+  (speak, it) te   "you"
+  *te  |   ne  |   ci  |   me
+
+[listen_pick] it:ne#rec  (skill pronouns)
+  Which word do you hear?
+  (speak, it) ne   "of it"
+   te  |   noi  |  *ne  |   vi
 
 ========================================================================
 SKILL modal-verbs (grammar)  Can, must, want: modal verbs
@@ -4655,6 +5065,47 @@ SKILL adjectives (grammar)  Adjectives
   "He is a most important person."
   error: "importanto" -> "importante"
 
+--- listen_pick: 8 example(s)
+[listen_pick] it:vero#rec  (skill adjectives)
+  Which word do you hear?
+  (speak, it) vero   "true"
+   vuoto  |  *vero  |   caro  |   povero
+
+[listen_pick] it:nuovo#rec  (skill adjectives)
+  Which word do you hear?
+  (speak, it) nuovo   "new"
+  *nuovo  |   nato  |   bravo  |   nervoso
+
+[listen_pick] it:grande.2#rec  (skill adjectives)
+  Which word do you hear?
+  (speak, it) grande   "big"
+   giusto  |   giovane  |  *grande  |   gentile
+
+[listen_pick] it:pronto#rec  (skill adjectives)
+  Which word do you hear?
+  (speak, it) pronto   "ready"
+   pieno  |  *pronto  |   lento  |   contento
+
+[listen_pick] it:bello#rec  (skill adjectives)
+  Which word do you hear?
+  (speak, it) bello   "beautiful"
+   piccolo  |   basso  |   brutto  |  *bello
+
+[listen_pick] it:felice#rec  (skill adjectives)
+  Which word do you hear?
+  (speak, it) felice   "happy"
+  *felice  |   forte  |   veloce  |   facile
+
+[listen_pick] it:piccolo#rec  (skill adjectives)
+  Which word do you hear?
+  (speak, it) piccolo   "small"
+  *piccolo  |   pronto  |   povero  |   bello
+
+[listen_pick] it:importante#rec  (skill adjectives)
+  Which word do you hear?
+  (speak, it) importante   "important"
+  *importante  |   divertente  |   immediato  |   impossibile
+
 ========================================================================
 SKILL body (vocab)  Body and health
 ========================================================================
@@ -4894,6 +5345,47 @@ SKILL body (vocab)  Body and health
   Sono felice di sentire la tua ___.   (voice)
   "I am happy to hear your voice."
    dente  |   salute  |  *voce  |   bocca
+
+--- listen_pick: 8 example(s)
+[listen_pick] it:faccia#rec  (skill body)
+  Which word do you hear?
+  (speak, it) faccia   "face"
+   pancia  |   febbre  |  *faccia  |   favore
+
+[listen_pick] it:mano#rec  (skill body)
+  Which word do you hear?
+  (speak, it) mano   "hand"
+  *mano  |   morto  |   moglie  |   mese
+
+[listen_pick] it:occhio#rec  (skill body)
+  Which word do you hear?
+  (speak, it) occhio   "eye"
+   ufficio  |   orecchio  |  *occhio  |   braccio
+
+[listen_pick] it:corpo#rec  (skill body)
+  Which word do you hear?
+  (speak, it) corpo   "body"
+   collo  |   cuore  |   capello  |  *corpo
+
+[listen_pick] it:sangue#rec  (skill body)
+  Which word do you hear?
+  (speak, it) sangue   "blood"
+   spalla  |  *sangue  |   salute  |   schiena
+
+[listen_pick] it:cuore#rec  (skill body)
+  Which word do you hear?
+  (speak, it) cuore   "heart"
+  *cuore  |   collo  |   capello  |   corpo
+
+[listen_pick] it:piede#rec  (skill body)
+  Which word do you hear?
+  (speak, it) piede   "foot"
+   pelle  |  *piede  |   pezzo  |   pancia
+
+[listen_pick] it:voce#rec  (skill body)
+  Which word do you hear?
+  (speak, it) voce   "voice"
+   voglia  |   luce  |  *voce  |   vista
 
 ========================================================================
 SKILL adverbs (vocab)  Useful adverbs
@@ -5136,6 +5628,47 @@ SKILL adverbs (vocab)  Useful adverbs
   "I try not to think about her too much."
    soltanto  |   allora  |   purtroppo  |  *troppo
 
+--- listen_pick: 8 example(s)
+[listen_pick] it:solo.4#rec  (skill adverbs)
+  Which word do you hear?
+  (speak, it) solo   "only"
+   spesso  |  *solo  |   subito  |   sempre
+
+[listen_pick] it:allora#rec  (skill adverbs)
+  Which word do you hear?
+  (speak, it) allora   "then"
+   ancora  |   anche  |   appena  |  *allora
+
+[listen_pick] it:davvero#rec  (skill adverbs)
+  Which word do you hear?
+  (speak, it) davvero   "really"
+   domani  |   davanti  |  *davvero  |   indietro
+
+[listen_pick] it:ancora#rec  (skill adverbs)
+  Which word do you hear?
+  (speak, it) ancora   "still"
+   anche  |   allora  |   adesso  |  *ancora
+
+[listen_pick] it:così#rec  (skill adverbs)
+  Which word do you hear?
+  (speak, it) così   "so"
+   sì  |  *così  |   come  |   quasi
+
+[listen_pick] it:forse#rec  (skill adverbs)
+  Which word do you hear?
+  (speak, it) forse   "maybe"
+   fuori  |   subito  |  *forse  |   finora
+
+[listen_pick] it:già#rec  (skill adverbs)
+  Which word do you hear?
+  (speak, it) già   "already"
+   soltanto  |  *già  |   finalmente  |   giù
+
+[listen_pick] it:troppo.3#rec  (skill adverbs)
+  Which word do you hear?
+  (speak, it) troppo   "too"
+   talmente  |  *troppo  |   tardi  |   tutto
+
 ========================================================================
 SKILL colours (vocab)  Colours
 ========================================================================
@@ -5375,6 +5908,47 @@ SKILL colours (vocab)  Colours
   Il limone è ___.   (yellow)
   "The lemon is yellow."
    arancione  |   rosa  |  *giallo  |   bianco
+
+--- listen_pick: 8 example(s)
+[listen_pick] it:nero.2#rec  (skill colours)
+  Which word do you hear?
+  (speak, it) nero   "black"
+   chiaro  |  *nero  |   futuro  |   caro
+
+[listen_pick] it:rosso#rec  (skill colours)
+  Which word do you hear?
+  (speak, it) rosso   "red"
+  *rosso  |   grosso  |   rosa  |   preso
+
+[listen_pick] it:bianco.2#rec  (skill colours)
+  Which word do you hear?
+  (speak, it) bianco   "white"
+   sciocco  |  *bianco  |   fresco  |   bloccato
+
+[listen_pick] it:colore#rec  (skill colours)
+  Which word do you hear?
+  (speak, it) colore   "colour"
+  *colore  |   compagno  |   carne  |   comune
+
+[listen_pick] it:blu#rec  (skill colours)
+  Which word do you hear?
+  (speak, it) blu   "blue"
+   basso  |   buio  |  *blu  |   buffo
+
+[listen_pick] it:verde#rec  (skill colours)
+  Which word do you hear?
+  (speak, it) verde   "green"
+   valido  |   vario  |   viola  |  *verde
+
+[listen_pick] it:rosa.2#rec  (skill colours)
+  Which word do you hear?
+  (speak, it) rosa   "pink"
+  *rosa  |   rosso  |   rubato  |   ricco
+
+[listen_pick] it:giallo.2#rec  (skill colours)
+  Which word do you hear?
+  (speak, it) giallo   "yellow"
+  *giallo  |   grigio  |   ridicolo  |   gigante
 
 ========================================================================
 SKILL possessives (grammar)  My, your, his: possessives
@@ -5779,6 +6353,47 @@ SKILL possessives (grammar)  My, your, his: possessives
   "He talks a lot about his father."
   error: "suoi" -> "suo"
 
+--- listen_pick: 8 example(s)
+[listen_pick] it:mio.2#rec  (skill possessives)
+  Which word do you hear?
+  (speak, it) mio   "my"
+   meno  |  *mio  |   suo  |   molto
+
+[listen_pick] it:tuo.2#rec  (skill possessives)
+  Which word do you hear?
+  (speak, it) tuo   "your"
+   tutto  |   tanto  |   tale  |  *tuo
+
+[listen_pick] it:suo.2#rec  (skill possessives)
+  Which word do you hear?
+  (speak, it) suo   "his"
+   mio  |   tutto  |   nostro  |  *suo
+
+[listen_pick] it:nostro#rec  (skill possessives)
+  Which word do you hear?
+  (speak, it) nostro   "our"
+  *nostro  |   altro  |   vostro  |   nessuno
+
+[listen_pick] it:vostro.2#rec  (skill possessives)
+  Which word do you hear?
+  (speak, it) vostro   "your (plural)"
+  *vostro  |   altro  |   nostro  |   mio
+
+[listen_pick] it:mio.2#rec  (skill possessives)
+  Which word do you hear?
+  (speak, it) mio   "my"
+   meno  |   molto  |   suo  |  *mio
+
+[listen_pick] it:tuo.2#rec  (skill possessives)
+  Which word do you hear?
+  (speak, it) tuo   "your"
+  *tuo  |   tutto  |   tale  |   tanto
+
+[listen_pick] it:suo.2#rec  (skill possessives)
+  Which word do you hear?
+  (speak, it) suo   "his"
+   nostro  |  *suo  |   ogni  |   mio
+
 ========================================================================
 SKILL city (vocab)  In the city
 ========================================================================
@@ -6019,6 +6634,47 @@ SKILL city (vocab)  In the city
   Il Giappone è un bel ___.   (country)
   "Japan is a beautiful country."
   *paese  |   parco  |   bar  |   città
+
+--- listen_pick: 8 example(s)
+[listen_pick] it:via#rec  (skill city)
+  Which word do you hear?
+  (speak, it) via   "street"
+   vero  |   vita  |   volta  |  *via
+
+[listen_pick] it:mondo#rec  (skill city)
+  Which word do you hear?
+  (speak, it) mondo   "world"
+  *mondo  |   mercato  |   mamma  |   museo
+
+[listen_pick] it:polizia#rec  (skill city)
+  Which word do you hear?
+  (speak, it) polizia   "police"
+   piazza  |  *polizia  |   ponte  |   paese
+
+[listen_pick] it:strada#rec  (skill city)
+  Which word do you hear?
+  (speak, it) strada   "road"
+   scuola  |  *strada  |   sangue  |   stazione
+
+[listen_pick] it:scuola#rec  (skill city)
+  Which word do you hear?
+  (speak, it) scuola   "school"
+   stazione  |  *scuola  |   sacco  |   strada
+
+[listen_pick] it:ufficio#rec  (skill city)
+  Which word do you hear?
+  (speak, it) ufficio   "office"
+  *ufficio  |   negozio  |   edificio  |   figlio
+
+[listen_pick] it:ospedale#rec  (skill city)
+  Which word do you hear?
+  (speak, it) ospedale   "hospital"
+   ordine  |  *ospedale  |   omicidio  |   ottimo
+
+[listen_pick] it:paese#rec  (skill city)
+  Which word do you hear?
+  (speak, it) paese   "country"
+   polizia  |  *paese  |   ponte  |   parco
 
 ========================================================================
 SKILL travel (vocab)  Travel
@@ -6261,6 +6917,47 @@ SKILL travel (vocab)  Travel
   "Hokkaido is to the north of Honshu."
    passaporto  |   biglietto  |  *nord  |   autobus
 
+--- listen_pick: 8 example(s)
+[listen_pick] it:macchina#rec  (skill travel)
+  Which word do you hear?
+  (speak, it) macchina   "car"
+   montagna  |   settimana  |  *macchina  |   moglie
+
+[listen_pick] it:nave#rec  (skill travel)
+  Which word do you hear?
+  (speak, it) nave   "ship"
+  *nave  |   natale  |   chiave  |   nord
+
+[listen_pick] it:aereo.2#rec  (skill travel)
+  Which word do you hear?
+  (speak, it) aereo   "plane"
+   anima  |  *aereo  |   autobus  |   animale
+
+[listen_pick] it:biglietto#rec  (skill travel)
+  Which word do you hear?
+  (speak, it) biglietto   "ticket"
+   passaporto  |   bicicletta  |   aeroporto  |  *biglietto
+
+[listen_pick] it:mare#rec  (skill travel)
+  Which word do you hear?
+  (speak, it) mare   "sea"
+   metro  |  *mare  |   mancia  |   mappa
+
+[listen_pick] it:barca#rec  (skill travel)
+  Which word do you hear?
+  (speak, it) barca   "boat"
+  *barca  |   banca  |   braccio  |   bisogno
+
+[listen_pick] it:treno#rec  (skill travel)
+  Which word do you hear?
+  (speak, it) treno   "train"
+   vino  |  *treno  |   turista  |   taxi
+
+[listen_pick] it:nord.2#rec  (skill travel)
+  Which word do you hear?
+  (speak, it) nord   "north"
+   neve  |  *nord  |   nave  |   nonno
+
 ========================================================================
 SKILL kitchen (vocab)  In the kitchen
 ========================================================================
@@ -6501,6 +7198,47 @@ SKILL kitchen (vocab)  In the kitchen
   Dov'è il mio ___ di mela?   (juice)
   "Where's my apple juice?"
    burro  |   prosciutto  |  *succo  |   aglio
+
+--- listen_pick: 8 example(s)
+[listen_pick] it:aglio#rec  (skill kitchen)
+  Which word do you hear?
+  (speak, it) aglio   "garlic"
+   odio  |   arancia  |   olio  |  *aglio
+
+[listen_pick] it:dolce#rec  (skill kitchen)
+  Which word do you hear?
+  (speak, it) dolce   "sweet"
+  *dolce  |   diverso  |   duro  |   dubbio
+
+[listen_pick] it:bottiglia#rec  (skill kitchen)
+  Which word do you hear?
+  (speak, it) bottiglia   "bottle"
+   biscotto  |   arancia  |  *bottiglia  |   bistecca
+
+[listen_pick] it:biscotto#rec  (skill kitchen)
+  Which word do you hear?
+  (speak, it) biscotto   "biscuit"
+   bistecca  |   cioccolato  |   bottiglia  |  *biscotto
+
+[listen_pick] it:panino#rec  (skill kitchen)
+  Which word do you hear?
+  (speak, it) panino   "sandwich"
+   pentola  |  *panino  |   forno  |   pepe
+
+[listen_pick] it:cioccolato#rec  (skill kitchen)
+  Which word do you hear?
+  (speak, it) cioccolato   "chocolate"
+   biscotto  |   cucchiaio  |  *cioccolato  |   prosciutto
+
+[listen_pick] it:olio#rec  (skill kitchen)
+  Which word do you hear?
+  (speak, it) olio   "oil"
+   agio  |  *olio  |   taglio  |   aglio
+
+[listen_pick] it:succo#rec  (skill kitchen)
+  Which word do you hear?
+  (speak, it) succo   "juice"
+   sugo  |  *succo  |   sete  |   stop
 
 ========================================================================
 SKILL prepositions (grammar)  Prepositions: nel, al, del...
@@ -6743,6 +7481,47 @@ SKILL prepositions (grammar)  Prepositions: nel, al, del...
   "I'm lonely without you."
    sopra  |   sul  |   fino  |  *senza
 
+--- listen_pick: 8 example(s)
+[listen_pick] it:del#rec  (skill prepositions)
+  Which word do you hear?
+  (speak, it) del   "of the"
+   nel  |   dopo  |   di  |  *del
+
+[listen_pick] it:al#rec  (skill prepositions)
+  Which word do you hear?
+  (speak, it) al   "to the"
+   dal  |  *al  |   a  |   sopra
+
+[listen_pick] it:nel#rec  (skill prepositions)
+  Which word do you hear?
+  (speak, it) nel   "in the"
+  *nel  |   del  |   contro  |   accanto
+
+[listen_pick] it:dal#rec  (skill prepositions)
+  Which word do you hear?
+  (speak, it) dal   "from the"
+   al  |   di  |  *dal  |   dopo
+
+[listen_pick] it:sul#rec  (skill prepositions)
+  Which word do you hear?
+  (speak, it) sul   "on the"
+   sopra  |   senza  |   su  |  *sul
+
+[listen_pick] it:su#rec  (skill prepositions)
+  Which word do you hear?
+  (speak, it) su   "on"
+   dietro  |   dentro  |   sul  |  *su
+
+[listen_pick] it:fuori#rec  (skill prepositions)
+  Which word do you hear?
+  (speak, it) fuori   "outside"
+   ieri  |   finora  |  *fuori  |   forse
+
+[listen_pick] it:senza#rec  (skill prepositions)
+  Which word do you hear?
+  (speak, it) senza   "without"
+   sul  |   sotto  |  *senza  |   sopra
+
 ========================================================================
 SKILL work (vocab)  Work and school
 ========================================================================
@@ -6983,6 +7762,47 @@ SKILL work (vocab)  Work and school
   "I have no answer for that."
   *risposta  |   matita  |   capo  |   cuoco
 
+--- listen_pick: 8 example(s)
+[listen_pick] it:capo#rec  (skill work)
+  Which word do you hear?
+  (speak, it) capo   "boss"
+   colpa  |   carta  |   classe  |  *capo
+
+[listen_pick] it:dottore#rec  (skill work)
+  Which word do you hear?
+  (speak, it) dottore   "doctor"
+   ingegnere  |   domanda  |   cameriere  |  *dottore
+
+[listen_pick] it:lavoro#rec  (skill work)
+  Which word do you hear?
+  (speak, it) lavoro   "work"
+  *lavoro  |   luce  |   lezione  |   libro
+
+[listen_pick] it:avvocato#rec  (skill work)
+  Which word do you hear?
+  (speak, it) avvocato   "lawyer"
+   progetto  |   azienda  |  *avvocato  |   compito
+
+[listen_pick] it:domanda#rec  (skill work)
+  Which word do you hear?
+  (speak, it) domanda   "question"
+   azienda  |   decesso  |   dottore  |  *domanda
+
+[listen_pick] it:poliziotto#rec  (skill work)
+  Which word do you hear?
+  (speak, it) poliziotto   "police officer"
+   progetto  |   avvocato  |  *poliziotto  |   professore
+
+[listen_pick] it:carta#rec  (skill work)
+  Which word do you hear?
+  (speak, it) carta   "paper"
+   capo  |   classe  |  *carta  |   compito
+
+[listen_pick] it:risposta#rec  (skill work)
+  Which word do you hear?
+  (speak, it) risposta   "answer"
+  *risposta  |   matita  |   università  |   riunione
+
 ========================================================================
 SKILL feelings (vocab)  Feelings
 ========================================================================
@@ -7222,6 +8042,47 @@ SKILL feelings (vocab)  Feelings
   Tu sei ___ per Tom, vero?   (worried)
   "You're worried about Tom, aren't you?"
    arrabbiato  |  *preoccupato  |   sicuro  |   annoiato
+
+--- listen_pick: 8 example(s)
+[listen_pick] it:sicuro#rec  (skill feelings)
+  Which word do you hear?
+  (speak, it) sicuro   "sure"
+   sorpreso  |   strano  |  *sicuro  |   sentito
+
+[listen_pick] it:paura#rec  (skill feelings)
+  Which word do you hear?
+  (speak, it) paura   "fear"
+   sera  |   terra  |  *paura  |   papa
+
+[listen_pick] it:amore#rec  (skill feelings)
+  Which word do you hear?
+  (speak, it) amore   "love"
+   dottore  |  *amore  |   dolore  |   amico
+
+[listen_pick] it:tranquillo#rec  (skill feelings)
+  Which word do you hear?
+  (speak, it) tranquillo   "calm"
+  *tranquillo  |   televisivo  |   temporaneo  |   terrorista
+
+[listen_pick] it:dolore#rec  (skill feelings)
+  Which word do you hear?
+  (speak, it) dolore   "pain"
+   amore  |   migliore  |   diretto  |  *dolore
+
+[listen_pick] it:fortunato#rec  (skill feelings)
+  Which word do you hear?
+  (speak, it) fortunato   "lucky"
+   annoiato  |   preoccupato  |   arrabbiato  |  *fortunato
+
+[listen_pick] it:speranza#rec  (skill feelings)
+  Which word do you hear?
+  (speak, it) speranza   "hope"
+  *speranza  |   tristezza  |   spettacolo  |   sorriso
+
+[listen_pick] it:preoccupato#rec  (skill feelings)
+  Which word do you hear?
+  (speak, it) preoccupato   "worried"
+  *preoccupato  |   arrabbiato  |   conosciuto  |   fortunato
 
 ========================================================================
 SKILL passato-prossimo (grammar)  The passato prossimo with avere
@@ -7954,6 +8815,47 @@ SKILL weather (vocab)  Weather and nature
   "There is a bridge across the river."
   *fiume  |   bosco  |   vento  |   stella
 
+--- listen_pick: 8 example(s)
+[listen_pick] it:terra#rec  (skill weather)
+  Which word do you hear?
+  (speak, it) terra   "earth"
+   paura  |  *terra  |   sera  |   natura
+
+[listen_pick] it:cielo#rec  (skill weather)
+  Which word do you hear?
+  (speak, it) cielo   "sky"
+   carta  |   colpo  |  *cielo  |   città
+
+[listen_pick] it:aria#rec  (skill weather)
+  Which word do you hear?
+  (speak, it) aria   "air"
+   albero  |   nebbia  |  *aria  |   arma
+
+[listen_pick] it:albero#rec  (skill weather)
+  Which word do you hear?
+  (speak, it) albero   "tree"
+   agente  |   autunno  |  *albero  |   aria
+
+[listen_pick] it:stagione#rec  (skill weather)
+  Which word do you hear?
+  (speak, it) stagione   "season"
+   speranza  |  *stagione  |   dannazione  |   stella
+
+[listen_pick] it:luna#rec  (skill weather)
+  Which word do you hear?
+  (speak, it) luna   "moon"
+   leone  |   lavoro  |  *luna  |   libero
+
+[listen_pick] it:natura#rec  (skill weather)
+  Which word do you hear?
+  (speak, it) natura   "nature"
+   terra  |  *natura  |   neve  |   nuvola
+
+[listen_pick] it:fiume#rec  (skill weather)
+  Which word do you hear?
+  (speak, it) fiume   "river"
+   fido  |  *fiume  |   fiore  |   fare
+
 ========================================================================
 SKILL animals (vocab)  Animals
 ========================================================================
@@ -8194,6 +9096,47 @@ SKILL animals (vocab)  Animals
   "The snake is in the building."
    farfalla  |   cavallo  |  *serpente  |   uccello
 
+--- listen_pick: 8 example(s)
+[listen_pick] it:cavallo#rec  (skill animals)
+  Which word do you hear?
+  (speak, it) cavallo   "horse"
+   compagnia  |   coniglio  |   uccello  |  *cavallo
+
+[listen_pick] it:animale#rec  (skill animals)
+  Which word do you hear?
+  (speak, it) animale   "animal"
+   anima  |   maiale  |   aereo  |  *animale
+
+[listen_pick] it:uccello#rec  (skill animals)
+  Which word do you hear?
+  (speak, it) uccello   "bird"
+   coltello  |   angolo  |  *uccello  |   cavallo
+
+[listen_pick] it:cane.2#rec  (skill animals)
+  Which word do you hear?
+  (speak, it) cane   "dog"
+   leone  |   chilo  |   classe  |  *cane
+
+[listen_pick] it:lupo#rec  (skill animals)
+  Which word do you hear?
+  (speak, it) lupo   "wolf"
+   leone  |  *lupo  |   limite  |   topo
+
+[listen_pick] it:orso#rec  (skill animals)
+  Which word do you hear?
+  (speak, it) orso   "bear"
+  *orso  |   onesto  |   odio  |   dosso
+
+[listen_pick] it:scimmia#rec  (skill animals)
+  Which word do you hear?
+  (speak, it) scimmia   "monkey"
+   struttura  |  *scimmia  |   scrittore  |   serpente
+
+[listen_pick] it:serpente#rec  (skill animals)
+  Which word do you hear?
+  (speak, it) serpente   "snake"
+   scimmia  |  *serpente  |   elefante  |   sospetto
+
 ========================================================================
 SKILL clothes (vocab)  Clothes
 ========================================================================
@@ -8433,6 +9376,47 @@ SKILL clothes (vocab)  Clothes
   Questo cappotto non ha ___.   (pocket)
   "This coat hasn't got any pockets."
    cinture  |   camicie  |  *tasche  |   borse
+
+--- listen_pick: 8 example(s)
+[listen_pick] it:vestito.2#rec  (skill clothes)
+  Which word do you hear?
+  (speak, it) vestito   "dress"
+   guanto  |  *vestito  |   biglietto  |   cappotto
+
+[listen_pick] it:indossare#rec  (skill clothes)
+  Which word do you hear?
+  (speak, it) indossare   "to wear"
+   risolvere  |   mentire  |   scherzare  |  *indossare
+
+[listen_pick] it:scarpa#rec  (skill clothes)
+  Which word do you hear?
+  (speak, it) scarpa   "shoe"
+   spazio  |   salute  |  *scarpa  |   stivale
+
+[listen_pick] it:borsa#rec  (skill clothes)
+  Which word do you hear?
+  (speak, it) borsa   "bag"
+   bomba  |   chiesa  |  *borsa  |   birra
+
+[listen_pick] it:anello#rec  (skill clothes)
+  Which word do you hear?
+  (speak, it) anello   "ring"
+   ombrello  |   cappello  |   accordo  |  *anello
+
+[listen_pick] it:orologio#rec  (skill clothes)
+  Which word do you hear?
+  (speak, it) orologio   "watch"
+  *orologio  |   ombrello  |   occhiali  |   ghiaccio
+
+[listen_pick] it:cappello#rec  (skill clothes)
+  Which word do you hear?
+  (speak, it) cappello   "hat"
+   cappotto  |  *cappello  |   cintura  |   ombrello
+
+[listen_pick] it:tasca#rec  (skill clothes)
+  Which word do you hear?
+  (speak, it) tasca   "pocket"
+   turista  |   giacca  |   ricerca  |  *tasca
 
 ========================================================================
 SKILL imperfetto (grammar)  The imperfetto
@@ -8954,6 +9938,47 @@ SKILL leisure (vocab)  Free time
   "I read about him in the newspaper."
   *giornale  |   musica  |   hobby  |   pianoforte
 
+--- listen_pick: 8 example(s)
+[listen_pick] it:festa#rec  (skill leisure)
+  Which word do you hear?
+  (speak, it) festa   "party"
+   film  |   foto  |   rivista  |  *festa
+
+[listen_pick] it:foto#rec  (skill leisure)
+  Which word do you hear?
+  (speak, it) foto   "photo"
+   film  |   festa  |   faro  |  *foto
+
+[listen_pick] it:film#rec  (skill leisure)
+  Which word do you hear?
+  (speak, it) film   "film"
+   faro  |   festa  |  *film  |   foto
+
+[listen_pick] it:squadra#rec  (skill leisure)
+  Which word do you hear?
+  (speak, it) squadra   "team"
+   sport  |   sicurezza  |   chitarra  |  *squadra
+
+[listen_pick] it:musica#rec  (skill leisure)
+  Which word do you hear?
+  (speak, it) musica   "music"
+   maniera  |  *musica  |   militare  |   metodo
+
+[listen_pick] it:canzone#rec  (skill leisure)
+  Which word do you hear?
+  (speak, it) canzone   "song"
+   chitarra  |   calcio  |  *canzone  |   concerto
+
+[listen_pick] it:spettacolo#rec  (skill leisure)
+  Which word do you hear?
+  (speak, it) spettacolo   "show"
+  *spettacolo  |   pericolo  |   silenzio  |   speranza
+
+[listen_pick] it:giornale#rec  (skill leisure)
+  Which word do you hear?
+  (speak, it) giornale   "newspaper"
+   grazia  |  *giornale  |   ghiaccio  |   guardia
+
 ========================================================================
 SKILL shopping (vocab)  Shopping
 ========================================================================
@@ -9193,6 +10218,47 @@ SKILL shopping (vocab)  Shopping
   Gli ha dato un ___ costoso.   (gift)
   "She gave an expensive gift to him."
    spesa  |   dollaro  |  *regalo  |   conto
+
+--- listen_pick: 8 example(s)
+[listen_pick] it:dollaro#rec  (skill shopping)
+  Which word do you hear?
+  (speak, it) dollaro   "dollar"
+   nostro  |   denaro  |   donna  |  *dollaro
+
+[listen_pick] it:cliente#rec  (skill shopping)
+  Which word do you hear?
+  (speak, it) cliente   "customer"
+  *cliente  |   cassa  |   commesso  |   conto
+
+[listen_pick] it:denaro#rec  (skill shopping)
+  Which word do you hear?
+  (speak, it) denaro   "money"
+  *denaro  |   dollaro  |   euro  |   cancro
+
+[listen_pick] it:prezzo#rec  (skill shopping)
+  Which word do you hear?
+  (speak, it) prezzo   "price"
+   pacco  |   periodo  |   pianeta  |  *prezzo
+
+[listen_pick] it:resto#rec  (skill shopping)
+  Which word do you hear?
+  (speak, it) resto   "rest"
+   sconto  |   regalo  |   conto  |  *resto
+
+[listen_pick] it:conto#rec  (skill shopping)
+  Which word do you hear?
+  (speak, it) conto   "bill"
+   sconto  |   resto  |  *conto  |   cliente
+
+[listen_pick] it:gratis#rec  (skill shopping)
+  Which word do you hear?
+  (speak, it) gratis   "free"
+   domattina  |   eccoci  |   profondo  |  *gratis
+
+[listen_pick] it:regalo#rec  (skill shopping)
+  Which word do you hear?
+  (speak, it) regalo   "present"
+  *regalo  |   resto  |   chilo  |   raggio
 
 ========================================================================
 SKILL futuro (grammar)  The future tense
@@ -9953,6 +11019,47 @@ SKILL more-verbs (vocab)  More verbs
   "Tom's mother was crying."
   *piangendo  |   incontrando  |   sorridendo  |   spingendo
 
+--- listen_pick: 8 example(s)
+[listen_pick] it:cambiare#rec  (skill more-verbs)
+  Which word do you hear?
+  (speak, it) cambiare   "to change"
+   promettere  |   cadere  |   ridere  |  *cambiare
+
+[listen_pick] it:provare#rec  (skill more-verbs)
+  Which word do you hear?
+  (speak, it) provare   "to try"
+  *provare  |   mostrare  |   tirare  |   piangere
+
+[listen_pick] it:mandare#rec  (skill more-verbs)
+  Which word do you hear?
+  (speak, it) mandare   "to send"
+  *mandare  |   sorridere  |   piangere  |   sognare
+
+[listen_pick] it:incontrare#rec  (skill more-verbs)
+  Which word do you hear?
+  (speak, it) incontrare   "to meet"
+   raccontare  |   nascondere  |  *incontrare  |   salutare
+
+[listen_pick] it:tirare#rec  (skill more-verbs)
+  Which word do you hear?
+  (speak, it) tirare   "to pull"
+   fumare  |   nascere  |   piangere  |  *tirare
+
+[listen_pick] it:accettare#rec  (skill more-verbs)
+  Which word do you hear?
+  (speak, it) accettare   "to accept"
+   sognare  |   mandare  |  *accettare  |   piangere
+
+[listen_pick] it:ridere#rec  (skill more-verbs)
+  Which word do you hear?
+  (speak, it) ridere   "to laugh"
+   sposare  |   sognare  |   nascere  |  *ridere
+
+[listen_pick] it:piangere#rec  (skill more-verbs)
+  Which word do you hear?
+  (speak, it) piangere   "to cry"
+   spendere  |   sognare  |  *piangere  |   mandare
+
 ========================================================================
 SKILL ideas (vocab)  Ideas and opinions
 ========================================================================
@@ -10193,5 +11300,46 @@ SKILL ideas (vocab)  Ideas and opinions
   Sono arrivata qui il prima ___.   (possible)
   "I got here as soon as I could."
    interessante  |   sbagliato  |   giusto  |  *possibile
+
+--- listen_pick: 8 example(s)
+[listen_pick] it:vita#rec  (skill ideas)
+  Which word do you hear?
+  (speak, it) vita   "life"
+   verità  |   scelta  |  *vita  |   volta
+
+[listen_pick] it:modo#rec  (skill ideas)
+  Which word do you hear?
+  (speak, it) modo   "way"
+  *modo  |   moglie  |   morte  |   motivo
+
+[listen_pick] it:problema#rec  (skill ideas)
+  Which word do you hear?
+  (speak, it) problema   "problem"
+   persona  |   polizia  |  *problema  |   parola
+
+[listen_pick] it:giusto.2#rec  (skill ideas)
+  Which word do you hear?
+  (speak, it) giusto   "right"
+  *giusto  |   zitto  |   certo  |   finito
+
+[listen_pick] it:ragione#rec  (skill ideas)
+  Which word do you hear?
+  (speak, it) ragione   "reason"
+   opinione  |   ragazzo  |   decisione  |  *ragione
+
+[listen_pick] it:storia#rec  (skill ideas)
+  Which word do you hear?
+  (speak, it) storia   "story"
+   polizia  |   sera  |  *storia  |   scelta
+
+[listen_pick] it:strano#rec  (skill ideas)
+  Which word do you hear?
+  (speak, it) strano   "strange"
+   carino  |   sicuro  |   buono  |  *strano
+
+[listen_pick] it:possibile.2#rec  (skill ideas)
+  Which word do you hear?
+  (speak, it) possibile   "possible"
+  *possibile  |   impossibile  |   perfetto  |   difficile
 
 

@@ -39,11 +39,15 @@ class SessionOptions {
     required this.sourceLang,
     this.accents = AccentStrictness.lenient,
     this.preferredInput = InputMode.tap,
+    this.listening = false,
     this.seed,
   });
   final String sourceLang; // 'en' | 'nl'
   final AccentStrictness accents;
-  final InputMode preferredInput; // tap now; keyboard/ink switch cloze & grid to free input
+  final InputMode preferredInput; // tap; keyboard/ink switch cloze to free input
+  /// Text-to-speech has a voice for the course's target language on this
+  /// device: `listen_pick` exercises may be generated (never otherwise).
+  final bool listening;
   final int? seed; // for deterministic tests
 }
 

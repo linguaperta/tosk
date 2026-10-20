@@ -121,6 +121,7 @@ String? sentenceIdOf(Exercise e) => switch (e) {
   ClozeExercise() => e.sentenceId,
   SpotErrorExercise() => e.sentenceId,
   TransformExercise() => e.sentenceId,
+  ListenPickExercise() => e.sentenceId,
   _ => null,
 };
 

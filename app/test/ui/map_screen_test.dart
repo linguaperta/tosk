@@ -235,7 +235,7 @@ void main() {
               course: course,
               layout: layout,
               stats: const {},
-              style: const DefaultSkin().mapStyle(ThemeData().colorScheme),
+              style: const ToskSkin().mapStyle(ThemeData().colorScheme),
               lang: 'en',
               now: testNow,
               onTap: (s) => tapped = s.id,

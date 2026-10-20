@@ -18,6 +18,11 @@ enum AnswerInputPref {
   /// "Challenge mode": cloze, conjugation pick and grid, sentence builder and
   /// transform take typed answers. Recognition exercises stay tap.
   type,
+
+  /// Handwriting (v0.5): the same production exercises take handwritten
+  /// answers on a writing pad (ML Kit Digital Ink). Only offered where the
+  /// recognizer runs (Android, iOS); elsewhere it falls back to tap.
+  handwrite,
 }
 
 /// Keys (all strings in the settings table).
@@ -34,7 +39,19 @@ abstract final class LearnerSettingKeys {
   /// Reminder time of day, `HH:MM` (24 h, local time).
   static const reminderTime = 'reminder.time';
 
-  static const all = [answerInput, dailyGoalXp, reminderEnabled, reminderTime];
+  /// `false` turns listening exercises off (on by default where the device
+  /// has a voice for the course language).
+  static const listening = 'lesson.listening';
+
+  /// ONYX e-readers: `true`/`false` for a full e-ink refresh after lessons;
+  /// absent = on in black & white. Device-only (never imported).
+  static const einkFullRefresh = 'eink.full_refresh';
+
+  /// ONYX e-readers: `false` turns the Onyx pen SDK's low-latency drawing
+  /// off (the writing pad then draws with Flutter). Device-only.
+  static const onyxPen = 'eink.onyx_pen';
+
+  static const all = [answerInput, dailyGoalXp, reminderEnabled, reminderTime, listening, einkFullRefresh, onyxPen];
 }
 
 /// Daily goal choices in XP; 0 is "Off". About half a lesson, one lesson and
@@ -51,9 +68,22 @@ class LearnerSettings {
     this.dailyGoalXp = kDefaultDailyGoalXp,
     this.reminderEnabled = false,
     this.reminderTime = kDefaultReminderTime,
+    this.listening = true,
+    this.einkFullRefresh,
+    this.onyxPen = true,
   });
 
   final AnswerInputPref answerInput;
+
+  /// Listening exercises (when the device has a voice).
+  final bool listening;
+
+  /// Full e-ink refresh after lessons (ONYX); null = the default (on in
+  /// black & white).
+  final bool? einkFullRefresh;
+
+  /// Onyx pen SDK drawing in the writing pad (ONYX).
+  final bool onyxPen;
 
   /// XP per day; 0 = no goal (and no reminder).
   final int dailyGoalXp;
@@ -61,6 +91,7 @@ class LearnerSettings {
   final TimeOfDay reminderTime;
 
   bool get typing => answerInput == AnswerInputPref.type;
+  bool get handwriting => answerInput == AnswerInputPref.handwrite;
   bool get hasGoal => dailyGoalXp > 0;
 
   LearnerSettings copyWith({
@@ -68,11 +99,17 @@ class LearnerSettings {
     int? dailyGoalXp,
     bool? reminderEnabled,
     TimeOfDay? reminderTime,
+    bool? listening,
+    bool? einkFullRefresh,
+    bool? onyxPen,
   }) => LearnerSettings(
     answerInput: answerInput ?? this.answerInput,
     dailyGoalXp: dailyGoalXp ?? this.dailyGoalXp,
     reminderEnabled: reminderEnabled ?? this.reminderEnabled,
     reminderTime: reminderTime ?? this.reminderTime,
+    listening: listening ?? this.listening,
+    einkFullRefresh: einkFullRefresh ?? this.einkFullRefresh,
+    onyxPen: onyxPen ?? this.onyxPen,
   );
 
   static Future<LearnerSettings> load(ProgressStore store) async {
@@ -81,11 +118,17 @@ class LearnerSettings {
     final goal = int.tryParse(await store.getSetting(LearnerSettingKeys.dailyGoalXp) ?? '');
     final enabled = await store.getSetting(LearnerSettingKeys.reminderEnabled);
     final time = parseTimeOfDay(await store.getSetting(LearnerSettingKeys.reminderTime));
+    final listening = await store.getSetting(LearnerSettingKeys.listening);
+    final refresh = await store.getSetting(LearnerSettingKeys.einkFullRefresh);
+    final pen = await store.getSetting(LearnerSettingKeys.onyxPen);
     return LearnerSettings(
       answerInput: AnswerInputPref.values.asNameMap()[input] ?? d.answerInput,
       dailyGoalXp: goal == null || goal < 0 ? d.dailyGoalXp : goal,
       reminderEnabled: enabled == 'true',
       reminderTime: time ?? d.reminderTime,
+      listening: listening != 'false',
+      einkFullRefresh: refresh == null ? null : refresh == 'true',
+      onyxPen: pen != 'false',
     );
   }
 
@@ -103,6 +146,11 @@ class LearnerSettings {
       formatTimeOfDay(reminderTime),
       old == null ? null : formatTimeOfDay(old.reminderTime),
     );
+    await put(LearnerSettingKeys.listening, '$listening', old == null ? null : '${old.listening}');
+    if (einkFullRefresh != null) {
+      await put(LearnerSettingKeys.einkFullRefresh, '$einkFullRefresh', old?.einkFullRefresh?.toString());
+    }
+    await put(LearnerSettingKeys.onyxPen, '$onyxPen', old == null ? null : '${old.onyxPen}');
   }
 
   @override
@@ -111,10 +159,14 @@ class LearnerSettings {
       other.answerInput == answerInput &&
       other.dailyGoalXp == dailyGoalXp &&
       other.reminderEnabled == reminderEnabled &&
-      other.reminderTime == reminderTime;
+      other.reminderTime == reminderTime &&
+      other.listening == listening &&
+      other.einkFullRefresh == einkFullRefresh &&
+      other.onyxPen == onyxPen;
 
   @override
-  int get hashCode => Object.hash(answerInput, dailyGoalXp, reminderEnabled, reminderTime);
+  int get hashCode =>
+      Object.hash(answerInput, dailyGoalXp, reminderEnabled, reminderTime, listening, einkFullRefresh, onyxPen);
 }
 
 /// `HH:MM`, 24 h.
@@ -148,6 +200,12 @@ class LearnerSettingsController extends AsyncNotifier<LearnerSettings> {
 /// Typing ("challenge") mode is on.
 final typingModeProvider = Provider<bool>(
   (ref) => ref.watch(learnerSettingsProvider.select((s) => s.value?.typing ?? false)),
+);
+
+/// Handwriting is the chosen answer input (whether it can run here is
+/// `inkModeProvider`, in `ui/ink/ink_providers.dart`).
+final handwritingPrefProvider = Provider<bool>(
+  (ref) => ref.watch(learnerSettingsProvider.select((s) => s.value?.handwriting ?? false)),
 );
 
 /// The daily XP goal (0 = off).
