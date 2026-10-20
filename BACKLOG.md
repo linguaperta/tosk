@@ -210,7 +210,7 @@ Each one at the expanded it/nl scale: 8–10 units, ~30 skills, ~1000 taught wor
 - [x] Sparklier gold, silver and bronze node states (rings, rays, twinkles; animated only with motion on)
 - [x] Map art kit: branch segment, fork and join pieces, an optional trunk spine, node states, leaves, a Tosk position marker (colour + e-ink). Decide top-down vs bottom-up (roots first) scrolling
 - [x] In-app branding (v0.6.0): app name "tosk", launcher icons (adaptive Android, iOS, web, Windows) from the storybook icon, splash, Tosk on empty states and the summary, a wordmark in the header
-- [ ] Rename repos/package ids when the owner is ready (tosk → tosk, linguaperta org)
+- [ ] Rename repos/package ids (decided 20 Oct: app id `org.linguaperta.tosk`, repos `linguaperta/tosk` + `linguaperta/tosk-data`); licences decided (Apache-2.0 code, CC BY-SA 4.0 packs, brand CC BY-NC-ND 4.0). Go-public checklist: `docs/hosting.md`
 
 ## v0.8: pack toolkit (the pack format is the product; see docs/VISION.md)
 
