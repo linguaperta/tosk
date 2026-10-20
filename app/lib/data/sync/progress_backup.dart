@@ -9,7 +9,9 @@
 /// 2. the review log, exactly as `encodeReviewLogJsonl` writes it (one event
 ///    per line, `(at, id)` order, no `kind`);
 /// 3. `{"kind":"mistake",…}` per stored mistake;
-/// 4. `{"kind":"setting","key":…,"value":…}` per setting.
+/// 4. `{"kind":"setting","key":…,"value":…}` per setting;
+/// 5. `{"kind":"bookmark","course":…,"k":…,"id":…,"at":…,…}` per bookmark
+///    (v0.4; tombstones included, see `core/models/bookmark.dart`).
 ///
 /// A plain review-log file (`encodeReviewLogJsonl`, no header)
 /// imports too. Unknown `kind`s are skipped, so later versions can add
@@ -20,11 +22,18 @@
 /// `rebuildStates()`; mistakes are added when their id is new; settings only
 /// fill keys this device doesn't have (except "my courses", which is a
 /// union), and device-only keys (the reminder) are never imported.
+///
+/// **Bookmarks** (v0.4) merge last-writer-wins per bookmark
+/// (`BookmarkStore.mergeIn`), so an unstarred bookmark stays unstarred. Older
+/// apps skip the unknown `bookmark` kind, so the format tag stays `/1`.
+/// **AI conversations** (`chat.*` settings) are local only: never exported,
+/// never imported.
 library;
 
 import 'dart:convert';
 
 import '../../core/core.dart';
+import '../progress/bookmarks.dart' show BookmarkStore;
 import 'review_log_sync.dart';
 
 const String kBackupFormat = 'tosk-backup/1';
@@ -42,6 +51,13 @@ const Set<String> kDeviceOnlySettings = {
   'packs.last_check',
 };
 
+/// Prefixes of settings that stay on this device: never exported, never
+/// imported (AI conversation practice keeps its chats locally).
+const List<String> kLocalOnlySettingPrefixes = ['chat.'];
+
+/// Whether [key] is never exported nor imported.
+bool isLocalOnlySetting(String key) => kLocalOnlySettingPrefixes.any(key.startsWith);
+
 /// The setting "my courses" (comma-separated ids), merged as a union.
 const String kCoursesAddedKey = 'courses.added';
 
@@ -55,6 +71,7 @@ class ProgressBackup {
     required this.events,
     this.mistakes = const [],
     this.settings = const {},
+    this.bookmarks = const {},
     this.exportedAt,
     this.app,
   });
@@ -62,6 +79,9 @@ class ProgressBackup {
   final List<ReviewEvent> events;
   final List<MistakeRecord> mistakes;
   final Map<String, String> settings;
+
+  /// Bookmarks per course id, tombstones included.
+  final Map<String, BookmarkSet> bookmarks;
   final DateTime? exportedAt;
   final String? app;
 
@@ -113,6 +133,7 @@ String encodeBackup(ProgressBackup b, {DateTime? now}) {
         'events': {for (final e in b.events) e.id}.length,
         'mistakes': mistakes.length,
         'settings': keys.length,
+        if (b.bookmarks.isNotEmpty) 'bookmarks': b.bookmarks.values.fold(0, (n, s) => n + s.all.length),
       },
     }),
   );
@@ -123,6 +144,13 @@ String encodeBackup(ProgressBackup b, {DateTime? now}) {
   for (final k in keys) {
     out.writeln(jsonEncode({'kind': 'setting', 'key': k, 'value': b.settings[k]}));
   }
+  for (final course in b.bookmarks.keys.toList()..sort()) {
+    final entries = b.bookmarks[course]!.all.toList()
+      ..sort((x, y) => x.at.compareTo(y.at) != 0 ? x.at.compareTo(y.at) : x.key.compareTo(y.key));
+    for (final m in entries) {
+      out.writeln(jsonEncode({'kind': 'bookmark', 'course': course, ...m.toJson()}));
+    }
+  }
   return out.toString();
 }
 
@@ -132,6 +160,7 @@ ProgressBackup decodeBackup(String text) {
   final events = <ReviewEvent>[];
   final mistakes = <MistakeRecord>[];
   final settings = <String, String>{};
+  final bookmarks = <String, List<Bookmark>>{};
   DateTime? exportedAt;
   String? app;
   var lineNo = 0;
@@ -163,6 +192,10 @@ ProgressBackup decodeBackup(String text) {
         case 'setting':
           final k = j['key'], v = j['value'];
           if (k is String && v is String) settings[k] = v;
+        case 'bookmark':
+          final course = j['course'];
+          final b = Bookmark.fromJson(j);
+          if (course is String && course.isNotEmpty && b != null) (bookmarks[course] ??= []).add(b);
         default:
           break; // a section from a newer version
       }
@@ -172,13 +205,21 @@ ProgressBackup decodeBackup(String text) {
       throw FormatException('Bad backup line $lineNo: $e');
     }
   }
-  return ProgressBackup(events: events, mistakes: mistakes, settings: settings, exportedAt: exportedAt, app: app);
+  return ProgressBackup(
+    events: events,
+    mistakes: mistakes,
+    settings: settings,
+    bookmarks: {for (final e in bookmarks.entries) e.key: BookmarkSet(e.value)},
+    exportedAt: exportedAt,
+    app: app,
+  );
 }
 
 /// Everything in [store]: the log, every mistake and the settings ([keys]
-/// when the store can't list them).
+/// when the store can't list them), and every bookmark in [bookmarks].
 Future<ProgressBackup> exportBackup(
   ProgressStore store, {
+  BookmarkRepo? bookmarks,
   Iterable<String> keys = const [],
   String? app,
   DateTime? now,
@@ -187,11 +228,19 @@ Future<ProgressBackup> exportBackup(
   final mistakes = await store.mistakes(limit: 1 << 30);
   final Map<String, String> settings;
   if (store is SettingsLister) {
-    settings = await (store as SettingsLister).allSettings();
+    settings = Map.of(await (store as SettingsLister).allSettings());
   } else {
     settings = {for (final k in keys) k: ?await store.getSetting(k)};
   }
-  return ProgressBackup(events: events, mistakes: mistakes, settings: settings, exportedAt: now, app: app);
+  settings.removeWhere((k, _) => isLocalOnlySetting(k));
+  return ProgressBackup(
+    events: events,
+    mistakes: mistakes,
+    settings: settings,
+    bookmarks: bookmarks == null ? const {} : await bookmarks.all(),
+    exportedAt: now,
+    app: app,
+  );
 }
 
 /// What an import changed.
@@ -201,6 +250,7 @@ class BackupImportReport {
     required this.eventsAdded,
     required this.mistakesAdded,
     required this.settingsAdded,
+    this.bookmarksChanged = 0,
   });
 
   final int eventsInFile;
@@ -208,11 +258,14 @@ class BackupImportReport {
   final int mistakesAdded;
   final int settingsAdded;
 
+  /// Bookmarks added, or starred or unstarred by the file (newer there).
+  final int bookmarksChanged;
+
   int get eventsKnown => eventsInFile - eventsAdded;
 
   @override
   String toString() =>
-      'BackupImportReport(events $eventsAdded/$eventsInFile new, mistakes +$mistakesAdded, settings +$settingsAdded)';
+      'BackupImportReport(events $eventsAdded/$eventsInFile new, mistakes +$mistakesAdded, settings +$settingsAdded, bookmarks $bookmarksChanged)';
 }
 
 /// Merges [backup] into [store] (see the library comment) and recomputes
@@ -221,6 +274,7 @@ Future<BackupImportReport> importBackup(
   ProgressBackup backup, {
   required ProgressStore store,
   required EventImporter importer,
+  BookmarkRepo? bookmarks,
 }) async {
   final unique = {for (final e in backup.events) e.id: e};
   final added = await importer.importEvents(unique.values);
@@ -237,7 +291,7 @@ Future<BackupImportReport> importBackup(
 
   var settings = 0;
   for (final e in backup.settings.entries) {
-    if (kDeviceOnlySettings.contains(e.key)) continue;
+    if (kDeviceOnlySettings.contains(e.key) || isLocalOnlySetting(e.key)) continue;
     final mine = await store.getSetting(e.key);
     if (e.key == kCoursesAddedKey && mine != null) {
       final ids = [
@@ -256,10 +310,18 @@ Future<BackupImportReport> importBackup(
       settings++;
     }
   }
+  var marks = 0;
+  if (bookmarks != null) {
+    final merger = BookmarkStore(bookmarks);
+    for (final e in backup.bookmarks.entries) {
+      marks += await merger.mergeIn(e.key, e.value);
+    }
+  }
   return BackupImportReport(
     eventsInFile: unique.length,
     eventsAdded: added,
     mistakesAdded: mistakes,
     settingsAdded: settings,
+    bookmarksChanged: marks,
   );
 }

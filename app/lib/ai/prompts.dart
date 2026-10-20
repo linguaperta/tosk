@@ -6,12 +6,40 @@ import 'dart:convert';
 
 import '../core/core.dart';
 
-/// A system + user message pair.
+/// A system prompt with one user message, or (for conversations) with
+/// [turns]: alternating user and assistant messages, starting and ending
+/// with a user message. With [turns], [user] is ignored.
 class ChatPrompt {
-  const ChatPrompt({required this.system, required this.user, this.maxTokens = 400});
+  const ChatPrompt({required this.system, this.user = '', this.turns = const [], this.maxTokens = 400});
   final String system;
   final String user;
+  final List<ChatTurn> turns;
   final int maxTokens;
+
+  /// The messages to send (`[{role, content}]`, user first): [turns] with
+  /// consecutive messages of one role joined, or the single [user] message.
+  List<Map<String, String>> messages() {
+    if (turns.isEmpty) return [{'role': 'user', 'content': user}];
+    final out = <Map<String, String>>[];
+    for (final t in turns) {
+      final role = t.fromAssistant ? 'assistant' : 'user';
+      if (out.isEmpty && t.fromAssistant) out.add({'role': 'user', 'content': '(start)'});
+      if (out.isNotEmpty && out.last['role'] == role) {
+        out.last['content'] = '${out.last['content']}\n${t.text}';
+      } else {
+        out.add({'role': role, 'content': t.text});
+      }
+    }
+    return out;
+  }
+}
+
+/// One message of a conversation sent to the model.
+class ChatTurn {
+  const ChatTurn.user(this.text) : fromAssistant = false;
+  const ChatTurn.assistant(this.text) : fromAssistant = true;
+  final String text;
+  final bool fromAssistant;
 }
 
 /// English names for the languages the app deals with (prompts are in English;

@@ -98,7 +98,8 @@ data/          drift databases + repositories (Phase 2)
 engine/        exercise engine, pure Dart (Phase 3): templates, distractors, normalization, sessions, grading
 progression/   XP, levels, tiers, streaks, challenges, combos, pure functions over the review log (Phase 5)
 sync/          cloud sync (v0.7): SyncEngine (union merge, LWW settings), Firebase Auth + Firestore over REST, SyncService (docs/data-layer.md, "Cloud sync")
-ai/            AI explanations (v0.3): ClaudeExplainer, OpenAiExplainer, CachingExplainer, prompts, AiConfig, SecretStore
+ai/            AI explanations (v0.3): ClaudeExplainer, OpenAiExplainer, CachingExplainer, prompts, AiConfig, SecretStore;
+               AI conversation practice (v0.4): tutor.dart
 ink/           handwriting recognition (v0.5): InkRecognizer (+ ML Kit Digital Ink), model language tags
 speech/        text-to-speech (v0.5): Speaker (+ flutter_tts), voice locale choice, providers
 device/        device extras (v0.5): DeviceInfo (ONYX detection), EinkScreen (full refresh), PenSurface (Onyx pen raw drawing), providers

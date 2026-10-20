@@ -69,12 +69,16 @@ class FakeInkRecognizer implements InkRecognizer {
 
 /// A speaker with voices for [languages]; records what it says.
 class FakeSpeaker implements Speaker {
-  FakeSpeaker({this.languages = const {'it', 'nl'}});
+  FakeSpeaker({this.languages = const {'it', 'nl'}, this.statuses = const {}});
   final Set<String> languages;
   final List<(String, String, bool)> spoken = [];
 
   @override
-  Future<bool> canSpeak(String languageCode) async => languages.contains(languageCode);
+  Future<VoiceStatus> voiceStatus(String languageCode) async =>
+      languages.contains(languageCode) ? VoiceStatus.ready : (statuses[languageCode] ?? VoiceStatus.missing);
+
+  /// Statuses of languages without a voice (default: missing).
+  final Map<String, VoiceStatus> statuses;
 
   @override
   Future<void> speak(String text, String languageCode, {bool slow = false}) async {

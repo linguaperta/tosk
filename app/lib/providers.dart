@@ -22,6 +22,7 @@ import 'audio/sound_service.dart';
 import 'audio/test_env.dart';
 import 'core/core.dart';
 import 'data/app_data.dart';
+import 'data/progress/bookmarks.dart';
 import 'data/progress/feedback_store.dart';
 import 'data/fsrs/fsrs_scheduler.dart';
 import 'data/progress/in_memory_progress_store.dart';
@@ -445,6 +446,14 @@ final verbCollectionProvider = FutureProvider<VerbCollection>((ref) async {
   return svc.verbCollection(ref.watch(clockProvider)());
 });
 
+/// The active course's statistics: review forecast, accuracy per type and
+/// per tense or table, time practiced, words learned over time.
+final courseStatsProvider = FutureProvider<CourseStats>((ref) async {
+  ref.watch(progressRevisionProvider);
+  final svc = await ref.watch(progressionServiceProvider.future);
+  return svc.stats(now: ref.watch(clockProvider)(), lang: ref.watch(sourceLangProvider));
+});
+
 /// Best non-stop run in the log (null when there is none).
 final bestNonStopRunProvider = FutureProvider<NonStopRecord?>((ref) async {
   ref.watch(progressRevisionProvider);
@@ -493,6 +502,10 @@ class AiConfigController extends AsyncNotifier<AiConfig> {
 
 /// AI explanation cache and flags: tables in the progress database (in
 /// memory on the defaults).
+/// Starred words, sentences and exercises (`AppData.bookmarks`, the progress
+/// DB table), else in memory. The bookmark UI is in `ui/bookmarks/`.
+final bookmarkRepoProvider = Provider<BookmarkRepo>((ref) => ref.watch(appDataProvider)?.bookmarks ?? InMemoryBookmarkRepo());
+
 final feedbackStoreProvider = Provider<FeedbackStore>(
   (ref) => ref.watch(appDataProvider)?.feedback ?? InMemoryFeedbackStore(),
 );

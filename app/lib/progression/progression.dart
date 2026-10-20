@@ -11,6 +11,7 @@ export 'nonstop.dart';
 export 'progression_service.dart';
 export 'replay.dart';
 export 'session_summary.dart';
+export 'stats.dart';
 export 'streaks.dart';
 export 'tiers.dart';
 export 'verb_collection.dart';

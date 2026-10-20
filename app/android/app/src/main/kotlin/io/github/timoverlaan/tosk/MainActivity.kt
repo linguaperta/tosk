@@ -1,7 +1,12 @@
 package io.github.timoverlaan.tosk
 
+import android.content.ActivityNotFoundException
 import android.content.Context
+import android.content.Intent
+import android.media.AudioManager
 import android.os.Build
+import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -11,7 +16,11 @@ import io.flutter.plugin.common.MethodChannel
  * Platform channels of the app itself (v0.5):
  *
  * - `tosk/device`: `info` -> manufacturer, brand, model, sdk. Dart uses it
- *   to detect ONYX (Boox) e-readers; no plugin needed.
+ *   to detect ONYX (Boox) e-readers; no plugin needed. `openTtsSettings`
+ *   opens the text-to-speech settings (the "install a voice" notice).
+ *
+ * All app audio (speech and sound effects) plays on the media stream, so the
+ * volume keys adjust the media volume in the app, even when nothing plays.
  * - `tosk/onyx`: `fullRefresh` -> a full e-ink (GC) refresh through the
  *   Onyx SDK's EpdController. A no-op (false) on other devices.
  * - `tosk/onyx_pen`: low-latency raw drawing with the Onyx pen SDK
@@ -78,6 +87,21 @@ class MainActivity : FlutterActivity() {
                         "sdk" to Build.VERSION.SDK_INT,
                     )
                 )
+                // Android's text-to-speech settings (install a voice), else
+                // the general settings; false when neither opens.
+                "openTtsSettings" -> {
+                    var opened = false
+                    for (action in listOf("com.android.settings.TTS_SETTINGS", Settings.ACTION_SETTINGS)) {
+                        try {
+                            startActivity(Intent(action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                            opened = true
+                            break
+                        } catch (e: ActivityNotFoundException) {
+                            Log.w(TAG, "no $action")
+                        }
+                    }
+                    result.success(opened)
+                }
                 else -> result.notImplemented()
             }
         }
@@ -100,6 +124,11 @@ class MainActivity : FlutterActivity() {
                 guarded("pen.${call.method}") { bridge.handle(call, result) }
             }
         }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        volumeControlStream = AudioManager.STREAM_MUSIC
     }
 
     override fun onPause() {

@@ -72,7 +72,23 @@ The phone needs a text-to-speech engine with Italian and Dutch voices (Settings 
 - [ ] Listening exercises off in Settings: no more listening exercises; the lab hides the type.
 - [ ] 🔊 **pronounce** buttons: on a word popover (tap a word in a sentence), on a flashcard (the Italian/Dutch side; when producing, after revealing), and in the word page's app bar (with the article: "il pane"). Each speaks the word.
 - [ ] Phone on silent / media volume 0: no crash, just no sound.
-- [ ] Without any voice for the language (e.g. remove the voice data): no listening exercises and no 🔊 buttons appear.
+- [ ] Without any voice for the language (e.g. remove the voice data): no listening exercises and no 🔊 buttons appear, a snack bar says "No sound? Install an Italian voice in Android text-to-speech settings." **once** (its **Settings** button opens the text-to-speech settings), and Settings → Challenge shows "No Italian voice" with **Open**. Install the voice, restart the app: listening and 🔊 are back.
+
+### Diagnosing silent speech
+
+- `adb logcat -s flutter TTS` while opening the app and pressing 🔊. Each language checked logs one line, e.g. `[tts] it: ready, it-it-x-itb-local (it-IT); engine voices: …` (the status, the chosen voice, and the engine's voices for that language with `network` / `not installed`). `notInstalled` means the voice data has to be downloaded; `unavailable` means the engine didn't answer (no engine, or it was still starting: it is asked again later). The plugin logs under `TTS`: `Utterance … failed: error -9` is "not installed yet", `-6`/`-7` network (a network-only voice offline), `Reconnecting to the TTS engine` when the engine connection was lost.
+- `adb shell dumpsys package queries | findstr /i tts` (or `grep -i tts`) should list the TTS engine as visible to the app (the manifest's `<queries>` `TTS_SERVICE` entry).
+- `adb shell settings get secure tts_default_synth` names the default engine (e.g. `com.google.android.tts`).
+
+### All audio on the media stream (phone)
+
+All app audio (speech, correct/wrong/complete/level-up/bonus and the select tick) plays on the media stream, like YouTube.
+
+- [ ] With the ringer on **silent** or vibrate and the media volume up: sound effects and speech are audible.
+- [ ] With the media volume at 0 (ringer up): the app is silent.
+- [ ] In the app, the volume keys show the **media** volume slider, even when nothing is playing.
+- [ ] Music from another app keeps playing (mixed, not paused) while the app ticks and speaks.
+- [ ] `adb shell dumpsys audio` while a 🔊 word plays: under "players" (`playback activity` / `PlaybackActivityMonitor`), the app's players (its uid: `adb shell dumpsys package io.github.timoverlaan.tosk | findstr userId`; the speech player belongs to the TTS engine's uid, e.g. Google's) show `usage=USAGE_MEDIA` with `content=CONTENT_TYPE_SPEECH` for speech and `CONTENT_TYPE_SONIFICATION` for the sounds; none shows `USAGE_ASSISTANCE_SONIFICATION`. Note the device and result: ____.
 
 ## 5. Regressions to glance at
 

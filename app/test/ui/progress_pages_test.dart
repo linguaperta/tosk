@@ -39,6 +39,8 @@ void main() {
     expect(find.text('Streak and daily goal · all courses'), findsOneWidget);
     expect(find.byKey(const ValueKey('progress-streak')), findsOneWidget);
     expect(find.byType(StreakHeatmap), findsOneWidget);
+    // Further down (the stats card and starred entry came before them in v0.4).
+    await scrollToFind(tester, find.byType(ChallengesList));
     expect(find.byType(ChallengesList), findsOneWidget);
     await tapKey(tester, 'open-verbs');
     expect(find.byType(VerbCollectionScreen), findsOneWidget);

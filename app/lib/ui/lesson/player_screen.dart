@@ -16,6 +16,7 @@ import '../../feedback/answer_context.dart';
 import '../../progression/nonstop.dart';
 import '../../providers.dart';
 import '../ai/ai_explanation_sheet.dart';
+import '../bookmarks/bookmarks_ui.dart';
 import '../common/async_view.dart';
 import '../feedback/flag_sheet.dart';
 import '../routes.dart';
@@ -191,8 +192,10 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     }
     var next = await s.next();
     // "Can't listen now": the running session may still serve listening
-    // exercises; skip them while the snooze lasts (bounded).
-    for (var i = 0; i < 50 && next is ListenPickExercise && ref.read(listenSnoozeProvider.notifier).active; i++) {
+    // exercises; skip them while the snooze lasts, or once speaking showed
+    // that the voice isn't installed after all (bounded).
+    bool skipListening() => ref.read(listenSnoozeProvider.notifier).active || ref.read(voiceNotInstalledProvider);
+    for (var i = 0; i < 50 && next is ListenPickExercise && skipListening(); i++) {
       next = await s.next();
     }
     if (!mounted) return;
@@ -689,6 +692,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     final result = _result;
     final reduce = ref.watch(reduceMotionProvider);
     final aiAvailable = ref.watch(explainerAvailableProvider);
+    final starred = result != null && ref.watch(exerciseStarredProvider(ex));
     return Column(
       children: [
         if (_endless) NonStopHudSlot(run: _run),
@@ -744,6 +748,13 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                   label: 'Explain answer with AI',
                   onPressed: _explain,
                 ),
+              // v0.4: star the exercise, its word or its sentence.
+              FeedbackAction(
+                key: const ValueKey('star-button'),
+                icon: starred ? Icons.star : Icons.star_border,
+                label: starred ? 'Starred' : 'Star',
+                onPressed: () => unawaited(showStarSheet(context, ex)),
+              ),
               FeedbackAction(
                 key: const ValueKey('flag-button'),
                 icon: _flagged ? Icons.flag : Icons.outlined_flag,

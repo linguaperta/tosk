@@ -60,6 +60,13 @@ class FlutterTtsPlugin : MethodCallHandler, FlutterPlugin {
     private var audioManager: AudioManager? = null
     private var audioFocusRequest: AudioFocusRequest? = null
 
+    // tosk patch: the speech AudioAttributes (usage, content type) set
+    // from Dart, re-applied to every TextToSpeech instance the plugin creates.
+    private var audioAttributes: AudioAttributes? = null
+
+    // tosk patch: reconnects to the engine for the current speak call.
+    private var speakReconnects = 0
+
     companion object {
         private const val SILENCE_PREFIX = "SIL_"
         private const val SYNTHESIZE_TO_FILE_PREFIX = "STF_"
@@ -174,8 +181,9 @@ class FlutterTtsPlugin : MethodCallHandler, FlutterPlugin {
                     }
                     invokeMethod("synth.onError", "Error from TextToSpeech (synth)")
                 } else {
+                    // tosk patch: complete the awaited speak() (as ERROR).
                     if (awaitSpeakCompletion) {
-                        speaking = false
+                        speakCompletion(TextToSpeech.ERROR)
                     }
                     invokeMethod("speak.onError", "Error from TextToSpeech (speak)")
                 }
@@ -190,11 +198,15 @@ class FlutterTtsPlugin : MethodCallHandler, FlutterPlugin {
                     }
                     invokeMethod("synth.onError", "Error from TextToSpeech (synth) - $errorCode")
                 } else {
+                    Log.e(tag, "Utterance $utteranceId failed: error $errorCode")
+                    // tosk patch: the awaited speak() returns the error code
+                    // (TextToSpeech.ERROR_*, negative) instead of never completing.
                     if (awaitSpeakCompletion) {
-                        speaking = false
+                        speakCompletion(errorCode)
                     }
                     invokeMethod("speak.onError", "Error from TextToSpeech (speak) - $errorCode")
                 }
+                releaseAudioFocus()
             }
         }
 
@@ -216,6 +228,13 @@ class FlutterTtsPlugin : MethodCallHandler, FlutterPlugin {
 
     private val onInitListenerWithCallback: TextToSpeech.OnInitListener =
         TextToSpeech.OnInitListener { status ->
+            // tosk patch: the progress listener and the audio attributes
+            // first, so calls queued during init (a speak) report completion
+            // and play on the right stream.
+            if (status == TextToSpeech.SUCCESS) {
+                tts!!.setOnUtteranceProgressListener(utteranceProgressListener)
+                applyAudioAttributes()
+            }
             // Handle pending method calls (sent while TTS was initializing)
             synchronized(this@FlutterTtsPlugin) {
                 ttsStatus = status
@@ -247,6 +266,13 @@ class FlutterTtsPlugin : MethodCallHandler, FlutterPlugin {
 
     private val onInitListenerWithoutCallback: TextToSpeech.OnInitListener =
         TextToSpeech.OnInitListener { status ->
+            // tosk patch: the progress listener and the audio attributes
+            // first, so calls queued during init (a speak) report completion
+            // and play on the right stream.
+            if (status == TextToSpeech.SUCCESS) {
+                tts!!.setOnUtteranceProgressListener(utteranceProgressListener)
+                applyAudioAttributes()
+            }
             // Handle pending method calls (sent while TTS was initializing)
             synchronized(this@FlutterTtsPlugin) {
                 ttsStatus = status
@@ -310,12 +336,26 @@ class FlutterTtsPlugin : MethodCallHandler, FlutterPlugin {
                 }
                 val b = speak(text, focus)
                 if (!b) {
+                    // tosk patch: the engine refused the utterance (not
+                    // bound: e.g. the engine was killed or updated). Upstream
+                    // parked the call until an init that never came, so every
+                    // later speak was silent. Reconnect once and retry; if that
+                    // fails too, return ERROR.
+                    if (speakReconnects >= 1) {
+                        speakReconnects = 0
+                        Log.e(tag, "speak failed after reconnecting to the TTS engine")
+                        result.success(TextToSpeech.ERROR)
+                        return
+                    }
+                    speakReconnects++
                     synchronized(this@FlutterTtsPlugin) {
+                        reconnect()
                         val suspendedCall = Runnable { onMethodCall(call, result) }
                         pendingMethodCalls.add(suspendedCall)
                     }
                     return
                 }
+                speakReconnects = 0
                 // Only use await speak completion if queueMode is set to QUEUE_FLUSH
                 if (awaitSpeakCompletion && queueMode == TextToSpeech.QUEUE_FLUSH) {
                     speaking = true
@@ -448,6 +488,19 @@ class FlutterTtsPlugin : MethodCallHandler, FlutterPlugin {
             "setQueueMode" -> {
                 val queueMode: String = call.arguments.toString()
                 this.queueMode = queueMode.toInt()
+                result.success(1)
+            }
+
+            "setAudioAttributes" -> {
+                // tosk patch: e.g. USAGE_MEDIA + CONTENT_TYPE_SPEECH, so
+                // speech follows the media volume.
+                val usage: Int = call.argument("usage") ?: AudioAttributes.USAGE_MEDIA
+                val contentType: Int = call.argument("contentType") ?: AudioAttributes.CONTENT_TYPE_SPEECH
+                audioAttributes = AudioAttributes.Builder()
+                    .setUsage(usage)
+                    .setContentType(contentType)
+                    .build()
+                applyAudioAttributes()
                 result.success(1)
             }
 
@@ -680,9 +733,29 @@ class FlutterTtsPlugin : MethodCallHandler, FlutterPlugin {
                 tts!!.speak(text, queueMode, bundle, uuid) == 0
             }
         } else {
-            ttsStatus = null
-            tts = TextToSpeech(context, onInitListenerWithoutCallback, selectedEngine)
             false
+        }
+    }
+
+    /** tosk patch: a fresh engine connection (the old one is shut down). */
+    private fun reconnect() {
+        Log.w(tag, "Reconnecting to the TTS engine")
+        try {
+            tts?.shutdown()
+        } catch (e: Exception) {
+            Log.d(tag, "shutdown: " + e.message)
+        }
+        ttsStatus = null
+        tts = TextToSpeech(context, onInitListenerWithoutCallback, selectedEngine)
+    }
+
+    /** tosk patch: applies [audioAttributes] (if set) to the engine. */
+    private fun applyAudioAttributes() {
+        val attributes = audioAttributes ?: return
+        try {
+            tts?.setAudioAttributes(attributes)
+        } catch (e: Exception) {
+            Log.e(tag, "setAudioAttributes: " + e.message)
         }
     }
 

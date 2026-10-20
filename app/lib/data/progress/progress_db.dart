@@ -145,12 +145,35 @@ class Flags extends Table {
   Set<Column> get primaryKey => {id};
 }
 
-@DriftDatabase(tables: [ReviewLogEntries, FacetStates, Mistakes, Settings, AiExplanations, Flags])
+/// Starred words, sentences and exercises per course (schema v3), with
+/// tombstones for unstarred ones (last-writer-wins merges; see
+/// `core/models/bookmark.dart` and `progress/bookmarks.dart`).
+@DataClassName('BookmarkRow')
+@TableIndex(name: 'bookmarks_course_at', columns: {#courseId, #at})
+class Bookmarks extends Table {
+  @override
+  String get tableName => 'bookmarks';
+
+  TextColumn get courseId => text()();
+  TextColumn get kind => text()(); // BookmarkKind.name
+  TextColumn get refId => text()(); // item id, sentence id or exercise hash
+  IntColumn get at => integer()(); // UTC epoch ms of the last change
+  BoolColumn get removed => boolean().withDefault(const Constant(false))();
+  TextColumn get label => text().withDefault(const Constant(''))();
+  TextColumn get detail => text().nullable()();
+  TextColumn get facetId => text().nullable()();
+  TextColumn get exerciseJson => text().nullable()(); // exercise snapshot
+
+  @override
+  Set<Column> get primaryKey => {courseId, kind, refId};
+}
+
+@DriftDatabase(tables: [ReviewLogEntries, FacetStates, Mistakes, Settings, AiExplanations, Flags, Bookmarks])
 class ProgressDb extends _$ProgressDb {
   ProgressDb(super.executor);
 
   /// Bump on every schema change and add a migration step below.
-  static const int currentSchemaVersion = 2;
+  static const int currentSchemaVersion = 3;
 
   @override
   int get schemaVersion => currentSchemaVersion;
@@ -172,6 +195,11 @@ class ProgressDb extends _$ProgressDb {
             await m.createTable(aiExplanations);
             await m.createTable(flags);
             await m.createIndex(flagsCreated);
+          }
+          if (from < 3) {
+            // v3: bookmarks (one self-contained step: a new table and its index).
+            await m.createTable(bookmarks);
+            await m.createIndex(bookmarksCourseAt);
           }
           // facet_state is derived data: a step may also drop and recreate it
           // and the repo's rebuildStates() refills it from review_log.

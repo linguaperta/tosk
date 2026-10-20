@@ -42,3 +42,15 @@ Future<DeviceInfo> loadDeviceInfo() async {
     return DeviceInfo.unknown;
   }
 }
+
+/// Opens Android's text-to-speech settings (to install a voice); false when
+/// that isn't possible (not Android, no such screen).
+Future<bool> openTtsSettings() async {
+  if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return false;
+  try {
+    return await _deviceChannel.invokeMethod<bool>('openTtsSettings') ?? false;
+  } catch (e) {
+    debugPrint('[device] no TTS settings: $e');
+    return false;
+  }
+}

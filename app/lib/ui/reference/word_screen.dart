@@ -10,6 +10,7 @@ import '../../core/core.dart';
 import '../../engine/reference.dart';
 import '../../providers.dart';
 import '../common/async_view.dart';
+import '../bookmarks/bookmarks_ui.dart';
 import '../common/pronounce_button.dart';
 import '../common/word_popover.dart';
 import '../routes.dart';
@@ -45,7 +46,11 @@ class WordScreen extends ConsumerWidget {
           appBar: AppBar(
             title: Text(wordLabel(item), key: const ValueKey('word-title')),
             // v0.5: hear the word (with its article), when the device has a voice.
-            actions: [PronounceButton(text: wordLabel(item), buttonKey: const ValueKey('word-pronounce'))],
+            actions: [
+              PronounceButton(text: wordLabel(item), buttonKey: const ValueKey('word-pronounce')),
+              // v0.4: star the word for later (Progress → Starred).
+              WordStarButton(itemId: item.id, buttonKey: const ValueKey('word-star')),
+            ],
           ),
           body: Center(
             child: ConstrainedBox(
@@ -135,19 +140,28 @@ class WordScreen extends ConsumerWidget {
                       Padding(
                         key: ValueKey('word-example-${s.id}'),
                         padding: const EdgeInsets.only(bottom: 10),
-                        child: Column(
+                        child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            TappableSentence(
-                              tokens: [
-                                for (final t in s.tokens)
-                                  TokenRef(t.t, pre: t.pre, itemId: t.lex, form: t.form, isWord: t.isWord),
-                              ],
-                              keyPrefix: '${s.id}-',
-                              style: theme.textTheme.bodyLarge,
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  TappableSentence(
+                                    tokens: [
+                                      for (final t in s.tokens)
+                                        TokenRef(t.t, pre: t.pre, itemId: t.lex, form: t.form, isWord: t.isWord),
+                                    ],
+                                    keyPrefix: '${s.id}-',
+                                    style: theme.textTheme.bodyLarge,
+                                  ),
+                                  if (s.translation(lang) case final tr?)
+                                    Text(tr, style: theme.textTheme.bodyMedium?.copyWith(fontStyle: FontStyle.italic)),
+                                ],
+                              ),
                             ),
-                            if (s.translation(lang) case final tr?)
-                              Text(tr, style: theme.textTheme.bodyMedium?.copyWith(fontStyle: FontStyle.italic)),
+                            // v0.4: star the sentence.
+                            SentenceStarButton(sentence: s, buttonKey: ValueKey('word-example-star-${s.id}')),
                           ],
                         ),
                       ),
