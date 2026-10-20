@@ -97,6 +97,7 @@ data/          drift databases + repositories (Phase 2)
   packs/       LocalPackSource (+ asset bootstrap)
 engine/        exercise engine, pure Dart (Phase 3): templates, distractors, normalization, sessions, grading
 progression/   XP, levels, tiers, streaks, challenges, combos, pure functions over the review log (Phase 5)
+sync/          cloud sync (v0.7): SyncEngine (union merge, LWW settings), Firebase Auth + Firestore over REST, SyncService (docs/data-layer.md, "Cloud sync")
 ai/            AI explanations (v0.3): ClaudeExplainer, OpenAiExplainer, CachingExplainer, prompts, AiConfig, SecretStore
 ink/           handwriting recognition (v0.5): InkRecognizer (+ ML Kit Digital Ink), model language tags
 speech/        text-to-speech (v0.5): Speaker (+ flutter_tts), voice locale choice, providers
@@ -110,7 +111,7 @@ ui/            Flutter screens and widgets (Phase 4): map, lesson player, lab, n
 app.dart, main.dart, providers.dart (Riverpod wiring)
 ```
 
-Dependency direction: `ui → engine, progression, data → core`. `ai`, `feedback`, `audio`, `ink`, `speech` and `device` sit beside `data`: they use `core`, and `feedback` also uses the engine's `exercisePrompt`. `docs/feedback.md` describes AI explanations, flags and sounds. `engine` and `progression` depend only on `core`, with data access through small interfaces such as `CourseData` and `ProgressReader`. That keeps them pure Dart and testable with in-memory fixtures. `data` implements those interfaces.
+Dependency direction: `ui → engine, progression, data → core`. `sync`, `ai`, `feedback`, `audio`, `ink`, `speech` and `device` sit beside `data`: they use `core`, and `feedback` also uses the engine's `exercisePrompt`. `docs/feedback.md` describes AI explanations, flags and sounds. `engine` and `progression` depend only on `core`, with data access through small interfaces such as `CourseData` and `ProgressReader`. That keeps them pure Dart and testable with in-memory fixtures. `data` implements those interfaces.
 
 ## Testing
 

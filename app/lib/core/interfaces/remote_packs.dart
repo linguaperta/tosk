@@ -95,6 +95,9 @@ class RemotePack {
   /// The gzipped copy can be used (all three fields present).
   bool get hasWebPack => webUrl != null && gzSha256 != null && gzSize != null;
 
+  /// Bytes a download transfers: the `.gz` where the web copy is used.
+  int downloadSize({required bool web}) => web && hasWebPack ? gzSize! : size;
+
   /// This entry with [url] and [webUrl] resolved against [base] (the URL the index came from).
   RemotePack resolvedAgainst(Uri base) => RemotePack(
     id: id,

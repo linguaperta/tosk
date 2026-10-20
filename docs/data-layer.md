@@ -14,10 +14,11 @@ data/
   stats/                 SkillStats, SkillStatsService
   packs/                 LocalPackSource, PackFileStore, AssetBundlePacks, GitHubPackSource (downloads)
   platform/              conditional imports: native (ffi, isolates) vs web (WASM)
-  sync/                  review-log JSON lines, FileExportSyncBackend, syncReviewLog
+  sync/                  review-log JSON lines (codec), progress backup (export/import)
 core/interfaces/packs.dart   PackSource, PackInfo, PackData (PackFile | PackBytes), PackHandle
 core/interfaces/remote_packs.dart   RemotePackSource, RemoteIndex, RemotePack, CourseOffer, combineOffers
-core/interfaces/sync.dart    SyncBackend, NullSyncBackend
+core/interfaces/sync.dart    SyncBackend (cloud sync contract), NullSyncBackend, SyncedEvent, EventBatch, SyncCursor
+lib/sync/                    cloud sync (v0.7): engine, Firebase over REST, local bookkeeping, service, providers
 ui/debug/debug_screen.dart   debug screen; run it with `flutter run -t lib/main_debug.dart`
 ```
 
@@ -53,7 +54,7 @@ Tests and other agents can use `InMemoryProgressStore` (pure Dart, same semantic
 `LocalPackSource` implements `PackSource`:
 
 - **Bundled packs.** These are `assets/courses/*.sqlite`, found through the AssetManifest. On first use they are copied into the installed-pack store. A pack is copied again when its bundled `meta.version` is a newer semver than the installed copy, for example after an app update. A bundled pack that fails validation is skipped with a warning.
-- **Installed-pack store.** Natively this is `{app support dir}/courses/{id}.sqlite` plus a `packs.json` manifest. It uses the app support folder rather than Documents, so it stays out of the user's Documents folder on desktop. You can override the folder with `AppDataOptions.dataDirectory`. On the web, packs live in memory and are read from asset bytes on every start.
+- **Installed-pack store.** Natively this is `{app support dir}/courses/{id}.sqlite` plus a `packs.json` manifest. It uses the app support folder rather than Documents, so it stays out of the user's Documents folder on desktop. You can override the folder with `AppDataOptions.dataDirectory`. On the web (v0.7) packs live in IndexedDB (`BlobPackFileStore` over `IdbBlobStore`, database `tosk-packs`), so downloads survive reloads; if IndexedDB fails (`FallbackBlobStore`) they live in memory for the session.
 - **Packs copied in by hand.** A `{id}.sqlite` file placed in the store's `courses/` folder is found when the packs are first listed, validated and registered with origin `local` (a misnamed or invalid file is skipped with a warning). A replaced file is re-read on the next start and a deleted one disappears from the list. This is how the locally built Sarnami pack, which may never be bundled, gets onto a desktop machine (`docs/sarnami.md`). On Windows the folder is `%APPDATA%\io.github.timoverlaan\tosk\courses`.
 - **`install(PackFile | PackBytes)`.** Used by the course picker's "Add course from file…" and the debug screen. It validates the pack, then replaces the installed pack with the same course id, with origin `local`.
 - **`remove(id)`.** Deletes a `local` pack. A bundled pack for that course comes back the next time packs are listed, and bundled packs themselves can't be removed.
@@ -78,7 +79,7 @@ Tests and other agents can use `InMemoryProgressStore` (pure Dart, same semantic
 - **Errors** are `PackDownloadException(kind, message)` with kinds `network` (no connection, timeouts of 30 s per connect/idle, a dropped connection), `http` (404, 5xx), `corrupt` (size, checksum, wrong course/version, unreadable or newer-schema file, failed open), `incompatible` and `cancelled` (`DownloadCancel.cancel()`, which also aborts the request through `http.AbortableRequest`). Messages are short and polite; installed packs are never touched by a failure.
 - **Progress is never touched.** Item ids are permanent, so a newer pack keeps every id; facets of items a pack drops stay in the log and states but are no longer scheduled. Every session builder, the stats, mistakes and progression iterate the course's own facets, so orphaned states are ignored (`test/engine/removed_items_test.dart`).
 - **Bundled packs stay the fallback.** A downloaded pack wins while its version is at least the bundled one; after an app update with a newer bundled pack, the bundled pack is installed again. Removing a downloaded course (`remove`) falls back to the bundled pack.
-- **Web.** Downloads go into the in-memory pack store (the layer has no persistent pack storage on the web), so they last for the session; the bundled packs come back on reload. GitHub's release-asset redirect target may not send CORS headers, so web downloads can fail with a polite network error. Open issue: serve a CORS-friendly mirror for the web build (GitHub Pages or `raw.githubusercontent.com/.../dist/`, whose index `url`s the web build would use) and persist downloaded packs in IndexedDB.
+- **Web (v0.7).** The web build reads the catalog from the same-origin GitHub Pages mirror (`packs/index.json` next to the page) and downloads each course's gzipped copy (`web_url`, checked against `gz_size`/`gz_sha256`, decompressed with package:archive, then checked against `size`/`sha256`). Packs persist in IndexedDB. Relative `url`/`web_url`s resolve against the index URL (`RemoteIndex.resolvedAgainst`). See docs/release.md, "Web app and pack mirror". Tests: `test/data/web_packs_test.dart`.
 
 Tests: `test/data/github_pack_source_test.dart` (a fake GitHub with the release URLs and redirects via `MockClient`, plus a real local `HttpServer` with a dropped connection: index, offers, update with progress, 404, corrupted checksum, truncated, oversized, newer schema/app, wrong course/version in the file, network loss, cancel, rollback when the new pack fails to open, crash recovery, the in-memory store, `AppData.downloadPack` keeping the review log).
 
@@ -166,20 +167,41 @@ Each `SkillStats` has these fields:
 | `dueCount` | Reviewed facets that are due now. |
 | `minRecall`, `minStability` | Lowest recall and stability across the facets, for the silver and gold checks. |
 
-## Sync
+## Cloud sync (v0.7, `lib/sync/`)
 
-`SyncBackend` (in core) has `push(events)` and `pull(since:)`, and merging is the union of events by id. `syncReviewLog(backend:, store:, importer:)` pulls, imports, then pushes the full log.
+Accounts and sync with Firebase (Google sign-in, Firestore), free tier. Only when the build has a configuration (`--dart-define-from-file=firebase-config.json`, `sync/sync_config.dart`) and the platform can sign in (Android, web, iOS with an iOS client id); otherwise nothing of it exists at run time. Setup: `docs/firebase-setup.md`.
 
-v1 has two backends:
+| File | Role |
+| --- | --- |
+| `core/interfaces/sync.dart` | `SyncBackend`: push/pull event batches and settings with server-time cursors, `deleteAll`; `NullSyncBackend` |
+| `sync/sync_engine.dart` | the merge algorithm (pure Dart), `EventOffsets` |
+| `sync/sync_store.dart` | local bookkeeping in its own `sync.sqlite` (`SyncDb`, raw SQL, no generated code; web: `tosk-sync`), `InMemorySyncStore` |
+| `sync/firebase_auth.dart`, `sync/firestore_backend.dart` | Firebase Auth and Firestore over REST (package:http; no native Firebase SDKs, so no `google-services.json` and Windows keeps building) |
+| `sync/google_identity.dart` | Google ID tokens via google_sign_in (Android Credential Manager, iOS SDK, the web's Google button) |
+| `sync/sync_service.dart` | sign-in/out, the persisted session (refresh token in secure storage), triggers, status |
+| `sync/sync_bootstrap.dart`, `sync/sync_providers.dart` | wiring (`bootApp` → `AppBoot.sync`), Riverpod; `ui/settings/sync_section.dart` is Settings → Account & sync |
+| `sync/fake_sync_backend.dart` | in-memory server with a clock and an offline switch, for tests |
 
-- **`NullSyncBackend`**: does nothing.
-- **`FileExportSyncBackend`**: reads and writes one JSON-lines file through I/O callbacks you supply, so the same code works with a desktop file or a browser download. One event per line, sorted by `(at, id)`. The codec is `encodeReviewLogJsonl` / `decodeReviewLogJsonl`.
+**Review log: union by event id.** Facet states are recomputed after a merge (`rebuildStates()`), so there are no conflicts. One `SyncEngine.sync()`:
 
-A Google Drive `appDataFolder` backend comes later.
+1. Pull the batches written since the last run (cursor = server time + document id, re-reading a 2-minute overlap) and `importEvents` them. **Clock skew:** an event dated more than 5 minutes after its batch's server time is clamped to that time; every device clamps the same way.
+2. `rebuildStates()` if anything was new.
+3. Push the **upload queue**: the review log after the last uploaded position (`SequencedLog.eventsAfter`, the SQLite `rowid` of `review_log`; never `VACUUM` the progress DB), minus events the account already has, in batches of up to 400 events per Firestore document. A batch id is a hash of its event ids, so a retried upload overwrites itself; the position moves only after a batch is stored. Offline, answers simply wait in the log (`SyncEngine.pending()`).
+4. Settings, **last writer wins** per key (`ui/settings/synced_settings.dart` lists the synced keys; display, reduced motion, reminders, e-reader switches, AI and pack bookkeeping stay on the device), on the change time (noted through `ProgressRepo.listeners`, clamped to the server time) with the device id as tie-break. A device's first sync with an account **joins** it: the account's values win, except "my courses" and seen intros, which become the union.
+
+**Time zones.** Each event travels with the UTC offset it was recorded with (`SyncedEvent.utcOffsetMinutes`, noted locally in `event_meta` as answers are recorded). `EventOffsets` maps event times to these offsets and the app's `calendarProvider` uses it, so streaks, the heatmap and the daily goal count the days the learner lived, whatever zone the viewing device is in. Events recorded before sync existed use the device's rules, as before.
+
+**Triggers** (`SyncService`): a few seconds after start, a minute after the last answer, on app pause and resume, and "Sync now". After a sync that brought answers or settings, the progress revision is bumped and the settings providers reload.
+
+**Firestore layout and rules:** `users/{uid}/batches/{batchId}` (`v`, `dev`, `n`, `events` as JSON lines with `off`, `up` = server time) and `users/{uid}/settings/{key}` (`k`, `v`, `t`, `dev`, `up`). `firebase/firestore.rules` lets a user touch only their own tree, checks the shape and requires `up == request.time`; `firebase/test/rules.test.mjs` tests it on the emulator (CI). A 200-answer day is about 10 writes.
+
+**Delete my cloud data** deletes every document and the Firebase account, then signs out; local progress stays. **Sign out** keeps both copies.
+
+Tests: `test/sync/sync_engine_test.dart` (two devices, duplicates, idempotency, offline queue, lost acknowledgements, out-of-order and override events, clock skew, the drift/SQLite path, account switch, streaks across time zones, settings LWW and joining, the free-tier budget), `test/sync/firestore_backend_test.dart` (the REST clients against a fake Firestore/Auth API), `test/sync/sync_service_test.dart`, `test/ui/sync_section_test.dart`.
 
 ### Progress backup (`sync/progress_backup.dart`, Settings → Backup)
 
-One JSON-lines file, format `tosk-backup/1`: a header line (`format`, `exported_at`, `app`, counts), the review log exactly as `encodeReviewLogJsonl` writes it, then `{"kind":"mistake",…}` per mistake and `{"kind":"setting","key","value"}` per setting (stores that implement `SettingsLister`, `ProgressRepo` and `InMemoryProgressStore`, list every setting). Flags have their own export (docs/feedback.md). A plain review-log file imports too, and unknown `kind`s are skipped.
+Independent of cloud sync, and still the way to move progress without an account. One JSON-lines file, format `tosk-backup/1`: a header line (`format`, `exported_at`, `app`, counts), the review log exactly as `encodeReviewLogJsonl` writes it, then `{"kind":"mistake",…}` per mistake and `{"kind":"setting","key","value"}` per setting (stores that implement `SettingsLister`, `ProgressRepo` and `InMemoryProgressStore`, list every setting). Flags have their own export (docs/feedback.md). A plain review-log file imports too, and unknown `kind`s are skipped.
 
 **Import merges, never deletes:** events are a union by id (`importEvents`, idempotent), then `rebuildStates()`; mistakes are added when their id is new; settings only fill keys this device lacks, except "my courses" (`courses.added`), which is a union; the reminder keys are device-only and never imported. `importBackup` returns the counts the UI shows. Tests: `test/data/progress_backup_test.dart` (round trip between two on-disk databases, a duplicate import, the layout, bad files).
 

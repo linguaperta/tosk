@@ -20,15 +20,6 @@ class IdbBlobStore implements BlobStore {
   static const _blobs = 'blobs';
   static const _texts = 'texts';
 
-  /// IndexedDB is usable here (not in some private modes and old webviews).
-  static bool get available {
-    try {
-      return web.window.indexedDB.isA<web.IDBFactory>();
-    } on Object {
-      return false;
-    }
-  }
-
   Future<web.IDBDatabase> _open() => _db ??= () {
         final c = Completer<web.IDBDatabase>();
         final req = web.window.indexedDB.open(dbName, 1);

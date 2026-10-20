@@ -80,6 +80,7 @@ def mirror(out: Path, index: str = STABLE_INDEX_URL,
     tmp = out / ".download"
     tmp.mkdir(exist_ok=True)
     try:
+        local = not index.startswith(("http://", "https://"))
         doc = _read_index(index, fetch, tmp)
         courses = []
         for c in doc.get("courses", []):
@@ -88,9 +89,12 @@ def mirror(out: Path, index: str = STABLE_INDEX_URL,
                 raise RestrictedContentError(f"refusing to mirror {cid}: restricted content")
             raw = tmp / f"{cid}.sqlite"
             src = c["url"]
-            if not src.startswith(("http://", "https://")):
-                # A local index (tests, a fresh `publish --dry-run`): packs next to it.
-                raw = Path(index).parent / Path(src).name
+            beside = Path(index).parent / Path(src).name if local else None
+            if beside is not None and beside.exists():
+                # A local index (tests, `publish --dry-run` in dist/): use the packs next to it.
+                raw = beside
+            elif not src.startswith(("http://", "https://")):
+                raise FileNotFoundError(f"{cid}: {src} not found next to {index}")
             else:
                 fetch(src, raw)
             if _sha256(raw) != c["sha256"] or raw.stat().st_size != c["size"]:
