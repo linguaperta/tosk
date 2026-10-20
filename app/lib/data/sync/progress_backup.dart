@@ -11,7 +11,7 @@
 /// 3. `{"kind":"mistake",…}` per stored mistake;
 /// 4. `{"kind":"setting","key":…,"value":…}` per setting.
 ///
-/// A plain review-log file (the `FileExportSyncBackend` format, no header)
+/// A plain review-log file (`encodeReviewLogJsonl`, no header)
 /// imports too. Unknown `kind`s are skipped, so later versions can add
 /// sections.
 ///

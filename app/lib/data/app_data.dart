@@ -16,7 +16,6 @@ import 'fsrs/fsrs_scheduler.dart';
 import 'progress/feedback_store.dart';
 import 'progress/progress_repo.dart';
 import 'stats/skill_stats.dart';
-import 'sync/review_log_sync.dart';
 
 typedef CoursePackLoader = Future<CourseRepo> Function(PackData data);
 
@@ -26,14 +25,12 @@ class AppData {
     required this.packs,
     required this.loadPack,
     Scheduler? scheduler,
-    this.sync = const NullSyncBackend(),
   }) : scheduler = scheduler ?? progress.scheduler;
 
   /// The progress store (also an [EventImporter]); the engine takes it as a [ProgressStore].
   final ProgressRepo progress;
   final Scheduler scheduler;
   final PackSource packs;
-  final SyncBackend sync;
 
   /// Loads a pack into memory (platform specific; see `data/platform/platform.dart`).
   final CoursePackLoader loadPack;
@@ -85,10 +82,6 @@ class AppData {
     evictCourse(info.id);
     return info;
   }
-
-  /// Pull + merge + push the review log with [sync].
-  Future<SyncReport> syncNow() =>
-      syncReviewLog(backend: sync, store: progress, importer: progress);
 
   Future<void> close() => progress.close();
 

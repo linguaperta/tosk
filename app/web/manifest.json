@@ -1,7 +1,9 @@
 {
+    "id": "./",
     "name": "tosk",
     "short_name": "tosk",
     "start_url": ".",
+    "scope": ".",
     "display": "standalone",
     "background_color": "#F7F0E2",
     "theme_color": "#F7F0E2",
@@ -31,5 +33,9 @@
             "type": "image/png",
             "purpose": "maskable"
         }
-    ]
+    ],
+    "categories": [
+        "education"
+    ],
+    "lang": "en"
 }

@@ -20,6 +20,7 @@
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="tosk">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
@@ -118,6 +119,15 @@
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
   <script src="flutter_bootstrap.js" async=""></script>
+  <script>
+    // Offline app shell (web/sw.js). Installed from Safari's "Add to Home
+    // Screen" on iOS, or the install prompt on Android/desktop.
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('sw.js').catch(function (e) { console.warn('[sw]', e); });
+      });
+    }
+  </script>
 
 
 </body></html>

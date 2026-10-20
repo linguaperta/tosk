@@ -1,0 +1,46 @@
+rules_version = '2';
+
+// tosk cloud sync (v0.7): every signed-in user owns users/{uid}/... and
+// nothing else. The app writes two kinds of documents (see
+// app/lib/sync/firestore_backend.dart):
+//
+//   users/{uid}/batches/{batchId}  v, dev, n, events (JSON lines), up
+//   users/{uid}/settings/{key}     k, v, t, dev, up
+//
+// `up` must be the server's request time (the app sets it with the
+// REQUEST_TIME transform); sync clamps clock-skewed answers against it, so a
+// client may not forge it.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function owner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    match /users/{uid} {
+      allow read, delete: if owner(uid);
+
+      match /batches/{batchId} {
+        allow read, delete: if owner(uid);
+        allow create, update: if owner(uid)
+          && request.resource.data.keys().hasOnly(['v', 'dev', 'n', 'events', 'up'])
+          && request.resource.data.v is int
+          && request.resource.data.dev is string
+          && request.resource.data.n is int
+          && request.resource.data.events is string
+          && request.resource.data.events.size() < 1000000
+          && request.resource.data.up == request.time;
+      }
+
+      match /settings/{key} {
+        allow read, delete: if owner(uid);
+        allow create, update: if owner(uid)
+          && request.resource.data.keys().hasOnly(['k', 'v', 't', 'dev', 'up'])
+          && request.resource.data.k is string
+          && (request.resource.data.v == null || (request.resource.data.v is string && request.resource.data.v.size() < 100000))
+          && request.resource.data.t is int
+          && request.resource.data.dev is string
+          && request.resource.data.up == request.time;
+      }
+    }
+  }
+}

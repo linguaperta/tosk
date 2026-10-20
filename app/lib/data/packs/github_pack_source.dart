@@ -16,13 +16,20 @@
 ///   schema), swaps it in atomically and opens it with [verify]; if that fails
 ///   the previous version is restored. Progress is never touched: item ids are
 ///   permanent, and facets whose items disappear simply stop being scheduled.
+/// * **Web packs** (v0.7): on the web, a course entry with `web_url` (the
+///   gzipped copy on the GitHub Pages mirror, same origin as the app) is
+///   downloaded instead of `url`: the `.gz` is checked against `gz_size` and
+///   `gz_sha256`, decompressed in the app, and the result against `size` and
+///   `sha256` like any download. Relative URLs resolve against the index URL.
 /// * **Errors** are [PackDownloadException]s with a short, polite message; the
 ///   installed packs keep working whatever happens online.
 library;
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
+import 'package:archive/archive.dart' show GZipDecoder;
 import 'package:crypto/crypto.dart' as crypto;
 import 'package:http/http.dart' as http;
 
@@ -47,7 +54,12 @@ class GitHubPackSource implements PackSource, RemotePackSource {
     this.verify,
     this.maxRedirects = 5,
     this.timeout = const Duration(seconds: 30),
-  }) : indexUrl = indexUrl ?? Uri.parse(kDefaultPackIndexUrl);
+    bool? preferWebPacks,
+  }) : indexUrl = indexUrl ?? Uri.parse(kDefaultPackIndexUrl),
+       preferWebPacks = preferWebPacks ?? _isWeb;
+
+  /// Download the gzipped web copy when the index has one (the web build).
+  final bool preferWebPacks;
 
   /// Installed packs (bundled, downloaded, from files).
   final LocalPackSource local;
@@ -83,7 +95,8 @@ class GitHubPackSource implements PackSource, RemotePackSource {
 
   @override
   Future<RemoteIndex> fetchIndex({Uri? url}) async {
-    final res = await _get(url ?? indexUrl);
+    final from = url ?? indexUrl;
+    final res = await _get(from);
     final String text;
     try {
       text = utf8.decode(await res.stream.timeout(timeout).expand((c) => c).toList());
@@ -91,7 +104,7 @@ class GitHubPackSource implements PackSource, RemotePackSource {
       throw _network(e);
     }
     try {
-      return RemoteIndex.parse(text);
+      return RemoteIndex.parse(text).resolvedAgainst(from);
     } on FormatException catch (e) {
       throw PackDownloadException(
         PackDownloadError.corrupt,
@@ -123,45 +136,24 @@ class GitHubPackSource implements PackSource, RemotePackSource {
     await local.available(); // bundled packs and crash recovery first
     final staging = await local.store.stage(pack.id);
     try {
-      final res = await _get(Uri.parse(pack.url), abort: abort.future);
-      final hash = _HashSink();
-      final digest = crypto.sha256.startChunkedConversion(hash);
-      var received = 0;
-      onProgress?.call(0, pack.size);
-      try {
-        await for (final chunk in res.stream.timeout(timeout)) {
-          if (cancel?.isCancelled ?? false) throw _cancelled;
-          received += chunk.length;
-          if (received > pack.size) {
-            throw const PackDownloadException(
-              PackDownloadError.corrupt,
-              'The download was larger than expected. Try again later.',
-            );
-          }
-          digest.add(chunk);
-          await staging.add(chunk);
-          onProgress?.call(received, pack.size);
+      if (preferWebPacks && pack.hasWebPack) {
+        // Gzipped copy: fetch and check the .gz, decompress, check the pack.
+        final gz = BytesBuilder(copy: false);
+        await _fetchChecked(Uri.parse(pack.webUrl!), pack.gzSize!, pack.gzSha256!, gz.add, onProgress, cancel, abort);
+        final Uint8List raw;
+        try {
+          raw = Uint8List.fromList(const GZipDecoder().decodeBytes(gz.takeBytes()));
+        } on Object catch (e) {
+          throw PackDownloadException(
+            PackDownloadError.corrupt,
+            "The downloaded file couldn't be unpacked. Try again later.",
+            detail: '$e',
+          );
         }
-      } on PackDownloadException {
-        rethrow;
-      } on Object catch (e) {
-        throw (cancel?.isCancelled ?? false) ? _cancelled : _network(e);
-      }
-      if (cancel?.isCancelled ?? false) throw _cancelled;
-      digest.close();
-      if (received != pack.size) {
-        throw PackDownloadException(
-          PackDownloadError.corrupt,
-          'The download was incomplete. Try again.',
-          detail: 'got $received of ${pack.size} bytes',
-        );
-      }
-      if (hash.value != pack.sha256) {
-        throw PackDownloadException(
-          PackDownloadError.corrupt,
-          "The downloaded file didn't match its checksum. Try again later.",
-          detail: 'sha256 ${hash.value}, expected ${pack.sha256}',
-        );
+        _checkWhole(raw.length, crypto.sha256.convert(raw).toString(), pack.size, pack.sha256);
+        await staging.add(raw);
+      } else {
+        await _fetchChecked(Uri.parse(pack.url), pack.size, pack.sha256, staging.add, onProgress, cancel, abort);
       }
       final data = await staging.finish();
       try {
@@ -186,6 +178,62 @@ class GitHubPackSource implements PackSource, RemotePackSource {
       rethrow;
     } finally {
       if (!abort.isCompleted) abort.complete();
+    }
+  }
+
+  /// Streams [url] into [sink], checking the size on the way and the sha256 at the end.
+  Future<void> _fetchChecked(
+    Uri url,
+    int size,
+    String sha256,
+    FutureOr<void> Function(List<int> chunk) sink,
+    DownloadProgress? onProgress,
+    DownloadCancel? cancel,
+    Completer<void> abort,
+  ) async {
+    final res = await _get(url, abort: abort.future);
+    final hash = _HashSink();
+    final digest = crypto.sha256.startChunkedConversion(hash);
+    var received = 0;
+    onProgress?.call(0, size);
+    try {
+      await for (final chunk in res.stream.timeout(timeout)) {
+        if (cancel?.isCancelled ?? false) throw _cancelled;
+        received += chunk.length;
+        if (received > size) {
+          throw const PackDownloadException(
+            PackDownloadError.corrupt,
+            'The download was larger than expected. Try again later.',
+          );
+        }
+        digest.add(chunk);
+        await sink(chunk);
+        onProgress?.call(received, size);
+      }
+    } on PackDownloadException {
+      rethrow;
+    } on Object catch (e) {
+      throw (cancel?.isCancelled ?? false) ? _cancelled : _network(e);
+    }
+    if (cancel?.isCancelled ?? false) throw _cancelled;
+    digest.close();
+    _checkWhole(received, hash.value!, size, sha256);
+  }
+
+  static void _checkWhole(int got, String gotSha, int size, String sha256) {
+    if (got != size) {
+      throw PackDownloadException(
+        PackDownloadError.corrupt,
+        'The download was incomplete. Try again.',
+        detail: 'got $got of $size bytes',
+      );
+    }
+    if (gotSha != sha256) {
+      throw PackDownloadException(
+        PackDownloadError.corrupt,
+        "The downloaded file didn't match its checksum. Try again later.",
+        detail: 'sha256 $gotSha, expected $sha256',
+      );
     }
   }
 

@@ -19,12 +19,20 @@ import 'progress/progress_repo.dart';
 
 export 'app_data.dart';
 
+/// Web builds read the course index from the same-origin pack mirror next to
+/// the app (GitHub Pages: `<site>/packs/index.json`, gzipped packs; see
+/// docs/release.md, "Web app and pack mirror"), which avoids the CORS problem
+/// of GitHub's release redirects. Empty: the GitHub Releases index.
+const String kWebPackIndexPath = String.fromEnvironment('TOSK_WEB_PACK_INDEX', defaultValue: 'packs/index.json');
+
+Uri? _defaultIndexUrl() =>
+    kIsWeb && kWebPackIndexPath.isNotEmpty ? platform.pageBaseUri()?.resolve(kWebPackIndexPath) : null;
+
 class AppDataOptions {
   const AppDataOptions({
     this.dataDirectory,
     this.progressDbName = 'progress',
     this.bundled,
-    this.sync = const NullSyncBackend(),
     this.appVersion,
     this.httpClient,
     this.packIndexUrl,
@@ -37,7 +45,6 @@ class AppDataOptions {
 
   /// Bundled packs; defaults to `assets/courses/*.sqlite` from the root bundle.
   final BundledPacks? bundled;
-  final SyncBackend sync;
 
   /// This app's version; with it, packs are also offered online
   /// ([GitHubPackSource]). Null: local packs only.
@@ -71,7 +78,7 @@ Future<AppData> openAppData({AppDataOptions options = const AppDataOptions()}) a
           local: local,
           client: options.httpClient ?? http.Client(),
           appVersion: appVersion,
-          indexUrl: options.packIndexUrl,
+          indexUrl: options.packIndexUrl ?? _defaultIndexUrl(),
           // A downloaded pack must load fully before it replaces the old one.
           verify: (data) async => platform.loadCoursePack(data),
         );
@@ -80,7 +87,6 @@ Future<AppData> openAppData({AppDataOptions options = const AppDataOptions()}) a
     packs: packs,
     loadPack: platform.loadCoursePack,
     scheduler: scheduler,
-    sync: options.sync,
   );
 }
 

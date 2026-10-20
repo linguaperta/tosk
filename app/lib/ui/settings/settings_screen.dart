@@ -18,6 +18,7 @@ import 'app_settings.dart';
 import 'backup_section.dart';
 import 'daily_goal_section.dart';
 import 'device_section.dart';
+import 'sync_section.dart';
 
 /// Settings, persisted through the progress store (see `setting_keys.dart`).
 class SettingsScreen extends ConsumerWidget {
@@ -226,6 +227,8 @@ class SettingsScreen extends ConsumerWidget {
                   const AnswerInputSection(),
                   const DeviceSection(),
                   const DailyGoalSection(),
+                  // v0.7: only with a Firebase configuration (else nothing).
+                  const SyncSection(),
                   const BackupSection(),
                 ],
               ),

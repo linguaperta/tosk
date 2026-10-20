@@ -19,3 +19,7 @@ Thumbs.db
 # Claude worktrees
 .claude/worktrees/
 *.egg-info/
+# Firebase (v0.7): the build config and Google's config files stay local
+firebase-config.json
+google-services.json
+GoogleService-Info.plist

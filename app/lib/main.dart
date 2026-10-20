@@ -8,6 +8,7 @@ import 'app.dart';
 import 'app_bootstrap.dart';
 import 'app_version.dart';
 import 'data/bootstrap.dart' show AppDataOptions;
+import 'sync/sync_config.dart';
 
 /// Optional data directory for QA and development runs, so they don't touch
 /// the real profile: `flutter run -d windows --dart-define=TOSK_DATA_DIR=C:/tmp/tosk-qa`.
@@ -28,7 +29,9 @@ Future<void> main() async {
         ? const AppDataOptions(appVersion: kAppVersion)
         : const AppDataOptions(dataDirectory: _dataDirOverride, appVersion: kAppVersion);
     if (_dataDirOverride.isNotEmpty) debugPrint('[boot] data directory override: $_dataDirOverride');
-    overrides = (await bootApp(options: options)).overrides;
+    // Cloud sync lights up when the build has a Firebase configuration
+    // (--dart-define-from-file=firebase-config.json; docs/firebase-setup.md).
+    overrides = (await bootApp(options: options, syncConfig: kFirebaseSyncConfig)).overrides;
   } catch (e, st) {
     // Without storage the app still runs, on the demo courses with in-memory progress.
     debugPrint('Could not open the data layer, running without persistence: $e\n$st');

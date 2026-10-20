@@ -1,0 +1,117 @@
+# The web app (PWA) and its course-pack mirror on GitHub Pages, same origin, so
+# the browser never hits the CORS problem of GitHub's release redirects:
+#
+#   https://<owner>.github.io/<repo>/              the app (base href /<repo>/)
+#   https://<owner>.github.io/<repo>/packs/        index.json + <id>.sqlite.gz
+#
+# Deployed with the Pages actions (no gh-pages branch, so pack binaries never
+# enter git history). Runs on main, daily (to pick up new pack releases) and by
+# hand. Skips cleanly while Pages is not enabled for the repository (Settings →
+# Pages → Source: GitHub Actions). Firebase sync is compiled in when the
+# FIREBASE_CONFIG_JSON secret exists (docs/firebase-setup.md).
+#
+# Optional repository variables: PAGES_BASE_HREF (default /<repo>/, e.g. /tosk/
+# after a rename) and PACK_INDEX_URL (default: the latest tosk-data release).
+name: Web (GitHub Pages)
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '17 4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  FLUTTER_VERSION: '3.47.7'
+
+jobs:
+  check:
+    name: Pages enabled?
+    runs-on: ubuntu-latest
+    outputs:
+      enabled: ${{ steps.pages.outputs.enabled }}
+    steps:
+      - id: pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api "repos/${{ github.repository }}/pages" --jq '.build_type' > pages.txt 2>/dev/null; then
+            echo "Pages build type: $(cat pages.txt)"
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::GitHub Pages is not enabled for this repository; skipping the web deploy."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    name: Build web app and pack mirror
+    needs: check
+    if: needs.check.outputs.enabled == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Firebase config (optional)
+        working-directory: app
+        env:
+          FIREBASE_CONFIG_JSON: ${{ secrets.FIREBASE_CONFIG_JSON }}
+        run: |
+          if [ -n "$FIREBASE_CONFIG_JSON" ]; then
+            printf '%s' "$FIREBASE_CONFIG_JSON" > firebase-config.json
+            echo "DEFINES=--dart-define-from-file=firebase-config.json" >> "$GITHUB_ENV"
+          else
+            echo "::notice::No FIREBASE_CONFIG_JSON secret: the web app is built without sync."
+            echo "DEFINES=" >> "$GITHUB_ENV"
+          fi
+      - name: Build
+        working-directory: app
+        env:
+          BASE_HREF: ${{ vars.PAGES_BASE_HREF || format('/{0}/', github.event.repository.name) }}
+        run: |
+          flutter pub get
+          # --no-web-resources-cdn: CanvasKit is served from the site, so the
+          # installed PWA works offline.
+          flutter build web --release --base-href "$BASE_HREF" --no-web-resources-cdn $DEFINES
+          rm -f firebase-config.json
+      - name: Pack mirror (gzipped packs from the latest release)
+        working-directory: pipeline
+        env:
+          PACK_INDEX_URL: ${{ vars.PACK_INDEX_URL }}
+        run: |
+          if [ -n "$PACK_INDEX_URL" ]; then
+            python -m pipeline mirror --out ../app/build/web/packs --index "$PACK_INDEX_URL"
+          else
+            python -m pipeline mirror --out ../app/build/web/packs
+          fi
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: app/build/web
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

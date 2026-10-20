@@ -14,3 +14,6 @@ Future<CourseMeta> readPackMeta(PackData data) =>
     throw UnsupportedError('No sqlite3 implementation on this platform');
 
 PackFileStore defaultPackFileStore(String? baseDir) => MemoryPackFileStore();
+
+/// Only the web has a page URL.
+Uri? pageBaseUri() => null;
