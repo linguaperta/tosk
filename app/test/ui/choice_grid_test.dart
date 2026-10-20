@@ -193,8 +193,10 @@ double scaleOf(WidgetTester tester, String key) => tester.widget<OptionButton>(f
 
 /// Loads Roboto (regular, medium, bold) and the Material icons from the SDK.
 Future<void> loadRoboto() async {
-  final root = Platform.environment['FLUTTER_ROOT'] ?? 'C:/Users/timo/dev/flutter';
-  final dir = '$root/bin/cache/artifacts/material_fonts';
+  // Copies in test/fonts (CI has no SDK font cache); the SDK's as a fallback.
+  final dir = Directory('test/fonts').existsSync()
+      ? 'test/fonts'
+      : '${Platform.environment['FLUTTER_ROOT'] ?? ''}/bin/cache/artifacts/material_fonts';
   Future<ByteData> f(String name) async => ByteData.sublistView(File('$dir/$name').readAsBytesSync());
   final roboto = FontLoader('Roboto');
   for (final n in ['roboto-regular.ttf', 'roboto-medium.ttf', 'roboto-bold.ttf', 'roboto-black.ttf']) {

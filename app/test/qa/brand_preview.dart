@@ -30,8 +30,10 @@ import '../ui/helpers.dart';
 /// Real fonts (Roboto and the icons from the Flutter cache; Gelasio comes
 /// from the app's font manifest).
 Future<void> loadQaFonts() async {
-  final flutterRoot = Platform.environment['FLUTTER_ROOT'] ?? 'C:/Users/timo/dev/flutter';
-  final dir = '$flutterRoot/bin/cache/artifacts/material_fonts';
+  // Copies in test/fonts (CI has no SDK font cache); the SDK's as a fallback.
+  final dir = Directory('test/fonts').existsSync()
+      ? 'test/fonts'
+      : '${Platform.environment['FLUTTER_ROOT'] ?? ''}/bin/cache/artifacts/material_fonts';
   Future<ByteData> f(String name) async => ByteData.sublistView(File('$dir/$name').readAsBytesSync());
   final roboto = FontLoader('Roboto');
   for (final n in ['roboto-regular.ttf', 'roboto-medium.ttf', 'roboto-bold.ttf', 'roboto-italic.ttf', 'roboto-light.ttf']) {
