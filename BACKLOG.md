@@ -155,21 +155,23 @@ Resume by asking Claude to continue these. Worktrees live under `.claude/worktre
 - `agent-aee040951f04bbd11`: v0.6 Spanish pilot (content largely done and pushed to tosk-data `content/es`; was running the Flutter tests)
 - [x] v0.5.3: fixed the Android start-up crash in 0.5.0–0.5.2 (WorkManager 2.7.0 + Room 2.2.5 from ML Kit/Onyx → pinned work-runtime 2.11.2). Crash reporter on next start; Onyx SDK lazy with a native-crash guard
 - [x] Map: the floating "Review mistakes" / "What's fading" buttons cover skill nodes on phones → `MapActionBar` under the map (v0.6.2)
-- [ ] Add a release-build smoke test to CI/checks: install and launch the release APK on an emulator or device (the 0.5.0 crash only showed in release builds on a real device)
+- [x] Add a release-build smoke test to CI/checks (`release.yml`, `.github/scripts/android-smoke.sh`): install and launch the release APK on an emulator or device (the 0.5.0 crash only showed in release builds on a real device)
 - [x] v0.5 handwriting (ML Kit + Onyx pen SDK), e-ink full refresh, listen_pick, pronunciation buttons; preview 5 (v0.5.0). Needs on-device testing: see `docs/device-testing.md`
 
 ## v0.7: accounts and sync (approved 14 October: Firebase, everything free)
 
-- [~] Firebase: Google sign-in, Firestore per-user answer log (union merge, offline-first, per-event UTC offset, future-timestamp clamp), settings last-writer-wins, "Delete my cloud data"
-- [~] Firebase Hosting: web app + pack mirror (fixes web CORS); GitHub Actions for tests, web deploy, and release APK/Windows builds
-- [~] iOS for free: PWA (Add to Home Screen) as the default; unsigned IPA from CI for AltStore/SideStore (7-day re-signing with a free Apple ID)
+- [x] Firebase (over REST, no FlutterFire plugins; off without `firebase-config.json`): Google sign-in, Firestore per-user answer log batched ≤400 events/doc (union merge, offline-first, per-event UTC offset, future-timestamp clamp), settings last-writer-wins, "Delete my cloud data"
+- [x] Hosting on **GitHub Pages** instead (`pages.yml`): web app + gz pack mirror (`python -m pipeline mirror`), same origin, packs in IndexedDB. GitHub Actions: `ci.yml` (tests, rules test), `release.yml` (APKs, Windows zip, unsigned IPA, emulator release smoke test). Never run yet
+- [ ] Owner setup: Firebase project, secrets, Pages (see `docs/firebase-setup.md`, `docs/hosting.md`). Pages on the private `tosk` repo needs a paid plan, so the web app goes live when the repo goes public
+- [ ] Sync bookmarks (tombstones make it a new document type); Windows sign-in (desktop OAuth loopback); verify the service worker offline in real Chrome/Safari
+- [x] iOS for free: PWA (Add to Home Screen) as the default; unsigned IPA from CI for AltStore/SideStore (7-day re-signing with a free Apple ID)
 - [-] Own domain: not now (free → `<project>.web.app`). Name stays "tosk" while personal; rename before any public listing (Duolingo trademark)
 
 ## v0.4 (in progress, started 14 October)
 
 - [x] GitHub pack source: index.json from GitHub Releases, download, update, sha256 check, atomic swap; publish tooling (`python -m pipeline publish`); "Add course from file" in the course picker
 - [x] Repos pushed to GitHub (tosk private, tosk-data public); first pack release `packs-20261014` (it/nl 1.2.0, min app 0.4.0); stable index URL verified end to end
-- [ ] Web: pack downloads probably blocked by CORS on GitHub release redirects; needs a CORS-friendly mirror (Pages) and persistent web pack storage
+- [x] Web: pack downloads via the same-origin Pages mirror (gz, `web_url` in index.json) and persistent web pack storage (IndexedDB)
 - [ ] nl: generated sentences for diminutives; a skill for the `comparison` table; drill split separable verbs (#form facets on the separable skill)
 - [-] Google Drive sync: skipped for now (user, 14 October); backup export/import covers it
 - [x] Inflection tables for any POS + `#infl:` facets: plurals, adjective agreement, possessives, split separable verbs
@@ -186,7 +188,7 @@ Resume by asking Claude to continue these. Worktrees live under `.claude/worktre
 
 Each one at the expanded it/nl scale: 8–10 units, ~30 skills, ~1000 taught words, grammar-first gating, tr.en + tr.nl, grammar notes in en and nl, sentence floor via generation, a native-level sample review, and the real-pack validity and perf tests passing.
 
-- [~] Spanish (`es`), built first as the pilot, to measure the per-language cost and fix generic pipeline gaps
+- [x] Spanish (`es`) 1.0.0: 9 units, 46 skills, 1002 taught words, 23,776 sentences (14% generated), 18 stories; native sample review `docs/samples/es_exercises.txt`. Not yet published as a pack release. Weak spots: `sentar.yo`, bare *como*, reflexive verbs used non-reflexively. Tips for pt/fr: set `exclude_moods`/`exclude_words` from the start
 - [ ] Portuguese, Brazilian (`pt-BR`)
 - [ ] Portuguese, European (`pt-PT`) (user: add both varieties)
 - [ ] French (`fr`): elision, partitive articles, passé composé with être/avoir

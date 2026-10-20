@@ -63,14 +63,14 @@ Tests and other agents can use `InMemoryProgressStore` (pure Dart, same semantic
 
 `GitHubPackSource` implements `PackSource` (delegating to its `LocalPackSource`, so `available()` is always what opens offline) and the core `RemotePackSource` (`core/interfaces/remote_packs.dart`). `openAppData` wires it when `AppDataOptions.appVersion` is set (`main.dart` passes `kAppVersion`); `AppData.remote` exposes it and `AppData.downloadPack` downloads and evicts the cached course.
 
-- **Index.** `fetchIndex()` reads `index.json` from `kDefaultPackIndexUrl` = `https://github.com/timoverlaan/tosk-data/releases/latest/download/index.json` (GitHub's redirect to the newest release's asset; see docs/release.md, "Publishing course packs"), or from a `url` (the debug setting `packs.index_url`). Redirects are followed by hand natively (`followRedirects: false`, up to 5 hops: `releases/latest` → `releases/download/<tag>` → object storage), and by the browser on the web. Format (`index_version` 1, written by `pipeline/pipeline/publish.py`):
+- **Index.** `fetchIndex()` reads `index.json` from `kDefaultPackIndexUrl` = `https://github.com/linguaperta/tosk-data/releases/latest/download/index.json` (GitHub's redirect to the newest release's asset; see docs/release.md, "Publishing course packs"), or from a `url` (the debug setting `packs.index_url`). Redirects are followed by hand natively (`followRedirects: false`, up to 5 hops: `releases/latest` → `releases/download/<tag>` → object storage), and by the browser on the web. Format (`index_version` 1, written by `pipeline/pipeline/publish.py`):
 
   ```json
   {"index_version": 1, "generated_at": "2026-10-14T10:00:00Z", "tag": "packs-20261014",
    "courses": [{"id": "it", "version": "1.1.0", "title": {"en": "Italian", "nl": "Italiaans"},
      "description": {"en": "..."}, "target": "it", "sources": ["en", "nl"], "unverified": false,
      "schema_version": "1", "min_app_version": "0.3.0", "sha256": "…", "size": 17199104,
-     "url": "https://github.com/timoverlaan/tosk-data/releases/download/packs-20261014/it.sqlite"}]}
+     "url": "https://github.com/linguaperta/tosk-data/releases/download/packs-20261014/it.sqlite"}]}
   ```
 
   A higher `index_version` is refused ("needs a newer app"); unknown fields are ignored.

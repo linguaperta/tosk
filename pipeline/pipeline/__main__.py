@@ -53,7 +53,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--tag", help="release tag (default packs-YYYYMMDD, UTC)")
     p.add_argument("--dry-run", action="store_true", help="write dist/index.json and print the gh commands only")
     p.add_argument("--min-app-version", help="oldest app version that can use these packs (default 0.3.0)")
-    p.add_argument("--repo", help="GitHub repository (default timoverlaan/tosk-data)")
+    p.add_argument("--repo", help="GitHub repository (default linguaperta/tosk-data)")
     p.add_argument("--gz", action="store_true",
                    help="also write <id>.sqlite.gz for the web app and add web_url/gz_sha256/gz_size to the index")
     p.add_argument("--content-root")

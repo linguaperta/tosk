@@ -34,7 +34,7 @@ void main() {
     'min_app_version': '0.3.0',
     'sha256': sha ?? _sha(v2),
     'size': v2.length,
-    'url': 'https://github.com/timoverlaan/tosk-data/releases/download/packs-1/it.sqlite',
+    'url': 'https://github.com/linguaperta/tosk-data/releases/download/packs-1/it.sqlite',
     if (web) ...{'web_url': 'it.sqlite.gz', 'gz_sha256': gzSha ?? _sha(v2gz), 'gz_size': gzSize ?? v2gz.length},
   };
 

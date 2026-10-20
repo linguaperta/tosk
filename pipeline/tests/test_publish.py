@@ -58,11 +58,11 @@ def test_index_fields_checksums_and_urls(data_repo):
         "min_app_version": "0.3.0",
         "sha256": hashlib.sha256(data).hexdigest(),
         "size": len(data),
-        "url": "https://github.com/timoverlaan/tosk-data/releases/download/packs-20261014/it.sqlite",
+        "url": "https://github.com/linguaperta/tosk-data/releases/download/packs-20261014/it.sqlite",
     }
     assert doc["courses"][1]["description"] == {}
     assert pub.stable_index_url() == \
-        "https://github.com/timoverlaan/tosk-data/releases/latest/download/index.json"
+        "https://github.com/linguaperta/tosk-data/releases/latest/download/index.json"
 
 
 def test_min_app_version_from_meta_wins(data_repo):
@@ -113,7 +113,7 @@ def test_dry_run_writes_the_index_and_prints_the_commands(data_repo, capsys):
     assert out[0] == "gh auth status"
     assert out[1].startswith("gh release create packs-20261014 ")
     assert "it.sqlite" in out[1] and "nl.sqlite" in out[1] and "index.json" in out[1]
-    assert "--repo timoverlaan/tosk-data" in out[1] and "--latest" in out[1]
+    assert "--repo linguaperta/tosk-data" in out[1] and "--latest" in out[1]
     assert "hns" not in out[1]
     doc = json.loads((data_repo / "dist" / "index.json").read_text(encoding="utf-8"))
     assert doc["tag"] == "packs-20261014" and len(doc["courses"]) == 2

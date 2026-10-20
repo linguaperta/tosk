@@ -64,8 +64,8 @@ checkout; the pipeline refuses to write it anywhere else (`pipeline/hns/safeguar
 * `publish` (`pipeline/publish.py`) rewrites `dist/index.json` for a release (absolute asset URLs,
   `index_version`, `generated_at`, `tag`, and per course id, version, title, description, target,
   sources, unverified, schema_version, min_app_version, sha256, size, url) and runs
-  `gh release create <tag> dist/<id>.sqlite... dist/index.json --repo timoverlaan/tosk-data --latest`.
-  The app reads `https://github.com/timoverlaan/tosk-data/releases/latest/download/index.json`.
+  `gh release create <tag> dist/<id>.sqlite... dist/index.json --repo linguaperta/tosk-data --latest`.
+  The app reads `https://github.com/linguaperta/tosk-data/releases/latest/download/index.json`.
   `--dry-run` writes the index and prints the commands. Restricted courses (`hns`) are refused.
   Steps and `gh auth login`: docs/release.md, "Publishing course packs".
 

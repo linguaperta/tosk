@@ -31,7 +31,7 @@ from typing import Callable
 
 from .hns.safeguard import RESTRICTED_COURSES, RestrictedContentError
 
-STABLE_INDEX_URL = "https://github.com/timoverlaan/tosk-data/releases/latest/download/index.json"
+STABLE_INDEX_URL = "https://github.com/linguaperta/tosk-data/releases/latest/download/index.json"
 
 
 def _sha256(path: Path) -> str:

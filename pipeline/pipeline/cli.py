@@ -345,7 +345,7 @@ def parser() -> argparse.ArgumentParser:
     g.add_argument("--dry-run", action="store_true", help="write dist/index.json and print the gh commands only")
     g.add_argument("--yes", action="store_true", help="really create the release")
     p.add_argument("--tag", help="release tag (default packs-YYYYMMDD, UTC)")
-    p.add_argument("--repo", help="GitHub repository (default timoverlaan/tosk-data)")
+    p.add_argument("--repo", help="GitHub repository (default linguaperta/tosk-data)")
     p.add_argument("--min-app-version", help="oldest app version that can use these packs (default 0.3.0)")
     p.add_argument("--content-root", help="the content/ folder whose sibling dist/ holds the packs")
     p.add_argument("--gz", action="store_true",

@@ -2,15 +2,15 @@
 
 Takes the packs `python -m pipeline build` wrote to the tosk-data `dist/` folder, writes the
 release index `dist/index.json` (absolute download URLs) and creates one GitHub Release on
-`timoverlaan/tosk-data` with every pack plus the index as assets, marked "latest".
+`linguaperta/tosk-data` with every pack plus the index as assets, marked "latest".
 
 The app reads the index from a stable URL, GitHub's redirect to the newest release's asset:
 
-    https://github.com/timoverlaan/tosk-data/releases/latest/download/index.json
+    https://github.com/linguaperta/tosk-data/releases/latest/download/index.json
 
 and each pack from the `url` in the index (the asset of the release it was published in):
 
-    https://github.com/timoverlaan/tosk-data/releases/download/<tag>/<id>.sqlite
+    https://github.com/linguaperta/tosk-data/releases/download/<tag>/<id>.sqlite
 
 Restricted courses (Sarnami, `hns`, all rights reserved) are refused, always. Needs the GitHub CLI
 (`gh`), logged in once with `gh auth login`. `--dry-run` writes the index and prints the commands.
@@ -30,7 +30,7 @@ from typing import Callable
 from .build import sha256
 from .paths import content_dir
 
-DATA_REPO_SLUG = "timoverlaan/tosk-data"
+DATA_REPO_SLUG = "linguaperta/tosk-data"
 INDEX_VERSION = 1
 # The oldest app that can use today's packs (schema 1 with the v0.3 tables: grammar gating,
 # generated sentences). A pack that needs newer app code (e.g. a new exercise type or table the

@@ -9,10 +9,11 @@ The detailed task list lives in [BACKLOG.md](../BACKLOG.md). This page is the re
 | v0.1 (preview 1) | Full stack on real it/nl packs: map, lessons, lab, non-stop, progression, settings | shipped 13 Oct 2026 |
 | v0.2 (preview 2) | Real-pack correctness (compound tenses, Dutch clause rules), fast exercise generation | shipped 13 Oct 2026 |
 | **v0.3** (preview 3) | Bigger grammar-first courses, AI explanations, flagging, sounds, mistake review, one-handed layout, B/W e-ink mode, reference, course picker, backup, daily goal, typing mode, Sarnami (local) | shipped 14 Oct 2026 |
-| v0.4 | Content downloads and sync | planned |
-| v0.5 | Handwriting and e-ink (Boox), listening | built; device testing pending ([checklist](device-testing.md)) |
-| v0.6 | New full-size courses: Spanish, Portuguese, French, Esperanto, Swedish, Norwegian, Danish | planned |
-| v0.8 | Pack toolkit: open pack spec, `pack new` / `from-text` / `draft --ai`, extension packs (`extends`), custom catalog URLs, license and sources in the course preview, a "read a book" pack (Montalbano) | planned |
+| v0.4 | Pack downloads from GitHub Releases, inflection tables, stories, bookmarks, stats and forecast, AI conversation | shipped (in 0.4–0.6.2) |
+| v0.5 | Handwriting and e-ink (Boox), listening | shipped; device testing pending ([checklist](device-testing.md)) |
+| v0.6 | tosk branding (0.6.0); new full-size courses: Spanish done, then Portuguese, French, Esperanto, Swedish, Norwegian, Danish | in progress |
+| v0.7 | Accounts and sync (Firebase over REST), web app + pack mirror on GitHub Pages, PWA, CI with a release smoke test | built (0.7.0); needs owner setup ([hosting](hosting.md)) |
+| v0.8 | Pack toolkit (spec v1.0 and `pack` CLI done): open pack spec, `pack new` / `from-text` / `draft --ai`, extension packs (`extends`), custom catalog URLs, license and sources in the course preview, a "read a book" pack (Montalbano) | planned |
 | Later | RPG/forest layer, ghost race | parked |
 
 ## v0.3
@@ -31,7 +32,7 @@ The detailed task list lives in [BACKLOG.md](../BACKLOG.md). This page is the re
 ## v0.4: content downloads and sync
 
 - `GitHubPackSource`: packs published on tosk-data GitHub Releases, read from `index.json`, with version check, checksum and atomic swap. App updates are then no longer needed for content.
-- `DriveSyncBackend`: the review log is synced through the Google Drive `appDataFolder` (a union merge, so there are no conflicts), with file export/import on desktop and web.
+- ~~`DriveSyncBackend`~~: dropped; sync is Firebase (v0.7), backup export/import stays.
 - Optionally the iOS build (needs a Mac).
 
 ## v0.5: handwriting, e-ink, listening

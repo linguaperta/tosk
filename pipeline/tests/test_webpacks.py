@@ -97,7 +97,7 @@ def test_publish_gz_adds_fields_and_assets(tmp_path):
     rel, files, _ = _release(tmp_path)
     doc = pub.build_index(rel, ["it", "nl"], "packs-20261020", gz=True)
     for c in doc["courses"]:
-        assert c["web_url"] == f"https://github.com/timoverlaan/tosk-data/releases/download/packs-20261020/{c['id']}.sqlite.gz"
+        assert c["web_url"] == f"https://github.com/linguaperta/tosk-data/releases/download/packs-20261020/{c['id']}.sqlite.gz"
         assert c["gz_sha256"] == _sha(rel / f"{c['id']}.sqlite.gz")
     cmd = pub.gh_commands(rel, doc)[1]
     assert str(rel / "it.sqlite.gz") in cmd and str(rel / "nl.sqlite.gz") in cmd

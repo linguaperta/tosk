@@ -26,7 +26,7 @@ import 'package:http/testing.dart';
 import '../fixtures/course_fixture.dart';
 import 'local_pack_source_test.dart' show FakeBundled;
 
-const _repo = 'https://github.com/timoverlaan/tosk-data';
+const _repo = 'https://github.com/linguaperta/tosk-data';
 const _tag = 'packs-20261014';
 String _asset(String name) => '$_repo/releases/download/$_tag/$name';
 String _storage(String name) => 'https://objects.githubusercontent.com/github-production-release-asset/$_tag/$name';

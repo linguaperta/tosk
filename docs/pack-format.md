@@ -481,7 +481,7 @@ Optional tables: an app MUST load packs without `sentence_features`, `skill_feat
 
 ## 14. Catalogs (index.json)
 
-A catalog lists downloadable packs. Anyone can host one: a static `index.json` next to (or pointing at) the `.sqlite` files. The official one is `https://github.com/timoverlaan/tosk-data/releases/latest/download/index.json`.
+A catalog lists downloadable packs. Anyone can host one: a static `index.json` next to (or pointing at) the `.sqlite` files. The official one is `https://github.com/linguaperta/tosk-data/releases/latest/download/index.json`.
 
 ```json
 {
@@ -494,7 +494,7 @@ A catalog lists downloadable packs. Anyone can host one: a static `index.json` n
      "unverified": false, "schema_version": "1", "min_app_version": "0.4.0",
      "license": "CC-BY-SA-4.0", "authors": [{"name": "…"}],
      "sha256": "b30bc3…", "size": 18726912,
-     "url": "https://github.com/timoverlaan/tosk-data/releases/download/packs-20261014/it.sqlite"}
+     "url": "https://github.com/linguaperta/tosk-data/releases/download/packs-20261014/it.sqlite"}
   ]
 }
 ```

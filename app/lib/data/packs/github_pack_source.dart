@@ -1,5 +1,5 @@
 /// `GitHubPackSource`: course packs published as GitHub Release assets of
-/// `timoverlaan/tosk-data` (see `pipeline/pipeline/publish.py` and
+/// `linguaperta/tosk-data` (see `pipeline/pipeline/publish.py` and
 /// docs/release.md, "Publishing course packs"). Pure Dart.
 ///
 /// * **Index.** `index.json` comes from a stable URL, GitHub's redirect to the
@@ -40,7 +40,7 @@ import 'local_pack_source.dart';
 /// The stable index URL: GitHub redirects `releases/latest/download/<asset>`
 /// to that asset of the newest (non-draft, non-prerelease) release.
 const String kDefaultPackIndexUrl =
-    'https://github.com/timoverlaan/tosk-data/releases/latest/download/index.json';
+    'https://github.com/linguaperta/tosk-data/releases/latest/download/index.json';
 
 /// Browsers follow redirects themselves (and fail on `followRedirects: false`).
 const bool _isWeb = bool.fromEnvironment('dart.library.js_interop');
