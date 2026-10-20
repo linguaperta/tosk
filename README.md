@@ -15,7 +15,7 @@ A free, offline-first language-learning app with a strong focus on grammar and c
 | --- | --- | --- | --- | --- | --- |
 | Italian (`it`) | 9 | 40 | ~740 | ~20,400 (2,200 generated) | bundled |
 | Dutch (`nl`) | 8 | 35 | ~710 | ~16,300 (2,300 generated) | bundled |
-| Sarnami (`hns`) | 9 | 35 | ~390 | ~3,000 | local-only (copyright), unverified, see docs/sarnami.md |
+| Sarnami (`hns`) | 9 | 35 | ~390 | ~3,000 | local-only (copyright), unverified, private importer (docs/private-importers.md) |
 
 Course downloads (v0.4, in progress): the course picker lists the courses published on [tosk-data's GitHub Releases](https://github.com/linguaperta/tosk-data/releases) next to the bundled ones, with "Download" / "Update available", progress and cancel; the app checks at most once a day (Settings toggle) and never downloads without a tap. "Add course from file…" in the picker installs a local pack such as Sarnami. Publishing: [docs/release.md](docs/release.md#publishing-course-packs).
 

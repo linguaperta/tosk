@@ -24,8 +24,8 @@
     "tr_src": {
       "type": "object",
       "propertyNames": {"pattern": "^[a-z]{2,3}$"},
-      "additionalProperties": {"enum": ["wiktionary", "nlwiktionary", "wiktionary-pivot", "claude", "claude-draft", "tatoeba", "src", "[source]", "manual"]},
-      "description": "provenance of the glosses per language"
+      "additionalProperties": {"type": "string", "minLength": 1},
+      "description": "provenance of the glosses per language: a source tag (pack-format.md 11.2), e.g. wiktionary, wiktionary-pivot, claude, manual, or a pack's own data_sources id"
     },
     "src": {"type": "string", "description": "source ids of the word, '; '-separated (not compiled)"},
     "tags": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-z0-9_-]+$"}},

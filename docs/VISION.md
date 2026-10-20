@@ -10,7 +10,7 @@ The app is a **viewer and player for language packs**. It knows no language: eve
 - **A tool suite lets people build their own courses,** optionally with AI help. It is the pipeline (`pipeline/`) grown into a reusable toolkit (the `pack` command, docs/pack-format.md section 17).
 - **Hosting:** the project hosts only **open-licensed packs** (the official catalog: GitHub Releases of `tosk-data`). Anyone can host their own catalog (`index.json`) or share a pack file.
 - **Responsibility:** what people build and load for personal use, for example a pack made from a book they own, is their own business. The app plays packs; it does not police their sources. Packs show their own license, sources and authors in the course preview.
-- **Public code stays generic.** Importers that target a specific copyrighted source (the Sarnami [source], [source]© and [source] parsers) stay in a private part of the code and never go into a public repo. Public tools are generic: JSONL, CSV, Wiktionary/kaikki, Tatoeba, plain text.
+- **Public code stays generic.** Importers that target a specific copyrighted source (such as the Sarnami importer) stay in a private repository, plugged into the pipeline as course plugins, and never go into a public repo. Public tools are generic: JSONL, CSV, Wiktionary/kaikki, Tatoeba, plain text.
 
 ## Use cases
 

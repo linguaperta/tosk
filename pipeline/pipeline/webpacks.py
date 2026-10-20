@@ -29,7 +29,7 @@ import urllib.request
 from pathlib import Path
 from typing import Callable
 
-from .hns.safeguard import RESTRICTED_COURSES, RestrictedContentError
+from .restricted import RestrictedContentError, is_restricted
 
 STABLE_INDEX_URL = "https://github.com/linguaperta/tosk-data/releases/latest/download/index.json"
 
@@ -85,7 +85,7 @@ def mirror(out: Path, index: str = STABLE_INDEX_URL,
         courses = []
         for c in doc.get("courses", []):
             cid = c["id"]
-            if cid in RESTRICTED_COURSES:
+            if is_restricted(cid):
                 raise RestrictedContentError(f"refusing to mirror {cid}: restricted content")
             raw = tmp / f"{cid}.sqlite"
             src = c["url"]

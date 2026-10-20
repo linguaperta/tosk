@@ -125,7 +125,7 @@ def _story_counts(pack: Pack) -> dict:
 
 def source_counts(pack: Pack) -> dict[str, dict[str, int]]:
     """Records per source id, from the optional `src` fields (kind -> source -> n). The id is
-    the part before ':' / ' (' of each '; '-separated entry ('[source]:a.html#aan' -> [source])."""
+    the part before ':' / ' (' of each '; '-separated entry ('tatoeba:4821' -> tatoeba)."""
     out: dict[str, dict[str, int]] = {}
 
     def add(kind: str, src) -> None:

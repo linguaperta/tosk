@@ -10,7 +10,7 @@ Change a contract here first, then in code. The pack format as a standalone spec
 | `tosk` (this repo) | `app/` Flutter app, `pipeline/` Python content pipeline, `schema/` JSON Schemas and the compiled-DB DDL, `docs/` | app code: MIT |
 | `tosk-data` (sibling checkout at `../tosk-data`) | `content/{it,nl}/` JSONL source packs, `course.yaml`, grammar notes; `dist/` built packs and `index.json`; `ATTRIBUTION.md` | CC BY-SA 4.0 |
 
-- **Sarnami:** the scraped Sarnami data (`hns`) is all rights reserved. It must **never** be committed to either public repo; it lives in an untracked local folder.
+- **Sarnami:** the Sarnami data (`hns`) is all rights reserved. It must **never** be committed to either public repo; its importer is a private pipeline plugin and its data lives in a private repo or an untracked local folder (`pipeline/pipeline/restricted.py` enforces this).
 - **Caches:** raw downloads (kaikki dumps, Tatoeba exports, frequency lists) go in a cache outside both repos, `%LOCALAPPDATA%/tosk-cache` by default, overridable with `TOSK_CACHE`.
 - **Bundled packs:** the built packs are copied into `app/assets/courses/{id}.sqlite` (via `python -m pipeline build ... --install`), so v1 works fully offline without downloads.
 
@@ -32,7 +32,7 @@ The DDL in `schema/course_db.sql` is the authoritative definition. The key point
 
 - **Course id:** the target language code (`it`, `nl`, `hns`).
 - **Item id:** `{course}:{lemma}`. A homograph that needs separate entries (for example a different POS) gets `{course}:{lemma}.{n}` with `n = 2, 3, …`. IDs are recorded in `content/{course}/ids.tsv` (id, lemma, pos, sense-key), and the importer reuses existing IDs. An ID is never reassigned to a different word or reused after deletion.
-- **Sentence id:** `s:{tatoebaId}` for Tatoeba sentences. Other sources get their own prefix (`sil:…`, `x:…`).
+- **Sentence id:** `s:{tatoebaId}` for Tatoeba sentences. Other sources get their own prefix (`gen:…`, `x:…`).
 - **Facet id:**
   - `{itemId}#rec`: recognize, from target to meaning
   - `{itemId}#prod`: produce, from meaning to target

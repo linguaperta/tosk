@@ -102,12 +102,11 @@ The JSONL files are the source format: easy to read, to diff in git, and for Cla
 
 Translations are stored per language (`tr.en`, `tr.nl`), so one Italian pack serves both English and Dutch speakers. Course IDs are the target language's code: `it`, `nl`, and `hns` for Sarnami (Caribbean Hindustani).
 
-Sarnami is a Dutch–Sarnami course. Its pack has only Dutch translations (`tr.nl`), and its source language is always Dutch. The main source is [source] Suriname's [Nederlands–Sarnami woordenboek]([link removed]), which has one page per letter.
+Sarnami is a Dutch–Sarnami course. Its pack has only Dutch translations (`tr.nl`), and its source language is always Dutch.
 
-- **Scraping it.** Entries follow a fixed pattern: the Dutch headword, its part of speech, the Sarnami gloss, then numbered senses with Dutch–Sarnami example pairs. A scraper can turn these into words and example sentences.
-- **Verbs.** The dictionary gives verbs only in their base form (kare, dewe). Conjugated forms appear only inside the examples (karies, tjallie, aaiga). So the conjugation tables have to come from a grammar description, drafted with Claude and marked as unverified.
-- **Spelling.** The dictionary itself lists alternative spellings (pahienaawe/pahieraawe), and these go in `variants`. The spelling is Dutch-based (oe, ie, tj, dj), with dots for retroflex sounds (ṯ, ṟ) and tildes for nasals (ã).
-- **Copyright.** The dictionary is copyrighted with all rights reserved, by [source] Global through Derivation LLC. Keep the scraped data out of the public content repo until [source] Suriname gives permission. Until then, build the Sarnami pack locally and load it from a file.
+- **Verbs.** Conjugation tables are drafted with Claude from a grammar description and marked as unverified.
+- **Spelling.** The spelling is Dutch-based (oe, ie, tj, dj), with dots for retroflex sounds (ṯ, ṟ) and tildes for nasals (ã); alternative spellings go in `variants`.
+- **Copyright.** The sources are copyrighted with all rights reserved. The importer is a private pipeline plugin and the data stays out of every public repo; the pack is built locally and loaded from a file (docs/private-importers.md).
 
 ## Learning engine
 
@@ -214,7 +213,7 @@ Decisions (13 October 2026):
 - **Framework:** Flutter.
 - **Platforms in v1:** Android (the APK, also on the Boox), iOS, desktop and web. Building for iOS needs a Mac.
 - **Audio:** none in v1, so the listen-and-pick exercise waits.
-- **Sarnami review:** no speaker yet. Content comes from [source]'s Dutch–Sarnami dictionary plus a grammar description, and the app marks the course as unverified until someone checks it.
+- **Sarnami review:** no speaker yet. Content comes from a Dutch–Sarnami dictionary plus a grammar description, and the app marks the course as unverified until someone checks it.
 
 ## Parked for later
 
@@ -343,6 +342,6 @@ Done when: recomputing from the log gives the same XP and tiers; streak tests co
 
 ## Phases 6 to 8: Later
 
-1. **Sarnami (`hns`), a Dutch–Sarnami course.** Scrape [source] Suriname's Nederlands–Sarnami woordenboek, one page per letter; parse entries; draft verb tables with Claude from a grammar description; packs get an `unverified` flag; the scraped data stays out of the public repo until [source] gives permission.
+1. **Sarnami (`hns`), a Dutch–Sarnami course.** Import a Dutch–Sarnami dictionary with a private importer; draft verb tables with Claude from a grammar description; packs get an `unverified` flag; the data stays out of the public repos (all rights reserved).
 2. **Downloads and sync.** A `GitHubPackSource` (reads `index.json` from Releases, checks versions and checksums, swaps the course database in atomically) and a `DriveSyncBackend` (Google Drive `appDataFolder`, merges review logs by event ID).
 3. **Handwriting and AI.** An ML Kit Digital Ink `AnswerInput` plus the Onyx pen SDK on the Boox; an e-ink mode built on `reduceMotion`; a `ClaudeExplainer` (API key in secure storage, small fast model, streaming, cached per item and error).

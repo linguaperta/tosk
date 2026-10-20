@@ -12,7 +12,7 @@ and each pack from the `url` in the index (the asset of the release it was publi
 
     https://github.com/linguaperta/tosk-data/releases/download/<tag>/<id>.sqlite
 
-Restricted courses (Sarnami, `hns`, all rights reserved) are refused, always. Needs the GitHub CLI
+Restricted courses (all rights reserved, see restricted.py) are refused, always. Needs the GitHub CLI
 (`gh`), logged in once with `gh auth login`. `--dry-run` writes the index and prints the commands.
 See docs/release.md, "Publishing course packs".
 """
@@ -52,12 +52,8 @@ def default_tag(now: datetime | None = None) -> str:
 
 
 def _refuse_restricted(langs) -> None:
-    from .hns.safeguard import RESTRICTED_COURSES, RestrictedContentError
-    bad = sorted(RESTRICTED_COURSES & set(langs))
-    if bad:
-        raise RestrictedContentError(
-            f"refusing to publish {bad}: restricted content (all rights reserved) must never be "
-            "uploaded anywhere public; it stays local (see docs/sarnami.md)")
+    from .restricted import refuse_restricted
+    refuse_restricted(langs, "publish")
 
 
 def read_pack_meta(path: Path) -> dict[str, str]:

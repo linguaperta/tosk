@@ -38,7 +38,8 @@ def test_lexicon_schema_rejects_bad_records():
     assert _errors("lexicon", {**ok, "pos": "thing"})
     assert _errors("lexicon", {**ok, "gender": "x"})
     assert _errors("lexicon", {**ok, "unknown": 1})                   # no stray fields
-    assert _errors("lexicon", {**ok, "tr_src": {"en": "somewhere"}})
+    assert _errors("lexicon", {**ok, "tr_src": {"en": ""}})                # an empty provenance tag
+    assert _errors("lexicon", {**ok, "tr_src": {"en": "my-source"}}) == []  # open tag (a pack's data_sources id)
 
 
 def test_verbs_schema_split_and_forms():
