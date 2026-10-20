@@ -94,8 +94,9 @@ The progress database is drift, defined in `progress/progress_db.dart` with gene
 | `settings` | Key/value pairs. |
 | `ai_explanations` | Schema v2. Cached AI explanations. Columns: fingerprint, given and lang (together the primary key), body, facet_id, provider, model, created_at. |
 | `flags` | Schema v2. Flagged exercises: a full exercise snapshot (JSON), the answers, the reasons, the comment, the AI verdict, and the app and pack versions. Index on created_at. The format and the export are in `docs/feedback.md`. |
+| `bookmarks` | Schema v3 (v0.4). Starred words, sentences and exercises: course_id, kind (`word` / `sentence` / `exercise`) and ref_id (item id, sentence id or exercise hash) as the primary key; at (last change, UTC ms), removed (a tombstone of an unstarred bookmark), label, detail, facet_id, exercise_json (the exercise snapshot). Index on (course_id, at). Merge rules: `docs/progression.md`, "Bookmarks". |
 
-`DriftFeedbackStore` (`progress/feedback_store.dart`, exposed as `AppData.feedback`) implements the core `ExplanationCache` and `FlagStore` over these two tables. `InMemoryFeedbackStore` has the same semantics, for tests and the defaults.
+`DriftFeedbackStore` (`progress/feedback_store.dart`, exposed as `AppData.feedback`) implements the core `ExplanationCache` and `FlagStore` over these two tables. `InMemoryFeedbackStore` has the same semantics, for tests and the defaults. `DriftBookmarkRepo` (`progress/bookmarks.dart`, `AppData.bookmarks`) implements the core `BookmarkRepo` over `bookmarks`; `InMemoryBookmarkRepo` is its in-memory twin.
 
 `ProgressRepo` (`progress/progress_repo.dart`) implements both `ProgressStore` and `EventImporter`:
 
@@ -117,7 +118,7 @@ The connection comes from `progress/progress_connection.dart`:
 2. Bump `ProgressDb.currentSchemaVersion`.
 3. Add a step to `onUpgrade` in `migration`, one `if (from < N)` block per version, for example `await m.addColumn(mistakes, mistakes.newColumn);`.
 4. Run `dart run build_runner build` to regenerate `progress_db.g.dart`.
-5. Run `dart run drift_dev make-migrations` from `app/`. This dumps `drift_schemas/progress/drift_schema_vN.json` and generates migration test scaffolding in `test/drift/progress/`. The options are in `app/build.yaml`. Commit the schema dump and add the generated tests. The command also writes a `progress_db.steps.dart` helper for `stepByStep` migrations. Delete it: this database writes its steps by hand in `onUpgrade`. The v1 → v2 step (two new tables) is tested in `test/drift/progress/migration_test.dart`, including data integrity.
+5. Run `dart run drift_dev make-migrations` from `app/`. This dumps `drift_schemas/progress/drift_schema_vN.json` and generates migration test scaffolding in `test/drift/progress/`. The options are in `app/build.yaml`. Commit the schema dump and add the generated tests. The command also writes a `progress_db.steps.dart` helper for `stepByStep` migrations. Delete it: this database writes its steps by hand in `onUpgrade`. The v1 → v2 step (two new tables) and the v2 → v3 step (the `bookmarks` table and its index, one self-contained `if (from < 3)` block) are tested in `test/drift/progress/migration_test.dart`, including data integrity.
 6. Run `flutter test`.
 
 Rules for migrations:
@@ -179,9 +180,9 @@ A Google Drive `appDataFolder` backend comes later.
 
 ### Progress backup (`sync/progress_backup.dart`, Settings → Backup)
 
-One JSON-lines file, format `tosk-backup/1`: a header line (`format`, `exported_at`, `app`, counts), the review log exactly as `encodeReviewLogJsonl` writes it, then `{"kind":"mistake",…}` per mistake and `{"kind":"setting","key","value"}` per setting (stores that implement `SettingsLister`, `ProgressRepo` and `InMemoryProgressStore`, list every setting). Flags have their own export (docs/feedback.md). A plain review-log file imports too, and unknown `kind`s are skipped.
+One JSON-lines file, format `tosk-backup/1`: a header line (`format`, `exported_at`, `app`, counts), the review log exactly as `encodeReviewLogJsonl` writes it, then `{"kind":"mistake",…}` per mistake, `{"kind":"setting","key","value"}` per setting and (v0.4) `{"kind":"bookmark","course","k","id","at",…}` per bookmark, tombstones included (`exportBackup(bookmarks:)`), (stores that implement `SettingsLister`, `ProgressRepo` and `InMemoryProgressStore`, list every setting). Flags have their own export (docs/feedback.md). A plain review-log file imports too, and unknown `kind`s are skipped.
 
-**Import merges, never deletes:** events are a union by id (`importEvents`, idempotent), then `rebuildStates()`; mistakes are added when their id is new; settings only fill keys this device lacks, except "my courses" (`courses.added`), which is a union; the reminder keys are device-only and never imported. `importBackup` returns the counts the UI shows. Tests: `test/data/progress_backup_test.dart` (round trip between two on-disk databases, a duplicate import, the layout, bad files).
+**Import merges, never deletes:** events are a union by id (`importEvents`, idempotent), then `rebuildStates()`; mistakes are added when their id is new; settings only fill keys this device lacks, except "my courses" (`courses.added`), which is a union; the reminder keys are device-only and never imported, and `chat.*` settings (AI conversations) are neither exported nor imported. Bookmarks merge last-writer-wins per bookmark (`importBackup(bookmarks:)`, `BackupImportReport.bookmarksChanged`); older apps skip the unknown line kind, so the format tag stays `/1`. `importBackup` returns the counts the UI shows. Tests: `test/data/progress_backup_test.dart` (round trip between two on-disk databases, a duplicate import, the layout, bad files).
 
 ## Web assets
 

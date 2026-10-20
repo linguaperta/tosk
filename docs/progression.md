@@ -160,6 +160,28 @@ Cards are sorted by frequency rank, then by lemma.
 - a `FacetChange` for each facet practiced: its state before and after, recall at the session start and at the session end, and its reviews and mistakes. A facet counts as `improved` if it is new, its stability grew, or it graduated into review. `improvedItemIds` lists the words that improved
 - `TierChange`s for every course skill, evaluated at the session end with the states before the session against the states before the session plus **only this session's events**. That isolates the session's effect from decay and from events of other sessions interleaved in time, and it includes unlocks (locked to available).
 
+## Statistics (`stats.dart`, v0.4)
+
+`computeCourseStats(course:, steps:, states:, calendar:, now:, lang:)` (and `ProgressionService.stats()`, `courseStatsProvider`) derives the stats page from the course replay, so everything follows the log:
+
+- **Review forecast** (`ReviewForecast`): the course's reviewed facets (reps > 0) by the local date their replayed state is due, for `kForecastDays` = 30 days from today; overdue ones count today (`overdue` says how many). `window(n)` / `totalIn(n)` give the first 7, 14 or 30 days. Facets of other courses or no longer trained are ignored.
+- **Accuracy** (`AccuracyRow`: key, label, correct, total) over the last `kAccuracyDays` = 30 days, one count per graded facet (a grid counts every cell): per exercise type (`byType`, labels from `accuracyTypeLabel`), per facet kind (`byKind`: recognition, production, verb forms, inflections, articles) and per grammar (`byGrammar`: `#form` facets by tense in course order, `#infl` by table, `#article`). Test-out credits, story reads and overrides are no answers; an overridden answer counts as right (the replay applies it).
+- **Time practiced** (`PracticeTime`): one exercise records every facet it grades with the same `at` and session, so its response time is counted once (the largest), capped at 5 minutes (15 for a story read); today, 7 days, 30 days, in total, and the last seven days.
+- **Words learned**: an item counts from the first time one of its facets left FSRS's learning phase (a test-out credit counts); `learnedByWeek` is the cumulative count at the end of each of the last 12 weeks.
+
+Tests: `test/progression/stats_test.dart`.
+
+## Bookmarks (`core/models/bookmark.dart`, `data/progress/bookmarks.dart`, v0.4)
+
+Starred words (item id), sentences (sentence id) and exercises (a stable hash of type, facet and prompt, with the full exercise snapshot) per course. They are not part of the review log, so they don't touch XP, tiers or schedules; "Practice starred" records ordinary answers (mode `starred`).
+
+- **Model:** `Bookmark(kind, id, at, label, detail, facetId, exercise, removed)`; `BookmarkSet` is a course's entries **including tombstones** (`removed`: unstarred), `live` newest first.
+- **Merging** is last-writer-wins per `(kind, id)`: the later `at` wins; on a tie the removal wins, so a merge never resurrects what was unstarred at that moment (`BookmarkSet.wins`, `merge`, `changesFrom`).
+- **Storage** goes through the core `BookmarkRepo` (`load(course)`, `all()`, `put(course, entries)`): `DriftBookmarkRepo` over the progress DB table `bookmarks` (schema v3, `docs/data-layer.md`) and `InMemoryBookmarkRepo`. `BookmarkStore` stars, unstars (a tombstone), toggles and merges (`mergeIn` returns how many entries changed); changes per course are serialized, and every change gets a time strictly after the course's latest entry, so quick taps and a fixed clock keep their order. A sync backend can carry bookmarks by exchanging `all()` and calling `mergeIn`.
+- **Backup:** `{"kind":"bookmark","course":…}` lines, merged on import (`docs/data-layer.md`).
+
+Tests: `test/data/bookmarks_test.dart`.
+
 ## Facade (`progression_service.dart`)
 
 ```dart
@@ -174,6 +196,7 @@ Future<ChallengeBoard> challenges([DateTime? now])     // weekly, monthly, badge
 Future<List<EarnedBadge>> badges([DateTime? now])
 Future<VerbCollection> verbCollection([DateTime? now])
 Future<SessionProgressSummary?> sessionSummary(String sessionId)
+Future<CourseStats> stats({DateTime? now, String lang})  // forecast, accuracy, time, words learned (v0.4)
 Future<NonStopRecord?> bestNonStopRun()
 Future<List<NonStopRecord>> nonStopHistory()
 NonStopRun newNonStopRun()

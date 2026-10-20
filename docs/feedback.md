@@ -1,6 +1,6 @@
-# AI explanations, flags and sounds (v0.3)
+# AI explanations, flags, AI conversation and sounds (v0.3, v0.4)
 
-Three features around the answer panel. The code is in `app/lib/ai/`, `app/lib/feedback/`, `app/lib/audio/` (services, pure Dart except the audio and secure-storage plugins) and `app/lib/ui/ai/`, `app/lib/ui/feedback/` (widgets). The pipeline side is `pipeline/pipeline/flags.py`.
+Three features around the answer panel, and (v0.4) AI conversation practice on the same client. The code is in `app/lib/ai/`, `app/lib/feedback/`, `app/lib/audio/` (services, pure Dart except the audio and secure-storage plugins) and `app/lib/ui/ai/`, `app/lib/ui/feedback/` (widgets). The pipeline side is `pipeline/pipeline/flags.py`.
 
 ## Explain answer with AI
 
@@ -20,7 +20,8 @@ After Check, the feedback panel's actions row shows **Explain answer with AI**, 
 
 ### Requests
 
-- **Anthropic:** `POST {base}/v1/messages` with `x-api-key`, `anthropic-version: 2023-06-01`, `stream: true`. Text comes from `content_block_delta` / `text_delta` SSE events, and an `error` event fails the stream. In the browser the app adds `anthropic-dangerous-direct-browser-access: true`; the key is the user's own and is entered on that device.
+- **Anthropic:** `POST {base}/v1/messages` with `x-api-key`, `anthropic-version: 2023-06-01`, `stream: true`. Text comes from `content_block_delta` / `text_delta` SSE events (thinking blocks, which current models may stream first, are skipped), and an `error` event fails the stream, as does a `message_delta` with `stop_reason: "refusal"` (an `other` error: "The model declined to answer this").
+- **Messages:** `ChatPrompt` is a system prompt plus one user message, or (v0.4, conversations) `turns`: alternating user and assistant messages, sent as the `messages` array to both providers (OpenAI gets the system prompt as the first message); consecutive messages of one role are joined, and a conversation always starts with a user message. In the browser the app adds `anthropic-dangerous-direct-browser-access: true`; the key is the user's own and is entered on that device.
 - **OpenAI and compatible servers:** `POST {base}/chat/completions` with `Authorization: Bearer` (omitted when the key is empty), `stream: true`, reading `choices[0].delta.content` until `[DONE]`. OpenAI gets `max_completion_tokens`; compatible servers get `max_tokens`.
 - **Timeouts:** 25 s for the response headers, 30 s of silence while streaming.
 - **Errors** are `AiException`s:
@@ -48,6 +49,19 @@ The reply is rendered with the app's own markdown renderer (`ui/common/markdown.
   - The player builds it with `buildExplainContext` (`feedback/answer_context.dart`). It uses the engine's mistake context when there is one.
 - `ExplainContext.fingerprint` is `stableHash(facetId | type | prompt | expected)`: two 32-bit FNV-1a passes, the same on web and native. It doesn't depend on the session, so mistake review computes the same fingerprint from a stored `MistakeRecord`.
 - `CachingExplainer` stores complete replies in the progress DB table `ai_explanations`, keyed by (fingerprint, given answer, reply language). Failed or partial replies aren't stored. A cached reply is served without a request, so it works offline. The mistakes list shows cached explanations ("Explanation") even without a key.
+
+## AI conversation practice (v0.4)
+
+A chat with Tosk, an AI tutor who writes only in the target language, limited to what the learner knows. The code is `app/lib/ai/tutor.dart` (prompt, reply format, conversation model and store; pure Dart) and `app/lib/ui/chat/` (providers, the Practice tab, the chat screen).
+
+- **Availability:** the same rule as "Explain answer with AI": only when an AI provider is configured (provider, model, URL, and a key where needed; `chatAvailableProvider` = `llmExplainerProvider` is set). Without it there is no Chat tab, and a stored conversation link says AI needs a provider (Settings → AI explanations). The model is the configured one (Claude: `claude-haiku-5-5` by default; `claude-sonnet-5-5` and `claude-opus-5-5` also work).
+- **What the tutor may use** (`tutorContextFor`, from the progress store's reviewed facets): the words of every started skill (most frequent first, with their glosses, at most 400) and the grammar gating allows: the base features plus those introduced by started skills and their prerequisites (tenses named with their English label and the pack's key, e.g. `present perfect (passato_prossimo)`), the tenses of started grammar skills for packs without gating data, and the titles of started grammar skills. A learner who started nothing gets the first skill's words and a "beginner" note.
+- **System prompt** (`tutorSystemPrompt`): a friendly, patient conversation partner; replies in the target language only, at most 3 short sentences (under 40 words) and one simple question; only the unlocked grammar; the known words wherever possible and at most one other, very common word; an optional first line `CORRECTION: <the learner's sentence, corrected> — <a short, kind explanation in the source language>` for the most important mistake only (none when the message is fine or in the source language); a last line `TRANSLATION: <the reply in the source language>`; help briefly in the source language when asked; plain text, no markdown or emojis; and the topic. A new conversation is opened by a user turn asking the tutor to greet the learner and start on the topic (`tutorKickoff`). Each request sends the latest 24 messages (`kTutorHistory`) with `max_tokens` 1,200 (room for models that think first).
+- **Topics:** free conversation, introduce yourself, food and drink, your day, family and friends, shopping, travel and places (`kTutorTopics`).
+- **Reply format** (`TutorReply.parse`): lenient about case, bold markers, a marker written at the end of a line, and a translation spanning lines; while streaming, a half-written marker line is held back, so `CORREC…` never flashes in the reply.
+- **Storage:** conversations are local settings `chat.conversations.{course}` (JSON; at most 12 per course and 120 messages each; `ConversationStore`). `chat.*` keys are never exported to or imported from a backup.
+- **Errors** are the client's `AiException`s: offline (`network`) says AI conversation needs an internet connection and offers Try again (the learner's messages are kept; reopening a conversation whose last reply failed asks again); a rejected key or unknown model points to Settings without a retry; other errors offer Try again.
+- **Tests** use a `MockClient`; no real key is ever used (`test/ai/tutor_test.dart`: the prompt, turns for both providers, refusal, offline, parsing, the store, the tutor context, glossing; `test/ui/v04_extras_test.dart`, `test/ui/v04_bw_test.dart`).
 
 ## Flags (Report)
 
