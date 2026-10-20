@@ -1,17 +1,24 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 
 import '../theme/tosk_palette.dart';
 import '../../core/core.dart';
 import '../brand/tosk.dart';
 import '../theme/bw_skin.dart';
 import '../theme/skin.dart';
+import 'bough.dart';
 import 'branch_style.dart';
 import 'ink_art.dart';
 import 'map_layout.dart';
+import 'map_motion.dart';
+import 'node_painter.dart';
 import 'skill_node.dart';
 import 'skill_stats.dart';
+
+export 'bough.dart' show BoughShape, LeafSpot, paintBough;
 
 /// Which way the course grows on screen.
 ///
@@ -97,7 +104,11 @@ String? currentSkillId(Iterable<String> skillsInOrder, Map<String, SkillStats> s
 /// prerequisite edges, stone-medallion nodes and Tosk at the current skill.
 /// Scrolls horizontally when zoomed in beyond the available width; the parent
 /// scrolls vertically.
-class SkillMapView extends StatelessWidget {
+///
+/// With motion on ([twinkle], not [reduceMotion], not black & white) the
+/// medals twinkle and the ash leaves sway when the parent scrolls, all from
+/// one ticker on separate layers (see `map_motion.dart`).
+class SkillMapView extends StatefulWidget {
   const SkillMapView({
     super.key,
     required this.course,
@@ -109,6 +120,7 @@ class SkillMapView extends StatelessWidget {
     this.zoom = 1,
     this.reduceMotion = false,
     this.twinkle = false,
+    this.swayLeaves,
     this.branchStyle = BranchStyle.defaults,
     this.showMarker = true,
     this.onTap,
@@ -138,8 +150,11 @@ class SkillMapView extends StatelessWidget {
   final double zoom;
   final bool reduceMotion;
 
-  /// Animate the medal twinkles.
+  /// Animate the medal twinkles (motion on; off under `flutter test`).
   final bool twinkle;
+
+  /// Let the ash leaves sway when the map scrolls (null: like [twinkle]).
+  final bool? swayLeaves;
   final BranchStyle branchStyle;
 
   /// Tosk at the current skill.
@@ -148,13 +163,186 @@ class SkillMapView extends StatelessWidget {
   final void Function(Skill skill)? onLongPress;
 
   @override
+  State<SkillMapView> createState() => _SkillMapViewState();
+}
+
+class _SkillMapViewState extends State<SkillMapView> with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+  late final Ticker _ticker = createTicker(_onTick);
+  final MapMotion _motion = MapMotion();
+  final GlobalKey _contentKey = GlobalKey(debugLabel: 'map-content');
+  ScrollableState? _scrollable;
+  ScrollPosition? _position;
+  Duration _lastElapsed = Duration.zero;
+  double? _lastPixels;
+  double _velocity = 0;
+  double _sinceSparkle = 1;
+  bool _foreground = true;
+
+  /// The scroll position changed since the last tick (keeps the ticker going).
+  bool _scrolled = false;
+  List<SparkleSpot> _spots = const [];
+  Object? _boughKey;
+  List<MapBough> _boughs = const [];
+  MapInk? _leafInk;
+
+  bool get _animate => !widget.reduceMotion && !widget.style.monochrome;
+  bool get _twinkleOn => _animate && widget.twinkle;
+  bool get _swayOn => _animate && (widget.swayLeaves ?? widget.twinkle);
+
+  /// True while the shared motion ticker runs (for tests).
+  @visibleForTesting
+  bool get ticking => _ticker.isActive;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final s = Scrollable.maybeOf(context);
+    _scrollable = s;
+    final p = s?.position;
+    if (p != _position) {
+      _position?.removeListener(_onScroll);
+      _position = p;
+      p?.addListener(_onScroll);
+      _lastPixels = null;
+    }
+  }
+
+  @override
+  void didUpdateWidget(SkillMapView old) {
+    super.didUpdateWidget(old);
+    if (!_twinkleOn && !_swayOn) _ticker.stop();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _foreground = state == AppLifecycleState.resumed;
+    if (_foreground) {
+      _sync();
+    } else {
+      _ticker.stop();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _position?.removeListener(_onScroll);
+    _ticker.dispose();
+    _motion.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    _scrolled = true;
+    if (_swayOn || (_twinkleOn && _spots.isNotEmpty)) _start();
+  }
+
+  void _start() {
+    if (!_foreground || !mounted || _ticker.isActive) return;
+    _lastElapsed = Duration.zero;
+    _lastPixels = _position != null && _position!.hasPixels ? _position!.pixels : null;
+    _ticker.start();
+  }
+
+  /// Starts the ticker when the twinkles want it, stops it when nothing moves.
+  void _sync() {
+    if (!mounted) return;
+    if (_twinkleOn && _spots.isNotEmpty) {
+      _start();
+    } else if (!_swayOn || (_motion.sway.settled && _velocity == 0)) {
+      _ticker.stop();
+    }
+  }
+
+  void _updateVisible() {
+    final content = _contentKey.currentContext?.findRenderObject();
+    final viewport = _scrollable?.context.findRenderObject();
+    if (content is! RenderBox || viewport is! RenderBox || !content.attached || !viewport.attached || !content.hasSize || !viewport.hasSize) {
+      _motion.visible = null;
+      return;
+    }
+    _motion.visible = content.globalToLocal(viewport.localToGlobal(Offset.zero)) & viewport.size;
+  }
+
+  bool _anySpotVisible() {
+    final v = _motion.visible;
+    if (v == null) return _spots.isNotEmpty;
+    return _spots.any((s) => v.inflate(s.radius * 2).contains(s.center));
+  }
+
+  void _onTick(Duration elapsed) {
+    final dt = ((elapsed - _lastElapsed).inMicroseconds / 1e6).clamp(0.0, 0.1);
+    _lastElapsed = elapsed;
+    _motion.time += dt;
+    _updateVisible();
+
+    // The scroll velocity, smoothed (px/s; positive while the content moves up).
+    var raw = 0.0;
+    final pos = _position;
+    if (pos != null && pos.hasPixels) {
+      final px = pos.pixels;
+      if (_lastPixels != null && dt > 0) raw = (px - _lastPixels!) / dt;
+      _lastPixels = px;
+    }
+    _velocity += (raw - _velocity) * math.min(1.0, dt * 14);
+    if (raw == 0 && _velocity.abs() < 0.5) _velocity = 0;
+
+    final scrolled = _scrolled;
+    _scrolled = false;
+    var leavesMoving = false;
+    if (_swayOn && _motion.leaves.isNotEmpty) {
+      final wasSettled = _motion.sway.settled;
+      _motion.sway.step(dt, _velocity, _motion.activeLeaves());
+      leavesMoving = scrolled || !_motion.sway.settled || _velocity != 0;
+      if (leavesMoving || !wasSettled) _motion.leafTick.tick();
+    }
+
+    final twinkling = _twinkleOn && _anySpotVisible();
+    if (twinkling) {
+      _sinceSparkle += dt;
+      // About 30 fps is plenty for a twinkle.
+      if (_sinceSparkle >= 1 / 30) {
+        _sinceSparkle = 0;
+        _motion.sparkleTick.tick();
+      }
+    }
+    if (!twinkling && !leavesMoving) _ticker.stop();
+  }
+
+  /// The boughs for this layout and geometry, computed once and kept.
+  List<MapBough> _boughsFor(MapGeometry g, Set<String> locked) {
+    final key = (widget.layout, g.cellWidth, g.width, g.direction, widget.branchStyle, (locked.toList()..sort()).join(','));
+    if (key != _boughKey) {
+      _boughKey = key;
+      _boughs = MapEdgesPainter(
+        layout: widget.layout,
+        geometry: g,
+        style: widget.style,
+        branchStyle: widget.branchStyle,
+        lockedSkills: locked,
+      ).boughShapes();
+    }
+    return _boughs;
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final w = widget;
+    final course = w.course, layout = w.layout, stats = w.stats, style = w.style, lang = w.lang;
+    final branchStyle = w.branchStyle;
+    final onUnitStories = w.onUnitStories, storyCounts = w.storyCounts;
     return LayoutBuilder(
       builder: (context, constraints) {
-        final g = MapGeometry(layout: layout, availableWidth: constraints.maxWidth, zoom: zoom);
+        final g = MapGeometry(layout: layout, availableWidth: constraints.maxWidth, zoom: w.zoom);
         final unitTitles = {for (final u in course.units) u.id: pickLang(u.title, lang)};
-        final current = showMarker
+        final current = w.showMarker
             ? currentSkillId([
                 for (final u in course.units)
                   for (final s in course.skills)
@@ -163,8 +351,42 @@ class SkillMapView extends StatelessWidget {
             : null;
         final markerNode = current == null ? null : layout.node(current);
         final markerSize = (g.diameter * 0.95).clamp(40.0, 56.0);
+        final locked = {
+          for (final e in stats.entries)
+            if (e.value.tier == MapTier.locked) e.key,
+        };
 
-        final content = SizedBox(
+        // Motion: the boughs' leaves and the metal nodes' twinkles.
+        final twinkleOn = _twinkleOn, swayOn = _swayOn;
+        final boughs = _boughsFor(g, locked);
+        if (swayOn) {
+          _motion.setLeaves([for (final b in boughs) ?b.shape.leaf]);
+          if (_leafInk != style.ink) {
+            _motion.clearPictures();
+            _leafInk = style.ink;
+          }
+        }
+        final stoneR = NodePainter.stoneRadius(g.nodeBox, branchStyle.extent);
+        final spots = !twinkleOn
+            ? const <SparkleSpot>[]
+            : [
+                for (final n in layout.nodes)
+                  if ((stats[n.skillId]?.tier.index ?? 0) >= MapTier.bronze.index)
+                    SparkleSpot(
+                      center: g.ringCenter(n),
+                      radius: stoneR,
+                      tier: stats[n.skillId]!.tier,
+                      phase: (inkSeed(n.skillId) % 1000) / 1000,
+                    ),
+              ];
+        if (!listEquals(spots, _spots) || spots.isEmpty != _spots.isEmpty) {
+          _spots = spots;
+          WidgetsBinding.instance.addPostFrameCallback((_) => _sync());
+        }
+
+        final content = RepaintBoundary(
+          child: SizedBox(
+          key: _contentKey,
           width: g.width,
           height: g.height,
           child: Stack(
@@ -176,7 +398,7 @@ class SkillMapView extends StatelessWidget {
                   top: g.bandTop[b.index],
                   height: MapGeometry.bandHeader + b.rowCount * g.rowHeight,
                   child: DecoratedBox(
-                    key: unitKeys[b.unitId],
+                    key: w.unitKeys[b.unitId],
                     decoration: BoxDecoration(
                       color: style.bandColor(b.index),
                       borderRadius: BorderRadius.circular(16),
@@ -184,20 +406,34 @@ class SkillMapView extends StatelessWidget {
                     ),
                   ),
                 ),
+              // The boughs: a static layer (painted once per layout).
               Positioned.fill(
-                child: CustomPaint(
-                  painter: MapEdgesPainter(
-                    layout: layout,
-                    geometry: g,
-                    style: style,
-                    branchStyle: branchStyle,
-                    lockedSkills: {
-                      for (final e in stats.entries)
-                        if (e.value.tier == MapTier.locked) e.key,
-                    },
+                child: RepaintBoundary(
+                  child: CustomPaint(
+                    painter: MapEdgesPainter(
+                      layout: layout,
+                      geometry: g,
+                      style: style,
+                      branchStyle: branchStyle,
+                      lockedSkills: locked,
+                      boughs: boughs,
+                      paintLeaves: !swayOn,
+                    ),
                   ),
                 ),
               ),
+              // The leaves, swaying on their own layer while the map scrolls.
+              if (swayOn)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: RepaintBoundary(
+                      child: CustomPaint(
+                        key: const ValueKey('map-leaves'),
+                        painter: MapLeavesPainter(motion: _motion, ink: style.ink),
+                      ),
+                    ),
+                  ),
+                ),
               // Unit titles above the branches, on the band color, so a bough
               // passing through a band header never runs through its text.
               for (final b in layout.bands)
@@ -242,11 +478,11 @@ class SkillMapView extends StatelessWidget {
                       child: _UnitStoriesButton(
                         key: ValueKey('unit-stories-${b.unitId}'),
                         count: storyCounts[b.unitId]!,
-                        open: storyUnitsOpen.contains(b.unitId),
+                        open: w.storyUnitsOpen.contains(b.unitId),
                         unitTitle: unitTitles[b.unitId] ?? b.unitId,
                         background: style.bandColor(b.index),
                         foreground: style.bandTitleColor,
-                        onTap: () => onUnitStories!(b.unitId),
+                        onTap: () => onUnitStories(b.unitId),
                       ),
                     ),
               for (final n in layout.nodes)
@@ -264,16 +500,28 @@ class SkillMapView extends StatelessWidget {
                         stats: stats[skill.id] ?? SkillStats.empty,
                         style: style,
                         diameter: g.diameter,
-                        now: now,
-                        reduceMotion: reduceMotion,
-                        twinkle: twinkle,
+                        now: w.now,
+                        reduceMotion: w.reduceMotion,
+                        paintTwinkles: !twinkleOn,
                         branchStyle: branchStyle,
-                        onTap: onTap == null ? null : () => onTap!(skill),
-                        onLongPress: onLongPress == null ? null : () => onLongPress!(skill),
+                        onTap: w.onTap == null ? null : () => w.onTap!(skill),
+                        onLongPress: w.onLongPress == null ? null : () => w.onLongPress!(skill),
                         labelBackground: style.bandColor(n.band),
                       ),
                     ),
                   ),
+              // Every moving twinkle of the map, on one layer above the stones.
+              if (twinkleOn)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: RepaintBoundary(
+                      child: CustomPaint(
+                        key: const ValueKey('map-sparkles'),
+                        painter: MapSparklePainter(spots: spots, motion: _motion, ink: style.ink, style: branchStyle),
+                      ),
+                    ),
+                  ),
+                ),
               // Tosk sits on the current skill's stone (top left, peeking
               // over the ring); decorative, the node underneath is the target.
               if (markerNode != null)
@@ -291,6 +539,7 @@ class SkillMapView extends StatelessWidget {
                   ),
                 ),
             ],
+          ),
           ),
         );
 
@@ -312,6 +561,10 @@ class SkillMapView extends StatelessWidget {
 /// edges. Boughs to locked skills are thinner and paler (gray in black &
 /// white). Edges that would pass behind another node detour through a free
 /// lane ([detourLane]).
+///
+/// The bough shapes come precomputed from the map ([boughs], kept between
+/// frames) or are built here. With [paintLeaves] false the leaves are left
+/// to the map's swaying leaf layer.
 class MapEdgesPainter extends CustomPainter {
   MapEdgesPainter({
     required this.layout,
@@ -319,17 +572,25 @@ class MapEdgesPainter extends CustomPainter {
     required this.style,
     this.branchStyle = BranchStyle.defaults,
     this.lockedSkills = const {},
+    this.boughs,
+    this.paintLeaves = true,
   });
   final MapLayout layout;
   final MapGeometry geometry;
   final MapStyle style;
   final BranchStyle branchStyle;
   final Set<String> lockedSkills;
+  final List<MapBough>? boughs;
+  final bool paintLeaves;
 
-  @override
-  void paint(Canvas canvas, Size size) {
+  /// How many times the boughs were painted (for the repaint tests).
+  static int debugPaintCount = 0;
+
+  /// The boughs of every drawable edge, in edge order.
+  List<MapBough> boughShapes() {
     final r = geometry.diameter / 2;
     final d = geometry.diameter;
+    final out = <MapBough>[];
     for (final e in layout.edges) {
       final a = layout.node(e.from), b = layout.node(e.to);
       if (a == null || b == null) continue;
@@ -338,20 +599,28 @@ class MapEdgesPainter extends CustomPainter {
       final to = geometry.ringCenter(b);
       final path = edgePath(a, b, from, to, r);
       if (path == null) continue;
-      final seed = inkSeed('${e.from}>${e.to}');
       final scale = locked ? branchStyle.lockedWidthScale : 1.0;
-      paintBough(
-        canvas,
+      final shape = BoughShape.build(
         path,
-        ink: locked ? _lockedInk(style) : style.ink,
         style: branchStyle,
         w0: branchStyle.widthStart * d * scale,
         w1: branchStyle.widthEnd * d * scale,
-        seed: seed,
+        seed: inkSeed('${e.from}>${e.to}'),
         leaves: !locked,
         leafScale: branchStyle.leafScale * d / 80,
         leafMinLength: branchStyle.leafMinLength * d,
       );
+      if (shape != null) out.add(MapBough(shape, locked));
+    }
+    return out;
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    debugPaintCount++;
+    final lockedInk = _lockedInk(style);
+    for (final b in boughs ?? boughShapes()) {
+      b.shape.paint(canvas, b.locked ? lockedInk : style.ink, branchStyle, leaf: paintLeaves);
     }
   }
 
@@ -451,165 +720,17 @@ class MapEdgesPainter extends CustomPainter {
       old.geometry.direction != geometry.direction ||
       old.style != style ||
       old.branchStyle != branchStyle ||
-      old.lockedSkills.length != lockedSkills.length;
+      old.lockedSkills.length != lockedSkills.length ||
+      old.boughs != boughs ||
+      old.paintLeaves != paintLeaves;
 }
 
-/// Draws one bough along [centre] (parent → child), [w0] px wide at the start
-/// and [w1] at the end, in the storybook style (see [MapEdgesPainter]).
-void paintBough(
-  Canvas canvas,
-  Path centre, {
-  required MapInk ink,
-  required BranchStyle style,
-  required double w0,
-  required double w1,
-  int seed = 6,
-  bool leaves = true,
-  double leafScale = 0.8,
-  double leafMinLength = 120,
-}) {
-  final line = Polyline.sample(centre, 2.5).smoothed(2);
-  if (line.isEmpty) return;
-  final n = line.length;
-  final rnd = math.Random(seed);
-  double length = 0;
-  for (var i = 1; i < n; i++) {
-    length += (line.points[i] - line.points[i - 1]).distance;
-  }
-  if (length < 4) return;
-
-  // Knuckles: where the bough swells.
-  final bumps = <(double, double, double)>[];
-  final count = style.knucklesMin + (style.knucklesMax > style.knucklesMin ? rnd.nextInt(style.knucklesMax - style.knucklesMin + 1) : 0);
-  double pick(List<double> range) => range.length == 2 ? range[0] + rnd.nextDouble() * (range[1] - range[0]) : (range.isEmpty ? 0 : range[0]);
-  for (var k = 0; k < count; k++) {
-    bumps.add((pick(style.knuckleCentre), pick(style.knuckleAmp), pick(style.knuckleSigma)));
-  }
-  double prof(double s) {
-    var w = w0 + (w1 - w0) * s;
-    for (final (c, amp, wd) in bumps) {
-      w *= 1 + amp * math.exp(-math.pow((s - c) / wd, 2));
-    }
-    return w;
-  }
-
-  double sAt(int i) => n == 1 ? 0 : i / (n - 1);
-  // The silhouette, with a slow hand wobble on each side.
-  final wobbleL = List.generate(n, (_) => (rnd.nextDouble() - 0.5) * style.wobble * 2);
-  final wobbleR = List.generate(n, (_) => (rnd.nextDouble() - 0.5) * style.wobble * 2);
-  for (var k = 0; k < 4; k++) {
-    for (var i = 1; i < n - 1; i++) {
-      wobbleL[i] = (wobbleL[i - 1] + wobbleL[i] * 2 + wobbleL[i + 1]) / 4;
-      wobbleR[i] = (wobbleR[i - 1] + wobbleR[i] * 2 + wobbleR[i + 1]) / 4;
-    }
-  }
-  final silhouette = bandPath(line, (i, side) => prof(sAt(i)) / 2 + (side > 0 ? wobbleL[i] : wobbleR[i]));
-  canvas.drawPath(silhouette, Paint()..color = ink.bark);
-
-  // Which side the light falls on: the normal pointing toward the light.
-  final litSign = _litSide(line);
-
-  // Bark grain on the shadow side: broken lines offset from the centre.
-  final grain = Path();
-  for (final off in style.grainOffsets) {
-    var start = rnd.nextDouble() * 0.25;
-    while (start < 0.95) {
-      final ln = pick(style.grainDash);
-      final i0 = (start * (n - 1)).floor(), i1 = (math.min(0.999, start + ln) * (n - 1)).floor();
-      var first = true;
-      for (var i = i0; i <= i1; i += 2) {
-        final h = prof(sAt(i)) / 2 * off * -litSign;
-        final p = line.points[i] + line.normals[i] * h;
-        first ? grain.moveTo(p.dx, p.dy) : grain.lineTo(p.dx, p.dy);
-        first = false;
-      }
-      start += ln + pick(style.grainGap);
-    }
-  }
-  canvas.drawPath(
-    grain,
-    Paint()
-      ..color = ink.ink.withValues(alpha: ink.ink.a * style.grainOpacity)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = style.grainWidth
-      ..strokeCap = StrokeCap.round,
-  );
-
-  // Hatching on the shadow side, between hatchInner and hatchOuter of the half width.
-  final shadow = Path();
-  for (var i = 0; i < n; i++) {
-    final p = line.points[i] + line.normals[i] * (prof(sAt(i)) / 2 * style.hatchOuter * -litSign);
-    i == 0 ? shadow.moveTo(p.dx, p.dy) : shadow.lineTo(p.dx, p.dy);
-  }
-  for (var i = n - 1; i >= 0; i--) {
-    final p = line.points[i] + line.normals[i] * (prof(sAt(i)) / 2 * style.hatchInner * -litSign);
-    shadow.lineTo(p.dx, p.dy);
-  }
-  shadow.close();
-  final dir = line.points.last - line.points.first;
-  final dirDeg = math.atan2(dir.dy, dir.dx) * 180 / math.pi;
-  hatchRegion(canvas, Path.combine(PathOperation.intersect, shadow, silhouette), ink.ink,
-      angleDeg: dirDeg + style.hatchAngle,
-      spacing: style.hatchSpacing,
-      width: style.hatchWidth,
-      seed: seed,
-      opacity: ink.hatchOpacity >= 1 ? 1 : style.hatchOpacity);
-
-  // Knuckle creases: a short curved stroke across the bough where it swells.
-  for (final (c, _, _) in bumps) {
-    final i = (c * (n - 1)).round().clamp(0, n - 1);
-    final h = prof(c) / 2;
-    final nrm = line.normals[i];
-    final tan = line.tangents[i];
-    for (final side in const [1.0, -1.0]) {
-      final cx = line.points[i] + nrm * (h * 0.55 * side);
-      final crease = Path()
-        ..moveTo(cx.dx - tan.dx * h * 0.5, cx.dy - tan.dy * h * 0.5)
-        ..quadraticBezierTo(cx.dx + nrm.dx * 3 * side, cx.dy + nrm.dy * 3 * side, cx.dx + tan.dx * h * 0.5, cx.dy + tan.dy * h * 0.5);
-      inkStroke(canvas, Polyline.sample(crease, 2), ink.ink, wmin: 1.2, wmax: 1.8, profile: 'taper', seed: seed + i);
-    }
-  }
-
-  // The outline: two ink strokes, one per side, heavier in the shadow.
-  for (final side in const [1, -1]) {
-    final pts = <Offset>[], tans = <Offset>[];
-    for (var i = 0; i < n; i++) {
-      pts.add(line.points[i] + line.normals[i] * (prof(sAt(i)) / 2 + (side > 0 ? wobbleL[i] : wobbleR[i])) * side.toDouble());
-      tans.add(line.tangents[i]);
-    }
-    inkStroke(canvas, Polyline(pts, tans), ink.ink, wmin: style.outlineMin, wmax: style.outlineMax, wobble: style.wobble * 0.6, seed: seed + side);
-  }
-
-  // A leaf on a twig, on the longer boughs.
-  if (leaves && length >= leafMinLength) {
-    final i = (style.leafAt * (n - 1)).round().clamp(0, n - 1);
-    final side = (seed % 2 == 0 ? 1.0 : -1.0);
-    final nrm = line.normals[i] * side;
-    final tan = line.tangents[i];
-    final base = line.points[i] + nrm * (prof(sAt(i)) / 2 * 0.6);
-    // Twig length and widths in spec px, scaled to this node size.
-    final twigLen = pick(style.twigLength) * leafScale;
-    final twigW0 = (style.twigWidth.isEmpty ? 10.0 : style.twigWidth.first) * 0.35 * leafScale;
-    final twigW1 = (style.twigWidth.length < 2 ? 4.0 : style.twigWidth[1]) * 0.35 * leafScale;
-    final tip = base + nrm * twigLen + tan * (twigLen * 0.35);
-    final twig = Path()
-      ..moveTo(base.dx, base.dy)
-      ..quadraticBezierTo(base.dx + nrm.dx * twigLen * 0.5, base.dy + nrm.dy * twigLen * 0.5, tip.dx, tip.dy);
-    final twigLine = Polyline.sample(twig, 2).smoothed();
-    canvas.drawPath(bandPath(twigLine, (j, _) => (twigW0 + (twigW1 - twigW0) * j / math.max(1, twigLine.length - 1)) / 2), Paint()..color = ink.bark);
-    inkStroke(canvas, twigLine, ink.ink, wmin: 1.0 * leafScale, wmax: 1.8 * leafScale, profile: 'flat', seed: seed + 7);
-    final leafAngle = math.atan2(nrm.dy, nrm.dx) + (tan.dy.abs() > tan.dx.abs() ? 0.35 : -0.35) * side;
-    paintAshLeaf(canvas, tip, leafAngle, leafScale * 0.85, ink, seed: seed + 3);
-  }
-}
-
-/// +1 when the polyline's left normal faces the light, else -1.
-double _litSide(Polyline line) {
-  var dot = 0.0;
-  for (final nrm in line.normals) {
-    dot += nrm.dx * kInkLight.dx + nrm.dy * kInkLight.dy;
-  }
-  return dot >= 0 ? 1 : -1;
+/// A bough of the map and whether it leads to a locked skill.
+@immutable
+class MapBough {
+  const MapBough(this.shape, this.locked);
+  final BoughShape shape;
+  final bool locked;
 }
 
 const double _storyButtonWidth = 64;

@@ -169,7 +169,7 @@ void main() {
                     ),
                     CustomPaint(
                       size: const Size.square(64),
-                      painter: const NodePainter(tier: MapTier.started, ink: kBwInk, strength: 0.6, monochrome: true, dashedRing: true, seed: 9),
+                      painter: const NodePainter(tier: MapTier.started, ink: kBwInk, strength: 0.6, monochrome: true, decay: 0.7, seed: 9),
                     ),
                   ],
                 ),

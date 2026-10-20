@@ -8,6 +8,7 @@
 library;
 
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -41,37 +42,135 @@ class Sparkle {
   }
 }
 
-/// Gold's rays: [count] short strokes from [r0] to [r1] (units of r).
+/// Gold's rays: [count] long strokes from [r0] to [r1] (units of r), spread
+/// evenly over the arc [arcFrom]..[arcTo] (degrees; both null: the full
+/// circle, starting at [startDeg]), with a short ray (out to [shortR1])
+/// between each pair of long ones when [shortR1] is set.
 @immutable
 class Rays {
-  const Rays({this.count = 8, this.startDeg = 22.5, this.r0 = 1.12, this.r1 = 1.32, this.width = 0.08});
+  const Rays({
+    this.count = 7,
+    this.startDeg = 22.5,
+    this.r0 = 1.12,
+    this.r1 = 1.36,
+    this.width = 0.08,
+    this.arcFrom = -180,
+    this.arcTo = 0,
+    this.shortR1 = 1.24,
+  });
   final int count;
   final double startDeg;
   final double r0;
   final double r1;
   final double width;
+  final double? arcFrom;
+  final double? arcTo;
+  final double? shortR1;
+
+  bool get _fullCircle => arcFrom == null || arcTo == null;
+
+  /// The long rays' angles (degrees).
+  List<double> get angles {
+    if (count <= 0) return const [];
+    if (_fullCircle) return [for (var k = 0; k < count; k++) k * 360 / count + startDeg];
+    final step = (arcTo! - arcFrom!) / count;
+    return [for (var k = 0; k < count; k++) arcFrom! + (k + 0.5) * step];
+  }
+
+  /// The short rays' angles (between consecutive long rays).
+  List<double> get shortAngles {
+    if (shortR1 == null) return const [];
+    final a = angles;
+    if (a.length < 2) return const [];
+    return [
+      for (var k = 0; k < a.length - 1; k++) (a[k] + a[k + 1]) / 2,
+      if (_fullCircle) a.last + 180 / count,
+    ];
+  }
 
   static Rays? _from(Object? v) {
     if (v is! Map) return null;
     final m = v.cast<String, Object?>();
     const d = Rays();
+    // Missing keys keep the defaults; an explicit null turns the feature off
+    // (`"arc_deg": null`: the full circle; `"short_r1": null`: no short rays).
+    final arc = m.containsKey('arc_deg') ? _pair(m['arc_deg']) : [d.arcFrom!, d.arcTo!];
     return Rays(
       count: _num(m['count'])?.toInt() ?? d.count,
       startDeg: _num(m['start_deg'])?.toDouble() ?? d.startDeg,
       r0: _num(m['r0'])?.toDouble() ?? d.r0,
       r1: _num(m['r1'])?.toDouble() ?? d.r1,
       width: _num(m['width'])?.toDouble() ?? d.width,
+      arcFrom: arc?[0],
+      arcTo: arc?[1],
+      shortR1: m.containsKey('short_r1') ? _num(m['short_r1'])?.toDouble() : d.shortR1,
     );
   }
 }
 
-/// A tier's sparkle: twinkles, dots and (gold) rays.
+/// Gold's laurel: two sprigs hugging the lower rim, the left one from
+/// [fromDeg] to [toDeg] (degrees, 90 = straight down; the right sprig is
+/// its mirror image), the stem at [radius] r, [leaves] leaflets per sprig,
+/// each [size] r long.
+@immutable
+class Laurel {
+  const Laurel({this.fromDeg = 100, this.toDeg = 172, this.radius = 1.12, this.leaves = 4, this.size = 0.34});
+  final double fromDeg;
+  final double toDeg;
+  final double radius;
+  final int leaves;
+  final double size;
+
+  static Laurel? _from(Object? v) {
+    if (v is! Map) return null;
+    final m = v.cast<String, Object?>();
+    const d = Laurel();
+    return Laurel(
+      fromDeg: _num(m['from_deg'])?.toDouble() ?? d.fromDeg,
+      toDeg: _num(m['to_deg'])?.toDouble() ?? d.toDeg,
+      radius: _num(m['radius'])?.toDouble() ?? d.radius,
+      leaves: _num(m['leaves'])?.toInt() ?? d.leaves,
+      size: _num(m['size'])?.toDouble() ?? d.size,
+    );
+  }
+}
+
+/// How decay cracks a node: hairline cracks from [start] decay (0..1), more
+/// and longer as it decays, up to [maxCracks]; one chip knocked out of the
+/// rim for each threshold in [chipsAt] (in crack level, 0..1) that is reached.
+@immutable
+class Cracks {
+  const Cracks({this.start = 0.2, this.maxCracks = 4, this.chipsAt = const [0.3, 0.6, 0.85]});
+  final double start;
+  final int maxCracks;
+  final List<double> chipsAt;
+
+  /// 0 (whole) .. 1 (crumbling) for a skill's decay.
+  double level(double decay) {
+    if (decay.isNaN || decay < start || decay <= 0) return 0;
+    return ((decay - start) / math.max(0.01, 1 - start)).clamp(0.0, 1.0);
+  }
+
+  static Cracks _from(Object? v) {
+    if (v is! Map) return const Cracks();
+    final m = v.cast<String, Object?>();
+    const d = Cracks();
+    return Cracks(
+      start: _num(m['start'])?.toDouble() ?? d.start,
+      maxCracks: _num(m['max'])?.toInt() ?? d.maxCracks,
+      chipsAt: _list(m['chips_at']) ?? d.chipsAt,
+    );
+  }
+}
+
+/// A tier's sparkle: twinkles, dots, (gold) rays and laurel.
 @immutable
 class TierSparkle {
-  const TierSparkle({this.twinkles = const [], this.dots = const [], this.rays});
+  const TierSparkle({this.twinkles = const [], this.dots = const [], this.rays, this.laurel});
   final List<Sparkle> twinkles;
   final List<Sparkle> dots;
   final Rays? rays;
+  final Laurel? laurel;
 
   static const none = TierSparkle();
 
@@ -82,17 +181,18 @@ class TierSparkle {
   );
   static const gold = TierSparkle(
     twinkles: [
-      Sparkle(angle: -48, dist: 1.42, size: 0.3),
-      Sparkle(angle: -150, dist: 1.36, size: 0.19, rotate: 15),
-      Sparkle(angle: 118, dist: 1.4, size: 0.15, rotate: 10),
-      Sparkle(angle: 24, dist: 1.5, size: 0.12),
+      Sparkle(angle: -48, dist: 1.46, size: 0.3),
+      Sparkle(angle: -150, dist: 1.4, size: 0.19, rotate: 15),
+      Sparkle(angle: -98, dist: 1.58, size: 0.14, rotate: 10),
+      Sparkle(angle: -6, dist: 1.52, size: 0.12),
     ],
     dots: [
-      Sparkle(angle: -100, dist: 1.56, size: 0.04),
-      Sparkle(angle: 62, dist: 1.62, size: 0.035),
-      Sparkle(angle: -14, dist: 1.72, size: 0.03),
+      Sparkle(angle: -122, dist: 1.62, size: 0.04),
+      Sparkle(angle: -72, dist: 1.66, size: 0.035),
+      Sparkle(angle: -176, dist: 1.52, size: 0.03),
     ],
     rays: Rays(),
+    laurel: Laurel(),
   );
 
   static TierSparkle _from(Object? v, TierSparkle fallback) {
@@ -103,6 +203,7 @@ class TierSparkle {
       twinkles: m.containsKey('twinkles') ? list(m['twinkles']) : fallback.twinkles,
       dots: m.containsKey('dots') ? list(m['dots']) : fallback.dots,
       rays: m.containsKey('rays') ? Rays._from(m['rays']) : fallback.rays,
+      laurel: m.containsKey('laurel') ? Laurel._from(m['laurel']) : fallback.laurel,
     );
   }
 }
@@ -110,12 +211,22 @@ class TierSparkle {
 /// The paper-coloured gleam arc on the metal tiers (units of r; degrees).
 @immutable
 class Gleam {
-  const Gleam({this.radius = 0.56, this.from = -120, this.to = -40, this.width = 0.07, this.opacity = 0.75});
+  const Gleam({
+    this.radius = 0.56,
+    this.from = -120,
+    this.to = -40,
+    this.width = 0.07,
+    this.opacity = 0.75,
+    this.tiers = const ['gold'],
+  });
   final double radius;
   final double from;
   final double to;
   final double width;
   final double opacity;
+
+  /// The tiers that get it: gold is polished (bronze is matte, silver has its shine).
+  final List<String> tiers;
 
   static Gleam _from(Object? v) {
     if (v is! Map) return const Gleam();
@@ -128,6 +239,7 @@ class Gleam {
       to: arc is List && arc.length == 2 ? (_num(arc[1])?.toDouble() ?? d.to) : d.to,
       width: _num(m['width'])?.toDouble() ?? d.width,
       opacity: _num(m['opacity'])?.toDouble() ?? d.opacity,
+      tiers: m['tiers'] is List ? [for (final t in m['tiers'] as List) '$t'] : d.tiers,
     );
   }
 }
@@ -165,6 +277,7 @@ class BranchStyle {
     this.sparkle = const {'bronze': TierSparkle.bronze, 'silver': TierSparkle.silver, 'gold': TierSparkle.gold},
     this.gleam = const Gleam(),
     this.extent = 1.75,
+    this.cracks = const Cracks(),
   });
 
   /// Bough width at the parent and at the child, as fractions of the node diameter.
@@ -222,6 +335,9 @@ class BranchStyle {
   /// How far sparkles reach beyond the node, in units of r.
   final double extent;
 
+  /// How decay cracks a node.
+  final Cracks cracks;
+
   static const defaults = BranchStyle();
 
   TierSparkle sparkleFor(String tier) => sparkle[tier] ?? TierSparkle.none;
@@ -274,6 +390,7 @@ class BranchStyle {
       },
       gleam: nodes.containsKey('gleam') ? Gleam._from(nodes['gleam']) : def.gleam,
       extent: _num(nodes['extent'])?.toDouble() ?? def.extent,
+      cracks: nodes.containsKey('cracks') ? Cracks._from(nodes['cracks']) : def.cracks,
     );
   }
 

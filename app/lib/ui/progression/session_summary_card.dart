@@ -5,6 +5,7 @@ import '../theme/bw_skin.dart';
 import 'level_badge.dart';
 import 'progression_colors.dart';
 import 'tier_badge.dart';
+import 'tier_medal.dart';
 
 /// End-of-session card: XP earned, accuracy, level-up, improved words, tier changes.
 class SessionSummaryCard extends StatelessWidget {
@@ -30,6 +31,12 @@ class SessionSummaryCard extends StatelessWidget {
   final VoidCallback? onContinue;
   final int maxWords;
 
+  /// A medal tier as its storybook medal (cracked when it dropped), the
+  /// other tiers as their badge icon.
+  static Widget _tierIcon(SkillTier tier, {required bool reduceMotion, bool cracked = false}) => tier.isMedal
+      ? TierMedal(tier: tier, size: 32, decay: cracked ? kDroppedTierDecay : 0)
+      : SizedBox.square(dimension: 32, child: Center(child: TierBadge(tier: tier, size: 24, reduceMotion: reduceMotion)));
+
   String _item(String id) {
     final custom = itemLabel?.call(id);
     if (custom != null) return custom;
@@ -43,6 +50,10 @@ class SessionSummaryCard extends StatelessWidget {
     final cs = theme.colorScheme;
     final s = summary;
     final words = s.improvedItemIds;
+    TierChange? promotion;
+    for (final c in s.tierChanges) {
+      if (c.isUp && c.to.isMedal && (promotion == null || c.to > promotion.to)) promotion = c;
+    }
     final xpStyle = theme.textTheme.displaySmall?.copyWith(fontWeight: FontWeight.bold, color: cs.primary);
     final xp = reduceMotion
         ? Text('+${s.xpEarned} XP', style: xpStyle)
@@ -96,17 +107,29 @@ class SessionSummaryCard extends StatelessWidget {
                 ]),
               ),
             ],
+            // A new medal: the promotion moment (the best one of the session).
+            if (promotion != null) ...[
+              const SizedBox(height: 12),
+              Center(
+                child: MedalCelebration(
+                  change: promotion,
+                  skillName: skillLabel?.call(promotion.skillId) ?? promotion.skillId,
+                  reduceMotion: reduceMotion,
+                ),
+              ),
+            ],
             if (s.tierChanges.isNotEmpty) ...[
               const SizedBox(height: 12),
               Text('Skills', style: theme.textTheme.titleSmall),
               for (final c in s.tierChanges)
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  padding: const EdgeInsets.symmetric(vertical: 2),
                   child: Row(children: [
                     Expanded(child: Text(skillLabel?.call(c.skillId) ?? c.skillId)),
-                    TierBadge(tier: c.from, size: 24, reduceMotion: true),
+                    _tierIcon(c.from, reduceMotion: true),
                     Icon(Icons.arrow_forward, size: 16, color: c.isUp ? cs.primary : cs.error),
-                    TierBadge(tier: c.to, size: 24, reduceMotion: reduceMotion),
+                    // A dropped medal shows cracked, like a fading node on the map.
+                    _tierIcon(c.to, reduceMotion: reduceMotion, cracked: !c.isUp),
                     const SizedBox(width: 6),
                     SizedBox(width: 72, child: Text(tierLabel(c.to), style: theme.textTheme.labelMedium)),
                   ]),

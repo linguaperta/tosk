@@ -23,8 +23,12 @@ Color fadeColor(Color color, double amount) {
 }
 
 /// One skill on the map: a storybook stone medallion ([NodePainter]: the six
-/// states, the strength ring, the sparkly metal tiers), the skill's icon,
-/// the title and the days since practice.
+/// states, the strength ring, the sparkly metal tiers, the cracks of decay),
+/// the skill's icon, the title and the days since practice.
+///
+/// The node itself never animates its medal: with motion on, the map paints
+/// every moving twinkle on one shared layer ([paintTwinkles] false here), so
+/// there is no controller per node and a node's stone paints once.
 class SkillNode extends StatefulWidget {
   const SkillNode({
     super.key,
@@ -35,7 +39,7 @@ class SkillNode extends StatefulWidget {
     required this.diameter,
     required this.now,
     this.reduceMotion = false,
-    this.twinkle = false,
+    this.paintTwinkles = true,
     this.branchStyle = BranchStyle.defaults,
     this.onTap,
     this.onLongPress,
@@ -52,8 +56,9 @@ class SkillNode extends StatefulWidget {
   final DateTime now;
   final bool reduceMotion;
 
-  /// Animate the medal twinkles (motion on; off under `flutter test`).
-  final bool twinkle;
+  /// Paint the medal's twinkles on the stone (static); false when the map's
+  /// shared sparkle layer animates them.
+  final bool paintTwinkles;
 
   /// The art kit's spec (sparkle positions, gleam, extent).
   final BranchStyle branchStyle;
@@ -68,38 +73,8 @@ class SkillNode extends StatefulWidget {
   State<SkillNode> createState() => _SkillNodeState();
 }
 
-class _SkillNodeState extends State<SkillNode> with SingleTickerProviderStateMixin {
+class _SkillNodeState extends State<SkillNode> {
   bool _pressed = false;
-  AnimationController? _sparkle;
-
-  bool get _wantsSparkle => widget.twinkle && !widget.reduceMotion && widget.stats.tier.index >= MapTier.bronze.index;
-
-  @override
-  void initState() {
-    super.initState();
-    _syncSparkle();
-  }
-
-  @override
-  void didUpdateWidget(SkillNode old) {
-    super.didUpdateWidget(old);
-    _syncSparkle();
-  }
-
-  void _syncSparkle() {
-    if (_wantsSparkle) {
-      _sparkle ??= AnimationController(vsync: this, duration: const Duration(milliseconds: 2600))..repeat();
-    } else {
-      _sparkle?.dispose();
-      _sparkle = null;
-    }
-  }
-
-  @override
-  void dispose() {
-    _sparkle?.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -108,7 +83,6 @@ class _SkillNodeState extends State<SkillNode> with SingleTickerProviderStateMix
     final stats = w.stats;
     final locked = stats.tier == MapTier.locked;
     final mono = w.style.monochrome;
-    final fading = !locked && stats.practiced && stats.decay >= kMonoFadingDecay;
     final days = stats.daysSince(w.now);
     final box = math.max(w.diameter, 48.0);
     final stone = NodePainter.stoneRadius(box, w.branchStyle.extent) * 2;
@@ -121,15 +95,12 @@ class _SkillNodeState extends State<SkillNode> with SingleTickerProviderStateMix
       if (days != null) 'practiced ${daysAgoLabel(days)}',
       if (stats.tier.index >= MapTier.bronze.index) stats.tier.name,
       if (stats.practiced && stats.decay >= kMonoFadingDecay) 'fading',
+      if (NodePainter.crackLevel(stats.tier, stats.decay, w.branchStyle) >= 0.5) 'cracked',
     ].join(', ');
 
-    final iconColor = mono
-        ? (locked ? kBwGray : kBwBlack)
-        : locked
-            ? w.style.ink.bark.withValues(alpha: 0.7)
-            : w.style.onNode;
+    final iconColor = nodeIconColor(w.style, stats.tier);
 
-    Widget stonePaint(double? phase) => CustomPaint(
+    final stonePaint = CustomPaint(
       size: Size.square(box),
       painter: NodePainter(
         tier: stats.tier,
@@ -137,10 +108,9 @@ class _SkillNodeState extends State<SkillNode> with SingleTickerProviderStateMix
         strength: stats.strength,
         style: w.branchStyle,
         decay: stats.decay,
-        twinkle: phase,
         seed: seed,
         monochrome: mono,
-        dashedRing: mono && fading,
+        paintTwinkles: w.paintTwinkles,
       ),
     );
 
@@ -161,10 +131,7 @@ class _SkillNodeState extends State<SkillNode> with SingleTickerProviderStateMix
                 clipBehavior: Clip.none,
                 alignment: Alignment.center,
                 children: [
-                  if (_sparkle case final ctl?)
-                    AnimatedBuilder(animation: ctl, builder: (_, _) => stonePaint(ctl.value))
-                  else
-                    stonePaint(null),
+                  RepaintBoundary(child: stonePaint),
                   Material(
                     type: MaterialType.transparency,
                     child: InkResponse(
@@ -229,5 +196,17 @@ class _LabelBox extends StatelessWidget {
         );
 }
 
-/// Decay from which a skill counts as fading (dashed ring in black & white).
+/// The skill icon's colour on a stone of [tier]: bark on the light stones,
+/// cream on the dark copper of bronze (so it keeps its contrast), lighter
+/// when locked; black (gray when locked) in black & white.
+Color nodeIconColor(MapStyle style, MapTier tier) {
+  final locked = tier == MapTier.locked;
+  if (style.monochrome) return locked ? kBwGray : kBwBlack;
+  if (locked) return style.ink.bark.withValues(alpha: 0.7);
+  if (tier == MapTier.bronze) return style.ink.cream;
+  return style.onNode;
+}
+
+/// Decay from which a skill counts as fading (its semantics label says so;
+/// the stone shows cracks from `Cracks.start` on, in colour and black & white).
 const double kMonoFadingDecay = 0.35;

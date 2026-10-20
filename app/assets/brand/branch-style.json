@@ -11,9 +11,9 @@
   "bark_dk": "#5B4333",
   "leaf": "#7E9B5F",
   "leaf_dk": "#55733F",
-  "gold": "#D8B15C",
-  "silver": "#B9BDBD",
-  "bronze": "#B5713E",
+  "gold": "#E3B23C",
+  "silver": "#ADB8C3",
+  "bronze": "#9C5A30",
   "water": "#A9BFC0",
   "hatch": "#3B2A1F"
  },
@@ -224,12 +224,6 @@
     "spacing": 0.14,
     "opacity": 0.45
    },
-   "bronze": {
-    "angle": 45,
-    "spacing": 0.17,
-    "opacity": 0.35,
-    "inner": true
-   },
    "silver": {
     "angle": 25,
     "spacing": 0.17,
@@ -242,10 +236,32 @@
     }
    }
   },
+  "texture": {
+   "bronze": {
+    "kind": "stipple",
+    "note": "matte: ink dots on the inner disc (0.72 r), about 1.1 per px of r (10-44), 0.03 r each, opacity 0.5; a darker patina low on the left; no gleam"
+   },
+   "silver": {
+    "kind": "shine",
+    "bands": [
+     [
+      0.3,
+      0.1
+     ],
+     [
+      0.52,
+      0.042
+     ]
+    ],
+    "note": "two bright bands perpendicular to the light, offset toward it by 0.3 / 0.52 r, half widths 0.1 / 0.042 r, clipped to 0.74 r; paper-white in mono (they cut through the hatching)"
+   },
+   "gold": {
+    "kind": "polished",
+    "note": "a lighter centre (0.62 r), the gleam arc, rays and the laurel"
+   }
+  },
   "gleam": {
    "tiers": [
-    "bronze",
-    "silver",
     "gold"
    ],
    "radius": 0.56,
@@ -277,6 +293,20 @@
    "scale": "r/60",
    "shape": "LEAFLET"
   },
+  "cracks": {
+   "start": 0.2,
+   "max": 4,
+   "chips_at": [
+    0.3,
+    0.6,
+    0.85
+   ],
+   "width": [
+    0.035,
+    0.07
+   ],
+   "rule": "level = (decay - start) / (1 - start); cracks = min(max, 1 + floor(level * max)); length 0.3 + 0.6 level r, zig-zag steps of 0.1-0.17 r; a side branch from level 0.35"
+  },
   "extent": 1.75,
   "sparkle": {
    "bronze": {
@@ -289,7 +319,8 @@
      }
     ],
     "dots": [],
-    "rays": null
+    "rays": null,
+    "laurel": null
    },
    "silver": {
     "twinkles": [
@@ -313,58 +344,71 @@
       "size": 0.035
      }
     ],
-    "rays": null
+    "rays": null,
+    "laurel": null
    },
    "gold": {
     "twinkles": [
      {
       "angle": -48,
-      "dist": 1.42,
+      "dist": 1.46,
       "size": 0.3,
       "rotate": 0
      },
      {
       "angle": -150,
-      "dist": 1.36,
+      "dist": 1.4,
       "size": 0.19,
       "rotate": 15
      },
      {
-      "angle": 118,
-      "dist": 1.4,
-      "size": 0.15,
+      "angle": -98,
+      "dist": 1.58,
+      "size": 0.14,
       "rotate": 10
      },
      {
-      "angle": 24,
-      "dist": 1.5,
+      "angle": -6,
+      "dist": 1.52,
       "size": 0.12,
       "rotate": 0
      }
     ],
     "dots": [
      {
-      "angle": -100,
-      "dist": 1.56,
+      "angle": -122,
+      "dist": 1.62,
       "size": 0.04
      },
      {
-      "angle": 62,
-      "dist": 1.62,
+      "angle": -72,
+      "dist": 1.66,
       "size": 0.035
      },
      {
-      "angle": -14,
-      "dist": 1.72,
+      "angle": -176,
+      "dist": 1.52,
       "size": 0.03
      }
     ],
     "rays": {
-     "count": 8,
+     "count": 7,
      "start_deg": 22.5,
+     "arc_deg": [
+      -180,
+      0
+     ],
      "r0": 1.12,
-     "r1": 1.32,
+     "r1": 1.36,
+     "short_r1": 1.24,
      "width": 0.08
+    },
+    "laurel": {
+     "from_deg": 100,
+     "to_deg": 172,
+     "radius": 1.12,
+     "leaves": 4,
+     "size": 0.34
     }
    }
   },
@@ -374,7 +418,7 @@
    "fill": "paper",
    "stroke": "ink",
    "stroke_width": "max(0.8, 0.11 * size)",
-   "motion": "when motion is on: opacity 0.6-1 and scale 0.85-1.15 on a slow 1.6-2.4 s sine per twinkle, phases offset; static with reduceMotion or in mono"
+   "motion": "when motion is on (one shared ticker for the map): silver breathes (scale 1 +- 0.14, opacity 0.82-1, 2.4 s, phases offset) with a flare every 6.5 s; gold breathes (scale 1 +- 0.18, opacity 0.75-1, 2.0 s) with a flare every 4.5 s; bronze's glint rests and flares (scale to 1.45, a 34 deg turn) for 0.7 s every 5.2 s; static with reduceMotion or in mono"
   },
   "angles": "degrees, 0 = right, positive = clockwise on screen (SVG y down)"
  }

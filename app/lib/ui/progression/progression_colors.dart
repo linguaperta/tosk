@@ -7,10 +7,10 @@ import '../theme/bw_skin.dart';
 /// In black & white every accent is black; the widgets carry the meaning with
 /// icons, letters, patterns and labels instead (see `isMonochrome`).
 abstract final class ProgressionColors {
-  static const _bronzeLight = Color(0xFFB0703A);
-  static const _bronzeDark = Color(0xFFD9955A);
-  static const _silverLight = Color(0xFF7D838C);
-  static const _silverDark = Color(0xFFC3C8CF);
+  static const _bronzeLight = Color(0xFF9C5A30);
+  static const _bronzeDark = Color(0xFFCC8A58);
+  static const _silverLight = Color(0xFF6D7C8C);
+  static const _silverDark = Color(0xFFBCC8D4);
   static const _goldLight = Color(0xFFC79A00);
   static const _goldDark = Color(0xFFFFCF40);
   static const _freezeLight = Color(0xFF4FA3D9);
