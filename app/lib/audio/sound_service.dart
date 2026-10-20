@@ -49,21 +49,28 @@ class SilentAudioBackend implements AudioBackend {
   Future<void> dispose() async {}
 }
 
+/// How sound effects play: on the **media** stream, so the media volume
+/// controls them like YouTube or a music app (Android: `USAGE_MEDIA` with the
+/// sonification content type; it used to be `USAGE_ASSISTANCE_SONIFICATION`,
+/// the system stream, which follows the ring/notification volume and is muted
+/// on silent). They don't take audio focus, so the learner's music keeps
+/// playing. iOS: the playback category mixing with other audio (the same
+/// session settings as speech, `speech/speaker.dart`).
+final AudioContext kSfxAudioContext = AudioContext(
+  android: const AudioContextAndroid(
+    contentType: AndroidContentType.sonification,
+    usageType: AndroidUsageType.media,
+    audioFocus: AndroidAudioFocus.none,
+  ),
+  iOS: AudioContextIOS(category: AVAudioSessionCategory.playback, options: const {AVAudioSessionOptions.mixWithOthers}),
+);
+
 /// audioplayers [AudioPool]s, one per sound (several players each, so quick
-/// repeats overlap). Sound effects don't take audio focus: the learner's
-/// music keeps playing (Android: no focus, sonification usage; iOS: the
-/// ambient category, which mixes and respects the silent switch).
+/// repeats overlap), with [kSfxAudioContext].
 class AudioplayersBackend implements AudioBackend {
   AudioplayersBackend();
 
-  static final AudioContext _context = AudioContext(
-    android: const AudioContextAndroid(
-      contentType: AndroidContentType.sonification,
-      usageType: AndroidUsageType.assistanceSonification,
-      audioFocus: AndroidAudioFocus.none,
-    ),
-    iOS: AudioContextIOS(category: AVAudioSessionCategory.ambient),
-  );
+  static final AudioContext _context = kSfxAudioContext;
 
   final Map<Sfx, Future<AudioPool?>> _pools = {};
   final AudioCache _cache = AudioCache(prefix: 'assets/');

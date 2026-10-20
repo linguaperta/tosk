@@ -130,7 +130,7 @@ python -m pipeline flags summarize ~/Downloads/tosk-flags-20261014.jsonl [more.j
 
 - **`SoundService`** (`audio/sound_service.dart`):
   - It plays through `AudioBackend`. The real `AudioplayersBackend` uses one `AudioPool` per sound, preloaded when a session starts (`warmUp`).
-  - The pools don't take audio focus, so the learner's music keeps playing. On Android that means no focus and the sonification usage; on iOS the ambient category, which mixes with other audio and respects the silent switch.
+  - The pools play on the **media** stream (the media volume, like YouTube) and don't take audio focus, so the learner's music keeps playing: on Android `USAGE_MEDIA` with the sonification content type and no focus (`kSfxAudioContext`; before v0.6.x it was `USAGE_ASSISTANCE_SONIFICATION`, the system stream, muted on silent); on iOS the playback category with `mixWithOthers`, the same session settings as speech.
   - Every failure is swallowed. Under `flutter test` the default backend is silent, and tests inject `FakeAudioBackend`.
 - **Where sounds play:**
   - The player plays select on every tap that selects an option, tile, token, grid cell or match card (typing doesn't tick), with a selection haptic.

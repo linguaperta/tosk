@@ -665,4 +665,15 @@ class FlutterTts {
   Future<void> setAudioAttributesForNavigation() async {
     await _channel.invokeMethod('setAudioAttributesForNavigation');
   }
+
+  /// tosk patch: the Android `AudioAttributes` of speech ([usage] and
+  /// [contentType] are `android.media.AudioAttributes` constants, e.g.
+  /// `USAGE_MEDIA` = 1, `CONTENT_TYPE_SPEECH` = 1). The plugin keeps them and
+  /// re-applies them when it reconnects to the engine.
+  /// ***Android supported only***
+  Future<dynamic> setAudioAttributes({required int usage, required int contentType}) async =>
+      await _channel.invokeMethod('setAudioAttributes', <String, dynamic>{
+        'usage': usage,
+        'contentType': contentType,
+      });
 }

@@ -1,8 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../device/device_info.dart' show openTtsSettings;
 import '../../providers.dart';
+import '../../speech/speech_providers.dart';
 import '../courses/course_picker.dart';
 import '../courses/course_updates.dart';
 import '../goal/daily_goal_providers.dart';
@@ -51,6 +55,29 @@ class _AppShellState extends ConsumerState<AppShell> {
     syncReminders(ref);
     // Course updates: the cached index, and a check at most once a day.
     ref.read(courseUpdatesProvider.notifier).startup();
+    // No voice for the course language (Android): say how to install one,
+    // once per language.
+    ref.listenManual<VoiceNotice?>(voiceNoticeProvider, (_, notice) {
+      if (notice == null) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(_showVoiceNotice(notice));
+      });
+    }, fireImmediately: true);
+  }
+
+  Future<void> _showVoiceNotice(VoiceNotice notice) async {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    if (messenger == null) return;
+    if (!await claimVoiceNotice(ref.read(progressStoreProvider), notice.languageCode)) return;
+    if (!mounted) return;
+    messenger.showSnackBar(
+      SnackBar(
+        key: const ValueKey('voice-notice'),
+        content: Text(notice.message),
+        duration: const Duration(seconds: 12),
+        action: SnackBarAction(label: 'Settings', onPressed: () => unawaited(openTtsSettings())),
+      ),
+    );
   }
 
   void _go(int index) => shell.goBranch(index, initialLocation: index == shell.currentIndex);
