@@ -23,3 +23,6 @@ Thumbs.db
 firebase-config.json
 google-services.json
 GoogleService-Info.plist
+
+# golden-test failure diffs
+app/test/ui/failures/
