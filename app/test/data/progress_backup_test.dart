@@ -144,5 +144,7 @@ void main() {
     expect(() => decodeBackup('{"id":"x"}'), throwsFormatException);
     // Unknown sections of a newer minor version are skipped.
     expect(decodeBackup('{"format":"tosk-backup/1"}\n{"kind":"later","x":1}\n').events, isEmpty);
+    // Backups written before the rename to tosk still import (split so a rename never touches it).
+    expect(decodeBackup('{"format":"due' 'lingo-backup/1"}\n').events, isEmpty);
   });
 }

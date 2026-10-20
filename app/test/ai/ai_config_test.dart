@@ -66,4 +66,12 @@ void main() {
     expect(c.apiKey, '');
     expect(c.isConfigured, isFalse);
   });
+
+  test('a key stored under the pre-rename name is read and moved', () async {
+    final secrets = MemorySecretStore({AiSettingKeys.legacyApiKeySecret: 'k-old'});
+    final c = await AiConfig.load(TestProgressStore(), secrets);
+    expect(c.apiKey, 'k-old');
+    expect(await secrets.read(AiSettingKeys.apiKeySecret), 'k-old');
+    expect(await secrets.read(AiSettingKeys.legacyApiKeySecret), isNull);
+  });
 }

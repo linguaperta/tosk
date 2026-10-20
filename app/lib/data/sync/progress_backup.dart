@@ -176,7 +176,10 @@ ProgressBackup decodeBackup(String text) {
     }
     final format = j['format'];
     if (format is String) {
-      if (!format.startsWith('tosk-backup/')) throw FormatException('Not a tosk backup ($format)');
+      // Backups from before the rename to tosk start with the old name (split so a rename never touches it).
+      if (!format.startsWith('tosk-backup/') && !format.startsWith('due' 'lingo-backup/')) {
+        throw FormatException('Not a tosk backup ($format)');
+      }
       final major = int.tryParse(format.split('/').last.split('.').first) ?? 0;
       if (major > 1) throw FormatException('This backup needs a newer version of the app ($format)');
       exportedAt = DateTime.tryParse(j['exported_at'] as String? ?? '');

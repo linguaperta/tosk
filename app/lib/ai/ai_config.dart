@@ -50,6 +50,10 @@ abstract final class AiSettingKeys {
 
   /// Name of the API key in the [SecretStore].
   static const apiKeySecret = 'tosk.ai.api_key';
+
+  /// The name used before the rename to tosk (0.7.3 and older); read once and moved.
+  // Split so a repo-wide rename never touches it.
+  static const legacyApiKeySecret = 'due' 'lingo.ai.api_key';
 }
 
 @immutable
@@ -105,6 +109,13 @@ class AiConfig {
     String? key;
     try {
       key = await secrets.read(AiSettingKeys.apiKeySecret);
+      if (key == null) {
+        key = await secrets.read(AiSettingKeys.legacyApiKeySecret);
+        if (key != null) {
+          await secrets.write(AiSettingKeys.apiKeySecret, key);
+          await secrets.delete(AiSettingKeys.legacyApiKeySecret);
+        }
+      }
     } catch (_) {
       key = null; // secure storage unavailable: behave as "no key"
     }
@@ -130,6 +141,7 @@ class AiConfig {
     if (old == null || apiKey != old.apiKey) {
       if (apiKey.isEmpty) {
         await secrets.delete(AiSettingKeys.apiKeySecret);
+        await secrets.delete(AiSettingKeys.legacyApiKeySecret);
       } else {
         await secrets.write(AiSettingKeys.apiKeySecret, apiKey);
       }

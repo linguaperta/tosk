@@ -21,6 +21,8 @@ from pathlib import Path
 from typing import Any, Iterable
 
 FORMAT = "tosk-flag/1"
+# Flag files written before the rename to tosk (split so a repo-wide rename never touches it).
+LEGACY_FORMAT = "due" "lingo-flag/1"
 
 REASON_LABELS = {
     "answer_wrong": "The answer is wrong",
@@ -60,7 +62,7 @@ def load_flags(paths: Iterable[str | Path]) -> tuple[list[dict[str, Any]], list[
                 warnings.append(f"{p.name}:{n}: not a flag object")
                 continue
             fmt = flag.get("format")
-            if fmt != FORMAT:
+            if fmt not in (FORMAT, LEGACY_FORMAT):
                 warnings.append(f"{p.name}:{n}: format {fmt!r}, expected {FORMAT!r} (reading anyway)")
             by_id[flag["id"]] = flag
     flags = sorted(by_id.values(), key=lambda f: f.get("created_at") or "")

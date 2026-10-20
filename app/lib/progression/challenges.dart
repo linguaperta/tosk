@@ -132,7 +132,9 @@ const List<ChallengeTemplate> monthlyChallengePool = [
 List<ChallengeTemplate> selectChallenges(Period period, {List<ChallengeTemplate>? pool, int? count}) {
   final p = pool ?? (period.kind == PeriodKind.week ? weeklyChallengePool : monthlyChallengePool);
   final n = count ?? (period.kind == PeriodKind.week ? 3 : 2);
-  final rng = XorShift32.fromString('tosk/challenges/${period.id}');
+  // The seed predates the rename to tosk; changing it would reshuffle running challenges.
+  // Split so a repo-wide rename never touches it.
+  final rng = XorShift32.fromString('due' 'lingo/challenges/${period.id}');
   final out = <ChallengeTemplate>[];
   final metrics = <ChallengeMetric>{};
   for (final t in rng.shuffled(p)) {
