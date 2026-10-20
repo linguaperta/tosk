@@ -1,6 +1,6 @@
 /// Course statistics for the Progress page: the review forecast, accuracy per
-/// exercise type and per tense or inflection table, time practiced, and words
-/// learned over time. Pure functions of the course replay (the review log)
+/// exercise type, per facet kind and per tense or inflection table, time
+/// practiced, and words learned over time. Pure functions of the course replay (the review log)
 /// and the facet states. See docs/progression.md, "Statistics".
 library;
 
@@ -10,8 +10,9 @@ import '../core/core.dart';
 import 'calendar.dart';
 import 'replay.dart';
 
-/// Days in the review forecast (today and the next six).
-const int kForecastDays = 7;
+/// Days in the review forecast (today and the next 29). The UI shows the
+/// first 7 on the Progress page and 14 or 30 on the stats page.
+const int kForecastDays = 30;
 
 /// Window of the accuracy breakdowns.
 const int kAccuracyDays = 30;
@@ -37,6 +38,12 @@ class ReviewForecast {
 
   int get dueToday => days.isEmpty ? 0 : days.first.$2;
   int get total => days.fold(0, (a, d) => a + d.$2);
+
+  /// The first [n] days (today first).
+  List<(LocalDate, int)> window(int n) => days.take(n).toList();
+
+  /// Reviews due within the first [n] days (overdue included).
+  int totalIn(int n) => window(n).fold(0, (a, d) => a + d.$2);
 }
 
 /// Right answers out of all answers for one exercise type, tense or table.
@@ -44,7 +51,7 @@ class ReviewForecast {
 class AccuracyRow {
   const AccuracyRow({required this.key, required this.label, required this.correct, required this.total});
 
-  /// An [ExerciseType] id, `tense:{tense}`, `infl:{table}` or `article`.
+  /// An [ExerciseType] id, `kind:{FacetKind}`, `tense:{tense}`, `infl:{table}` or `article`.
   final String key;
   final String label;
   final int correct;
@@ -78,6 +85,7 @@ class CourseStats {
   const CourseStats({
     required this.forecast,
     required this.byType,
+    this.byKind = const [],
     required this.byGrammar,
     required this.time,
     required this.learnedByWeek,
@@ -88,6 +96,10 @@ class CourseStats {
 
   /// Accuracy per exercise type over the last [kAccuracyDays] days (types with answers only).
   final List<AccuracyRow> byType;
+
+  /// Accuracy per facet kind (recognition, production, verb forms,
+  /// inflections, articles), same window; kinds with answers only.
+  final List<AccuracyRow> byKind;
 
   /// Accuracy per tense, inflection table and the article, same window.
   final List<AccuracyRow> byGrammar;
@@ -118,6 +130,15 @@ String exerciseTypeLabel(ExerciseType t) => switch (t) {
   ExerciseType.listenPick => 'Listen and pick',
 };
 
+/// English labels of the facet kinds (what an answer trained).
+String facetKindLabel(FacetKind k) => switch (k) {
+  FacetKind.rec => 'Recognition (meaning)',
+  FacetKind.prod => 'Production (recall the word)',
+  FacetKind.form => 'Verb forms',
+  FacetKind.infl => 'Inflections',
+  FacetKind.article => 'Articles',
+};
+
 /// Statistics of [course] at [now] from its replay [steps] (canonical order,
 /// overrides applied) and the facet [states].
 ///
@@ -125,8 +146,9 @@ String exerciseTypeLabel(ExerciseType t) => switch (t) {
 ///   due; overdue ones count today.
 /// * **Accuracy:** answers in the last [kAccuracyDays] days. Test-out
 ///   credits, story reads and overrides are no answers (an overridden answer
-///   counts as right). Per exercise type, and per grammar: `#form` facets by
-///   tense, `#infl` facets by table, `#article` facets.
+///   counts as right). Per exercise type (one count per graded facet, so a
+///   conjugation grid counts every cell), per facet kind, and per grammar:
+///   `#form` facets by tense, `#infl` facets by table, `#article` facets.
 /// * **Time:** one exercise records every facet it grades with the same `at`
 ///   and session, so its response time is counted once (the largest), capped
 ///   at [kMaxCountedAnswer] ([kMaxCountedReading] for a story).
@@ -168,6 +190,7 @@ CourseStats computeCourseStats({
   // Accuracy, time and learning, in one pass.
   final since = now.toUtc().subtract(const Duration(days: kAccuracyDays));
   final byType = <ExerciseType, (int, int)>{};
+  final byKind = <FacetKind, (int, int)>{};
   final byGrammar = <String, (int, int)>{};
   final exerciseTime = <(String, int), Duration>{};
   final exerciseDay = <(String, int), LocalDate>{};
@@ -196,6 +219,7 @@ CourseStats computeCourseStats({
     if (e.isCredit || e.isStory || e.isOverride || e.at.isBefore(since)) continue;
     final type = ExerciseType.tryParse(e.exerciseType);
     if (type != null) byType[type] = add(byType[type], e.correct);
+    byKind[facet.kind] = add(byKind[facet.kind], e.correct);
     final g = switch (facet.kind) {
       FacetKind.form when facet.tense != null => 'tense:${facet.tense}',
       FacetKind.infl when facet.tense != null => 'infl:${facet.tense}',
@@ -226,6 +250,11 @@ CourseStats computeCourseStats({
   final typeRows = [
     for (final t in ExerciseType.values)
       if (byType[t] case (final ok, final n)) AccuracyRow(key: t.id, label: exerciseTypeLabel(t), correct: ok, total: n),
+  ];
+  final kindRows = [
+    for (final k in FacetKind.values)
+      if (byKind[k] case (final ok, final n))
+        AccuracyRow(key: 'kind:${k.name}', label: facetKindLabel(k), correct: ok, total: n),
   ];
   final grammarKeys = byGrammar.keys.toList()
     ..sort((a, b) {
@@ -278,6 +307,7 @@ CourseStats computeCourseStats({
   return CourseStats(
     forecast: forecast,
     byType: typeRows,
+    byKind: kindRows,
     byGrammar: grammarRows,
     time: PracticeTime(
       today: tToday,

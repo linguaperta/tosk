@@ -8,6 +8,14 @@ import '../../core/models/facet.dart';
 import '../../core/models/progress.dart';
 import 'engine_session.dart';
 
+/// Exercise types that show a whole sentence.
+const Set<ExerciseType> kSentenceExerciseTypes = {
+  ExerciseType.cloze,
+  ExerciseType.sentenceBuilder,
+  ExerciseType.spotError,
+  ExerciseType.transform,
+};
+
 /// Plans a starred-practice session.
 ///
 /// * **Exercises** are served again exactly as they were starred (the decoded
@@ -19,8 +27,10 @@ import 'engine_session.dart';
 ///   (reviewed facets by predicted recall, then new ones in course order).
 /// * **Sentences**: the facets of the sentence's aligned words (a verb form
 ///   asks its tense's `#form` facet, an inflected word its `#infl` facet,
-///   other words `#prod`, else `#rec`), with the sentence itself preferred by
-///   every template that can show it ([EngineSession.preferredSentences]).
+///   other words `#prod`, else `#rec`), as sentence exercises where one can be
+///   built ([kSentenceExerciseTypes]), with the sentence itself preferred by
+///   every template that can show it ([EngineSession.preferredSentences]; it
+///   passes the grammar gate, since the learner has seen it).
 ///
 /// The three queues are interleaved (exercise, word, sentence, ...), each
 /// facet planned once, up to [length] slots.
@@ -121,7 +131,9 @@ class StarredBuilder {
       while (planned.length < length && si < sentenceQueue.length) {
         final f = sentenceQueue[si++];
         if (used.add(f.facetId)) {
-          planned.add(SessionSlot(f));
+          // A sentence exercise first (it shows the starred sentence); any
+          // type when none can be built for this facet.
+          planned.add(SessionSlot(f, only: kSentenceExerciseTypes));
           break;
         }
       }

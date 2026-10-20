@@ -55,7 +55,8 @@ bool isGeneratedSentence(Sentence s) => s.src?.startsWith('claude-gen') ?? false
 
 /// Score subtracted in [GenContext.prefer] from a sentence the session
 /// prefers (starred practice: the learner's starred sentences), so it comes
-/// first whenever it is eligible.
+/// first. Preferred sentences pass the grammar gate: the learner starred
+/// them after seeing them.
 const double kPreferredSentenceBonus = 10.0;
 
 /// See [GenContext.shownRecently].
@@ -145,7 +146,7 @@ class GenContext {
   // ------------------------------------------------------------ sentences
 
   /// Whether [s] may be shown to this learner (always without a [gate]).
-  bool sentenceOk(Sentence s) => gate?.allows(s, wordCap) ?? true;
+  bool sentenceOk(Sentence s) => preferredSentences.contains(s.id) || (gate?.allows(s, wordCap) ?? true);
 
   /// Whether a grammar feature is known (always without a [gate]).
   bool featureKnown(String feature) => gate?.featureKnown(feature) ?? true;
@@ -176,11 +177,12 @@ class GenContext {
     final h = history;
     for (final c in candidates) {
       final s = sentenceOf(c);
-      if (g != null && !g.allows(s, wordCap)) continue;
+      final preferred = preferredSentences.contains(s.id);
+      if (g != null && !preferred && !g.allows(s, wordCap)) continue;
       final score = (g == null ? 0 : g.unknownWords(s) * kUnknownWordWeight) +
           (h == null ? 0 : h.penalty(s.id)) +
           (isGeneratedSentence(s) ? kGeneratedSentenceWeight : 0) -
-          (preferredSentences.contains(s.id) ? kPreferredSentenceBonus : 0) +
+          (preferred ? kPreferredSentenceBonus : 0) +
           random.nextDouble();
       (h != null && h.usedInSession(s.id) ? reused : fresh).add((score, c));
     }
