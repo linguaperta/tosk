@@ -27,7 +27,7 @@ The detailed task list lives in [BACKLOG.md](../BACKLOG.md). This page is the re
 - **Mistake review:** practice the exercises you got wrong, plus a list of mistakes.
 - **Black & white e-ink mode** for the Boox: nothing is conveyed by color, there are no animations, and it's tested on every screen.
 - **QA pass:** every flow on both courses, phone and desktop sizes, dark mode, large text.
-- **Sarnami (`hns`):** a Dutch–Sarnami course from the [source] dictionary, marked unverified and kept local-only ([source] copyright), loaded from a file.
+- **Sarnami (`hns`):** a Dutch–Sarnami course, marked unverified and kept local-only (built from copyrighted sources; the importer is private), loaded from a file.
 
 ## v0.4: content downloads and sync
 

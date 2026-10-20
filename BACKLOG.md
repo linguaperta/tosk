@@ -233,7 +233,7 @@ Each one at the expanded it/nl scale: 8â€“10 units, ~30 skills, ~1000 taught wor
 - [ ] Fix the two `dist/index.json` writers (`build` and `publish` write different formats to the same file; the app can't read the `build` one)
 - [ ] Add `license`, `authors`, `data_sources` to the it/nl/es `course.yaml` in tosk-data
 - [ ] Package the JSON schemas inside the Python package so a real wheel works (today only an editable install)
-- [ ] Move source-specific importers for copyrighted sources (Sarnami [source], [source]©, [source]) into a private module or repo before any repo goes public. The audit lists exactly what moves and which hooks to replace: `docs/private-importers.md`
+- [x] Move source-specific importers for copyrighted sources into a private repo (`timoverlaan/tosk-data-private`, 20 Oct); public pipeline has a plugin point (`TOSK_PRIVATE_PIPELINE`) and a generic restricted-course safeguard: `docs/private-importers.md`
 - [ ] Expansions (design: `docs/extensions.md`, agreed 20 Oct): `extends`, course families, word-derived ids `<lang>~<lemma>.<pos>`, `variant_of`, topics inside packs (`topics:` with an `anchor`), validator rules, installed-expansion list synced
 - [ ] App: topic trees (own map), a branch leaving the main map at the anchor with an arrow and name carved/painted into the bark and "Go to <topic>", a tree selector at the top of the map, "N of M words already known"
 - [ ] Tidy the it/nl/es main trees: move self-contained vocab clusters into built-in topics (owner reviews the split first; ids unchanged)
@@ -245,8 +245,8 @@ Each one at the expanded it/nl scale: 8â€“10 units, ~30 skills, ~1000 taught wor
 
 ## Later (not v1)
 
-- [x] Phase 6: Sarnami (`hns`): 9 units, 35 skills, 394 taught words, 742 verb tables, 3,004 sentences. Sources: [source] dictionary, [source] 1991, [source]© 1985 (checking), [source], NT (checking only), plus Claude-drafted/generated material, with per-record `src` and a SOURCES manifest. Local-only (copyright), unverified; see `docs/sarnami.md`.
-- [ ] Sarnami: review by a speaker (open questions in `docs/sarnami.md`); [source]©'s past habitual/conditional not modelled; [source] readers blocked by a bot challenge
+- [x] Phase 6: Sarnami (`hns`): 9 units, 35 skills, 394 taught words, 742 verb tables, 3,004 sentences, built from copyrighted reference sources plus Claude-drafted material with per-record provenance. Local-only and unverified; importer, sources and notes live in the private repo
+- [ ] Sarnami: review by a speaker (open questions are in the private repo's notes)
 - [-] Phase 7: `GitHubPackSource`, `DriveSyncBackend`. Interfaces only in v1.
 - [x] v0.5: ink `AnswerInput` (ML Kit Digital Ink) + Onyx pen SDK behind an ONYX device check (user approved, 14 October); e-ink full refresh; listen_pick with on-device TTS. The AI explainer and the B/W e-ink mode moved up to v0.3.
 - [-] `listen_pick` exercise (needs audio/TTS)
