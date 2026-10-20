@@ -14,6 +14,7 @@ import 'ink_art.dart';
 import 'map_labels.dart';
 import 'map_layout.dart';
 import 'map_motion.dart';
+import 'map_raster.dart';
 import 'node_painter.dart';
 import 'skill_node.dart';
 import 'skill_stats.dart';
@@ -510,20 +511,22 @@ class _SkillMapViewState extends State<SkillMapView> with SingleTickerProviderSt
                     ),
                   ),
                 ),
-              // The boughs: a static layer (painted once per layout).
+              // The boughs: a static layer, drawn once per layout into raster
+              // tiles near the viewport (`map_raster.dart`), which scrolling
+              // only moves.
               Positioned.fill(
-                child: RepaintBoundary(
-                  child: CustomPaint(
-                    painter: MapEdgesPainter(
-                      layout: layout,
-                      geometry: g,
-                      style: style,
-                      branchStyle: branchStyle,
-                      lockedSkills: locked,
-                      boughs: boughs,
-                      paintLeaves: !swayOn,
-                    ),
-                  ),
+                child: RasterArt(
+                  key: const ValueKey('map-boughs'),
+                  artKey: (boughs, style.ink, style.monochrome, branchStyle, !swayOn),
+                  painter: MapEdgesPainter(
+                    layout: layout,
+                    geometry: g,
+                    style: style,
+                    branchStyle: branchStyle,
+                    lockedSkills: locked,
+                    boughs: boughs,
+                    paintLeaves: !swayOn,
+                  ).paintRegion,
                 ),
               ),
               // The leaves, swaying on their own layer while the map scrolls.
@@ -533,7 +536,11 @@ class _SkillMapViewState extends State<SkillMapView> with SingleTickerProviderSt
                     child: RepaintBoundary(
                       child: CustomPaint(
                         key: const ValueKey('map-leaves'),
-                        painter: MapLeavesPainter(motion: _motion, ink: style.ink),
+                        painter: MapLeavesPainter(
+                          motion: _motion,
+                          ink: style.ink,
+                          devicePixelRatio: MediaQuery.devicePixelRatioOf(context),
+                        ),
                       ),
                     ),
                   ),
@@ -816,6 +823,19 @@ class MapEdgesPainter extends CustomPainter {
     debugPaintCount++;
     final lockedInk = _lockedInk(style);
     for (final b in boughs ?? boughShapes()) {
+      b.shape.paint(canvas, b.locked ? lockedInk : style.ink, branchStyle, leaf: paintLeaves);
+    }
+  }
+
+  /// How many map regions (raster tiles) were painted (for the repaint tests).
+  static int debugRegionPaints = 0;
+
+  /// Paints the boughs that reach into [region] (a raster tile of the map).
+  void paintRegion(Canvas canvas, Rect region) {
+    debugRegionPaints++;
+    final lockedInk = _lockedInk(style);
+    for (final b in boughs ?? boughShapes()) {
+      if (!b.shape.bounds.overlaps(region)) continue;
       b.shape.paint(canvas, b.locked ? lockedInk : style.ink, branchStyle, leaf: paintLeaves);
     }
   }

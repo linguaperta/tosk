@@ -12,7 +12,7 @@
 ///   titles sit on static layers that never repaint for motion.
 /// - **Culling and caps.** Only twinkles in (or near) the viewport are
 ///   painted; at most [kMaxSwayLeaves] leaves in view are simulated; each
-///   leaf is a cached `Picture`, so a frame only replays it at a new angle.
+///   leaf is a cached image, so a frame only draws it at a new angle.
 ///   Twinkle repaints are throttled to about 30 fps.
 ///
 /// In black & white and with reduce motion none of this runs: the node
@@ -149,6 +149,7 @@ class MapMotion {
   List<LeafSpot> get leaves => _leaves;
 
   final Map<(int, double, MapInk), ui.Picture> _pictures = {};
+  final Map<(int, double, MapInk, double), ui.Image> _images = {};
 
   /// Sets the leaves (after a layout change); keeps the springs when unchanged.
   void setLeaves(List<LeafSpot> leaves) {
@@ -179,11 +180,36 @@ class MapMotion {
     return recorder.endRecording();
   });
 
+  /// What [leafImage] covers around the leaf's origin, in leaf units (times
+  /// the leaf's scale): the stem and terminal leaflet along +x, the leaflet
+  /// pairs to both sides, plus the outline.
+  static const Rect leafBox = Rect.fromLTRB(-6, -44, 138, 44);
+
+  /// The leaf of [leafPicture] rendered once into an image at [dpr] (each
+  /// frame then draws it at its angle: one textured quad instead of the
+  /// leaf's dozens of ink ops and clips).
+  ui.Image leafImage(LeafSpot leaf, MapInk ink, double dpr) => _images.putIfAbsent((leaf.seed, leaf.scale, ink, dpr), () {
+    final box = Rect.fromLTRB(leafBox.left * leaf.scale, leafBox.top * leaf.scale, leafBox.right * leaf.scale, leafBox.bottom * leaf.scale);
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder)
+      ..scale(dpr)
+      ..translate(-box.left, -box.top);
+    canvas.drawPicture(leafPicture(leaf, ink));
+    final picture = recorder.endRecording();
+    final image = picture.toImageSync(math.max(1, (box.width * dpr).ceil()), math.max(1, (box.height * dpr).ceil()));
+    picture.dispose();
+    return image;
+  });
+
   void clearPictures() {
     for (final p in _pictures.values) {
       p.dispose();
     }
     _pictures.clear();
+    for (final i in _images.values) {
+      i.dispose();
+    }
+    _images.clear();
   }
 
   void dispose() {
@@ -227,11 +253,13 @@ class MapSparklePainter extends CustomPainter {
       !listEquals(old.spots, spots) || old.motion != motion || old.ink != ink || old.style != style;
 }
 
-/// The boughs' ash leaves, swaying, on one layer.
+/// The boughs' ash leaves, swaying, on one layer: each a cached image
+/// ([MapMotion.leafImage] at [devicePixelRatio]) drawn at its angle.
 class MapLeavesPainter extends CustomPainter {
-  MapLeavesPainter({required this.motion, required this.ink}) : super(repaint: motion.leafTick);
+  MapLeavesPainter({required this.motion, required this.ink, this.devicePixelRatio = 1}) : super(repaint: motion.leafTick);
   final MapMotion motion;
   final MapInk ink;
+  final double devicePixelRatio;
 
   /// How many times the layer was painted (for the repaint tests).
   static int debugPaintCount = 0;
@@ -244,14 +272,23 @@ class MapLeavesPainter extends CustomPainter {
     for (var i = 0; i < leaves.length; i++) {
       final l = leaves[i];
       if (v != null && !v.contains(l.tip)) continue;
+      final image = motion.leafImage(l, ink, devicePixelRatio);
+      final b = MapMotion.leafBox;
       canvas.save();
       canvas.translate(l.tip.dx, l.tip.dy);
       canvas.rotate(l.angle + motion.sway.angleOf(i));
-      canvas.drawPicture(motion.leafPicture(l, ink));
+      canvas.drawImageRect(
+        image,
+        Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
+        Rect.fromLTWH(b.left * l.scale, b.top * l.scale, image.width / devicePixelRatio, image.height / devicePixelRatio),
+        _paint,
+      );
       canvas.restore();
     }
   }
 
+  static final Paint _paint = Paint()..filterQuality = FilterQuality.low;
+
   @override
-  bool shouldRepaint(MapLeavesPainter old) => old.motion != motion || old.ink != ink;
+  bool shouldRepaint(MapLeavesPainter old) => old.motion != motion || old.ink != ink || old.devicePixelRatio != devicePixelRatio;
 }

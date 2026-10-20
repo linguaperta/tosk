@@ -166,7 +166,7 @@ void main() {
         await tester.pump(const Duration(milliseconds: 600));
         SchedulerBinding.instance.removeTimingsCallback(collect);
         final s = FrameStats('$courseId/$phase', timings);
-        debugPrint(s.toString());
+        debugPrint('$s, ends at ${position.pixels.round()} px');
         results['$courseId/$phase'] = s.toJson();
         return s;
       }

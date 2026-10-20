@@ -53,6 +53,18 @@ class BoughShape {
   /// The ash leaf at the twig's tip (null on short boughs or without leaves).
   final LeafSpot? leaf;
 
+  /// Everything [paint] can touch (bark, outline, twig and the leaf at rest).
+  late final Rect bounds = () {
+    var r = silhouette.getBounds();
+    if (twigBand case final t?) r = r.expandToInclude(t.getBounds());
+    if (leaf case final l?) {
+      // The leaf reaches about 132 units along its angle and 40 to the sides.
+      r = r.expandToInclude(Rect.fromCircle(center: l.tip, radius: 136 * l.scale));
+    }
+    // The outline strokes and the hand wobble.
+    return r.inflate(4);
+  }();
+
   /// This bough without its twig and leaf (one that would hang over a unit title).
   BoughShape withoutLeaf() => BoughShape._(
     seed: seed,

@@ -9,6 +9,7 @@ import '../theme/skin.dart';
 import 'branch_style.dart';
 import 'ink_art.dart';
 import 'map_labels.dart';
+import 'map_raster.dart';
 import 'node_painter.dart';
 import 'skill_stats.dart';
 
@@ -101,8 +102,13 @@ class _SkillNodeState extends State<SkillNode> {
 
     final iconColor = nodeIconColor(w.style, stats.tier);
 
-    final stonePaint = CustomPaint(
+    // The stone is drawn once into an image (it is thousands of ink ops) and
+    // then just blitted; it reaches past the box (sparkles, rays, laurel,
+    // falling fragments: at most 0.14 of the box over all tiers and decays).
+    final stonePaint = CachedPaint(
+      key: const ValueKey('skill-stone'),
       size: Size.square(box),
+      overflow: box * 0.2,
       painter: NodePainter(
         tier: stats.tier,
         ink: w.style.ink,
@@ -132,7 +138,7 @@ class _SkillNodeState extends State<SkillNode> {
                 clipBehavior: Clip.none,
                 alignment: Alignment.center,
                 children: [
-                  RepaintBoundary(child: stonePaint),
+                  stonePaint,
                   Material(
                     type: MaterialType.transparency,
                     child: InkResponse(

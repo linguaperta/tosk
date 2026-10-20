@@ -199,7 +199,7 @@ void main() {
                 }
               }
               final order = tester.widget<Stack>(find.byKey(const ValueKey('map-content'))).children;
-              final boughLayer = order.indexWhere((c) => c is Positioned && c.child is RepaintBoundary);
+              final boughLayer = order.indexWhere((c) => c is Positioned && c.child.key == const ValueKey('map-boughs'));
               final firstTitle = order.indexWhere((c) => c.key is ValueKey<String> && (c.key! as ValueKey<String>).value.startsWith('band-title-'));
               expect(boughLayer, greaterThanOrEqualTo(0));
               expect(firstTitle, greaterThan(boughLayer), reason: 'titles paint above the boughs');
