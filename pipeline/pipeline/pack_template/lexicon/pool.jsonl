@@ -1,0 +1,2 @@
+{"id": "{{code}}:le", "lemma": "le", "pos": "det", "freq": 4, "tr": {"en": ["the"]}, "tr_src": {"en": "manual"}, "src": "pack-template", "inflections": ["la"]}
+{"id": "{{code}}:kasa", "lemma": "kasa", "pos": "noun", "article": "la", "gender": "f", "freq": 60, "tr": {"en": ["house"]}, "tr_src": {"en": "manual"}, "src": "pack-template"}

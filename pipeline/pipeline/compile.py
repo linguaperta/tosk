@@ -160,6 +160,11 @@ def compile_pack(pack: Pack, out: Path, built_at: str | None = None) -> dict:
             "built_at": built_at,
             "attribution": c.get("attribution") or attribution_text(pack),
         }
+        # credits (pack format 1.0: license, authors, data_sources; credits.py)
+        from .credits import credits_meta, generic_attribution, has_credits
+        meta.update(credits_meta(c))
+        if not c.get("attribution") and has_credits(c):
+            meta["attribution"] = generic_attribution(c)
         if c.get("person_labels"):
             meta["person_labels"] = _j(c["person_labels"])
         if c.get("description"):
