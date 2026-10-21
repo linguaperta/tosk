@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/core.dart';
 import '../../providers.dart';
 import '../common/async_view.dart';
 import '../routes.dart';
@@ -12,8 +13,14 @@ import 'branch_style.dart';
 import 'map_action_bar.dart';
 import 'skill_map_view.dart';
 import 'skill_stats.dart';
+import 'tree_selector.dart';
 
 /// Home: the skill map for the active course.
+///
+/// A course with topics has several trees: the main tree (with a branch
+/// leaving the map at each topic's anchor, "Go to …") and one map per topic,
+/// whose root leads back. The app bar's title is then a menu of the trees
+/// ([TreeSelector]); each tree keeps its own scroll position.
 class MapScreen extends ConsumerStatefulWidget {
   const MapScreen({super.key});
 
@@ -29,7 +36,18 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   static const _longMapUnits = 4;
   final Map<String, GlobalKey> _unitKeys = {};
 
+  /// The scroll offset of each tree while another is shown ('' is the main tree).
+  final Map<String, double> _offsets = {};
+  ScrollController _scroll = ScrollController();
+  String? _shownTree;
+
   GlobalKey _unitKey(String unitId) => _unitKeys[unitId] ??= GlobalKey(debugLabel: 'unit-$unitId');
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
 
   /// Scrolls the map so [unitId]'s band is at the top.
   void _jumpTo(String unitId) {
@@ -40,10 +58,23 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   void _setZoom(double z) => setState(() => _zoom = z.clamp(_minZoom, _maxZoom));
 
+  void _showTree(String? tree) => ref.read(mapTreeProvider.notifier).show(tree);
+
+  /// Switches the scroll controller when the tree changes: the old tree's
+  /// offset is kept, the new one starts where it was left.
+  void _followTree(String? tree) {
+    if (tree == _shownTree) return;
+    if (_scroll.hasClients) _offsets[_shownTree ?? ''] = _scroll.offset;
+    final old = _scroll;
+    // The old scroll view still uses it until this frame is built.
+    WidgetsBinding.instance.addPostFrameCallback((_) => old.dispose());
+    _scroll = ScrollController(initialScrollOffset: _offsets[tree ?? ''] ?? 0);
+    _shownTree = tree;
+  }
+
   @override
   Widget build(BuildContext context) {
     final course = ref.watch(courseDataProvider);
-    final layout = ref.watch(mapLayoutProvider);
     final stats = ref.watch(skillStatsProvider);
     final lang = ref.watch(sourceLangProvider);
     final skin = ref.watch(skinProvider);
@@ -52,11 +83,20 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final mistakeCount = ref.watch(openMistakesProvider).value?.length ?? 0;
     final anyPracticed = stats.value?.values.any((s) => s.practiced) ?? false;
     final c = course.value;
-    final longMap = c != null && c.units.length >= _longMapUnits;
-    final current = !longMap
+    final trees = c == null ? null : CourseTrees.of(c);
+    // A topic that isn't there (another course) shows the main tree.
+    final topic = switch (ref.watch(mapTreeProvider)) {
+      final id? => trees?.topic(id),
+      null => null,
+    };
+    _followTree(topic?.id);
+    final layout = topic == null ? ref.watch(mapLayoutProvider) : ref.watch(topicLayoutProvider(topic.id));
+    final treeUnits = trees?.unitsOf(topic?.id) ?? const <Unit>[];
+    final longMap = treeUnits.length >= _longMapUnits;
+    final current = !longMap || c == null
         ? null
         : currentUnitId([
-            for (final u in c.units)
+            for (final u in treeUnits)
               for (final s in c.skills)
                 if (s.unitId == u.id) (unitId: u.id, skillId: s.id),
           ], stats.value ?? const {});
@@ -64,8 +104,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        // The active course, for orientation; switching is in Settings.
-        title: const CourseTitle(),
+        // The active course, for orientation (switching courses is in
+        // Settings); with topics, a menu of the course's trees.
+        title: c == null ? const CourseTitle() : TreeSelector(course: c, tree: topic?.id, onSelect: _showTree),
         actions: [
           IconButton(
             tooltip: 'Zoom out',
@@ -99,17 +140,23 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           if (course.skills.isEmpty) {
             return const Center(child: Text('This course has no skills yet.'));
           }
+          final trees = CourseTrees.of(course);
+          final s = stats.value ?? const <String, SkillStats>{};
+          final courseTitle = pickLang(course.meta.title, lang);
+          final anchor = topic == null ? null : course.skill(topic.anchor);
           return SingleChildScrollView(
-            key: const ValueKey('map-scroll'),
+            key: ValueKey(topic == null ? 'map-scroll' : 'map-scroll-${topic.id}'),
+            controller: _scroll,
             padding: const EdgeInsets.only(top: 8, bottom: 24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const MapHeaderSlot(),
                 SkillMapView(
+                  key: ValueKey('map-${topic?.id ?? 'main'}'),
                   course: course,
                   layout: l,
-                  stats: stats.value ?? const {},
+                  stats: s,
                   style: skin.mapStyle(Theme.of(context).colorScheme),
                   lang: lang,
                   now: now,
@@ -129,6 +176,34 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                     ..updateAll((unit, _) => course.stories.where((s) => s.unitId == unit).length),
                   storyUnitsOpen: ref.watch(storyUnitsUnlockedProvider).value ?? const {},
                   onUnitStories: (unitId) => context.push(Routes.unitStories(unitId)),
+                  // The main tree: a branch leaves the map at each topic's anchor.
+                  branches: topic != null
+                      ? const []
+                      : [
+                          for (final t in trees.topics)
+                            TopicBranch(
+                              id: t.id,
+                              anchor: t.anchor,
+                              title: t.titleIn(lang),
+                              shortTitle: t.shortTitleIn(lang),
+                              // Open once the anchor is started; browsable before.
+                              locked: (s[t.anchor]?.tier.index ?? 0) < MapTier.started.index,
+                              progress: topicProgressText(topicProgress(trees, t.id, s)),
+                            ),
+                        ],
+                  onTopic: _showTree,
+                  // A topic's map: its root says where it grows from and leads back.
+                  unitTitles: topic == null
+                      ? const {}
+                      : {kTopicRootUnit: 'From $courseTitle · ${anchor == null ? '' : pickLang(anchor.title, lang)}'},
+                  root: topic == null || anchor == null
+                      ? null
+                      : TopicRoot(
+                          skillId: anchor.id,
+                          label: 'Back to the $courseTitle main tree: ${topic.titleIn(lang)} grows from '
+                              '${pickLang(anchor.title, lang)}',
+                          onTap: () => _showTree(null),
+                        ),
                 ),
               ],
             ),

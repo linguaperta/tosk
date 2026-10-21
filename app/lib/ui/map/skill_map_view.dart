@@ -18,9 +18,11 @@ import 'map_raster.dart';
 import 'node_painter.dart';
 import 'skill_node.dart';
 import 'skill_stats.dart';
+import 'topic_branch.dart';
 
 export 'bough.dart' show BoughShape, LeafSpot, paintBough;
 export 'map_labels.dart' show MapTextMetrics;
+export 'topic_branch.dart' show TopicBranch, TopicRoot, TopicButton, TopicButtonLayout;
 
 /// Which way the course grows on screen.
 ///
@@ -51,6 +53,7 @@ class MapGeometry {
     this.direction = kMapDirection,
     this.text = MapTextMetrics.fallback,
     this.tallHeaders = const {},
+    this.strips = const {},
   }) {
     final cols = math.max(1.0, layout.columns);
     final fit = (availableWidth - 2 * hPad) / cols;
@@ -65,7 +68,7 @@ class MapGeometry {
     final order = direction == MapDirection.topDown ? layout.bands : layout.bands.reversed;
     for (final b in order) {
       tops[b.index] = y;
-      y += headerOf(b.index) + b.rowCount * rowHeight + bandGap;
+      y += bandHeight(b) + bandGap;
     }
     bandTop.addAll(tops);
     height = y;
@@ -100,6 +103,32 @@ class MapGeometry {
 
   /// Height of band [band]'s header (the unit title), at least [bandHeader].
   double headerOf(int band) => text.headerHeight(tallHeaders.contains(band) ? 2 : 1);
+
+  /// Extra room under some rows, by (band, row): the strips where topic
+  /// branches leave the map (`topic_branch.dart`).
+  final Map<(int, int), double> strips;
+
+  /// The strips above visual row [visual] of [band] (rows counted from the band's top).
+  double _stripsAbove(int band, int visual) {
+    if (strips.isEmpty) return 0;
+    var sum = 0.0;
+    for (final e in strips.entries) {
+      if (e.key.$1 != band) continue;
+      final rowCount = layout.bands[band].rowCount;
+      final v = direction == MapDirection.topDown ? e.key.$2 : rowCount - 1 - e.key.$2;
+      if (v < visual) sum += e.value;
+    }
+    return sum;
+  }
+
+  /// A band's height: its header, rows and strips.
+  double bandHeight(MapBand b) => headerOf(b.index) + b.rowCount * rowHeight + _stripsAbove(b.index, b.rowCount);
+
+  /// The top of the strip under [row] of [band] (where its topic branches run).
+  double stripTop(int band, int row) {
+    final visual = direction == MapDirection.topDown ? row : layout.bands[band].rowCount - 1 - row;
+    return bandTop[band] + headerOf(band) + (visual + 1) * rowHeight + _stripsAbove(band, visual);
+  }
   late final double gridWidth;
   late final double width;
   late final double height;
@@ -116,8 +145,10 @@ class MapGeometry {
       direction == MapDirection.topDown ? n.row : layout.bands[n.band].rowCount - 1 - n.row;
 
   /// Top-left of the node's cell.
-  Offset cellOrigin(MapNode n) =>
-      Offset(originX + n.col * cellWidth, bandTop[n.band] + headerOf(n.band) + visualRow(n) * rowHeight);
+  Offset cellOrigin(MapNode n) => Offset(
+    originX + n.col * cellWidth,
+    bandTop[n.band] + headerOf(n.band) + visualRow(n) * rowHeight + _stripsAbove(n.band, visualRow(n)),
+  );
 
   /// Center of the node's box (stone, ring and rays).
   Offset ringCenter(MapNode n) => cellOrigin(n) + Offset(cellWidth / 2, 8 + nodeBox / 2);
@@ -187,7 +218,23 @@ class SkillMapView extends StatefulWidget {
     this.storyCounts = const {},
     this.storyUnitsOpen = const {},
     this.onUnitStories,
+    this.branches = const [],
+    this.onTopic,
+    this.unitTitles = const {},
+    this.root,
   });
+
+  /// Topic branches leaving the main tree at their anchors (with a carved
+  /// name and arrow, and a "Go to …" button that calls [onTopic]).
+  final List<TopicBranch> branches;
+  final void Function(String topicId)? onTopic;
+
+  /// Band titles for units that are not the course's (a topic map's root band).
+  final Map<String, String> unitTitles;
+
+  /// On a topic's map: its root (the anchor skill it grows from), which
+  /// leads back to the main tree instead of opening the skill.
+  final TopicRoot? root;
 
   /// Stories per unit id: units with stories get a book button in their band
   /// header ([onUnitStories]); [storyUnitsOpen] are the units whose stories
@@ -401,6 +448,7 @@ class _SkillMapViewState extends State<SkillMapView> with SingleTickerProviderSt
       Object.hashAll(storyBands.toList()..sort()),
       titleStyle,
       scaler,
+      Object.hashAll(w.branches),
     );
     if (key != _planKey || _plan == null) {
       _planKey = key;
@@ -416,6 +464,7 @@ class _SkillMapViewState extends State<SkillMapView> with SingleTickerProviderSt
         storyBands: storyBands,
         titleStyle: titleStyle,
         scaler: scaler,
+        branches: w.branches,
       );
     }
     return _plan!;
@@ -430,7 +479,7 @@ class _SkillMapViewState extends State<SkillMapView> with SingleTickerProviderSt
     final onUnitStories = w.onUnitStories, storyCounts = w.storyCounts;
     return LayoutBuilder(
       builder: (context, constraints) {
-        final unitTitles = {for (final u in course.units) u.id: pickLang(u.title, lang)};
+        final unitTitles = {for (final u in course.units) u.id: pickLang(u.title, lang), ...w.unitTitles};
         final titleStyle = mapBandTitleStyle(theme)?.copyWith(color: style.bandTitleColor);
         final locked = {
           for (final e in stats.entries)
@@ -449,11 +498,12 @@ class _SkillMapViewState extends State<SkillMapView> with SingleTickerProviderSt
           scaler: MediaQuery.textScalerOf(context),
         );
         final g = plan.geometry;
+        // Tosk sits on the first open skill of this tree (never on a topic map's root).
         final current = w.showMarker
             ? currentSkillId([
                 for (final u in course.units)
                   for (final s in course.skills)
-                    if (s.unitId == u.id) s.id,
+                    if (s.unitId == u.id && layout.node(s.id) != null && s.id != w.root?.skillId) s.id,
               ], stats)
             : null;
         final markerNode = current == null ? null : layout.node(current);
@@ -501,7 +551,7 @@ class _SkillMapViewState extends State<SkillMapView> with SingleTickerProviderSt
                   left: 4,
                   right: 4,
                   top: g.bandTop[b.index],
-                  height: g.headerOf(b.index) + b.rowCount * g.rowHeight,
+                  height: g.bandHeight(b),
                   child: DecoratedBox(
                     key: w.unitKeys[b.unitId],
                     decoration: BoxDecoration(
@@ -517,7 +567,7 @@ class _SkillMapViewState extends State<SkillMapView> with SingleTickerProviderSt
               Positioned.fill(
                 child: RasterArt(
                   key: const ValueKey('map-boughs'),
-                  artKey: (boughs, style.ink, style.monochrome, branchStyle, !swayOn),
+                  artKey: (boughs, plan.branches, style.ink, style.monochrome, branchStyle, !swayOn),
                   painter: MapEdgesPainter(
                     layout: layout,
                     geometry: g,
@@ -526,6 +576,7 @@ class _SkillMapViewState extends State<SkillMapView> with SingleTickerProviderSt
                     lockedSkills: locked,
                     boughs: boughs,
                     paintLeaves: !swayOn,
+                    branches: plan.branches,
                   ).paintRegion,
                 ),
               ),
@@ -620,12 +671,45 @@ class _SkillMapViewState extends State<SkillMapView> with SingleTickerProviderSt
                         reduceMotion: w.reduceMotion,
                         paintTwinkles: !twinkleOn,
                         branchStyle: branchStyle,
-                        onTap: w.onTap == null ? null : () => w.onTap!(skill),
+                        onTap: w.root?.skillId == skill.id
+                            ? w.root!.onTap
+                            : w.onTap == null
+                            ? null
+                            : () => w.onTap!(skill),
                         onLongPress: w.onLongPress == null ? null : () => w.onLongPress!(skill),
                         labelBackground: style.bandColor(n.band),
+                        semanticsLabel: w.root?.skillId == skill.id ? w.root!.label : null,
                       ),
                     ),
                   ),
+              // Topic branches: the carving is a tap target too (the button
+              // carries the semantics), and a "Go to …" button under it.
+              for (final p in plan.branches) ...[
+                if ((p.carving, w.onTopic) case (final c?, final onTopic?))
+                  Positioned.fromRect(
+                    rect: c.bounds,
+                    child: ExcludeSemantics(
+                      child: GestureDetector(
+                        key: ValueKey('topic-carving-${p.branch.id}'),
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => onTopic(p.branch.id),
+                      ),
+                    ),
+                  ),
+                if (w.onTopic case final onTopic?)
+                  Positioned.fromRect(
+                    rect: p.buttonSlot,
+                    child: CustomSingleChildLayout(
+                      delegate: TopicButtonLayout(p.buttonX - p.buttonSlot.left, p.side),
+                      child: TopicButton(
+                        key: ValueKey('topic-go-${p.branch.id}'),
+                        branch: p.branch,
+                        background: style.bandColor(layout.node(p.branch.anchor)?.band ?? 0),
+                        onTap: () => onTopic(p.branch.id),
+                      ),
+                    ),
+                  ),
+              ],
               // Every moving twinkle of the map, on one layer above the stones.
               if (twinkleOn)
                 Positioned.fill(
@@ -677,10 +761,13 @@ typedef MapTitleSlot = ({double left, double width, int lines});
 /// What the map lays out once per layout, width, text size and progress:
 /// the [geometry], the [boughs] and the unit [titles] (by band index).
 class MapPlan {
-  const MapPlan({required this.geometry, required this.boughs, required this.titles});
+  const MapPlan({required this.geometry, required this.boughs, required this.titles, this.branches = const []});
   final MapGeometry geometry;
   final List<MapBough> boughs;
   final Map<int, MapTitleSlot> titles;
+
+  /// The topic branches leaving the map (main tree only).
+  final List<BranchPlan> branches;
 
   /// The plaque behind band [band]'s title, in map coordinates.
   Rect titleRect(int band) {
@@ -714,8 +801,10 @@ MapPlan planMap({
   TextStyle? titleStyle,
   TextScaler scaler = TextScaler.noScaling,
   MapDirection direction = kMapDirection,
+  List<TopicBranch> branches = const [],
 }) {
-  final width = math.max(availableWidth, MapGeometry(layout: layout, availableWidth: availableWidth, zoom: zoom).width);
+  final flat = MapGeometry(layout: layout, availableWidth: availableWidth, zoom: zoom);
+  final width = math.max(availableWidth, flat.width);
   const minX = MapGeometry.bandInset + 8;
   final want = <int, double>{}, room = <int, double>{};
   final tall = <int>{};
@@ -731,6 +820,17 @@ MapPlan planMap({
     room[b.index] = width - MapGeometry.bandInset - (storyBands.contains(b.index) ? 4 + _storyButtonWidth : 8) - minX;
     if (want[b.index]! > room[b.index]!) tall.add(b.index);
   }
+  // Topic branches: a side and a lane each, and a strip under their anchors' rows.
+  final metrics = BranchMetrics(flat.diameter);
+  final lanes = branches.isEmpty
+      ? const <BranchLane>[]
+      : planBranchLanes(
+          layout: layout,
+          branches: branches,
+          centerX: (n) => flat.ringCenter(n).dx,
+          width: flat.width,
+          maxRun: metrics.maxRun(flat.cellWidth),
+        );
   final g = MapGeometry(
     layout: layout,
     availableWidth: availableWidth,
@@ -738,6 +838,7 @@ MapPlan planMap({
     direction: direction,
     text: text,
     tallHeaders: tall,
+    strips: {for (final e in branchLaneCounts(lanes).entries) e.key: e.value * metrics.laneHeight},
   );
   final slots = <int, MapTitleSlot>{
     for (final b in layout.bands)
@@ -746,14 +847,37 @@ MapPlan planMap({
   final raw = MapEdgesPainter(layout: layout, geometry: g, style: style, branchStyle: branchStyle, lockedSkills: locked)
       .boughShapes();
   final plan = MapPlan(geometry: g, boughs: raw, titles: slots);
-  final plaques = [for (final b in layout.bands) plan.titleRect(b.index).inflate(2)];
+  final r = NodePainter.stoneRadius(g.nodeBox, branchStyle.extent);
+  final planned = <BranchPlan>[
+    for (final l in lanes)
+      ?buildBranch(
+            lane: l,
+            stone: g.ringCenter(l.node),
+            r: r,
+            cellWidth: g.cellWidth,
+            laneTop: g.stripTop(l.node.band, l.node.row) + l.lane * metrics.laneHeight,
+            mapWidth: g.width,
+            metrics: metrics,
+            style: branchStyle,
+            // The branch is painted in front of the boughs it crosses, so the
+            // carving needs no gap between them.
+            scaler: scaler,
+          ),
+  ];
+  // No twig or leaf over a unit title or a carving.
+  final keepClear = [
+    for (final b in layout.bands) plan.titleRect(b.index).inflate(2),
+    for (final p in planned)
+      if (p.carving case final c?) c.bounds.inflate(2),
+  ];
   return MapPlan(
     geometry: g,
     boughs: [
       for (final b in raw)
-        if (plaques.any((t) => leafTouches(b.shape, t))) MapBough(b.shape.withoutLeaf(), b.locked) else b,
+        if (keepClear.any((t) => leafTouches(b.shape, t))) MapBough(b.shape.withoutLeaf(), b.locked) else b,
     ],
     titles: slots,
+    branches: planned,
   );
 }
 
@@ -777,6 +901,7 @@ class MapEdgesPainter extends CustomPainter {
     this.lockedSkills = const {},
     this.boughs,
     this.paintLeaves = true,
+    this.branches = const [],
   });
   final MapLayout layout;
   final MapGeometry geometry;
@@ -785,6 +910,19 @@ class MapEdgesPainter extends CustomPainter {
   final Set<String> lockedSkills;
   final List<MapBough>? boughs;
   final bool paintLeaves;
+
+  /// The topic branches with their carvings, painted behind the boughs.
+  final List<BranchPlan> branches;
+
+  void _paintBranches(Canvas canvas, Rect? region) {
+    if (branches.isEmpty) return;
+    final lockedInk = _lockedInk(style);
+    for (final b in branches) {
+      if (region != null && !b.bounds.overlaps(region)) continue;
+      paintBranch(canvas, b, b.branch.locked ? lockedInk : style.ink, branchStyle,
+          mono: style.monochrome, locked: b.branch.locked);
+    }
+  }
 
   /// How many times the boughs were painted (for the repaint tests).
   static int debugPaintCount = 0;
@@ -825,6 +963,7 @@ class MapEdgesPainter extends CustomPainter {
     for (final b in boughs ?? boughShapes()) {
       b.shape.paint(canvas, b.locked ? lockedInk : style.ink, branchStyle, leaf: paintLeaves);
     }
+    _paintBranches(canvas, null);
   }
 
   /// How many map regions (raster tiles) were painted (for the repaint tests).
@@ -838,6 +977,7 @@ class MapEdgesPainter extends CustomPainter {
       if (!b.shape.bounds.overlaps(region)) continue;
       b.shape.paint(canvas, b.locked ? lockedInk : style.ink, branchStyle, leaf: paintLeaves);
     }
+    _paintBranches(canvas, region);
   }
 
   static MapInk _lockedInk(MapStyle style) => style.monochrome
@@ -941,7 +1081,9 @@ class MapEdgesPainter extends CustomPainter {
       old.branchStyle != branchStyle ||
       old.lockedSkills.length != lockedSkills.length ||
       old.boughs != boughs ||
-      old.paintLeaves != paintLeaves;
+      old.paintLeaves != paintLeaves ||
+      old.branches != branches ||
+      !mapEquals(old.geometry.strips, geometry.strips);
 }
 
 /// A bough of the map and whether it leads to a locked skill.

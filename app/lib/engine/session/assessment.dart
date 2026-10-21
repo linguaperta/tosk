@@ -25,6 +25,7 @@ import '../../core/models/course.dart';
 import '../../core/models/exercise.dart';
 import '../../core/models/facet.dart';
 import '../../core/models/progress.dart';
+import '../../core/trees.dart';
 import 'engine_session.dart';
 
 /// Types an assessment may use: everything auto-graded on a single facet
@@ -228,7 +229,8 @@ class PlacementBuilder {
   PlacementSession build(SessionEnv env, Map<String, FacetState> states) {
     final course = env.course;
     final units = <_UnitPlan>[];
-    for (final u in course.units) {
+    // The main tree only: topics are side trees, entered on their own.
+    for (final u in CourseTrees.of(course).mainUnits) {
       final skills = [for (final s in course.skills) if (s.unitId == u.id && course.skillFacets(s.id).isNotEmpty) s.id];
       if (skills.isEmpty) continue;
       final slots = <SkillFacet>[

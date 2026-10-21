@@ -16,3 +16,4 @@ export 'models/exercise.dart';
 export 'models/facet.dart';
 export 'models/progress.dart';
 export 'models/story.dart';
+export 'trees.dart';

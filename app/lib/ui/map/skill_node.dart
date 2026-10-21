@@ -46,7 +46,11 @@ class SkillNode extends StatefulWidget {
     this.onTap,
     this.onLongPress,
     this.labelBackground,
+    this.semanticsLabel,
   });
+
+  /// Replaces the node's semantics label (a topic map's root: "Back to …").
+  final String? semanticsLabel;
 
   final Skill skill;
   final String title;
@@ -123,7 +127,7 @@ class _SkillNodeState extends State<SkillNode> {
 
     return Semantics(
       button: true,
-      label: semantics,
+      label: w.semanticsLabel ?? semantics,
       excludeSemantics: true,
       child: Column(
         mainAxisSize: MainAxisSize.min,

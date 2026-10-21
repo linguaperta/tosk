@@ -126,4 +126,6 @@ class CourseRepo implements CourseData {
   List<Story> get stories => data.stories;
   @override
   Story? story(String id) => data.story(id);
+  @override
+  List<Topic> get topics => data.topics;
 }

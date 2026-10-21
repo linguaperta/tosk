@@ -79,10 +79,24 @@ class CourseBuilder {
 
   String id(String lemmaOrId) => lemmaOrId.contains(':') ? lemmaOrId : '$_c:$lemmaOrId';
 
-  void unit(String id, int ord, String en, String nl) {
-    _units.add(Unit(id: id, ord: ord, title: {'en': en, 'nl': nl}));
+  void unit(String id, int ord, String en, String nl, {String? topic}) {
+    _units.add(Unit(id: id, ord: ord, title: {'en': en, 'nl': nl}, topic: topic));
     _unit = id;
   }
+
+  final List<Topic> _topics = [];
+
+  /// A built-in topic tree (schema minor 3); its units are added with
+  /// `unit(..., topic: id)` after every main-tree unit.
+  void topic(String id, int ord, String en, String nl, {required String anchor, String? shortEn, String? icon}) =>
+      _topics.add(Topic(
+        id: id,
+        ord: ord,
+        title: {'en': en, 'nl': nl},
+        shortTitle: shortEn == null ? const {} : {'en': shortEn},
+        anchor: anchor,
+        icon: icon,
+      ));
 
   Item word(
     String lemma,
@@ -304,5 +318,6 @@ class CourseBuilder {
         sentenceFeatures: _sentenceFeatures,
         skillFeatures: _skillFeatures,
         inflections: _infl,
+        topics: _topics,
       );
 }
