@@ -126,7 +126,7 @@ An **i18n** value is a mapping from language code to a non-empty string: `{en: "
 | `id` | yes | `^[a-z0-9][a-z0-9_-]*$`, unique in the course (not only the unit) |
 | `kind` | yes | `vocab` or `grammar`. Grammar skills need grammar notes, get a stricter unknown-word cap in sentences, and are the only ones that may use `verbs` |
 | `title` | yes | i18n |
-| `icon` | no | icon key; unknown keys get a default icon. Known: `wave greetings hello food drink family people person home house city travel time clock calendar number numbers color colors animal animals work school body clothes weather nature shopping question search investigation verb verbs conjugation past future article articles grammar book star chat` |
+| `icon` | no | icon key; unknown keys get a default icon. Known: `wave greetings hello food drink family people person home house city travel time clock calendar number numbers color colors animal animals work school body clothes weather nature shopping question search investigation verb verbs conjugation past future article articles grammar book star chat`; apps after 0.7.4 also know `health heart music money society` (older apps show the default icon) |
 | `requires` | no | skill ids that are prerequisites (a DAG). A skill is *available* on the map once every prerequisite has at least one practised facet; prerequisites also widen what grammar the skill's sentences may use (section 12.4) |
 | `introduces` | no | grammar features this skill teaches (a `verbs` skill also introduces `tense:{T}` by itself) |
 | `items` | one of | an items query (below): the skill trains items |

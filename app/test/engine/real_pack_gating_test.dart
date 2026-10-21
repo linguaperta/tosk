@@ -6,6 +6,7 @@
 library;
 
 import 'dart:io';
+import 'dart:math' show min;
 
 import 'package:tosk/core/core.dart';
 import 'package:tosk/data/course/course_file.dart';
@@ -113,7 +114,9 @@ void main() {
         // Not vacuous: sentence exercises are generated for later units, and every
         // sentence-based template shows up somewhere.
         for (var k = 2; k < units; k++) {
-          expect(report.sentenceExercises['u1-$k lesson'] ?? 0, greaterThan(40), reason: 'units 1-$k');
+          // about ten per skill (a unit may have a single grammar skill since the topic restructure)
+          final want = min(40, 10 * _unitSkills(course, k).length);
+          expect(report.sentenceExercises['u1-$k lesson'] ?? 0, greaterThan(want), reason: 'units 1-$k');
         }
         for (final label in ['cloze', 'spot_error', 'transform', 'sentence_builder', 'multiple_choice/sentence']) {
           expect(report.generated[label] ?? 0, greaterThan(20), reason: label);
@@ -152,6 +155,39 @@ void main() {
         nonStop.stop();
         expect(played.length, 60);
         expect(failures.take(5).join('\n\n'), isEmpty, reason: '${failures.length} failures');
+      });
+
+      test('fairness: a learner who skipped every topic gets full, gated grammar lessons in the main tree', () async {
+        // docs/extensions.md: never unknown grammar, some unknown words are fine.
+        // Words of skipped topics count as unknown (within the cap); every main-tree
+        // grammar skill still fills its lesson with sentence exercises.
+        final trees = CourseTrees.of(course);
+        if (!trees.hasTopics) return;
+        final failures = <String>[];
+        final thin = <String>[];
+        final started = <String>{};
+        for (final s in trees.mainSkills) {
+          final facets = course.skillFacets(s.id);
+          if (s.kind == SkillKind.grammar && facets.isNotEmpty) {
+            // The sentences its lesson may use: gated, at most one unknown word.
+            final gate = SentenceGate(course, started: started, current: [s.id]);
+            final usable = <String>{
+              for (final f in facets)
+                for (final x in f.kind == FacetKind.form
+                    ? course.sentencesFor(f.itemId, tense: f.tense)
+                    : course.sentencesFor(f.itemId))
+                  if (gate.allows(x, SentenceGate.grammarCap)) x.id,
+            };
+            if (usable.length < 40) thin.add('${s.id}: ${usable.length}');
+            final session = await _factory(course, _storeFor(course, started)).lesson(s.id, focus: LessonFocus.grammar);
+            final played = await _play(session, course,
+                started: started, current: [s.id], focus: LessonFocus.grammar, failures: failures);
+            expect(played.length, session.plannedLength, reason: s.id);
+          }
+          started.add(s.id);
+        }
+        expect(failures.take(5).join('\n\n'), isEmpty, reason: '${failures.length} failures');
+        expect(thin, isEmpty, reason: 'main-tree grammar skills with fewer than 40 usable sentences');
       });
 
       test('variety: no sentence twice in a lesson, the next lesson prefers new ones, types alternate', () async {

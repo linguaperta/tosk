@@ -27,7 +27,8 @@ by the normalized text, like ids.tsv) and go to `sentences/gen-{unit}.jsonl` (`u
 unit of the skill items they touch, as for Tatoeba sentences). The importer keeps these files and
 skips Tatoeba sentences with the same text; `refresh` re-aligns them after a new import.
 
-Commands: `python -m pipeline gen {gaps,context,check,add,refresh} ...` (see __main__.py).
+Commands: `python -m pipeline gen {gaps,floor,context,check,add,refresh} ...` (see __main__.py);
+`floor` is the fairness check of courses with topics (gaps.fairness_report).
 """
 from __future__ import annotations
 
@@ -386,6 +387,10 @@ def run(cmd: str, code: str, content_root, args) -> int:
         pack = load_pack(root)
         print(gaps.format_gaps(gaps.analyze(pack), verbose=not args.quiet))
         return 0
+    if cmd == "floor":
+        lines, problems = gaps.fairness_report(load_pack(root))
+        print("\n".join(lines + problems) or f"{code}: no topics")
+        return 0 if not problems else 3
     gen = Generator(root)
     if cmd == "context":
         text = gen.context(args.skill)

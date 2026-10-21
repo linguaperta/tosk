@@ -33,7 +33,11 @@ Checks (`validate_stories`, part of `validate`):
   everything the skills of this and earlier units introduce;
 * (pack format 1.2) for a story in a topic unit, "earlier" means the topic's units up to its own
   and the main tree's units up to the last one that the topic's skills so far require
-  (transitively); a main-tree story never uses a topic's words (they count as taught later);
+  (transitively);
+* (the fairness rule, docs/extensions.md) a story may also use up to MAX_TOPIC_WORDS words that
+  another tree's topic introduces (for a main-tree story: any topic's words): a learner who skipped
+  that topic reads them as unknown words, glossed in the app like the new word. Unknown grammar is
+  never allowed. A story that needs more of a topic's words belongs in that topic's units;
 * 5-10 sentences of at most 14 words, every course translation present and passing trcheck.py;
 * 3-5 questions with 3-4 options, all options non-empty and distinct after folding case,
   punctuation and accents (like the engine's OptionPicker), `answer` in range, i18n options and
@@ -53,7 +57,7 @@ import yaml
 
 from . import features, query, trcheck
 from .align import Aligner
-from .content import all_units, required_translations
+from .content import all_units, required_translations, unit_topics
 from .lang import get_lang
 from .tokens import tokenize
 from .topics import anchor_of
@@ -64,6 +68,9 @@ MAX_WORDS = 14
 MIN_QUESTIONS, MAX_QUESTIONS = 3, 5
 MIN_OPTIONS, MAX_OPTIONS = 3, 4
 MAX_NEW_WORDS = 1
+# Words of topics the reader may have skipped (the fairness rule: some unknown words are fine,
+# unknown grammar never): at most this many distinct items per story, besides its new word.
+MAX_TOPIC_WORDS = 3
 
 
 def load_stories(root: Path) -> list[dict]:
@@ -118,8 +125,11 @@ class StoryChecker:
         self.tagger = features.FeatureTagger(c, pack.items, pack.verbs)
         self.graph = features.SkillGraph(c, resolved, self.tagger)
         skill_unit = {s["id"]: ui for ui, _, _, s in pack.skills()}
-        # unit index at which each item is taught
+        # unit index at which each item is taught, and the topic that introduces it (main tree: none)
         self.item_unit = {iid: skill_unit[sid] for iid, sid in self.graph.item_skill.items()}
+        self.item_topic = {iid: self.graph.tree.get(sid) for iid, sid in self.graph.item_skill.items()
+                           if self.graph.tree.get(sid) is not None}
+        self.unit_topic = unit_topics(c)
         # features allowed at each unit: base + everything introduced in this or an earlier unit
         self.allowed: list[set[str]] = []
         acc = set(self.graph.base)
@@ -171,7 +181,12 @@ class StoryChecker:
                 u = self.item_unit.get(t["lex"])
                 taught = self.taught[ui]
                 if u is None or (u > ui if taught is None else u not in taught):
-                    later.setdefault(t["lex"], t["t"])
+                    topic = self.item_topic.get(t["lex"])
+                    if topic is not None and topic != self._story_topic:
+                        # a word of a topic the reader may have skipped (the fairness rule)
+                        self._topic_words.setdefault(t["lex"], t["t"])
+                    else:
+                        later.setdefault(t["lex"], t["t"])
                 continue
             if t["t"].isdigit() or t["t"] in names:
                 continue
@@ -196,6 +211,8 @@ class StoryChecker:
         ui = self.units.index(unit)
         names = self.names | set(s.get("names") or [])
         later: dict[str, str] = {}
+        self._story_topic = self.unit_topic.get(unit)
+        self._topic_words: dict[str, str] = {}
 
         title = s.get("title") or {}
         if not isinstance(title, dict) or not title.get(self.code):
@@ -314,6 +331,9 @@ class StoryChecker:
             if not ids:
                 problems.append(f"{where0}: new word {w!r} is no lexicon item")
             declared_ids |= ids or set()
+        topic_words = self._topic_words
+        for i in declared_ids & set(topic_words):      # a declared topic word is the story's new word
+            later[i] = topic_words.pop(i)
         used = set(later)
         undeclared = sorted(f"{later[i]} ({i})" for i in used if i not in declared_ids)
         if undeclared:
@@ -324,11 +344,16 @@ class StoryChecker:
         for w in declared:
             if not (self.lemmas.get(w, set()) & used):
                 problems.append(f"{where0}: new word {w!r} is not used")
+        if len(topic_words) > MAX_TOPIC_WORDS:
+            problems.append(f"{where0}: {len(topic_words)} words of topics "
+                            f"{sorted(f'{v} ({self.item_topic[i]})' for i, v in topic_words.items())} "
+                            f"(max {MAX_TOPIC_WORDS}); a story about a topic belongs in that topic's units")
         if problems:
             return None, problems
         return {"id": sid, "unit": unit, "title": title[self.code].strip(), "title_tr": title_tr,
-                "new_words": sorted(used), "sentences": sentences, "questions": questions,
-                "src": f"{SRC} (story)"}, []
+                # the new word and the topic words, glossed before the story in the app
+                "new_words": sorted(used | set(topic_words)), "topic_words": sorted(topic_words),
+                "sentences": sentences, "questions": questions, "src": f"{SRC} (story)"}, []
 
     def check_all(self) -> tuple[list[dict], list[str]]:
         stories, problems = [], []
@@ -413,7 +438,8 @@ def run_check(code: str, content_root=None, show: str | None = None) -> int:
         for st in stories:
             if show != "all" and st["unit"] != show:
                 continue
-            print(f"# {st['id']} ({st['unit']}) new words: {st['new_words']}")
+            print(f"# {st['id']} ({st['unit']}) new words: {st['new_words']}"
+                  + (f" (topic words: {st['topic_words']})" if st["topic_words"] else ""))
             for s in st["sentences"]:
                 print("  " + " ".join(
                     t["t"] + (f"/{checker.items[t['lex']]['lemma']}" if t.get("lex") else "")

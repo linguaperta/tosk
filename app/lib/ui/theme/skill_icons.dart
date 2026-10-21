@@ -47,6 +47,12 @@ const Map<String, IconData> kSkillIcons = {
   'book': Icons.menu_book_outlined,
   'star': Icons.star_outline,
   'chat': Icons.chat_bubble_outline,
+  // themed topics (the topic restructure, docs/topic-split.md)
+  'health': Icons.medical_services_outlined,
+  'heart': Icons.favorite_border,
+  'music': Icons.music_note_outlined,
+  'money': Icons.payments_outlined,
+  'society': Icons.account_balance_outlined,
 };
 
 IconData skillIcon(Skill skill) =>

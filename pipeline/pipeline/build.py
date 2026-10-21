@@ -12,6 +12,7 @@ from pathlib import Path
 
 from .compile import COURSE_DB_SCHEMA_MINOR, COURSE_DB_SCHEMA_VERSION, compile_pack
 from .content import load_pack
+from .gaps import fairness_report
 from .paths import APP_COURSES_DIR, content_dir
 from .report import build_report, format_report
 from .validate import validate
@@ -51,6 +52,11 @@ def _validate(langs, roots: dict[str, Path]) -> tuple[dict, bool]:
     for code in langs:
         pack = load_pack(roots[code] / code)
         errors = validate(pack)
+        if not errors and pack.course.get("topics") and "base_features" in pack.course:
+            # the fairness rule: topic words may make a main-tree grammar skill's sentences thinner,
+            # but never push it under the sentence floor (gaps.fairness_report)
+            lines, errors = fairness_report(pack)
+            print("\n".join(lines), file=sys.stderr)
         if errors:
             ok = False
             print(f"[{code}] VALIDATION FAILED ({len(errors)} errors):", file=sys.stderr)

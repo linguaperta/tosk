@@ -318,10 +318,100 @@ def test_a_topic_story_uses_its_topics_words(topic_pack):
     from test_generate import _gated
     root = _gated(topic_pack)
     assert _story_problems(root, _story("cibo-u1", PANE)) == ""
-    # a main-tree story never uses a topic's words: they count as taught later
-    assert "words taught after unit u1: ['pane (it:pane)']" in _story_problems(root, _story("u1", PANE))
-    # ... nor does a story of another topic
-    assert "words taught after unit viaggio-u1: ['pane (it:pane)']" in _story_problems(root, _story("viaggio-u1", PANE))
+
+
+def _compiled_story(root, story):
+    from pipeline.stories import StoryChecker
+    rec, problems = StoryChecker(load_pack(root)).check(story)
+    assert problems == []
+    return rec
+
+
+def test_main_tree_story_may_use_a_few_topic_words(topic_pack, monkeypatch):
+    """The fairness rule: some unknown words are fine, unknown grammar never. A main-tree story (or
+    another topic's story) may use up to MAX_TOPIC_WORDS words of a topic the reader may have
+    skipped; they are glossed before the story like its new word."""
+    from pipeline import stories
+    from test_generate import _gated
+    root = _gated(topic_pack)
+    rec = _compiled_story(root, _story("u1", PANE))
+    assert rec["topic_words"] == ["it:pane"] and rec["new_words"] == ["it:pane"]
+    assert _compiled_story(root, _story("viaggio-u1", PANE))["topic_words"] == ["it:pane"]
+    # the topic words don't use up the story's one new word (pizza is taught in unit 2)
+    both = {**_story("u1", PANE), "new_words": ["pizza"],
+            "sentences": _story("u1", PANE)["sentences"] + [PIZZA]}
+    rec = _compiled_story(root, both)
+    assert rec["new_words"] == ["it:pane", "it:pizza"] and rec["topic_words"] == ["it:pane"]
+    # a declared topic word is the story's new word
+    assert _compiled_story(root, {**_story("u1", PANE), "new_words": ["pane"]})["topic_words"] == []
+    # more than the allowance: the story belongs in the topic's units
+    monkeypatch.setattr(stories, "MAX_TOPIC_WORDS", 0)
+    assert ("story u1-story: 1 words of topics ['pane (cibo)'] (max 0); a story about a topic belongs in "
+            "that topic's units") in _story_problems(root, _story("u1", PANE))
+    assert _story_problems(root, _story("cibo-u1", PANE)) == ""      # its own topic's words are taught
+
+
+def _add_sentence(root, sid, text, tokens):
+    from pipeline.content import read_jsonl
+    p = root / "sentences" / "u1.jsonl"
+    recs = [r for _, r in read_jsonl(p)]
+    recs.append({"id": sid, "text": text, "tr": {"en": "x", "nl": "x"}, "tokens": tokens})
+    write_jsonl(p, recs)
+
+
+def test_fairness_report_flags_a_floor_lost_to_topic_words(topic_pack, monkeypatch):
+    """A main-tree grammar skill keeps its sentence floor for the learner who skipped every topic:
+    a slot that is under its target only because of topic words is a problem (gen floor, build)."""
+    from pipeline import gaps
+    from test_generate import _gated
+    root = _gated(topic_pack)
+    # two topic words: over the one unknown word of a grammar lesson
+    _add_sentence(root, "s:91", "Io mangio pane, vino.", [
+        {"t": "Io", "lex": "it:io"}, {"t": "mangio", "pre": " ", "lex": "it:mangiare", "form": "presente.io"},
+        {"t": "pane", "pre": " ", "lex": "it:pane"}, {"t": ",", "is_word": False},
+        {"t": "vino", "pre": " ", "lex": "it:vino"}, {"t": ".", "is_word": False}])
+    pack = load_pack(root)
+    assert validate(pack) == []
+
+    def slot(r):
+        return next(x for x in r["skills"] if x["skill"] == "present-are")["slots"][("mangiare", "io")]
+
+    skipped = slot(gaps.analyze(pack, gaps.Material(pack)))
+    known = slot(gaps.analyze(pack, gaps.Material(pack, topic_words_known=True)))
+    assert known == skipped + 1
+    monkeypatch.setattr(gaps, "SLOT_TARGET", known)
+    lines, problems = gaps.fairness_report(pack)
+    assert any(p.startswith("it: main-tree grammar skill present-are: mangiare io has") for p in problems), problems
+    assert any(l.startswith("present-are") for l in lines)
+    # a floor that is thin either way is the generator's ordinary gap, not the topics' doing
+    monkeypatch.setattr(gaps, "SLOT_TARGET", known + 1)
+    assert not any("mangiare io" in p for p in gaps.fairness_report(pack)[1])
+    # topic skills are not checked, and a pack without topics has no report
+    assert not any("cibo" in p for p in problems)
+    edit_course(root, lambda c: c.pop("topics"))
+    assert gaps.fairness_report(load_pack(root)) == ([], [])
+
+
+def test_one_topic_word_is_within_a_grammar_lessons_allowance(topic_pack):
+    from pipeline import gaps
+    from test_generate import _gated
+    root = _gated(topic_pack)
+    _add_sentence(root, "s:92", "Io mangio pane.", [
+        {"t": "Io", "lex": "it:io"}, {"t": "mangio", "pre": " ", "lex": "it:mangiare", "form": "presente.io"},
+        {"t": "pane", "pre": " ", "lex": "it:pane"}, {"t": ".", "is_word": False}])
+    pack = load_pack(root)
+    mat = gaps.Material(pack)
+    assert mat.easy("s:92", "present-are")          # one unknown word: still a fair sentence
+    assert mat.later_words("s:92", "present-are") == 1
+    assert gaps.Material(pack, topic_words_known=True).later_words("s:92", "present-are") == 0
+
+
+def test_topic_words_never_allow_unknown_grammar(topic_pack):
+    """A main-tree story with a topic word still keeps to its unit's grammar."""
+    from test_generate import _gated
+    root = _gated(topic_pack)
+    past = {"it": "Noi abbiamo mangiato il pane.", "en": "We ate the bread.", "nl": "Wij hebben het brood gegeten."}
+    assert "not allowed at unit u1" in _story_problems(root, _story("u1", past))
 
 
 def test_a_topic_story_uses_main_tree_words_up_to_its_requirements(topic_pack):
