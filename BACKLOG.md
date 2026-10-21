@@ -250,8 +250,9 @@ Each one at the expanded it/nl scale: 8–10 units, ~30 skills, ~1000 taught wor
 - [ ] Package the JSON schemas inside the Python package so a real wheel works (today only an editable install)
 - [x] Move source-specific importers for copyrighted sources into a private repo (`timoverlaan/tosk-data-private`, 20 Oct); public pipeline has a plugin point (`TOSK_PRIVATE_PIPELINE`) and a generic restricted-course safeguard: `docs/private-importers.md`
 - [ ] Expansions (design: `docs/extensions.md`, agreed 20 Oct): `extends`, course families, word-derived ids `<lang>~<lemma>.<pos>`, `variant_of`, topics inside packs (`topics:` with an `anchor`), validator rules, installed-expansion list synced
-- [ ] App: topic trees (own map), a branch leaving the main map at the anchor with an arrow and name carved/painted into the bark and "Go to <topic>", a tree selector at the top of the map, "N of M words already known"
-- [ ] Tidy the it/nl/es main trees: move self-contained vocab clusters into built-in topics (owner reviews the split first; ids unchanged)
+- [x] App: topic trees (own map), a branch leaving the main map at the anchor with an arrow and name carved/painted into the bark and "Go to <topic>", a tree selector at the top of the map, "N of M words already known"
+- [~] Built-in topics: pack format 1.2 (`topics:`, anchors, validator), done. Tidy the it/nl/es main trees: proposal in `docs/topic-split-proposal.md` (it 16 skills → 9 topics, nl 6 → 4, es 6 → 4) awaiting the owner; applying it needs story rewrites in main units. Decisions: late anchors (it food at u11), borderline skills, it `crime`
+- [ ] Topics: perf run on a split pack; Tosk marker can overlap a unit plaque; extension packs (`extends`) not started
 - [ ] Later: book expansions as a guided e-reader (`pack from-text`); move the stories into the same model
 - [ ] `pack from-text <book>`: lemmatise with the base course tables, per-chapter frequency, drop known words (from an exported progress log), chapter units, sentences from the text, AI glosses for missing/dialect words (labelled), reading readiness per chapter. First target: Montalbano (Camilleri, Sicilian vigatese)
 - [ ] `pack draft --ai`: AI drafts (glosses, sentences, tables, notes), always `src: claude-*`
