@@ -911,7 +911,7 @@ class MapEdgesPainter extends CustomPainter {
   final List<MapBough>? boughs;
   final bool paintLeaves;
 
-  /// The topic branches with their carvings, painted behind the boughs.
+  /// The topic branches with their carvings, painted in front of the boughs they cross.
   final List<BranchPlan> branches;
 
   void _paintBranches(Canvas canvas, Rect? region) {

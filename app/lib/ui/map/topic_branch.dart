@@ -598,7 +598,9 @@ class TopicButtonLayout extends SingleChildLayoutDelegate {
   bool shouldRelayout(TopicButtonLayout old) => old.x != x || old.side != side;
 }
 
-/// The x intervals where [shapes] cross the horizontal band [top]..[bottom].
+/// The x intervals where [shapes] cross the horizontal band [top]..[bottom]: an
+/// `avoid` for [buildBranch] when the branch is painted behind other boughs
+/// (the map paints it in front, so it passes none).
 List<(double, double)> crossings(Iterable<BoughShape> shapes, double top, double bottom) {
   final out = <(double, double)>[];
   for (final s in shapes) {
@@ -618,9 +620,9 @@ List<(double, double)> crossings(Iterable<BoughShape> shapes, double top, double
 
 /// Paints [plan]: the bark (fading out on very wide maps), the grain and
 /// hatching (kept off the letters), the outline, and the carving: letters and
-/// an arrow cut into the bark. In colour a cut is a dark groove with a light
-/// lower-left wall (the light comes from the top right) and a shaded upper
-/// rim; in black & white it is a black incised line on the white bark.
+/// an arrow cut into the bark ([carvingColours]: pale wood with a lit
+/// lower-left wall and a shaded upper-right one, the light coming from the top
+/// right; a dark groove on a light bark); in black & white it is a black incised line on the white bark.
 void paintBranch(Canvas canvas, BranchPlan plan, MapInk ink, BranchStyle style, {required bool mono, bool locked = false}) {
   final s = plan.shape;
   final fade = plan.fade;
