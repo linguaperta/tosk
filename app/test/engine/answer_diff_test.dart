@@ -24,6 +24,18 @@ void main() {
       expect(renderTokenRefs(ts), "L'acqua è fredda, vero ?");
     });
 
+    test("a Dutch plural or contraction with an apostrophe is one word, not an elision", () {
+      expect([for (final t in textTokens("Oma liet ons oude foto's zien")) t.text],
+          ['Oma', 'liet', 'ons', 'oude', "foto's", 'zien']);
+      expect([for (final t in textTokens("Ik heb m'n sleutel")) t.text], ['Ik', 'heb', "m'n", 'sleutel']);
+      // Italian c'è is still an elision
+      expect([for (final t in textTokens("C'è il sole")) t.text], ["C'", 'è', 'il', 'sole']);
+      // one swapped tile is one error
+      final d = diffAnswer(['Oma', 'liet', 'ons', 'oude', 'bruiloft', 'zien'], textTokens("Oma liet ons oude foto's zien"),
+          _lenient);
+      expect(d.errors, 1);
+    });
+
     test('aligned tokens keep their alignment when split', () {
       final ts = alignedTokens(const [
         TokenRef('La', itemId: 'it:il'),

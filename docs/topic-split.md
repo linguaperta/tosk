@@ -1,168 +1,146 @@
-# The topic split of the courses
+# The topic structure of the courses
 
-*Applied 21 October 2026 in tosk-data: Italian pack 1.4.0, Dutch pack 1.3.0; Spanish unchanged (1.0.1). It replaces the earlier proposal (in this file's git history), which moved 28 skills with story rewrites and re-pointed main-tree skills; the owner chose a strict rule instead (20–21 October). Built-in topics are described in [extensions.md](extensions.md) and [pack-format.md](pack-format.md) 3.3.*
+*Applied 21 October 2026 in tosk-data: Italian pack 1.5.0, Dutch 1.4.0, Spanish 1.1.0 (owner decisions of 21 October). It replaces the strict split of the same day (it 1.4.0, nl 1.3.0: only Italian `crime` and Dutch `clothes` moved, because a skill moved only when nothing below it needed it; that version is in this file's git history). Built-in topics are described in [extensions.md](extensions.md) and [pack-format.md](pack-format.md) 3.3.*
 
-## The rule
+## The structure and the fairness rule
 
-A skill moves into a topic **only if the rest of the main tree below it can skip it**: no later main-tree skill depends on it. If anything further down needs it, it stays in the main tree. Concretely, a main-tree vocabulary skill stays when any of these holds:
+- **A slim main tree.** The main tree keeps the grammar and the **core vocabulary** that the grammar needs: greetings and little words, people and family, numbers, time, home, everyday verbs, adjectives and adverbs, colours, basic food, the city and travel, work and school, and the general vocabulary of the later units (more verbs, ideas, connectors, abstract nouns). **Grammar skills require only main-tree skills.**
+- **Themed vocabulary becomes topics** that branch off where their needs are met: weather, animals and nature, clothes and shopping, the kitchen and cooking, the body and health, feelings and character, free time and media, services and directions, society and money, reading. A topic's **anchor is its entry point** (the last main-tree skill its first skill requires); later skills of a topic may require later main-tree skills and wait for them (*late requirements*, with a "needs … · unit N" note).
+- **The fairness rule: never unknown grammar; some unknown words are fine.** Grammar gating stays strict everywhere. The words of a topic the learner skipped count as unknown vocabulary: they may appear in main-tree lessons within the existing cap (one per sentence in a grammar lesson, two otherwise) and in main-tree stories (at most three per story, glossed before it). Every main-tree grammar skill keeps its sentence floor without topic words beyond that allowance; where the restructure made a pool thin, validated generated sentences from core vocabulary (`src: claude-gen`) top it up. The mechanics are in [extensions.md](extensions.md) ("The fairness rule"); the build enforces the floor (pack-format 16, rule 14c).
+- **Stories**: a story mainly about a theme moved into that topic's units (ids kept, so reading progress is kept); every main-tree unit keeps two stories (new ones were written from core vocabulary where needed); topic units have 0–3.
+- **Ids are unchanged** (items, skills, facets), so progress is kept. Requirements were re-pointed, skills and their words moved: the moved skills' words carry their topic unit in the lexicon, and the sentences touching them carry it too (records moved between `sentences/*.jsonl` files, content unchanged; the importer's rule: an item's unit is the first unit in course order that selects it, main tree first).
 
-1. **Prerequisite.** A main-tree skill lists it in `requires`. (No main-tree skill is re-pointed to make room.)
-2. **Lesson words.** A later main-tree skill selects one of the words it introduces (its own words: those it is the first skill to select).
-3. **Stories.** A main-tree story uses one of its words, other than as the story's one declared new word. (No story is rewritten.)
-4. **Sentences, after gating.** A later main-tree skill would be left with no sentence for one of its words without this skill's words: every sentence containing that word also contains one of the skill's words.
-5. **Grammar.** It introduces a grammar feature or trains verb forms (no themed vocabulary skill does).
+### How it was decided and checked
 
-It must also be a themed cluster (food, clothes, crime…): general vocabulary that passes the rule (`ideas` in Dutch, `adverbs` and `more-verbs` in Spanish) stays.
+For each course a scratch script moved the candidate skills in memory, re-pointed the grammar requirements and compared every main-tree grammar skill's *easy* sentences (gaps.py: grammar allowed, at most one word taught later or in a topic) and verb × person slots before and after; another ran the story checker under the new rule. Core versus themed follows the owner's list, adjusted per course where a skill is general rather than themed (Italian `opinions`, `abstract`, `connectors`; Spanish `travel`, which also holds *fiesta*, *música*, *fútbol*, stays as the travel basics). The re-pointed grammar skills keep the same prerequisite closure of grammar, so no sentence's allowed grammar shrank. After the move, `python -m pipeline build it nl es` (which now runs the fairness check) and the real-pack tests pass.
 
-**Sentences.** A sentence that contains a moved skill's word and has its home in a later main-tree skill stays valid (pack format 1.2: one home skill per tree). The app counts such a word as unknown vocabulary for a learner who hasn't started the topic, exactly like a word of any main-tree skill they skipped, so it may appear within the gating cap (1 unknown word for grammar, 2 for vocabulary). That costs a little variety but no lesson depends on it; rule 4 catches the cases where a lesson would depend on it. The counts are in the tables below ("later main-tree sentences").
-
-**How it was checked.** A scratch script ran these five checks over the sources (it uses the pipeline's `query`, `features.SkillGraph` and `stories.StoryChecker`) for every main-tree vocabulary skill: 43 in Italian, 24 in Dutch and 24 in Spanish. After the move, `python -m pipeline validate it nl` and the build passed. The validator enforces rules 1–3 by itself: a main-tree skill may not require a topic skill or select a topic's words, and a main-tree story may not use a topic's words.
-
-## The anchor model (changed with the split)
+## The anchor model
 
 - **The anchor is the topic's entry point**: the last main-tree skill its **first skill** requires (`anchor` defaults to the deepest of those). The branch on the main tree grows there, and the topic opens once it is started.
 - **Late requirements.** A later skill of a topic may require later main-tree skills, each on its own. It stays locked until those are started. Its node shows a lock and "needs The conditional · unit 12" in place of the days chip, and a tap goes to that skill in the main tree. Its sheet says "Needs … of the main tree. It opens once you have started that skill." and has a "Go to unit 12" button. The same note shows on a topic's first skill while the topic's anchor isn't started.
 - **Kept rules:** the main tree never requires a topic skill, and a topic never requires another topic's skill.
-- **Stories in topics:** a story may belong to a topic unit. It may then use the topic's words up to its unit, and the main tree's words and grammar up to the last main-tree unit that the topic's skills require.
-- Where it lives: `pipeline/pipeline/topics.py` (`default_anchor`, `late_requirements`, `validate_topics`), `stories.py` (topic-unit stories), pack-format.md 3.3, 9 and 16 (rule 14b); in the app, `CourseTrees.mainRequirements` / `mainUnitNumber`, `topicSkillNeed` (`ui/map/tree_selector.dart`), `SkillNode` (the note), `SkillSheet`, `mapFocusProvider` / `MapScreen` (going there). See docs/ui.md "Topic trees".
+- **Stories in topics:** a story may belong to a topic unit. It may then use the topic's words up to its unit, and the main tree's words and grammar up to the last main-tree unit that the topic's skills require, plus up to three words of other topics.
+- Where it lives: `pipeline/pipeline/topics.py` (`default_anchor`, `late_requirements`, `validate_topics`), `stories.py` (topic-unit stories, `MAX_TOPIC_WORDS`), `gaps.py` (`fairness_report`), pack-format.md 3.3, 9 and 16 (rules 14b, 14c); in the app, `CourseTrees.mainRequirements` / `mainUnitNumber`, `topicSkillNeed` (`ui/map/tree_selector.dart`), `SkillNode` (the note), `SkillSheet`, `mapFocusProvider` / `MapScreen` (going there). See docs/ui.md "Topic trees".
+- To spread the branches over the map, some topics' first skills require a slightly later main-tree skill than before (each topic then has its own anchor): Italian `kitchen` requires `prepositions` (its story uses *nella*, *sul*), `feelings` requires `passato-prossimo`, `body` requires `adjectives` (its story uses unit-4 words), `weather`/`animals` require `imperfetto` (their stories are told in it), `leisure` requires `futuro`; Dutch `body` requires `adjectives`, `weather`/`animals` require `verleden-tijd-strong`, `leisure` requires `more-verbs` and `ideas`; Spanish `body` requires `gustar` (*me duele*), `kitchen` requires `city`, `weather`/`animals` require `indefinido-irregular`, `leisure` requires `indefinido`. Requirements only widen what a topic's sentences may use; they never touch the main tree.
 
-## What moved
+## Italian (it 1.5.0)
 
-| Course | Skill (unit before) | Topic | Anchor | Late requirements | Words | Later main-tree sentences with its words |
-| --- | --- | --- | --- | --- | --- | --- |
-| it | `crime` (u15) | `crimine`, *Crime and investigation* (short: *Crime*), unit `crimine-u1` *The inspector* | `passato-remoto` (u15) | none | 38 own + `uccidere` shared | 77 |
-| nl | `clothes` (u7) | `kleding`, *Clothes*, unit `kleding-u1` *What to wear* | `shopping` (u6; `clothes` also requires `travel`, a sibling) | none | 22 | 87 |
-| es | nothing | | | | | |
+**Main tree: 15 units, 57 skills (35 grammar, 22 vocab)**; before: 15 units, 77 skills (35 grammar, 42 vocab) plus the topic *Crime*.
 
-Skill, item and facet ids are unchanged, so progress is kept. The moved skills' words now have the topic unit as their `unit` in the lexicon (as the importer resolves units: the first skill in course order, main tree first). Sentences touching them have it too: 54 generated + 843 Tatoeba sentences in Italian, 5 + 556 in Dutch. Those are records moved between `sentences/*.jsonl` files, with their content unchanged.
+| Unit | Skills |
+| --- | --- |
+| u1 Basics | greetings, little-words, people, essere-avere |
+| u2 The present tense | food, numbers, present-are, articles, present-ere, present-ire |
+| u3 Everyday life | time, home, family, everyday-verbs, irregular-present, pronouns, modal-verbs, plurals |
+| u4 Describing things | adjectives, adverbs, colours, possessives |
+| u5 Around town | city, travel, prepositions |
+| u6 The past | work, passato-prossimo, passato-prossimo-essere |
+| u7 Memories | imperfetto |
+| u8 Plans for the future | futuro, futuro-irregular |
+| u9 Talking about life | more-verbs, ideas |
+| u10 Daily routine | little-words-2, reflexive-present, reflexive-past |
+| u11 Do it! | imperative, imperative-irregular, imperative-pronouns |
+| u12 I would like... | ci-ne, combined-pronouns, condizionale, condizionale-irregular, opinions, verbs-three |
+| u13 More or less | comparatives, adjectives-more, progressive, impersonal-si, abstract |
+| u14 Hopes and doubts | congiuntivo, congiuntivo-irregular, connectors, congiuntivo-imperfetto |
+| u15 Reading Italian | passato-remoto, passato-remoto-irregular, relatives |
 
-**Italian `crime` and the passato remoto** (owner decision 3). The topic is connected where the passato remoto is taught: its skill requires `passato-remoto`, and that is its anchor. The connection validated as is, so **the main passato remoto skills were not extended**. The one crime word a main-tree skill trains, `uccidere` (in `passato-remoto-irregular`'s verb list), simply stays a main-tree word introduced by that skill, and `crime` shares it (same id, one progress). The crime story **`u15-commissario` ("La lettera senza firma") moved into the topic** (`stories/crimine.yaml`, unit `crimine-u1`, text unchanged, id kept). It is the topic's own story: it uses six crime words, and the rule would otherwise have kept `crime` in the main tree. Its irregular passato remoto forms (lesse, vide) are allowed because the topic's main-tree reach is unit 15. Unit 15 keeps `u15-favola`.
+**Re-pointed:** `imperative` requires `reflexive-past` (was also `health`, `routine`); `ci-ne` requires `imperative-pronouns` (was also `media`, `directions`, `food-more`); `comparatives` drops `emotions`; `congiuntivo` requires `adjectives-more`, `abstract` (was also `nature`, `society`); `passato-remoto` requires `connectors`, `congiuntivo-imperfetto` (was `character`, `connectors`, `money`).
 
-**Versions and old apps.** The packs are it 1.4.0 and nl 1.3.0 (schema minor 3). `min_app_version` is unchanged: it 0.7.3 (moods), nl 0.4.0. An app from before topics (0.7.3 and older) ignores the topic tables and shows the topic unit as one more unit at the end of the main tree. There the skill is locked until its prerequisites are started, and the Italian story sits in that unit, with the same ids and progress. The owner accepted this. Spanish has no change, so it was not bumped (the lead had planned 1.1.0).
+**Topics (10, in tree-menu order):**
 
-## What stayed, and why
+| Topic | Title (short) | Anchor | Skills (unit, own words; late requirements) | Stories |
+| --- | --- | --- | --- | --- |
+| `salute` | Body and health (Health) | `adjectives` (u4) | `body` (salute-u1, 28 words); `routine` (salute-u2, 42 words; needs `reflexive-present` u10); `health` (salute-u2, 39 words; needs `reflexive-present` u10) | `u4-malata`, `u10-mattina` |
+| `cucina` | Food and cooking (Cooking) | `prepositions` (u5) | `kitchen` (cucina-u1, 29 words); `food-more` (cucina-u2, 40 words; needs `imperative` u11) | `u5-zuppa`, `u11-ricetta` |
+| `emozioni` | Feelings and character (Feelings) | `passato-prossimo` (u6) | `feelings` (emozioni-u1, 23 words); `emotions` (emozioni-u2, 38 words; needs `ci-ne` u12); `character` (emozioni-u3, 37 words; needs `congiuntivo` u14) | none |
+| `moda` | Clothes and shopping (Shopping) | `passato-prossimo-essere` (u6) | `clothes` (moda-u1, 22 words); `shopping` (moda-u1, 20 words; needs `futuro` u8) | `u8-spesa` |
+| `natura` | Weather, animals and nature (Nature) | `imperfetto` (u7) | `weather` (natura-u1, 26 words); `animals` (natura-u1, 21 words); `nature` (natura-u2, 38 words; needs `progressive` u13) | `u7-bambino`, `u7-pioggia`, `u13-gita` |
+| `tempo-libero` | Free time and media (Free time) | `futuro` (u8) | `leisure` (tempo-libero-u1, 23 words); `media` (tempo-libero-u2, 37 words; needs `imperative-irregular` u11) | `u8-concerto` |
+| `servizi` | In town: services and directions (In town) | `reflexive-past` (u10) | `services` (servizi-u1, 39 words); `directions` (servizi-u2, 39 words; needs `imperative` u11) | `u10-banca`, `u11-stazione` |
+| `societa` | Society and the economy (Society) | `impersonal-si` (u13) | `society` (societa-u1, 41 words); `money` (societa-u2, 37 words; needs `congiuntivo-imperfetto` u14) | `u13-citta`, `u14-colloquio` |
+| `crimine` | Crime and investigation (Crime) | `passato-remoto` (u15) | `crime` (crimine-u1, 38 words) | `u15-commissario` |
+| `letture` | Books and stories (Books) | `passato-remoto-irregular` (u15) | `reading` (letture-u1, 38 words) | `u15-favola` |
 
-Main-tree vocabulary skills checked, and how many each rule keeps (a skill can be kept by several rules):
+**Why these are themed and the rest core.** The body, the kitchen, weather, animals, clothes, shopping, hobbies, media, health, services, money, society, character, emotions and reading are each a self-contained field of words that no grammar point needs. `directions` (*destra, semaforo, rotonda*) moved with the services into *In town*: the city and travel basics (*strada, stazione, piazza, biglietto*) stay in the main tree. `feelings` (*paura, amore, tranquillo, orgoglioso*) is themed; the mood adjectives the grammar uses (*felice, triste, contento, stanco*) are in `adjectives`. Kept as core although they look like topics: `work` (school and work words: *domanda, risposta, lezione, soldi*), `opinions` (*secondo me, d'accordo*, the language of the subjunctive), `abstract`, `connectors`, `verbs-three`, `adjectives-more`.
 
-| Course | Checked | Moved | Required by a main-tree skill | Words selected later | Used by main-tree stories | Kept by stories alone | Sentence coverage |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| it | 43 | 1 | 28 | 9 | 41 | 12 | 10 |
-| nl | 24 | 1 | 12 | 8 | 22 | 9 | 2 |
-| es | 24 | 0 | 17 | 2 | 20 | 5 | 1 |
+**Stories.** 14 moved into topics (table above; `u15-commissario` was already in *Crime*). Four were edited to stay within three words of other topics: `u7-bambino` and `u7-pioggia` ask about the clothes in English options, `u13-citta` lost "in periferia", `u14-colloquio` says "gentile" for "simpatico". **15 new main-tree stories** from core vocabulary: `u4-paolo`, `u5-centro`, `u7-nonna`, `u7-primo-lavoro`, `u8-milano`, `u8-sabato`, `u10-lunedi`, `u10-matrimonio`, `u11-consigli`, `u11-ospite`, `u13-sorelle`, `u13-milano`, `u14-partenza`, `u15-ponte`, `u15-quaderno`. Every main unit now has two (u15 had one since the strict split). Main-tree stories that use topic words within the allowance: `u5-treno` (*piede*), `u6-primo-giorno` (3 feelings words), `u6-esame`, `u9-sogno` (*fiume, uccello, voce*), `u10-matrimonio` (*vestito*), `u11-consigli` (*tranquilla, abbraccia*), `u11-ospite` (*giacca*), `u12-regalo`, `u12-mare`.
 
-The top reasons:
+**Sentence floor.** 196 generated sentences, all from core vocabulary, for 134 verb × person slots (passato prossimo, imperfetto, futuro, reflexives, imperative, conditional, subjunctive, passato remoto) that fell under 8 easy sentences once topic words count as unknown. Now no main-tree grammar skill is under its floor because of topic words; the easy sentences per grammar skill for a learner who skipped every topic range from 83 (`combined-pronouns`, unchanged) and 121 (`ci-ne`) to 26 326 (`congiuntivo-imperfetto`). Thin spots that were there before and are not caused by topics: one slot each in `present-ire` and `imperative-pronouns` (*preoccupati*), one item each in `pronouns` and `ci-ne`.
 
-- **Stories.** Almost every themed skill is used by a main-tree story, often a story of a later unit. Italian `weather`, `animals` and `clothes` share the two u7 stories and appear in u8–u13 stories. `kitchen` has `u5-zuppa` and `u11-ricetta`. `leisure` and `shopping` share `u8-spesa`. `services` has `u10-banca`, and `reading` has `u15-favola`. Dutch `kitchen` (*aardbei* in `u6-markt`, *banaan* in `u7-dieren`), `weather`, `animals` and `leisure`; Spanish `body`, `work` and `feelings`.
-- **Prerequisites.** Italian u10–u14 vocabulary feeds the next grammar skill: `routine` and `health` for `imperative`, `directions`, `food-more` and `media` for `ci-ne`, `emotions`, `opinions` and `verbs-three` for `comparatives`, `nature`, `society` and `abstract` for `congiuntivo`, and `character`, `connectors` and `money` for `passato-remoto`. In Dutch, `shopping` and `travel` are required by u7. In Spanish, `kitchen` and `clothes` are required by `work`, `feelings` and `preterito-perfecto`, and `weather`, `animals` and `leisure` by `imperfecto`.
-- **Words selected later**: the core skills (greetings, people, food, home, family) feed the article, plural and diminutive skills; Dutch `body` feeds `diminutives`.
-- **Moving one skill can free another, but the rule stays strict.** Once `crime` moved, its story no longer kept `services` in the main tree, but `u10-banca` still does. Moving `u10-banca` too would have freed `services`. It would also have made the crime story use a word of another topic (*lettera*), and topics may not depend on each other. So `services` stays. The same goes for `reading`: its only story is `u15-favola`, and moving that would leave unit 15 without a story.
+## Dutch (nl 1.4.0)
 
-### Per-skill check (sources before the split)
+**Main tree: 8 units, 29 skills (13 grammar, 16 vocab)**; before: 8 units, 36 skills plus the topic *Clothes*.
 
-"Kept by" lists every rule that keeps the skill. The last column counts sentences with one of its words whose main-tree home is a later skill (variety, not dependency).
+| Unit | Skills |
+| --- | --- |
+| u1 Basics | greetings, little-words, people, present-regular |
+| u2 | food, numbers, present-irregular, home, de-het |
+| u3 | time, family, everyday-verbs, pronouns, separable, plurals |
+| u4 The perfect tense | work, perfectum-hebben, perfectum-zijn |
+| u5 Describing things | adjectives, adverbs, colours, possessives, diminutives |
+| u6 Around town | city, travel |
+| u7 The simple past | verleden-tijd-weak, verleden-tijd-strong |
+| u8 Free time and ideas | more-verbs, ideas |
 
-#### Italian (it)
+**Re-pointed:** `verleden-tijd-weak` requires `city`, `travel` (was `shopping`, `travel`).
 
-| Skill (unit) | Words | Kept by | Later main-tree sentences with its words |
-| --- | --- | --- | --- |
-| `greetings` (u1) | 19 | required by `little-words`, `people`; its words are selected by `people`, `articles`, `plurals`; 9 main-tree stories use its words (`u1-piacere`, `u4-malata`, `u4-casa-nuova`, `u6-primo-giorno`, …); 1 later word(s) have sentences only with its words (`opinions`) | 2619 |
-| `little-words` (u1) | 31 | required by `essere-avere`; its words are selected by `numbers`; 30 main-tree stories use its words (`u1-piacere`, `u1-famiglia`, `u2-pizza`, `u2-colazione`, …); 333 later word(s) have sentences only with its words (`abstract`, `adjectives`, `adjectives-more`, …) | 40324 |
-| `people` (u1) | 31 | required by `essere-avere`; its words are selected by `articles`, `plurals`; 18 main-tree stories use its words (`u1-piacere`, `u1-famiglia`, `u2-pizza`, `u2-colazione`, …); 1 later word(s) have sentences only with its words (`connectors`) | 14557 |
-| `food` (u2) | 30 | required by `articles`; its words are selected by `articles`, `plurals`; 13 main-tree stories use its words (`u2-pizza`, `u2-colazione`, `u3-compleanno`, `u4-malata`, …); 1 later word(s) have sentences only with its words (`connectors`) | 2760 |
-| `numbers` (u2) | 22 | 14 main-tree stories use its words (`u2-pizza`, `u2-colazione`, `u5-treno`, `u5-zuppa`, …) | 1256 |
-| `time` (u3) | 30 | required by `family`; 23 main-tree stories use its words (`u3-compleanno`, `u3-chiavi`, `u4-malata`, `u4-casa-nuova`, …); 1 later word(s) have sentences only with its words (`connectors`) | 5425 |
-| `home` (u3) | 29 | required by `everyday-verbs`, `plurals`; its words are selected by `plurals`; 18 main-tree stories use its words (`u3-compleanno`, `u3-chiavi`, `u4-malata`, `u4-casa-nuova`, …) | 2946 |
-| `family` (u3) | 16 | required by `plurals`; its words are selected by `plurals`; 6 main-tree stories use its words (`u3-compleanno`, `u4-malata`, `u5-zuppa`, `u9-sogno`, …) | 770 |
-| `everyday-verbs` (u3) | 28 | its words are selected by `imperative`; 17 main-tree stories use its words (`u3-compleanno`, `u4-malata`, `u5-treno`, `u5-zuppa`, …); 1 later word(s) have sentences only with its words (`services`) | 2672 |
-| `body` (u4) | 28 | 5 main-tree stories use its words (`u4-malata`, `u5-treno`, `u9-sogno`, `u10-mattina`, …) | 1149 |
-| `adverbs` (u4) | 18 | 12 main-tree stories use its words (`u4-malata`, `u4-casa-nuova`, `u5-zuppa`, `u6-primo-giorno`, …) | 2556 |
-| `colours` (u4) | 13 | required by `city`, `travel`, `kitchen`; 2 main-tree stories use its words (`u4-casa-nuova`, `u7-bambino`) | 418 |
-| `city` (u5) | 28 | required by `prepositions`; 16 main-tree stories use its words (`u5-treno`, `u6-primo-giorno`, `u6-esame`, `u7-bambino`, …) | 1631 |
-| `travel` (u5) | 23 | required by `prepositions`; 8 main-tree stories use its words (`u5-treno`, `u7-bambino`, `u8-concerto`, `u8-spesa`, …); 1 later word(s) have sentences only with its words (`connectors`) | 1382 |
-| `kitchen` (u5) | 29 | 2 main-tree stories use its words (`u5-zuppa`, `u11-ricetta`) | 603 |
-| `work` (u6) | 28 | 6 main-tree stories use its words (`u6-primo-giorno`, `u6-esame`, `u9-scelta`, `u10-mattina`, …); 2 later word(s) have sentences only with its words (`connectors`) | 1498 |
-| `feelings` (u6) | 23 | 3 main-tree stories use its words (`u6-primo-giorno`, `u6-esame`, `u14-colloquio`) | 766 |
-| `weather` (u7) | 26 | 5 main-tree stories use its words (`u7-bambino`, `u7-pioggia`, `u9-sogno`, `u12-mare`, …) | 694 |
-| `animals` (u7) | 21 | 4 main-tree stories use its words (`u7-bambino`, `u7-pioggia`, `u9-sogno`, `u13-gita`) | 538 |
-| `clothes` (u7) | 22 | 3 main-tree stories use its words (`u7-bambino`, `u7-pioggia`, `u8-spesa`) | 496 |
-| `leisure` (u8) | 23 | 2 main-tree stories use its words (`u8-concerto`, `u8-spesa`) | 825 |
-| `shopping` (u8) | 20 | 3 main-tree stories use its words (`u8-concerto`, `u8-spesa`, `u12-regalo`) | 462 |
-| `more-verbs` (u9) | 30 | required by `little-words-2`; its words are selected by `imperative`, `imperative-irregular`; 8 main-tree stories use its words (`u9-scelta`, `u9-sogno`, `u10-banca`, `u12-regalo`, …) | 898 |
-| `ideas` (u9) | 28 | required by `little-words-2`; 4 main-tree stories use its words (`u9-scelta`, `u9-sogno`, `u12-mare`, `u13-citta`) | 1389 |
-| `little-words-2` (u10) | 24 | required by `reflexive-present`; 6 main-tree stories use its words (`u12-mare`, `u13-gita`, `u13-citta`, `u14-colloquio`, …); 2 later word(s) have sentences only with its words (`connectors`) | 3878 |
-| `routine` (u10) | 42 | required by `imperative`; 2 main-tree stories use its words (`u10-mattina`, `u11-stazione`) | 366 |
-| `health` (u10) | 39 | required by `imperative`; 1 main-tree story uses its words (`u10-mattina`) | 235 |
-| `services` (u10) | 39 | 2 main-tree stories use its words (`u10-banca`, `u15-commissario`) | 245 |
-| `directions` (u11) | 39 | required by `ci-ne`; 3 main-tree stories use its words (`u11-stazione`, `u13-citta`, `u15-commissario`) | 243 |
-| `food-more` (u11) | 40 | required by `ci-ne`; 1 main-tree story uses its words (`u11-ricetta`) | 101 |
-| `media` (u11) | 37 | required by `ci-ne` | 277 |
-| `emotions` (u12) | 38 | required by `comparatives`; 1 main-tree story uses its words (`u12-regalo`) | 343 |
-| `opinions` (u12) | 36 | required by `comparatives`; 1 main-tree story uses its words (`u12-mare`) | 309 |
-| `verbs-three` (u12) | 43 | required by `comparatives`; 1 main-tree story uses its words (`u14-lotteria`) | 527 |
-| `adjectives-more` (u13) | 40 | required by `congiuntivo`; 2 later word(s) have sentences only with its words (`connectors`) | 375 |
-| `nature` (u13) | 38 | required by `congiuntivo`; 3 main-tree stories use its words (`u13-gita`, `u13-citta`, `u15-favola`) | 102 |
-| `society` (u13) | 41 | required by `congiuntivo`; 1 main-tree story uses its words (`u13-citta`) | 132 |
-| `abstract` (u13) | 37 | required by `congiuntivo`; 2 main-tree stories use its words (`u15-commissario`, `u15-favola`) | 212 |
-| `character` (u14) | 37 | required by `passato-remoto`; 2 main-tree stories use its words (`u14-colloquio`, `u15-favola`) | 75 |
-| `connectors` (u14) | 34 | required by `passato-remoto`; 2 main-tree stories use its words (`u14-colloquio`, `u14-lotteria`) | 45 |
-| `money` (u14) | 37 | required by `passato-remoto`; 1 main-tree story uses its words (`u14-colloquio`) | 41 |
-| `crime` (u15) | 39 | **moved**: `passato-remoto-irregular` selects `uccidere` (kept as a main-tree word); `u15-commissario` moved with it | 77 |
-| `reading` (u15) | 38 | 1 main-tree story uses its words (`u15-favola`) | 0 |
+**Topics (6):**
 
-#### Dutch (nl)
+| Topic | Title (short) | Anchor | Skills (unit, own words) | Stories |
+| --- | --- | --- | --- | --- |
+| `gevoelens` | Feelings (Feelings) | `separable` (u3) | `feelings` (gevoelens-u1, 22 words) | none |
+| `gezondheid` | Body and health (Health) | `adjectives` (u5) | `body` (gezondheid-u1, 23 words) | `u5-dokter` |
+| `eten` | Food and cooking (Cooking) | `possessives` (u5) | `kitchen` (eten-u1, 29 words) | none |
+| `kleding` | Clothes and shopping (Shopping) | `city` (u6) | `shopping` (kleding-u1, 18 words); `clothes` (kleding-u1, 22 words) | `u6-markt` |
+| `natuur` | Weather and animals (Nature) | `verleden-tijd-strong` (u7) | `weather` (natuur-u1, 25 words); `animals` (natuur-u1, 21 words) | `u7-storm`, `u7-dieren` |
+| `vrije-tijd` | Free time (Free time) | `ideas` (u8) | `leisure` (vrije-tijd-u1, 22 words) | `u8-concert` |
 
-| Skill (unit) | Words | Kept by | Later main-tree sentences with its words |
-| --- | --- | --- | --- |
-| `greetings` (u1) | 20 | required by `little-words`, `people`; 8 main-tree stories use its words (`u1-tom-helpt`, `u2-huis`, `u3-oma`, `u3-te-laat`, …) | 1272 |
-| `little-words` (u1) | 39 | required by `present-regular`; its words are selected by `numbers`; 16 main-tree stories use its words (`u1-familie`, `u1-tom-helpt`, `u2-ontbijt`, `u2-huis`, …); 100 later word(s) have sentences only with its words (`adjectives`, `animals`, `body`, …) | 13792 |
-| `people` (u1) | 29 | required by `present-regular`; its words are selected by `de-het`, `plurals`, `diminutives`; 16 main-tree stories use its words (`u1-familie`, `u1-tom-helpt`, `u2-ontbijt`, `u2-huis`, …); 5 later word(s) have sentences only with its words (`everyday-verbs`, `leisure`, `more-verbs`, …) | 11814 |
-| `food` (u2) | 23 | required by `home`; its words are selected by `de-het`, `plurals`; 9 main-tree stories use its words (`u2-ontbijt`, `u3-oma`, `u3-te-laat`, `u4-eerste-werkdag`, …) | 895 |
-| `numbers` (u2) | 24 | 11 main-tree stories use its words (`u2-huis`, `u3-oma`, `u3-te-laat`, `u4-eerste-werkdag`, …) | 667 |
-| `home` (u2) | 28 | required by `de-het`; its words are selected by `de-het`, `plurals`, `diminutives`; 10 main-tree stories use its words (`u2-ontbijt`, `u2-huis`, `u3-oma`, `u3-te-laat`, …) | 1036 |
-| `time` (u3) | 32 | required by `work`, `feelings`, `perfectum-hebben`; its words are selected by `diminutives`; 11 main-tree stories use its words (`u3-oma`, `u3-te-laat`, `u4-eerste-werkdag`, `u4-examen`, …) | 1533 |
-| `family` (u3) | 17 | required by `plurals`; its words are selected by `plurals`; 3 main-tree stories use its words (`u3-oma`, `u8-concert`, `u8-droom`) | 335 |
-| `everyday-verbs` (u3) | 30 | required by `separable`; its words are selected by `verleden-tijd-weak`; 10 main-tree stories use its words (`u3-oma`, `u3-te-laat`, `u4-eerste-werkdag`, `u4-examen`, …) | 1474 |
-| `work` (u4) | 27 | 3 main-tree stories use its words (`u4-eerste-werkdag`, `u4-examen`, `u5-dokter`) | 576 |
-| `feelings` (u4) | 22 | 5 main-tree stories use its words (`u4-eerste-werkdag`, `u4-examen`, `u5-zusje`, `u7-dieren`, …) | 311 |
-| `body` (u5) | 27 | its words are selected by `diminutives`; 4 main-tree stories use its words (`u5-dokter`, `u5-zusje`, `u8-concert`, `u8-droom`) | 343 |
-| `adverbs` (u5) | 21 | 5 main-tree stories use its words (`u5-dokter`, `u5-zusje`, `u6-markt`, `u7-storm`, …) | 558 |
-| `colours` (u5) | 12 | required by `city`, `travel`, `kitchen`; 1 main-tree story uses its words (`u5-zusje`) | 257 |
-| `city` (u6) | 26 | required by `shopping`; 4 main-tree stories use its words (`u6-markt`, `u6-eiland`, `u7-dieren`, `u8-droom`) | 231 |
-| `travel` (u6) | 22 | required by `weather`, `animals`, `clothes`, `verleden-tijd-weak`; 2 main-tree stories use its words (`u6-eiland`, `u8-droom`) | 227 |
-| `kitchen` (u6) | 29 | 2 main-tree stories use its words (`u6-markt`, `u7-dieren`) | 110 |
-| `shopping` (u6) | 18 | required by `weather`, `animals`, `clothes`, `verleden-tijd-weak`; 1 main-tree story uses its words (`u6-markt`) | 159 |
-| `weather` (u7) | 25 | 2 main-tree stories use its words (`u7-storm`, `u8-droom`) | 142 |
-| `animals` (u7) | 21 | 3 main-tree stories use its words (`u7-storm`, `u7-dieren`, `u8-droom`) | 142 |
-| `clothes` (u7) | 22 | **moved** | 87 |
-| `leisure` (u8) | 22 | 1 main-tree story uses its words (`u8-concert`) | 66 |
-| `more-verbs` (u8) | 30 | 2 main-tree stories use its words (`u8-concert`, `u8-droom`) | 40 |
-| `ideas` (u8) | 27 | nothing: movable | 0 |
+The topic `kleding` (pack 1.3, *Clothes*) is kept and now also holds `shopping` (*Clothes and shopping*). **The body:** four body nouns that the main-tree `diminutives` skill trains (its query is unchanged, so its facets are unchanged) stay main-tree words, shared with the topic (one item, one progress), like Italian *uccidere* with *Crime*.
 
-#### Spanish (es)
+**Stories.** Five moved into topics (table). `u7-storm` passes the allowance with three words but is about the weather, so it moved too. `u4-examen` and `u8-droom` ask in English options now (they used four topic words). **Five new main-tree stories:** `u5-nieuw-huis`, `u6-stad`, `u7-opa`, `u7-trein`, `u8-keuze`.
 
-| Skill (unit) | Words | Kept by | Later main-tree sentences with its words |
-| --- | --- | --- | --- |
-| `greetings` (u1) | 23 | required by `little-words`, `people`; 13 main-tree stories use its words (`u1-encantado`, `u1-donde-estan`, `u2-desayuno`, `u3-un-dia`, …) | 4549 |
-| `little-words` (u1) | 45 | required by `ser`; 18 main-tree stories use its words (`u1-encantado`, `u1-donde-estan`, `u2-desayuno`, `u2-la-cena`, …); 148 later word(s) have sentences only with its words (`adjectives`, `adverbs`, `animals`, …) | 20829 |
-| `people` (u1) | 32 | required by `ser`; its words are selected by `articles`; 10 main-tree stories use its words (`u1-encantado`, `u1-donde-estan`, `u2-la-cena`, `u3-la-llave`, …) | 5520 |
-| `food` (u2) | 37 | required by `articles`; its words are selected by `articles`; 5 main-tree stories use its words (`u2-desayuno`, `u2-la-cena`, `u3-un-dia`, `u4-me-gusta`, …) | 1652 |
-| `numbers` (u2) | 41 | 5 main-tree stories use its words (`u2-desayuno`, `u2-la-cena`, `u3-un-dia`, `u5-mi-familia`, …) | 1200 |
-| `time` (u3) | 52 | required by `prepositions`; 10 main-tree stories use its words (`u3-un-dia`, `u4-medico`, `u6-sevilla`, `u6-tienda`, …) | 3801 |
-| `home` (u3) | 51 | required by `prepositions`; 8 main-tree stories use its words (`u3-un-dia`, `u3-la-llave`, `u4-medico`, `u5-mi-familia`, …) | 2117 |
-| `everyday-verbs` (u4) | 4 | required by `family`, `adjectives`; 1 main-tree story uses its words (`u6-tienda`) | 272 |
-| `body` (u4) | 41 | 2 main-tree stories use its words (`u4-medico`, `u7-dia-largo`) | 936 |
-| `adverbs` (u4) | 27 | nothing: movable | 972 |
-| `family` (u5) | 26 | required by `possessives`; 4 main-tree stories use its words (`u5-mi-familia`, `u6-tienda`, `u9-de-nino`, `u9-planes`) | 588 |
-| `colours` (u5) | 13 | required by `city`, `travel`, `shopping`, `kitchen`; 3 main-tree stories use its words (`u5-mi-familia`, `u5-colores`, `u6-tienda`) | 344 |
-| `city` (u6) | 40 | required by `reflexive`; 5 main-tree stories use its words (`u6-sevilla`, `u6-tienda`, `u8-tormenta`, `u8-gato`, …) | 597 |
-| `travel` (u6) | 40 | required by `reflexive`; 4 main-tree stories use its words (`u6-sevilla`, `u8-tormenta`, `u9-de-nino`, `u9-planes`) | 749 |
-| `shopping` (u6) | 24 | required by `clothes`; 1 main-tree story uses its words (`u6-tienda`) | 344 |
-| `kitchen` (u6) | 30 | required by `work`, `feelings`, `preterito-perfecto` | 131 |
-| `clothes` (u6) | 31 | required by `work`, `feelings`, `preterito-perfecto`; 1 main-tree story uses its words (`u6-tienda`) | 204 |
-| `work` (u7) | 41 | 2 main-tree stories use its words (`u7-dia-largo`, `u7-examen`) | 607 |
-| `feelings` (u7) | 34 | 5 main-tree stories use its words (`u7-dia-largo`, `u7-examen`, `u8-tormenta`, `u8-gato`, …) | 511 |
-| `weather` (u8) | 36 | required by `imperfecto`; 2 main-tree stories use its words (`u8-tormenta`, `u9-planes`) | 248 |
-| `animals` (u8) | 35 | required by `imperfecto`; 2 main-tree stories use its words (`u8-tormenta`, `u8-gato`) | 142 |
-| `leisure` (u8) | 29 | required by `imperfecto` | 124 |
-| `more-verbs` (u9) | 30 | nothing: movable | 93 |
-| `ideas` (u9) | 43 | 1 main-tree story uses its words (`u9-de-nino`) | 0 |
+**Sentence floor.** 50 generated sentences for 39 slots (present irregular, perfectum, the simple past). No main-tree grammar skill is under its floor because of topic words; easy sentences per grammar skill range from 391 (`separable`) to 10 769. Earlier gaps that remain: present-regular 2 slots, present-irregular 2, perfectum-hebben 4, perfectum-zijn 12, verleden-tijd-weak 7, verleden-tijd-strong 5 (none caused by topics). **Fixed in passing:** *ouders* (parents) was aligned to the adjective *oud* (Wiktionary lists the rare partitive *iets ouders*) in 60 sentences, glossed "old"; the form is dropped from *oud* and the tokens point at *ouder*.
+
+## Spanish (es 1.1.0)
+
+**Main tree: 9 units, 38 skills (22 grammar, 16 vocab)**; before: 9 units, 46 skills, no topics.
+
+| Unit | Skills |
+| --- | --- |
+| u1 | greetings, little-words, people, ser, estar |
+| u2 | food, numbers, present-ar, articles, present-er-ir |
+| u3 | time, home, prepositions, stem-changing, irregular-present |
+| u4 | everyday-verbs, adverbs, verb-phrases, object-pronouns, gustar |
+| u5 | family, adjectives, plurals, colours, possessives |
+| u6 | city, travel, reflexive |
+| u7 The recent past | work, preterito-perfecto, participles-irregular |
+| u8 | indefinido, indefinido-irregular |
+| u9 | imperfecto, futuro, futuro-irregular, more-verbs, ideas |
+
+**Re-pointed:** `work` and `preterito-perfecto` require `reflexive` (were `clothes`, `kitchen`); `imperfecto` requires `indefinido-irregular` (was also `weather`, `animals`, `leisure`).
+
+**Topics (6):**
+
+| Topic | Title (short) | Anchor | Skills (unit, own words; late requirements) | Stories |
+| --- | --- | --- | --- | --- |
+| `salud` | Body and health (Health) | `gustar` (u4) | `body` (salud-u1, 41 words) | `u4-medico` |
+| `compras` | Shopping and clothes (Shopping) | `possessives` (u5) | `shopping` (compras-u1, 24 words); `clothes` (compras-u1, 31 words; needs `reflexive` u6) | `u6-tienda` |
+| `cocina` | Cooking and eating out (Cooking) | `city` (u6) | `kitchen` (cocina-u1, 30 words) | none |
+| `sentimientos` | Feelings (Feelings) | `preterito-perfecto` (u7) | `feelings` (sentimientos-u1, 34 words) | `u7-dia-largo` |
+| `naturaleza` | Weather and animals (Nature) | `indefinido-irregular` (u8) | `weather` (naturaleza-u1, 36 words); `animals` (naturaleza-u1, 35 words) | `u8-tormenta`, `u8-gato` |
+| `ocio` | Hobbies and culture (Free time) | `indefinido` (u8) | `leisure` (ocio-u1, 29 words) | none |
+
+`feelings` holds some frequent words (*verdad, solo, feliz, triste*); it moved like the other courses' feelings skills, and those words now count as unknown for a learner who skipped it (the floor check covers the cost). **Stories:** five moved into topics (`u8-gato` is about a cat); **five new:** `u4-sabado`, `u6-barrio`, `u7-primer-dia`, `u8-valencia`, `u8-carta`. **Sentence floor:** 96 generated sentences for 74 slots (reflexive, perfect, indefinido, imperfecto, future); none under the floor because of topic words; easy sentences per grammar skill from 320 (`estar`) to 11 514; earlier gaps remain in `reflexive` (2, *sentar yo*), `indefinido` (2), `imperfecto` (1). **Fixed in passing (unknown grammar):** 10 Tatoeba sentences with the subjunctive *fuera* (read as the adverb) or *te sientas* (read as *sentar*), dropped and listed in `seed.yaml` `exclude_sentences`.
+
+## Versions and old apps
+
+The packs are it 1.5.0, nl 1.4.0 and es 1.1.0 (schema minor 3; Spanish had no topics before), with **`min_app_version` 0.7.4** (was it 0.7.3, nl and es 0.4.0). An app from before topics ignores the topic tables and shows the topic units as further units at the end of the main tree, with a bough from each topic skill up to the main-tree skill it requires. After the restructure those boughs run across most of the map (Italian `kitchen` from unit 5 to the end: 4 500 px), and the bough painter of apps 0.7.1–0.7.3 fails on them (Skia's path intersection throws, the map paints broken); the strict split's two topics hung from the last units and stayed short. So apps before 0.7.4 keep their bundled packs and the catalog offers these as "needs app 0.7.4 or newer". The current app paints the main tree and each topic as their own maps (no such bough), and its bough painter now falls back to the uncut hatching where path ops fail, so the flattened view (the map tests draw it) paints too. Otherwise an old app would play the restructured packs safely: the main tree requires no topic skill and the moved stories keep their ids. Stories now list up to three topic words in `new_words`, which every app glosses before the story. The topic icons `health`, `heart`, `music`, `money` and `society` are new in the app; older apps show the default icon.
+
+## Open issues
+
+- A re-import (`python -m pipeline import nl`) would bring back *ouders* as a form of *oud*: the seed can add inflections but not drop them.
+- Spanish *fue/fueron* (ser and ir share the indefinido) are aligned to *ser*, so "fue al pueblo" glosses "to be"; the new stories avoid it.
+- The Italian u7 unit (*Memories*) has one skill, the imperfetto; u8 and u9 have two.
+- `min_app_version` 0.7.4 assumes no build numbered 0.7.4 without topics reached a device (the version was set a few hours before topics were merged); if one did, the packs need the next app version as their minimum.
+- Fixed in the app on the way: a Dutch word with an apostrophe and one consonant (*foto's*, *m'n*) was split like an Italian elision in answer diffs, so one swapped tile counted as two errors.

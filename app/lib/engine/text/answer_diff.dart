@@ -33,7 +33,9 @@ List<TokenRef> textTokens(String text) {
     var word = m[0]!;
     while (true) {
       final e = _elided.firstMatch(word);
-      if (e == null) break;
+      // A single consonant after the apostrophe is no elision but one Dutch word: plurals
+      // and genitives (foto's, baby's), contractions (m'n, z'n, zo'n). Italian c'è splits.
+      if (e == null || (e[2]!.length == 1 && !'aeiouàáèéìíòóùú'.contains(e[2]!.toLowerCase()))) break;
       out.add(_tok(e[1]!, pre));
       pre = '';
       word = e[2]!;
