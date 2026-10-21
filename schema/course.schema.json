@@ -118,7 +118,7 @@
         "short_title": {"$ref": "#/$defs/i18n", "description": "a short name for the carving on the main tree's branch where the title does not fit (default: the title's first word)"},
         "description": {"$ref": "#/$defs/i18n"},
         "icon": {"type": "string"},
-        "anchor": {"type": "string", "description": "the main-tree skill the topic's branch grows from: the last main-tree skill its skills require (default: the deepest main-tree requirement)"},
+        "anchor": {"type": "string", "description": "the main-tree skill the topic's branch grows from, where the topic starts: the last main-tree skill its first skill requires (default: the deepest of those); later skills may require later main-tree skills"},
         "units": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/unit"}}
       }
     },

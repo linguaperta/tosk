@@ -222,7 +222,16 @@ class SkillMapView extends StatefulWidget {
     this.onTopic,
     this.unitTitles = const {},
     this.root,
+    this.needs = const {},
+    this.onNeeds,
   });
+
+  /// On a topic's map: locked skills that wait for a main-tree skill, by
+  /// skill id (the title of the skill they need and its unit number), shown
+  /// under their title ("needs The conditional · unit 12"); a tap on the
+  /// note calls [onNeeds] with the needed skill's id.
+  final Map<String, MapNeed> needs;
+  final void Function(String skillId)? onNeeds;
 
   /// Topic branches leaving the main tree at their anchors (with a carved
   /// name and arrow, and a "Go to …" button that calls [onTopic]).
@@ -679,6 +688,12 @@ class _SkillMapViewState extends State<SkillMapView> with SingleTickerProviderSt
                         onLongPress: w.onLongPress == null ? null : () => w.onLongPress!(skill),
                         labelBackground: style.bandColor(n.band),
                         semanticsLabel: w.root?.skillId == skill.id ? w.root!.label : null,
+                        needs: w.needs[skill.id]?.title,
+                        needsUnit: w.needs[skill.id]?.unit,
+                        onNeeds: switch ((w.needs[skill.id], w.onNeeds)) {
+                          (final n?, final onNeeds?) => () => onNeeds(n.skillId),
+                          _ => null,
+                        },
                       ),
                     ),
                   ),
@@ -723,21 +738,28 @@ class _SkillMapViewState extends State<SkillMapView> with SingleTickerProviderSt
                   ),
                 ),
               // Tosk sits on the current skill's stone (top left, peeking
-              // over the ring); decorative, the node underneath is the target.
+              // over the ring; top right, mirrored, where the left would
+              // cover the unit title's plaque); decorative, the node
+              // underneath is the target.
               if (markerNode != null)
-                Positioned(
-                  left: g.ringCenter(markerNode).dx - g.nodeBox / 2 - markerSize * 0.7,
-                  top: g.ringCenter(markerNode).dy - g.nodeBox / 2 - markerSize * 0.55,
-                  width: markerSize,
-                  height: markerSize,
-                  child: IgnorePointer(
-                    child: Semantics(
-                      key: const ValueKey('tosk-marker'),
-                      label: 'Tosk: continue here',
-                      child: ToskImage(pose: ToskPose.marker, height: markerSize),
+                if (markerRect(plan, markerNode, markerSize, avoid: [
+                  if (onUnitStories != null && (storyCounts[layout.bands[markerNode.band].unitId] ?? 0) > 0)
+                    Rect.fromLTWH(g.width - 8 - _storyButtonWidth, g.bandTop[markerNode.band], _storyButtonWidth,
+                        g.headerOf(markerNode.band) + 8),
+                ]) case (final rect, final mirrored))
+                  Positioned.fromRect(
+                    rect: rect,
+                    child: IgnorePointer(
+                      child: Semantics(
+                        key: const ValueKey('tosk-marker'),
+                        label: 'Tosk: continue here',
+                        child: Transform.flip(
+                          flipX: mirrored,
+                          child: ToskImage(pose: ToskPose.marker, height: markerSize),
+                        ),
+                      ),
                     ),
                   ),
-                ),
             ],
           ),
           ),
@@ -753,6 +775,41 @@ class _SkillMapViewState extends State<SkillMapView> with SingleTickerProviderSt
     );
   }
 }
+
+/// Where Tosk sits on [node]'s stone: peeking over its top-left edge; where
+/// that would cover the unit title's plaque of the node's band, mirrored over
+/// its top-right edge, else beside the stone (left or right, at its height,
+/// below the band's header), whichever first is clear of the plaque, of [avoid]
+/// (the band's stories button) and of the other stones in its row. The second
+/// value says whether Tosk is mirrored (on the right, facing left).
+(Rect, bool) markerRect(MapPlan plan, MapNode node, double size, {List<Rect> avoid = const []}) {
+  final g = plan.geometry;
+  final c = g.ringCenter(node);
+  final top = c.dy - g.nodeBox / 2 - size * 0.55;
+  final left = Rect.fromLTWH(c.dx - g.nodeBox / 2 - size * 0.7, top, size, size);
+  if (!plan.titles.containsKey(node.band)) return (left, false);
+  final plaque = plan.titleRect(node.band).inflate(2);
+  if (!left.overlaps(plaque)) return (left, false);
+  final stones = [
+    for (final n in g.layout.nodes)
+      if (n != node && n.band == node.band && n.row == node.row)
+        Rect.fromCircle(center: g.ringCenter(n), radius: g.nodeBox / 2),
+  ];
+  bool clear(Rect r) =>
+      !r.overlaps(plaque) && r.left >= 0 && r.right <= g.width && !avoid.any(r.overlaps) && !stones.any(r.overlaps);
+  final mid = c.dy - size / 2;
+  for (final (r, mirrored) in [
+    (Rect.fromLTWH(c.dx + g.nodeBox / 2 - size * 0.3, top, size, size), true),
+    (Rect.fromLTWH(c.dx - g.nodeBox / 2 - size * 0.95, mid, size, size), false),
+    (Rect.fromLTWH(c.dx + g.nodeBox / 2 - size * 0.05, mid, size, size), true),
+  ]) {
+    if (clear(r)) return (r, mirrored);
+  }
+  return (left, false);
+}
+
+/// A main-tree skill a locked topic skill waits for: its id, title and unit number.
+typedef MapNeed = ({String skillId, String title, int? unit});
 
 /// Where a unit title goes in its band header: the plaque's left edge and
 /// width, and its lines (2 when it is too long for the header on one line).

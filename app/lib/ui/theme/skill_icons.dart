@@ -34,6 +34,8 @@ const Map<String, IconData> kSkillIcons = {
   'nature': Icons.park_outlined,
   'shopping': Icons.shopping_bag_outlined,
   'question': Icons.help_outline,
+  'search': Icons.search,
+  'investigation': Icons.search,
   'verb': Icons.bolt_outlined,
   'verbs': Icons.bolt_outlined,
   'conjugation': Icons.bolt_outlined,
