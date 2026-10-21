@@ -195,7 +195,7 @@ topics:
 Rules:
 
 - **Course order** is the main tree's units, then each topic's units in `topics` order. So a facet shared with the main tree is introduced by its main-tree skill, and unit and skill ids are unique over every tree.
-- **Requirements.** A topic skill may require main-tree skills and skills of its own topic; never another topic's. A main-tree skill never requires a topic skill. Every main-tree skill a topic requires is the anchor or a prerequisite of it (the anchor is the last one).
+- **Requirements.** A topic skill may require main-tree skills and skills of its own topic; never another topic's. A main-tree skill never requires a topic skill. Every main-tree skill a topic requires is the anchor, a prerequisite of it, or a sibling no deeper than it (the anchor is the last one: `kitchen` may require both `colours` and `possessives`).
 - **Words.** A topic skill may select items of the main tree, of its own topic (a unit no later than the skill's) and of other topics (a word two topics share is one item with one progress). An item whose `unit` is a topic unit is introduced by that topic; **a main-tree skill MUST NOT select it** (the main tree cannot need words of a side tree). Moving a main-tree vocab skill into a topic keeps its ids, so progress is kept.
 - **Unlocking.** A topic skill is available like any skill (every prerequisite practised); the app shows the branch and the topic as locked until the anchor is started, and the topic can be browsed before.
 - **Grammar** comes from the main tree: gating, the home-skill rule and notes work unchanged across trees (a topic skill's prerequisites include its main-tree requirements).
@@ -480,7 +480,7 @@ The rule: a learner never meets a grammar construct in exercises before starting
 
   `words` entries with spaces (1.1) match consecutive words (`me lo`, `ce l'`); a word aligned to a verb form never counts.
 
-- **Home-skill rule** (validator and importers): a sentence's *home skill* is the last skill, in course order, among the skills that introduce one of its aligned items (the first skill selecting the item), the verb skills whose tense it shows for one of their verbs, and the first skill introducing each of its non-base features. The sentence is valid when every feature is introduced by the home skill, one of its prerequisites (transitively), or the base set; and every non-base feature MUST be introduced by some skill.
+- **Home-skill rule** (validator and importers): a sentence's *home skill* is the last skill, in course order, among the skills that introduce one of its aligned items (the first skill selecting the item), the verb skills whose tense it shows for one of their verbs, and the first skill introducing each of its non-base features. The sentence is valid when every feature is introduced by the home skill, one of its prerequisites (transitively), or the base set; and every non-base feature MUST be introduced by some skill. (1.2) With topics, the main tree and each topic are not ordered against each other: a sentence touching skills of several trees has one home skill per tree, and it is valid when every feature is allowed by one of them (the app shows it only once all are started).
 - **In the app**, at session start: known features = base ∪ the features of every started skill and of the current skill(s) ∪ those of their prerequisites (transitively). Sentence exercises only use sentences whose features are known, and at most 2 unknown words (1 for a grammar skill or grammar focus); wrong options never show a form of a tense the learner has not met.
 
 The compiled pack stores the result in `sentence_features`, `skill_features` and `meta.base_features`, so the app needs no language knowledge for gating.
@@ -638,7 +638,7 @@ Generic:
 11. Verb tables: tenses declared or non-finite; persons declared or `_`; non-finite tenses use `_` only; `stem` + `ending` both or neither, and equal to `form`.
 12. Inflection tables: `base` is a cell; labels name cells; an item's table is declared, allowed for its POS, has exactly the declared cells; stem + ending = form; `alts` don't repeat `form`; `wrong` forms are no form of the table. A `facet: infl` skill names a table; every trained table is declared; an `inflections` skill has at least one item that inflects.
 13. Tokens re-render the text; every `lex` exists; a verb `form` exists in the verb's table; an `infl:` form exists for the item and the token text is an accepted form of the cell.
-14b. (1.2) Topics: topic ids are unique; unit and skill ids are unique over every tree; the anchor (given or default) exists and is a main-tree skill, and every main-tree skill the topic requires is the anchor or one of its prerequisites; a topic without main-tree requirements names its anchor; main-tree skills require no topic skill, topic skills no other topic's skill; no prerequisite cycle across trees; a main-tree skill selects no item introduced in a topic unit.
+14b. (1.2) Topics: topic ids are unique; unit and skill ids are unique over every tree; the anchor (given or default) exists and is a main-tree skill, and every main-tree skill the topic requires is the anchor, one of its prerequisites or a sibling no deeper than it; a topic without main-tree requirements names its anchor; main-tree skills require no topic skill, topic skills no other topic's skill; no prerequisite cycle across trees; a main-tree skill selects no item introduced in a topic unit.
 14a. (1.1) `tense_persons`, `tense_person_labels` and `tense_groups` name declared tenses (and persons); `recognition` is not combined with `facet`; `equivalent_tense` belongs to a recognition verbs skill and names another declared tense.
 14. Grammar gating: detector types are known; every base feature and `introduces` entry is a tense feature or has a detector; every sentence feature is introduced by some skill or the base set, and allowed at the sentence's home skill (only when `base_features` is declared).
 
@@ -982,7 +982,7 @@ Current behaviour that is accidental or inconsistent. The rule stated in this do
 
 ## 20. DRAFT: extension packs (v0.8)
 
-**DRAFT, not implemented.** An extension pack adds vocabulary, sentences or units on top of a base course and shares its progress: a job vocabulary, a song collection, a book ("read Montalbano").
+**DRAFT, not implemented.** (Built-in topic trees, section 3.3, are implemented in 1.2; an extension pack would add such topics from a separate pack.) An extension pack adds vocabulary, sentences or units on top of a base course and shares its progress: a job vocabulary, a song collection, a book ("read Montalbano").
 
 ```yaml
 id: it-montalbano            # needs the wider id pattern (open issue 18)

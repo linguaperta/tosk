@@ -2,6 +2,8 @@
 
 *Design agreed with the owner, 20 October 2026. Scope now: **topic expansions**. Books (a guided e-reader) and moving the stories into that model come later.*
 
+**Status (21 October 2026): built-in topics are implemented**: pack format 1.2 (`topics:` in course.yaml, compiled `topics` / `topic_units`, schema minor 3, docs/pack-format.md 3.3), the validator rules, and the app (branches with a carved name and "Go to …" on the main tree, topic maps, the tree menu, "N of M words already known"; docs/ui.md "Topic trees"). Not yet: extension packs with `extends` (separately installed topics), per-unit anchors, books. The proposed split of the real courses is in [topic-split-proposal.md](topic-split-proposal.md) (not applied).
+
 An expansion adds content to a base course (e.g. Italian) **and shares the learner's progress with it**: a word the base course already taught keeps its progress in the expansion, and a word two expansions share has one progress.
 
 ## Kinds
@@ -35,7 +37,7 @@ topics:
 
 - A topic's skills may require skills from the main tree (the anchor is the last required one) and from earlier skills in the same topic.
 - `anchor` defaults to the deepest main-tree skill among the topic's requirements.
-- Validator: the anchor exists and is in the main tree (or the base course for an extension pack); no requirement cycles across trees; topic skill ids unique in the family.
+- Validator: the anchor exists and is in the main tree (or the base course for an extension pack); no requirement cycles across trees; topic skill ids unique in the family. As built: every other main-tree requirement of the topic is a prerequisite of the anchor or a sibling no deeper than it; main-tree skills require no topic skill and use no topic's words; a sentence touching several trees has one home skill per tree.
 
 ## In the app
 
