@@ -136,7 +136,7 @@ void main() {
     });
 
     testWidgets('nl main tree, $mode', (tester) async {
-      await _pump(tester, 'nl', _progress(_course('nl'), 'shopping', startUpTo: true), settings);
+      await _pump(tester, 'nl', _progress(_course('nl'), 'city', startUpTo: true), settings);
       await _scrollTo(tester, 'topic-go-kleding');
       await _shot(tester, 'nl-main-$mode');
     });

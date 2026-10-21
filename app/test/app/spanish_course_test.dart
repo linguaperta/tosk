@@ -4,6 +4,7 @@
 import 'dart:io';
 
 import 'package:tosk/app_bootstrap.dart';
+import 'package:tosk/core/core.dart' show CourseTrees;
 import 'package:tosk/data/bootstrap.dart';
 import 'package:tosk/providers.dart';
 import 'package:flutter/services.dart';
@@ -41,8 +42,11 @@ void main() {
     expect(course.meta.description['en'], isNotEmpty);
     expect(course.meta.description['nl'], isNotEmpty);
     expect(course.meta.persons, contains('vosotros'));
-    expect(course.units.length, inInclusiveRange(8, 10));
-    expect(course.skills.length, inInclusiveRange(30, 50));
+    // the main tree, plus its themed topics (docs/topic-split.md)
+    final trees = CourseTrees.of(course);
+    expect(trees.mainUnits.length, inInclusiveRange(8, 10));
+    expect(trees.mainSkills.length, inInclusiveRange(30, 50));
+    expect(trees.topics, isNotEmpty);
 
     final factory = await container.read(sessionFactoryProvider.future);
     for (final skillId in ['greetings', 'ser', 'present-ar', 'indefinido']) {

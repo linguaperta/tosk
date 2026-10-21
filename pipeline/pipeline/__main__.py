@@ -37,8 +37,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--content-root")
     p.add_argument("--local", action="store_true", help="use the local content folder (always the case for restricted courses)")
 
-    p = sub.add_parser("gen", help="generated example sentences (it/nl): gaps, context, check, add, refresh")
-    p.add_argument("action", choices=["gaps", "context", "check", "add", "refresh"])
+    p = sub.add_parser("gen", help="generated example sentences (it/nl): gaps, floor (the fairness rule), "
+                                   "context, check, add, refresh")
+    p.add_argument("action", choices=["gaps", "floor", "context", "check", "add", "refresh"])
     p.add_argument("lang")
     p.add_argument("files", nargs="*", help="draft JSONL files (check, add)")
     p.add_argument("--skill", help="context: the skill to write for")

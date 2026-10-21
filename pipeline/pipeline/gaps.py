@@ -18,7 +18,7 @@ from collections import defaultdict
 from statistics import median
 
 from . import features, query
-from .content import Pack
+from .content import Pack, skill_topics
 
 SLOT_TARGET = 8
 ITEM_TARGET = 3
@@ -29,15 +29,21 @@ IMPERSONAL = {"it": {"succedere"}, "nl": {"gebeuren"}, "es": {"ocurrir", "sucede
 
 
 class Material:
-    """Per-sentence features and the skill position at which each word becomes known."""
+    """Per-sentence features and the skill position at which each word becomes known.
 
-    def __init__(self, pack: Pack):
+    Topic skills come after every main-tree skill in course order, so by default a topic's words
+    count as unknown at every main-tree skill: the learner who skipped every topic (the fairness
+    rule, docs/extensions.md). `topic_words_known=True` counts them as known from the start: the
+    learner who did every topic first (fairness_report compares the two)."""
+
+    def __init__(self, pack: Pack, topic_words_known: bool = False):
         self.pack = pack
         c = pack.course
         self.persons = list(c["persons"])
         self.resolved = {s["id"]: query.resolve(s, pack.items, pack.verbs, query.course_persons(c)) for _, _, _, s in pack.skills()}
         self.tagger, self.graph = features.build(c, pack.items, pack.verbs)
         self.never = len(self.graph.order)
+        self.topic_words_known = topic_words_known
         self.feats: dict[str, set[str]] = {}
         self.known_at: dict[str, list[int]] = {}
         for s in pack.sentences:
@@ -45,10 +51,18 @@ class Material:
 
     def word_positions(self, toks: list[dict]) -> list[int]:
         g = self.graph
-        return [g.pos[g.item_skill[t["lex"]]] if t.get("lex") in g.item_skill else self.never
-                for t in toks
-                if t.get("is_word", True) is not False and (t.get("lex") or not t["t"][:1].isupper())
-                and not t["t"][:1].isdigit()]
+        out = []
+        for t in toks:
+            if t.get("is_word", True) is False or t["t"][:1].isdigit() or (not t.get("lex") and t["t"][:1].isupper()):
+                continue
+            sid = g.item_skill.get(t.get("lex"))
+            if sid is None:
+                out.append(self.never)
+            elif self.topic_words_known and g.tree.get(sid) is not None:
+                out.append(-1)
+            else:
+                out.append(g.pos[sid])
+        return out
 
     def add(self, s: dict) -> None:
         self.feats[s["id"]] = self.tagger.tag(s["tokens"])
@@ -136,6 +150,49 @@ def format_gaps(r: dict, verbose: bool = True) -> str:
             if verbose and low:
                 lines.append("      " + ", ".join(f"{k} {v}" for k, v in sorted(low.items())))
     return "\n".join(lines)
+
+
+def fairness_report(pack: Pack) -> tuple[list[str], list[str]]:
+    """The fairness rule (docs/extensions.md): never unknown grammar, some unknown words are fine.
+    Topic words count as unknown vocabulary for a learner who skipped the topic, within the app's
+    cap (one per sentence in a grammar lesson). So every main-tree grammar skill must keep its
+    sentence floor for the learner who skipped every topic: its easy sentences (SKILL_TARGET), each
+    (verb, person) slot of its tense (SLOT_TARGET) and each of its items (ITEM_TARGET), counting
+    every topic word as unknown.
+
+    Compared with the learner who knows every topic's words, a skill, slot or item that is under its
+    target only because of topic words is a problem (thin spots that exist either way are the
+    generator's ordinary gaps, `gen gaps`). Returns (report lines, problems); a pack without topics
+    has neither."""
+    if not pack.course.get("topics"):
+        return [], []
+    skipped = analyze(pack, Material(pack))
+    known = analyze(pack, Material(pack, topic_words_known=True))
+    trees = skill_topics(pack.course)
+    lines = [f"== {pack.code} fairness: main-tree grammar skills for a learner who skipped every topic "
+             f"(easy sentences; slots below {SLOT_TARGET}; items below {ITEM_TARGET}) vs. one who knows them"]
+    problems = []
+    k = {r["skill"]: r for r in known["skills"]}
+    for r in skipped["skills"]:
+        if r["kind"] != "grammar" or trees.get(r["skill"]) is not None:
+            continue
+        o = k[r["skill"]]
+        where = f"{pack.code}: main-tree grammar skill {r['skill']}"
+        if r["easy"] < r["target"] <= o["easy"]:
+            problems.append(f"{where}: {r['easy']} easy sentences without topic words (floor {r['target']}; "
+                            f"{o['easy']} with them)")
+        for key, target in (("slots", SLOT_TARGET), ("items", ITEM_TARGET)):
+            lost = sorted(x for x, v in (r.get(key) or {}).items() if v < target <= o[key][x])
+            for x in lost:
+                name = f"{x[0]} {x[1]}" if isinstance(x, tuple) else x
+                problems.append(f"{where}: {name} has {r[key][x]} easy sentences without topic words "
+                                f"(floor {target}; {o[key][x]} with them)")
+        below = sum(1 for v in (r.get("slots") or r.get("items") or {}).values()
+                    if v < (SLOT_TARGET if "slots" in r else ITEM_TARGET))
+        lines.append(f"{r['skill']:<26} easy {r['easy']:>6} (with topic words {o['easy']:>6})  "
+                     f"{'slots' if 'slots' in r else 'items'} below floor {below}")
+    lines.append(f"   {len(problems)} under the floor because of topic words")
+    return lines, problems
 
 
 def skill_words(pack: Pack, skill: str, mat: Material | None = None) -> dict[str, list[str]]:

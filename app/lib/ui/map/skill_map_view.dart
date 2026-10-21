@@ -746,6 +746,11 @@ class _SkillMapViewState extends State<SkillMapView> with SingleTickerProviderSt
                   if (onUnitStories != null && (storyCounts[layout.bands[markerNode.band].unitId] ?? 0) > 0)
                     Rect.fromLTWH(g.width - 8 - _storyButtonWidth, g.bandTop[markerNode.band], _storyButtonWidth,
                         g.headerOf(markerNode.band) + 8),
+                  // a topic branch's carving and "Go to …" button just above the stone
+                  for (final p in plan.branches) ...[
+                    if (w.onTopic != null) branchButtonRoom(p),
+                    if (p.carving case final c?) c.bounds,
+                  ],
                 ]) case (final rect, final mirrored))
                   Positioned.fromRect(
                     rect: rect,
@@ -776,27 +781,37 @@ class _SkillMapViewState extends State<SkillMapView> with SingleTickerProviderSt
   }
 }
 
+/// The room a topic branch's "Go to …" button may take: its whole slot (the
+/// button starts at [BranchPlan.buttonX] but moves in when the title is too
+/// long for the rest of the row), at least 48 dp tall around the slot's middle.
+Rect branchButtonRoom(BranchPlan p) {
+  final s = p.buttonSlot;
+  final half = math.max(s.height, 48.0) / 2 + 4;
+  return Rect.fromLTRB(s.left, s.center.dy - half, s.right, s.center.dy + half);
+}
+
 /// Where Tosk sits on [node]'s stone: peeking over its top-left edge; where
-/// that would cover the unit title's plaque of the node's band, mirrored over
-/// its top-right edge, else beside the stone (left or right, at its height,
-/// below the band's header), whichever first is clear of the plaque, of [avoid]
-/// (the band's stories button) and of the other stones in its row. The second
-/// value says whether Tosk is mirrored (on the right, facing left).
+/// that would cover the unit title's plaque of the node's band or [avoid] (the
+/// band's stories button, a topic branch's carving and "Go to …" button),
+/// mirrored over its top-right edge, else beside the stone (left or right, at
+/// its height, below the band's header), whichever first is clear of the
+/// plaque, of [avoid] and of the other stones in its row. The second value says
+/// whether Tosk is mirrored (on the right, facing left).
 (Rect, bool) markerRect(MapPlan plan, MapNode node, double size, {List<Rect> avoid = const []}) {
   final g = plan.geometry;
   final c = g.ringCenter(node);
   final top = c.dy - g.nodeBox / 2 - size * 0.55;
   final left = Rect.fromLTWH(c.dx - g.nodeBox / 2 - size * 0.7, top, size, size);
-  if (!plan.titles.containsKey(node.band)) return (left, false);
-  final plaque = plan.titleRect(node.band).inflate(2);
-  if (!left.overlaps(plaque)) return (left, false);
+  final plaque = plan.titles.containsKey(node.band) ? plan.titleRect(node.band).inflate(2) : null;
+  bool onPlaque(Rect r) => plaque != null && r.overlaps(plaque);
+  if (!onPlaque(left) && !avoid.any(left.overlaps)) return (left, false);
   final stones = [
     for (final n in g.layout.nodes)
       if (n != node && n.band == node.band && n.row == node.row)
         Rect.fromCircle(center: g.ringCenter(n), radius: g.nodeBox / 2),
   ];
   bool clear(Rect r) =>
-      !r.overlaps(plaque) && r.left >= 0 && r.right <= g.width && !avoid.any(r.overlaps) && !stones.any(r.overlaps);
+      !onPlaque(r) && r.left >= 0 && r.right <= g.width && !avoid.any(r.overlaps) && !stones.any(r.overlaps);
   final mid = c.dy - size / 2;
   for (final (r, mirrored) in [
     (Rect.fromLTWH(c.dx + g.nodeBox / 2 - size * 0.3, top, size, size), true),

@@ -219,7 +219,7 @@ class BoughShape {
       seed: seed,
       silhouette: silhouette,
       grain: grain,
-      shadow: Path.combine(PathOperation.intersect, shadow, silhouette),
+      shadow: _clipped(shadow, silhouette),
       hatchAngle: dirDeg + style.hatchAngle,
       creases: creases,
       outlines: outlines,
@@ -227,6 +227,18 @@ class BoughShape {
       twigBand: twigBand,
       leaf: leaf,
     );
+  }
+
+  /// [shadow] cut to [silhouette]. Skia's path ops can fail on very long,
+  /// wobbly boughs (an edge across many unit bands: a topic skill drawn at the
+  /// end of a flattened map, as apps before topics show it); the hatching band
+  /// lies inside the silhouette anyway, so it is used uncut then.
+  static Path _clipped(Path shadow, Path silhouette) {
+    try {
+      return Path.combine(PathOperation.intersect, shadow, silhouette);
+    } on StateError {
+      return shadow;
+    }
   }
 
   /// Paints the bough in [ink]; [leaf] false leaves the ash leaf out (the
