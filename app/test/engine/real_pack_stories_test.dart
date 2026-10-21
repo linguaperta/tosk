@@ -11,16 +11,30 @@ import 'package:tosk/engine/engine.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'real_packs.dart';
 
+/// Main-tree units left with one story when a story moved into a topic with
+/// its skill (docs/topic-split.md): Italian u15's crime story went to the
+/// topic `crimine` (pack 1.4.0). A second u15 story is still to be written.
+const _oneStoryLeft = {
+  'it': {'u15'},
+};
+
 void main() {
   for (final id in bundledPackIds()) {
     group('real pack $id stories', () {
       late CourseData course;
       setUpAll(() => course = loadCourseFile('assets/courses/$id.sqlite'));
 
-      test('2-3 stories per unit, 5-10 sentences and 3-5 questions each', () {
-        for (final u in course.units) {
+      test('2-3 stories per main-tree unit, 5-10 sentences and 3-5 questions each', () {
+        final trees = CourseTrees.of(course);
+        for (final u in trees.mainUnits) {
           final n = course.stories.where((s) => s.unitId == u.id).length;
-          expect(n, inInclusiveRange(2, 3), reason: 'unit ${u.id}');
+          expect(n, inInclusiveRange(_oneStoryLeft[id]?.contains(u.id) ?? false ? 1 : 2, 3), reason: 'unit ${u.id}');
+        }
+        // A topic's units may have stories of their own (none is fine).
+        for (final t in trees.topics) {
+          for (final u in trees.unitsOf(t.id)) {
+            expect(course.stories.where((s) => s.unitId == u.id).length, lessThanOrEqualTo(3), reason: 'unit ${u.id}');
+          }
         }
         for (final s in course.stories) {
           expect(s.sentences.length, inInclusiveRange(5, 10), reason: s.id);

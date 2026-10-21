@@ -94,15 +94,17 @@ units:
 
 # Optional: topics (pack format 1.2). A topic is a themed side tree with its own units and skills,
 # drawn as its own map; on the main tree a branch grows off its anchor skill ("Go to <title>").
-# Its skills may require main-tree skills (the anchor is the last of them) and earlier skills of the
-# same topic; words the learner already knows from any tree count as known. Uncomment to try it:
+# Its skills may require main-tree skills and earlier skills of the same topic; the anchor is where
+# the topic starts (the last main-tree skill its first skill requires), and a later skill may require
+# a later main-tree skill (it stays locked until that one is started). Words the learner already
+# knows from any tree count as known. Uncomment to try it:
 #
 # topics:
 #   - id: market
 #     title: {en: At the market}
 #     short_title: {en: Market}   # carved on the branch where the title doesn't fit
 #     icon: shopping
-#     anchor: things              # default: the deepest main-tree skill its skills require
+#     anchor: things              # default: the deepest main-tree skill its first skill requires
 #     units:
 #       - id: market-u1
 #         title: {en: Buying food}

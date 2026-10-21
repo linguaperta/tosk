@@ -45,5 +45,14 @@ void main() {
       await tapKey(tester, 'topic-go-cucina');
       await expectLater(find.byKey(appRootKey), matchesGoldenFile('goldens/topics_tree_$name.png'));
     });
+
+    // A locked topic skill with a late requirement: "needs The city · unit 3".
+    testWidgets('topic tree, a locked skill with its needs note, $name', (tester) async {
+      await _pump(tester, settings);
+      await tapKey(tester, 'topic-go-cucina');
+      await tester.ensureVisible(find.byKey(const ValueKey('skill-needs-recipes')));
+      await tester.pumpAndSettle();
+      await expectLater(find.byKey(appRootKey), matchesGoldenFile('goldens/topics_needs_$name.png'));
+    });
   }
 }

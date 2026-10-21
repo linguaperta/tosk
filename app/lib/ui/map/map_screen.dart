@@ -60,6 +60,26 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   void _showTree(String? tree) => ref.read(mapTreeProvider.notifier).show(tree);
 
+  /// Brings [skillId] into view in its own tree ([mapFocusProvider]): shows
+  /// that tree, then scrolls its unit's band to the top once it is built.
+  void _focus(String skillId) {
+    final course = ref.read(courseDataProvider).value;
+    final skill = course?.skill(skillId);
+    if (course == null || skill == null) return;
+    _showTree(CourseTrees.of(course).treeOf(skillId));
+    var frames = 0;
+    void tryJump(Duration _) {
+      if (!mounted) return;
+      if (_unitKeys[skill.unitId]?.currentContext != null) {
+        _jumpTo(skill.unitId);
+      } else if (++frames < 10) {
+        WidgetsBinding.instance.addPostFrameCallback(tryJump);
+      }
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback(tryJump);
+  }
+
   /// Switches the scroll controller when the tree changes: the old tree's
   /// offset is kept, the new one starts where it was left.
   void _followTree(String? tree) {
@@ -74,6 +94,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<String?>(mapFocusProvider, (_, skillId) {
+      if (skillId == null) return;
+      ref.read(mapFocusProvider.notifier).clear();
+      _focus(skillId);
+    });
     final course = ref.watch(courseDataProvider);
     final stats = ref.watch(skillStatsProvider);
     final lang = ref.watch(sourceLangProvider);
@@ -204,6 +229,16 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                               '${pickLang(anchor.title, lang)}',
                           onTap: () => _showTree(null),
                         ),
+                  // A locked topic skill that waits for a main-tree skill (its
+                  // anchor, or a later one it needs) says so under its title.
+                  needs: topic == null
+                      ? const {}
+                      : {
+                          for (final sk in trees.skillsOf(topic.id))
+                            if (topicSkillNeed(trees, sk.id, s) case final n?)
+                              sk.id: (skillId: n.skill.id, title: pickLang(n.skill.title, lang), unit: n.unit),
+                        },
+                  onNeeds: _focus,
                 ),
               ],
             ),

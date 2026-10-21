@@ -47,10 +47,20 @@ class SkillNode extends StatefulWidget {
     this.onLongPress,
     this.labelBackground,
     this.semanticsLabel,
+    this.needs,
+    this.needsUnit,
+    this.onNeeds,
   });
 
   /// Replaces the node's semantics label (a topic map's root: "Back to …").
   final String? semanticsLabel;
+
+  /// A locked topic skill waits for this main-tree skill (its title) in unit
+  /// [needsUnit]: shown under the title, in the days chip's place, as "needs
+  /// The conditional · unit 12"; a tap ([onNeeds]) goes there.
+  final String? needs;
+  final int? needsUnit;
+  final VoidCallback? onNeeds;
 
   final Skill skill;
   final String title;
@@ -94,6 +104,8 @@ class _SkillNodeState extends State<SkillNode> {
     final stone = NodePainter.stoneRadius(box, w.branchStyle.extent) * 2;
     final seed = inkSeed(w.skill.id);
 
+    final needs = days == null ? w.needs : null;
+    final needsUnit = w.needsUnit == null ? '' : ' · unit ${w.needsUnit}';
     final semantics = [
       w.title,
       if (locked) 'locked',
@@ -125,7 +137,8 @@ class _SkillNodeState extends State<SkillNode> {
       ),
     );
 
-    return Semantics(
+    final chipStyle = mapNodeChipStyle(theme)?.copyWith(color: theme.colorScheme.onSurfaceVariant);
+    final node = Semantics(
       button: true,
       label: w.semanticsLabel ?? semantics,
       excludeSemantics: true,
@@ -188,11 +201,50 @@ class _SkillNodeState extends State<SkillNode> {
                 daysAgoShort(days),
                 key: ValueKey('skill-days-${w.skill.id}'),
                 maxLines: 1,
-                style: mapNodeChipStyle(theme)?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                style: chipStyle,
               ),
             ),
         ],
       ),
+    );
+    if (needs == null) return node;
+    // The note sits in the days chip's place (the map reserves that line
+    // under every stone): the skill it waits for, ellipsized, and its unit.
+    final noteStyle = chipStyle?.copyWith(
+      color: mono ? kBwBlack : theme.colorScheme.onSurface,
+      decoration: w.onNeeds == null ? null : TextDecoration.underline,
+      decorationColor: mono ? kBwBlack : theme.colorScheme.onSurfaceVariant,
+    );
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        node,
+        Semantics(
+          button: w.onNeeds != null,
+          label: 'Needs $needs${w.needsUnit == null ? '' : ', unit ${w.needsUnit}'}'
+              '${w.onNeeds == null ? '' : ': go there in the main tree'}',
+          excludeSemantics: true,
+          child: GestureDetector(
+            key: ValueKey('skill-needs-${w.skill.id}'),
+            behavior: HitTestBehavior.opaque,
+            onTap: w.onNeeds,
+            child: _LabelBox(
+              color: w.labelBackground,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.lock_outline, size: (noteStyle?.fontSize ?? 11) + 1, color: noteStyle?.color),
+                  const SizedBox(width: 2),
+                  Flexible(
+                    child: Text('needs $needs', maxLines: 1, overflow: TextOverflow.ellipsis, style: noteStyle),
+                  ),
+                  if (needsUnit.isNotEmpty) Text(needsUnit, maxLines: 1, style: noteStyle),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

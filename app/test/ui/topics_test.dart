@@ -12,7 +12,9 @@ import 'package:tosk/engine/engine.dart';
 import 'package:tosk/providers.dart';
 import 'package:tosk/ui/map/map_layout.dart';
 import 'package:tosk/ui/map/skill_map_view.dart';
+import 'package:tosk/ui/map/skill_stats.dart';
 import 'package:tosk/ui/map/topic_branch.dart';
+import 'package:tosk/ui/map/tree_selector.dart';
 import 'package:tosk/ui/settings/setting_keys.dart';
 
 import '../fixtures/course_fixture.dart';
@@ -71,6 +73,29 @@ void main() {
       expect(l.node('food-basics')!.band, 0);
       expect(l.edges, containsAll([const MapEdge('food-basics', 'cooking'), const MapEdge('food-basics', 'market')]));
       expect(l.edges, contains(const MapEdge('cooking', 'restaurant')));
+      // recipes' late main-tree requirement (city) draws no bough to the root
+      expect(l.edges.where((e) => e.to == 'recipes').map((e) => e.from), ['restaurant']);
+    });
+
+    test('late requirements: a topic skill may need a later main-tree skill', () {
+      expect(trees.mainRequirements('recipes'), ['city']);
+      expect(trees.mainRequirements('cooking'), ['food-basics']);
+      expect(trees.mainRequirements('restaurant'), isEmpty);
+      expect(trees.mainRequirements('city'), isEmpty);
+      expect(trees.mainUnitNumber('city'), 3);
+      expect(trees.mainUnitNumber('recipes'), isNull);
+      final stats = topicStats();
+      final need = topicSkillNeed(trees, 'recipes', stats)!;
+      expect(need.skill.id, 'city');
+      expect(topicNeedText(need, 'en'), 'The city · unit 3');
+      // the topic's first skill waits for the anchor; open skills wait for nothing
+      expect(topicSkillNeed(trees, 'station', stats)!.skill.id, 'city-life');
+      expect(topicSkillNeed(trees, 'cooking', stats), isNull);
+      expect(topicSkillNeed(trees, 'restaurant', stats), isNull); // locked by its own topic only
+      expect(topicSkillNeed(trees, 'city', stats), isNull); // a main-tree skill
+      // once city is started, recipes waits for restaurant only
+      final started = {...stats, 'city': SkillStats(tier: MapTier.started, lastPracticed: testNow)};
+      expect(topicSkillNeed(trees, 'recipes', started), isNull);
     });
   });
 
@@ -180,6 +205,12 @@ void main() {
       expect(find.byKey(const ValueKey('tree-title')), findsOneWidget);
       expect(find.byKey(const ValueKey('skill-node-cooking')), findsOneWidget);
       expect(find.byKey(const ValueKey('skill-node-city')), findsNothing);
+      // Tosk (on cooking, first row) never covers the unit title's plaque.
+      expect(
+        tester.getRect(find.byKey(const ValueKey('tosk-marker'))).overlaps(
+            tester.getRect(find.byKey(const ValueKey('band-title-cucina-u1')))),
+        isFalse,
+      );
       expect(find.bySemanticsLabel(RegExp('^Back to the Italian main tree')), findsOneWidget);
       expect(_mapView(tester).branches, isEmpty);
 
@@ -207,6 +238,44 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('map-scroll-viaggi')), findsOneWidget);
       expect(find.text('From Italian · City life'), findsOneWidget);
+    });
+
+    testWidgets('a locked topic skill says what it needs from the main tree, and goes there', (tester) async {
+      final handle = tester.ensureSemantics();
+      await _pump(tester);
+      await tapKey(tester, 'topic-go-cucina');
+      final note = find.byKey(const ValueKey('skill-needs-recipes'));
+      await tester.ensureVisible(note);
+      await tester.pumpAndSettle();
+      expect(find.descendant(of: note, matching: find.text('needs The city')), findsOneWidget);
+      expect(find.descendant(of: note, matching: find.text(' · unit 3')), findsOneWidget);
+      expect(find.bySemanticsLabel('Needs The city, unit 3: go there in the main tree'), findsOneWidget);
+      expect(find.byKey(const ValueKey('skill-needs-cooking')), findsNothing);
+      expect(find.byKey(const ValueKey('skill-needs-restaurant')), findsNothing);
+      // The note is inside the node's label room: no overlap with the next row.
+      expect(tester.takeException(), isNull);
+      await tester.tap(note);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('map-scroll')), findsOneWidget);
+      final band = tester.getRect(find.byKey(const ValueKey('band-title-u3')));
+      expect(band.top, inInclusiveRange(0, 300));
+      handle.dispose();
+    });
+
+    testWidgets('the skill sheet of a locked topic skill names the main-tree skill and goes there', (tester) async {
+      await _pump(tester);
+      await tapKey(tester, 'topic-go-cucina');
+      await tester.ensureVisible(find.byKey(const ValueKey('skill-node-recipes')));
+      await tester.pumpAndSettle();
+      await tapKey(tester, 'skill-node-recipes');
+      expect(find.text('Needs The city from unit 3 of the main tree. It opens once you have started it.'), findsOneWidget);
+      // the other prerequisite (of the topic) is still recommended; the main-tree one isn't repeated
+      expect(find.text('Recommended first: At the restaurant. You can start this one anyway.'), findsOneWidget);
+      expect(find.text('Go to unit 3'), findsOneWidget);
+      await tapKey(tester, 'skill-needs-go');
+      expect(find.byKey(const ValueKey('skill-needs')), findsNothing);
+      expect(find.byKey(const ValueKey('map-scroll')), findsOneWidget);
+      expect(tester.getRect(find.byKey(const ValueKey('band-title-u3'))).top, inInclusiveRange(0, 300));
     });
 
     testWidgets('a topic skill sheet says how many words are already known', (tester) async {

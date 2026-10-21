@@ -4,8 +4,10 @@
 /// 2 units and 4 skills, and "Travel and holidays" anchored at the main
 /// tree's last skill (`city-life`) with 1 unit and 3 skills. Topic skills
 /// share some words with the main tree (`pane`, `vino`, `treno`), so "already
-/// known" counts have something to count. The real it/nl/es content is not
-/// split yet (docs/topic-split-proposal.md).
+/// known" counts have something to count. `recipes` also requires the main
+/// tree's `city` (unit 3), later than its topic's anchor: a late requirement,
+/// shown as "needs The city · unit 3" while `city` isn't started. The real
+/// split of it/nl/es is in docs/topic-split.md.
 library;
 
 import 'package:tosk/core/core.dart';
@@ -70,7 +72,7 @@ InMemoryCourseData topicCourse() {
   b.vocabSkill('restaurant', 0, 'At the restaurant', 'In het restaurant', ['cameriere', 'conto', 'menù', 'vino', 'acqua'],
       requires: ['cooking', 'market']);
   words([('ricetta', 'recipe', 'recept'), ('olio', 'oil', 'olie'), ('aglio', 'garlic', 'knoflook')]);
-  b.vocabSkill('recipes', 1, 'Recipes', 'Recepten', ['ricetta', 'olio', 'aglio', 'sale'], requires: ['restaurant']);
+  b.vocabSkill('recipes', 1, 'Recipes', 'Recepten', ['ricetta', 'olio', 'aglio', 'sale'], requires: ['restaurant', 'city']);
 
   // ---- topic: Travel and holidays (anchored at the main tree's last skill)
   b.topic('viaggi', 1, 'Travel and holidays', 'Reizen en vakantie', anchor: 'city-life', shortEn: 'Travel', icon: 'travel');

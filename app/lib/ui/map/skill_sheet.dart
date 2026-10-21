@@ -14,6 +14,7 @@ import 'ink_art.dart';
 import 'node_painter.dart';
 import 'skill_node.dart' show nodeIconColor;
 import 'skill_stats.dart';
+import 'tree_selector.dart' show topicNeedSentence, topicSkillNeed;
 
 /// What a skill is and where the learner stands, then what to do with it.
 ///
@@ -46,7 +47,8 @@ class _SkillSheetState extends ConsumerState<SkillSheet> {
       return const SizedBox(height: 200, child: Center(child: Text('Skill not found')));
     }
     final lang = ref.watch(sourceLangProvider);
-    final stats = ref.watch(skillStatsProvider).value?[skill.id] ?? SkillStats.empty;
+    final allStats = ref.watch(skillStatsProvider).value ?? const <String, SkillStats>{};
+    final stats = allStats[skill.id] ?? SkillStats.empty;
     final focus = _focus ?? ref.watch(settingsProvider).value?.defaultFocus ?? LessonFocus.mixed;
     final length = _length ?? ref.watch(settingsProvider).value?.defaultLength ?? SessionLength.normal;
     final note = course.note(skill.id, lang);
@@ -58,6 +60,14 @@ class _SkillSheetState extends ConsumerState<SkillSheet> {
     final needs = ref.watch(skillNextTierProvider(skill.id)).value;
     final noun = skillItemNoun(course.skillFacets(skill.id));
     final description = skillDescription(note, items, lang);
+    final need = topicSkillNeed(CourseTrees.of(course), skill.id, allStats);
+    // What to do first when locked (the main-tree skill a topic skill waits
+    // for has its own line above).
+    final recommended = [
+      for (final r in skill.requires)
+        if (r != need?.skill.id)
+          if (course.skill(r) case final req?) pickLang(req.title, lang),
+    ];
 
     return DraggableScrollableSheet(
       expand: false,
@@ -141,9 +151,41 @@ class _SkillSheetState extends ConsumerState<SkillSheet> {
             ),
             if (stats.tier == MapTier.locked) ...[
               const SizedBox(height: 8),
+              // A topic skill waiting for a main-tree skill (the topic's
+              // anchor, or a later one this skill needs): which, where, and a
+              // way there.
+              if (need != null) ...[
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.lock_outline, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        topicNeedSentence(need, lang),
+                        key: const ValueKey('skill-needs'),
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                    ),
+                  ],
+                ),
+                Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: TextButton.icon(
+                    key: const ValueKey('skill-needs-go'),
+                    onPressed: () {
+                      ref.read(mapFocusProvider.notifier).focus(need.skill.id);
+                      Navigator.of(context).pop();
+                    },
+                    icon: const Icon(Icons.arrow_forward),
+                    label: Text(need.unit == null ? 'Go there' : 'Go to unit ${need.unit}'),
+                  ),
+                ),
+              ],
               Text(
-                'Recommended first: ${[for (final r in skill.requires)
-                  if (course.skill(r) case final req?) pickLang(req.title, lang)].join(', ')}. You can start this one anyway.',
+                recommended.isEmpty
+                    ? 'You can start this one anyway.'
+                    : 'Recommended first: ${recommended.join(', ')}. You can start this one anyway.',
                 key: const ValueKey('skill-locked-hint'),
                 style: theme.textTheme.bodyMedium,
               ),

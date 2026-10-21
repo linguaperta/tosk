@@ -19,8 +19,38 @@ import 'skill_stats.dart';
   return (started: started, total: skills.length);
 }
 
-String topicProgressText(({int started, int total}) p) =>
-    p.started == 0 ? '${p.total} skills, not started' : '${p.started} of ${p.total} skills started';
+String topicProgressText(({int started, int total}) p) {
+  final skills = p.total == 1 ? 'skill' : 'skills';
+  return p.started == 0 ? '${p.total} $skills, not started' : '${p.started} of ${p.total} $skills started';
+}
+
+/// A main-tree skill a topic skill waits for, and its unit's number.
+typedef TopicNeed = ({Skill skill, int? unit});
+
+/// What locked topic skill [skillId] still needs from the main tree: the last
+/// (in course order) of its main-tree requirements that is not started yet,
+/// so "needs The conditional · unit 12" (pack format 1.2: a topic starts at
+/// its anchor, and a later skill of it may require a later main-tree skill;
+/// it stays locked until that skill is started). Null for a main-tree skill,
+/// a skill that isn't locked, or when every main-tree requirement is started.
+TopicNeed? topicSkillNeed(CourseTrees trees, String skillId, Map<String, SkillStats> stats) {
+  if (!trees.inTopic(skillId) || (stats[skillId]?.tier ?? MapTier.available) != MapTier.locked) return null;
+  for (final r in trees.mainRequirements(skillId).reversed) {
+    if ((stats[r]?.tier.index ?? 0) >= MapTier.started.index) continue;
+    if (trees.course.skill(r) case final s?) return (skill: s, unit: trees.mainUnitNumber(r));
+  }
+  return null;
+}
+
+/// "The conditional: parlerei · unit 12".
+String topicNeedText(TopicNeed n, String lang) =>
+    '${pickLang(n.skill.title, lang)}${n.unit == null ? '' : ' · unit ${n.unit}'}';
+
+/// The skill sheet's line: "Needs The conditional: parlerei from unit 12 of
+/// the main tree. It opens once you have started it."
+String topicNeedSentence(TopicNeed n, String lang) =>
+    'Needs ${pickLang(n.skill.title, lang)} ${n.unit == null ? 'from' : 'from unit ${n.unit} of'} the main tree. '
+    'It opens once you have started it.';
 
 /// The tree menu in the map's app bar. [onSelect] gets the chosen tree
 /// (null: the main tree); without topics it is just the course title.

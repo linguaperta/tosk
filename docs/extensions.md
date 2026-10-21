@@ -2,7 +2,7 @@
 
 *Design agreed with the owner, 20 October 2026. Scope now: **topic expansions**. Books (a guided e-reader) and moving the stories into that model come later.*
 
-**Status (21 October 2026): built-in topics are implemented**: pack format 1.2 (`topics:` in course.yaml, compiled `topics` / `topic_units`, schema minor 3, docs/pack-format.md 3.3), the validator rules, and the app (branches with a carved name and "Go to …" on the main tree, topic maps, the tree menu, "N of M words already known"; docs/ui.md "Topic trees"). Not yet: extension packs with `extends` (separately installed topics), per-unit anchors, books. The proposed split of the real courses is in [topic-split-proposal.md](topic-split-proposal.md) (not applied).
+**Status (21 October 2026): built-in topics are implemented**: pack format 1.2 (`topics:` in course.yaml, compiled `topics` / `topic_units`, schema minor 3, docs/pack-format.md 3.3), the validator rules, and the app (branches with a carved name and "Go to …" on the main tree, topic maps, the tree menu, "N of M words already known"; docs/ui.md "Topic trees"). Not yet: extension packs with `extends` (separately installed topics), books. **Amended 21 October** (owner decisions): a topic's anchor is its entry point, and later skills of a topic may require later main-tree skills (late requirements; locked with a "needs …" note until started). **The split of the real courses is applied** under a strict rule (packs it 1.4.0 and nl 1.3.0): see [topic-split.md](topic-split.md).
 
 An expansion adds content to a base course (e.g. Italian) **and shares the learner's progress with it**: a word the base course already taught keeps its progress in the expansion, and a word two expansions share has one progress.
 
@@ -30,14 +30,14 @@ An expansion adds content to a base course (e.g. Italian) **and shares the learn
 topics:
   - id: cucina
     title: {en: "Food and cooking"}
-    anchor: it.skill.food-basics   # the last required skill in the main tree
+    anchor: it.skill.food-basics   # where the topic starts: the last main-tree skill its first skill requires
     icon: food
     units: [...]                    # same unit/skill structure as the main tree
 ```
 
-- A topic's skills may require skills from the main tree (the anchor is the last required one) and from earlier skills in the same topic.
-- `anchor` defaults to the deepest main-tree skill among the topic's requirements.
-- Validator: the anchor exists and is in the main tree (or the base course for an extension pack); no requirement cycles across trees; topic skill ids unique in the family. As built: every other main-tree requirement of the topic is a prerequisite of the anchor or a sibling no deeper than it; main-tree skills require no topic skill and use no topic's words; a sentence touching several trees has one home skill per tree.
+- A topic's skills may require skills from the main tree and from earlier skills in the same topic.
+- The **anchor is the topic's entry point**: the last main-tree skill its first skill requires (`anchor` defaults to the deepest of those). A later skill of the topic may require a later main-tree skill (a **late requirement**): it stays locked, with a note on its node and in its sheet ("needs Condizionale · unit 12", which leads there), until that skill is started.
+- Validator: the anchor exists and is in the main tree (or the base course for an extension pack); no requirement cycles across trees; topic skill ids unique in the family. As built: every other main-tree requirement of the topic's first skill is a prerequisite of the anchor or a sibling no deeper than it (later skills may have late requirements); main-tree skills require no topic skill and use no topic's words; a sentence touching several trees has one home skill per tree.
 
 ## In the app
 
@@ -55,7 +55,9 @@ topics:
 
 ## Tidying the existing courses
 
-Move self-contained vocabulary clusters out of the main trees into built-in topics, so the main tree stays focused on grammar and core vocabulary. Rule of thumb: a vocab skill whose words no later grammar skill needs, and whose theme forms a coherent group (food, animals, clothes, weather, hobbies, travel, work, home…), becomes a topic anchored at its last requirement. Ids stay the same, so existing progress is kept. The split per course is proposed in a review doc for the owner before it ships.
+Move self-contained vocabulary clusters out of the main trees into built-in topics, so the main tree stays focused on grammar and core vocabulary. Ids stay the same, so existing progress is kept.
+
+**The rule (owner decision, 20–21 October):** a skill moves into a topic only if the rest of the main tree below it can skip it: no later main-tree skill depends on it, not as a prerequisite, not for the words its lessons, sentences or stories use (after gating), not for grammar. If anything further down needs it, it stays in the main tree. So there are no story rewrites and no re-pointed main-tree skills. Applied in [topic-split.md](topic-split.md): Italian `crime` (topic *Crime and investigation*, grown where the passato remoto is taught) and Dutch `clothes` (topic *Clothes*); nothing in Spanish.
 
 ## Books (later)
 

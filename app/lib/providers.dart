@@ -252,10 +252,13 @@ final mapLayoutProvider = FutureProvider<MapLayout>((ref) async {
 const String kTopicRootUnit = '~root';
 
 /// The skills of [topic]'s map: its root (the anchor skill, in the
-/// [kTopicRootUnit] band) and the topic's skills, whose main-tree
-/// prerequisites all hang from the root.
+/// [kTopicRootUnit] band) and the topic's skills. A skill that requires no
+/// skill of the topic hangs from the root; the main-tree requirements of the
+/// others draw no bough (a later main-tree skill one of them needs is a note
+/// on its node instead, see `topicSkillNeed`).
 List<Skill> topicMapSkills(CourseTrees trees, Topic topic) {
   final anchor = trees.course.skill(topic.anchor);
+  bool rootOfTopic(Skill s) => !s.requires.any((r) => trees.treeOf(r) == topic.id);
   return [
     if (anchor != null)
       Skill(
@@ -281,7 +284,10 @@ List<Skill> topicMapSkills(CourseTrees trees, Topic topic) {
         posY: s.posY,
         requires: {
           for (final r in s.requires)
-            if (trees.treeOf(r) == topic.id) r else if (anchor != null && trees.course.skill(r) != null) anchor.id,
+            if (trees.treeOf(r) == topic.id)
+              r
+            else if (anchor != null && rootOfTopic(s) && trees.course.skill(r) != null)
+              anchor.id,
         }.toList(),
       ),
   ];
@@ -311,6 +317,23 @@ class MapTree extends Notifier<String?> {
   }
 
   void show(String? tree) => state = tree;
+}
+
+/// A skill the map should bring into view, in its own tree (a locked topic
+/// skill's "needs The conditional · unit 12" goes to that main-tree skill).
+/// The map screen switches the tree, scrolls to the skill's unit and clears it.
+final mapFocusProvider = NotifierProvider<MapFocus, String?>(MapFocus.new);
+
+class MapFocus extends Notifier<String?> {
+  @override
+  String? build() {
+    ref.watch(activeCourseIdProvider);
+    return null;
+  }
+
+  void focus(String skillId) => state = skillId;
+
+  void clear() => state = null;
 }
 
 /// How many of [skillId]'s words the learner already knows (any facet of the

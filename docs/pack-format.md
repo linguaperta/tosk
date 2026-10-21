@@ -1,6 +1,6 @@
 # Pack format 1.2
 
-*Status: **1.2**, 21 October 2026 (1.2 adds built-in topic trees, sections 3.3, 13 and 16; 1.1 added moods and recognition-only skills, sections 3, 12.5 and 15; everything of 1.0 is unchanged). Draft parts are marked **DRAFT**. Normative words (MUST, SHOULD, MAY) are used as in RFC 2119.*
+*Status: **1.2**, 21 October 2026 (1.2 adds built-in topic trees, sections 3.3, 9, 13 and 16, amended before publication: a topic's anchor is its entry point and later topic skills may have late requirements; 1.1 added moods and recognition-only skills, sections 3, 12.5 and 15; everything of 1.0 is unchanged). Draft parts are marked **DRAFT**. Normative words (MUST, SHOULD, MAY) are used as in RFC 2119.*
 
 A **language pack** is everything the app knows about one course: the words, their conjugation and inflection tables, example sentences with translations, grammar notes, the course structure (units, skills and their prerequisites), graded stories, and credits. The app is a player for packs; it contains no knowledge of any language. This document specifies the format so that anyone can make a pack, build it, and host it without reading the project's code.
 
@@ -126,7 +126,7 @@ An **i18n** value is a mapping from language code to a non-empty string: `{en: "
 | `id` | yes | `^[a-z0-9][a-z0-9_-]*$`, unique in the course (not only the unit) |
 | `kind` | yes | `vocab` or `grammar`. Grammar skills need grammar notes, get a stricter unknown-word cap in sentences, and are the only ones that may use `verbs` |
 | `title` | yes | i18n |
-| `icon` | no | icon key; unknown keys get a default icon. Known: `wave greetings hello food drink family people person home house city travel time clock calendar number numbers color colors animal animals work school body clothes weather nature shopping question verb verbs conjugation past future article articles grammar book star chat` |
+| `icon` | no | icon key; unknown keys get a default icon. Known: `wave greetings hello food drink family people person home house city travel time clock calendar number numbers color colors animal animals work school body clothes weather nature shopping question search investigation verb verbs conjugation past future article articles grammar book star chat` |
 | `requires` | no | skill ids that are prerequisites (a DAG). A skill is *available* on the map once every prerequisite has at least one practised facet; prerequisites also widen what grammar the skill's sentences may use (section 12.4) |
 | `introduces` | no | grammar features this skill teaches (a `verbs` skill also introduces `tense:{T}` by itself) |
 | `items` | one of | an items query (below): the skill trains items |
@@ -170,16 +170,21 @@ topics:
     title: {en: "Food and cooking", nl: "Eten en koken"}
     short_title: {en: "Food", nl: "Eten"}   # optional: for the carving when the title doesn't fit
     icon: food                       # optional, the skill icon keys
-    anchor: food-basics              # optional: default the deepest main-tree requirement
+    anchor: food-basics              # optional: default the first skill's deepest main-tree requirement
     units:                           # units and skills exactly as in `units` (sections 3.1, 3.2)
       - id: cucina-u1
         title: {en: "In the kitchen"}
         skills:
-          - id: cucina-1
+          - id: cucina-1             # the first skill: where the topic starts
             kind: vocab
             title: {en: "Cooking"}
             requires: [food-basics]  # main-tree skills and earlier skills of this topic
             items: {tags: [cooking]}
+          - id: cucina-2
+            kind: vocab
+            title: {en: "Recipes"}
+            requires: [cucina-1, imperative]   # a later main-tree skill: a late requirement
+            items: {tags: [recipes]}
 ```
 
 | Key | Req. | Meaning |
@@ -189,16 +194,18 @@ topics:
 | `short_title` | no | i18n; the app carves it on the branch when `title` is too long (default: the title's first word) |
 | `description` | no | i18n |
 | `icon` | no | icon key (section 3.2) |
-| `anchor` | no | the main-tree skill the topic's branch grows from: the **last** main-tree skill its skills require. Default: the deepest of the main-tree skills the topic's skills require (longest prerequisite path; ties: the later in course order) |
+| `anchor` | no | the main-tree skill the topic's branch grows from: the topic's **entry point**, the last main-tree skill its **first skill** (the first unit's first skill) requires. Default: the deepest of the main-tree skills the first skill requires (longest prerequisite path; ties: the later in course order) |
 | `units` | yes | the topic's units, at least one |
 
 Rules:
 
 - **Course order** is the main tree's units, then each topic's units in `topics` order. So a facet shared with the main tree is introduced by its main-tree skill, and unit and skill ids are unique over every tree.
-- **Requirements.** A topic skill may require main-tree skills and skills of its own topic; never another topic's. A main-tree skill never requires a topic skill. Every main-tree skill a topic requires is the anchor, a prerequisite of it, or a sibling no deeper than it (the anchor is the last one: `kitchen` may require both `colours` and `possessives`).
+- **Requirements.** A topic skill may require main-tree skills and skills of its own topic; never another topic's. A main-tree skill never requires a topic skill. Every main-tree skill the topic's first skill requires is the anchor, a prerequisite of it, or a sibling no deeper than it (the anchor is the last one: `kitchen` may require both `colours` and `possessives`).
+- **Late requirements.** A later skill of the topic may require main-tree skills that come after the anchor (`cucina-2` needs the imperative: a recipe is written in it). The topic opens at its anchor, and such a skill stays locked until those main-tree skills are started; the app says so on its node and in its sheet ("needs The imperative · unit 11", which leads there).
 - **Words.** A topic skill may select items of the main tree, of its own topic (a unit no later than the skill's) and of other topics (a word two topics share is one item with one progress). An item whose `unit` is a topic unit is introduced by that topic; **a main-tree skill MUST NOT select it** (the main tree cannot need words of a side tree). Moving a main-tree vocab skill into a topic keeps its ids, so progress is kept.
-- **Unlocking.** A topic skill is available like any skill (every prerequisite practised); the app shows the branch and the topic as locked until the anchor is started, and the topic can be browsed before.
-- **Grammar** comes from the main tree: gating, the home-skill rule and notes work unchanged across trees (a topic skill's prerequisites include its main-tree requirements).
+- **Unlocking.** A topic skill is available like any skill (every prerequisite started); the app shows the branch and the topic as locked until the anchor is started, and the topic can be browsed before. A locked topic skill names the main-tree skill it waits for (the anchor, or a late requirement).
+- **Grammar** comes from the main tree: gating, the home-skill rule and notes work unchanged across trees (a topic skill's prerequisites include its main-tree requirements, late ones too).
+- **Stories** (section 9) may belong to a topic unit. Such a story may use the words of its topic up to its unit and the main tree's words and grammar up to the last main-tree unit that the topic's skills up to its unit require (anchor and late requirements alike). A main-tree story never uses a topic's words (except as its one declared new word).
 - **Separately installed topics** (an extension pack with `extends`) are not part of 1.2 (section 20); built-in and installed topics will behave the same in the app.
 
 ## 4. Lexicon (`lexicon/*.jsonl`)
@@ -329,7 +336,7 @@ Graded reading per unit: 2–3 short stories per unit that use only what the lea
       why: {en: "Sentence 1.", nl: "Zin 1."}             # optional explanation
 ```
 
-At build time every text is tokenised and aligned with the **pipeline's language rules** for the course; every word must be aligned to an item taught by the story's unit (or be its one new word, a name or a number), and its grammar features must be allowed at the unit. Story sentences are compiled into `sentences`/`tokens` with ids `st:{storyId}.{n}` and `src: claude-gen (story: {storyId})` (the build labels every story as Claude-written; open issue 20); the app keeps them out of the exercise pool. **Stories therefore need a language the pipeline supports** (section 17.2); a pack in another language cannot have stories yet (the validator says so).
+At build time every text is tokenised and aligned with the **pipeline's language rules** for the course; every word must be aligned to an item taught by the story's unit (or be its one new word, a name or a number), and its grammar features must be allowed at the unit. (1.2) A story of a topic unit counts as taught what its topic teaches up to its unit, plus the main tree up to the last main-tree unit the topic's skills so far require (section 3.3). Story sentences are compiled into `sentences`/`tokens` with ids `st:{storyId}.{n}` and `src: claude-gen (story: {storyId})` (the build labels every story as Claude-written; open issue 20); the app keeps them out of the exercise pool. **Stories therefore need a language the pipeline supports** (section 17.2); a pack in another language cannot have stories yet (the validator says so).
 
 ## 10. Identifiers
 
@@ -638,7 +645,7 @@ Generic:
 11. Verb tables: tenses declared or non-finite; persons declared or `_`; non-finite tenses use `_` only; `stem` + `ending` both or neither, and equal to `form`.
 12. Inflection tables: `base` is a cell; labels name cells; an item's table is declared, allowed for its POS, has exactly the declared cells; stem + ending = form; `alts` don't repeat `form`; `wrong` forms are no form of the table. A `facet: infl` skill names a table; every trained table is declared; an `inflections` skill has at least one item that inflects.
 13. Tokens re-render the text; every `lex` exists; a verb `form` exists in the verb's table; an `infl:` form exists for the item and the token text is an accepted form of the cell.
-14b. (1.2) Topics: topic ids are unique; unit and skill ids are unique over every tree; the anchor (given or default) exists and is a main-tree skill, and every main-tree skill the topic requires is the anchor, one of its prerequisites or a sibling no deeper than it; a topic without main-tree requirements names its anchor; main-tree skills require no topic skill, topic skills no other topic's skill; no prerequisite cycle across trees; a main-tree skill selects no item introduced in a topic unit.
+14b. (1.2) Topics: topic ids are unique; unit and skill ids are unique over every tree; the anchor (given or default) exists and is a main-tree skill, and every main-tree skill the topic's first skill requires is the anchor, one of its prerequisites or a sibling no deeper than it (later skills of the topic may require later main-tree skills: late requirements); a topic whose first skill requires no main-tree skill names its anchor; main-tree skills require no topic skill, topic skills no other topic's skill; no prerequisite cycle across trees; a main-tree skill selects no item introduced in a topic unit.
 14a. (1.1) `tense_persons`, `tense_person_labels` and `tense_groups` name declared tenses (and persons); `recognition` is not combined with `facet`; `equivalent_tense` belongs to a recognition verbs skill and names another declared tense.
 14. Grammar gating: detector types are known; every base feature and `introduces` entry is a tense feature or has a detector; every sentence feature is introduced by some skill or the base set, and allowed at the sentence's home skill (only when `base_features` is declared).
 
@@ -791,15 +798,17 @@ units:
 
 # Optional: topics (pack format 1.2). A topic is a themed side tree with its own units and skills,
 # drawn as its own map; on the main tree a branch grows off its anchor skill ("Go to <title>").
-# Its skills may require main-tree skills (the anchor is the last of them) and earlier skills of the
-# same topic; words the learner already knows from any tree count as known. Uncomment to try it:
+# Its skills may require main-tree skills and earlier skills of the same topic; the anchor is where
+# the topic starts (the last main-tree skill its first skill requires), and a later skill may require
+# a later main-tree skill (it stays locked until that one is started). Words the learner already
+# knows from any tree count as known. Uncomment to try it:
 #
 # topics:
 #   - id: market
 #     title: {en: At the market}
 #     short_title: {en: Market}   # carved on the branch where the title doesn't fit
 #     icon: shopping
-#     anchor: things              # default: the deepest main-tree skill its skills require
+#     anchor: things              # default: the deepest main-tree skill its first skill requires
 #     units:
 #       - id: market-u1
 #         title: {en: Buying food}

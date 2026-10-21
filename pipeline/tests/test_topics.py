@@ -7,7 +7,7 @@ import pytest
 
 from pipeline.compile import COURSE_DB_SCHEMA_MINOR_TOPICS, compile_pack
 from pipeline.content import all_units, load_pack, skill_topics, write_jsonl
-from pipeline.topics import default_anchor
+from pipeline.topics import default_anchor, late_requirements
 from pipeline.validate import validate
 
 from test_validate import edit_course, skill
@@ -96,9 +96,46 @@ def test_course_order_is_main_tree_then_topics(topic_pack):
 
 def test_default_anchor_is_the_deepest_main_tree_requirement(topic_pack):
     c = load_pack(topic_pack).course
-    # cibo requires greetings (depth 0) and articles (depth 1)
+    # cibo's first skill requires greetings (depth 0) and articles (depth 1)
     assert default_anchor(c, c["topics"][0]) == "articles"
     assert default_anchor(c, c["topics"][1]) == "passato"
+
+
+def test_anchor_is_the_entry_point_and_later_skills_may_require_later_main_skills(topic_pack):
+    """The anchor is where the topic starts (its first skill's last main-tree requirement); a later
+    skill of the topic may require a later main-tree skill (a late requirement: locked, with a
+    note, until it is started)."""
+    t = food_topic()
+    t["units"][0]["skills"][1]["requires"] = ["cibo-words", "passato"]
+    set_topics(topic_pack, t, travel_topic())
+    assert errors(topic_pack) == []
+    c = load_pack(topic_pack).course
+    assert default_anchor(c, c["topics"][0]) == "articles"
+    assert late_requirements(c, c["topics"][0]) == {"cibo-more": ["passato"]}
+    assert late_requirements(c, c["topics"][1]) == {}
+    # a second root of the topic (no requirement inside it) may come later too
+    v = travel_topic()
+    v["units"][0]["skills"][0]["requires"] = ["greetings"]
+    v["units"][0]["skills"].append({"id": "viaggio-more", "kind": "vocab", "title": {"en": "More", "nl": "Meer"},
+                                    "requires": ["passato"], "items": {"lemmas": ["libro", "zio"], "min": 2}})
+    set_topics(topic_pack, t, v)
+    assert errors(topic_pack) == []
+    c = load_pack(topic_pack).course
+    assert default_anchor(c, c["topics"][1]) == "greetings"
+    assert late_requirements(c, c["topics"][1]) == {"viaggio-more": ["passato"]}
+
+
+def test_compiled_anchor_is_the_entry_point(topic_pack, tmp_path):
+    t = food_topic()
+    t["units"][0]["skills"][1]["requires"] = ["cibo-words", "passato"]
+    set_topics(topic_pack, t, travel_topic())
+    out = tmp_path / "it.sqlite"
+    compile_pack(load_pack(topic_pack), out, built_at="2026-01-01T00:00:00Z")
+    con = sqlite3.connect(out)
+    assert con.execute("SELECT anchor FROM topics WHERE id = 'cibo'").fetchone() == ("articles",)
+    # the late requirement is an ordinary prerequisite (the app locks and labels it)
+    assert set(con.execute("SELECT requires_id FROM skill_requires WHERE skill_id = 'cibo-more'")) == {
+        ("cibo-words",), ("passato",)}
 
 
 def test_compiled_topics(topic_pack, tmp_path):
@@ -154,8 +191,9 @@ def test_pack_without_topics_keeps_its_minor(mini_pack_dir, tmp_path):
 def test_explicit_anchor(topic_pack):
     set_topics(topic_pack, food_topic(anchor="greetings"), travel_topic())
     errs = errors(topic_pack)
-    # articles (depth 1) is required, and comes after greetings (depth 0)
-    assert any("['articles'] that come after its anchor 'greetings'" in e for e in errs), errs
+    # the first skill requires articles (depth 1), which comes after greetings (depth 0)
+    assert any("its first skill cibo-words requires main-tree skills ['articles'] that come after its anchor "
+               "'greetings'" in e for e in errs), errs
     # a sibling at the same depth is fine: articles and present-are both follow greetings
     set_topics(topic_pack, food_topic(anchor="present-are"), travel_topic())
     assert errors(topic_pack) == []
@@ -255,3 +293,50 @@ def test_topic_schema(topic_pack):
     t.pop("units")
     set_topics(topic_pack, t)
     assert any("schema" in e and "'units' is a required property" in e for e in errors(topic_pack))
+
+
+# ---------------------------------------------------------------------------- stories in topics
+PANE = {"it": "Io mangio il pane.", "en": "I eat the bread.", "nl": "Ik eet het brood."}
+PIZZA = {"it": "Io mangio la pizza.", "en": "I eat the pizza.", "nl": "Ik eet de pizza."}
+
+
+def _story(unit, extra):
+    from test_stories import STORY
+    return {**STORY, "id": f"{unit}-story", "unit": unit, "sentences": STORY["sentences"][:4] + [extra]}
+
+
+def _story_problems(root, *stories):
+    import yaml
+    from pipeline.stories import StoryChecker
+    d = root / "stories"
+    d.mkdir(exist_ok=True)
+    (d / "s.yaml").write_text(yaml.safe_dump(list(stories), allow_unicode=True, sort_keys=False), encoding="utf-8")
+    return "; ".join(StoryChecker(load_pack(root)).check_all()[1])
+
+
+def test_a_topic_story_uses_its_topics_words(topic_pack):
+    from test_generate import _gated
+    root = _gated(topic_pack)
+    assert _story_problems(root, _story("cibo-u1", PANE)) == ""
+    # a main-tree story never uses a topic's words: they count as taught later
+    assert "words taught after unit u1: ['pane (it:pane)']" in _story_problems(root, _story("u1", PANE))
+    # ... nor does a story of another topic
+    assert "words taught after unit viaggio-u1: ['pane (it:pane)']" in _story_problems(root, _story("viaggio-u1", PANE))
+
+
+def test_a_topic_story_uses_main_tree_words_up_to_its_requirements(topic_pack):
+    """A topic grown from greetings (unit 1) may not use unit-2 words in its stories, unless a
+    skill of the topic so far requires a unit-2 skill (a late requirement counts too)."""
+    from test_generate import _gated
+    v = travel_topic()
+    v["units"][0]["skills"][0]["requires"] = ["greetings"]
+    set_topics(topic_pack, food_topic(), v)
+    root = _gated(topic_pack)
+    assert "words taught after unit viaggio-u1: ['pizza (it:pizza)']" in _story_problems(
+        root, _story("viaggio-u1", PIZZA))
+    assert _story_problems(root, _story("cibo-u1", PIZZA)) == ""   # cibo requires articles (unit 2)
+    v["units"].append({"id": "viaggio-u2", "title": {"en": "Further", "nl": "Verder"}, "skills": [
+        {"id": "viaggio-more", "kind": "vocab", "title": {"en": "More", "nl": "Meer"},
+         "requires": ["viaggio-words", "articles"], "items": {"lemmas": ["libro", "zio"], "min": 2}}]})
+    edit_course(root, lambda c: c.__setitem__("topics", [food_topic(), v]))
+    assert _story_problems(root, _story("viaggio-u2", PIZZA)) == ""

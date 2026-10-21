@@ -31,6 +31,9 @@ Checks (`validate_stories`, part of `validate`):
   listed in `new_words`;
 * the grammar features (features.py) of each text are allowed at the unit: the base features plus
   everything the skills of this and earlier units introduce;
+* (pack format 1.2) for a story in a topic unit, "earlier" means the topic's units up to its own
+  and the main tree's units up to the last one that the topic's skills so far require
+  (transitively); a main-tree story never uses a topic's words (they count as taught later);
 * 5-10 sentences of at most 14 words, every course translation present and passing trcheck.py;
 * 3-5 questions with 3-4 options, all options non-empty and distinct after folding case,
   punctuation and accents (like the engine's OptionPicker), `answer` in range, i18n options and
@@ -53,6 +56,7 @@ from .align import Aligner
 from .content import all_units, required_translations
 from .lang import get_lang
 from .tokens import tokenize
+from .topics import anchor_of
 
 SRC = "claude-gen"
 MIN_SENTENCES, MAX_SENTENCES = 5, 10
@@ -119,10 +123,29 @@ class StoryChecker:
         # features allowed at each unit: base + everything introduced in this or an earlier unit
         self.allowed: list[set[str]] = []
         acc = set(self.graph.base)
-        for ui, unit in enumerate(all_units(c)):
+        n_main = len(c.get("units") or [])
+        for unit in (c.get("units") or []):
             for s in unit.get("skills") or []:
                 acc |= self.graph.introduces[s["id"]]
             self.allowed.append(set(acc))
+        # A story in a topic unit (pack format 1.2) is read once that unit's skills are practised:
+        # it may use the topic's words up to its unit, and the main tree's words and grammar up to
+        # the last main-tree unit those skills require (the anchor and late requirements alike).
+        # `taught[ui]`: the unit indexes whose words a story of unit `ui` may use (None for a
+        # main-tree unit: every unit up to it).
+        self.taught: list[set[int] | None] = [None] * n_main
+        main_unit = {s["id"]: ui for ui, _, _, s in pack.skills() if ui < n_main}
+        unit_index = {u["id"]: i for i, u in enumerate(all_units(c))}
+        for t in c.get("topics") or []:
+            seen: list[str] = []
+            own: set[int] = set()
+            for unit in t.get("units") or []:
+                seen += [s["id"] for s in unit.get("skills") or []]
+                own.add(unit_index[unit["id"]])
+                reach = max((main_unit[x] for sid in seen for x in self.graph.closure(sid) if x in main_unit),
+                            default=main_unit.get(anchor_of(c, t), 0))
+                self.taught.append(set(range(reach + 1)) | own)
+                self.allowed.append(self.allowed[reach] | {f for sid in seen for f in self.graph.introduces[sid]})
         self.names = set(NAMES.get(self.code, set()))
         self.places = set(PLACES)
         self.aligner = Aligner(get_lang(self.code), pack.items, pack.verbs)
@@ -146,7 +169,8 @@ class StoryChecker:
                 continue
             if t["lex"]:
                 u = self.item_unit.get(t["lex"])
-                if u is None or u > ui:
+                taught = self.taught[ui]
+                if u is None or (u > ui if taught is None else u not in taught):
                     later.setdefault(t["lex"], t["t"])
                 continue
             if t["t"].isdigit() or t["t"] in names:
