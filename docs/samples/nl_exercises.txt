@@ -1,5 +1,26 @@
+# Native review of the topic restructure (2026-10-21, pack nl 1.4.0), read as a Dutch teacher would,
+# on the changed areas: the main-tree grammar skills that lost their themed prerequisites (the
+# perfectum and the simple past), the 50 new generated sentences that keep their sentence floor
+# without topic words, the 5 new main-tree stories and the 5 stories that moved into topics
+# (tosk/docs/topic-split.md).
+#
+# Found and fixed
+# - "ouders" (parents) was aligned to the adjective oud (Wiktionary lists the rare partitive "iets
+#   ouders" as one of its forms), so 60 sentences glossed it "old" and counted it as a unit-5 word.
+#   The form is dropped from oud and the tokens point at ouder (plural); a re-import would bring
+#   it back (open issue in tosk/docs/topic-split.md).
+# - Drafts and stories that did not align: "Heb jij ... gehad?" (inverted hebben), "Waarom stopte
+#   jij?", "Wij voelden ons thuis" (thuis is no item), diminutives in a story (broertje, kamertje: the
+#   diminutive table has no such cells), "Hij las veel boeken" (boeken read as the verb "to book").
+# - Moved stories over the topic-word allowance: u4-examen and u8-droom ask in English options now.
+#
+# Accepted, still visible
+# - Short Tatoeba sentences with thin context remain ("We ___ het." = "We heard.").
+# - Main-tree lessons show the odd word of a topic the learner skipped (one unknown word in a grammar
+#   lesson, glossed by the hint), as the fairness rule allows.
+#
 # Gated samples (docs/ARCHITECTURE.md, "Grammar gating"): a mid-course learner who started every
-# skill of units u1-u4 (19 skills). Each skill is sampled as the current skill of a mixed-focus lesson:
+# skill of units u1-u4 (18 skills). Each skill is sampled as the current skill of a mixed-focus lesson:
 # known grammar = base + started skills + the skill and its prerequisites; at most 2 unknown words per sentence (1 in grammar skills);
 # no sentence twice within a skill. Skills after unit u4 show what the learner meets on opening them.
 
@@ -160,9 +181,9 @@ SKILL greetings (vocab)  Greetings
 
 [sentence_builder] nl:hoe.2#prod  (skill greetings)
   Translate this sentence
-  Good evening; how're you doing?
-  tiles: gaat · hoe · nu · goedenavond · het · doei · ga
-  => goedenavond hoe gaat het
+  How did she tell them?
+  tiles: ook · blijven · hoe · hun · alsjeblieft · ze · het · heeft · verteld
+  => hoe heeft ze het hun verteld
 
 [sentence_builder] nl:goed#prod  (skill greetings)
   Translate this sentence
@@ -209,9 +230,9 @@ SKILL greetings (vocab)  Greetings
 
 [cloze] nl:hoe.2#prod  (skill greetings)
   Fill in the gap
-  ___ zeg je "raam" in het Karelisch?   (how)
-  "How do you say "window" in Karelian?"
-   Alsjeblieft  |   Alstublieft  |  *Hoe  |   Zo
+  ___ vaak drink je thee?   (how)
+  "How often do you drink tea?"
+   Terug  |   Alsjeblieft  |   Alstublieft  |  *Hoe
 
 [cloze] nl:goed#prod  (skill greetings)
   Fill in the gap
@@ -429,95 +450,94 @@ SKILL little-words (vocab)  Little words
 --- sentence_builder: 8 example(s)
 [sentence_builder] nl:het#prod  (skill little-words)
   Translate this sentence
-  It has always been this way.
-  tiles: het · geweest · ben · zo · bent · hebben · is · altijd
-  => het is altijd zo geweest
+  Let's speak in French.
+  tiles: praten · laten · het · we · zonder · met · Frans · laat · in
+  => laten we in het Frans praten
 
 [sentence_builder] nl:de#prod  (skill little-words)
   Translate this sentence
-  The kids have homework.
-  tiles: heb · de · advocaat · huiswerk · hebben · hebt · kinderen
-  => de kinderen hebben huiswerk
+  Mary is answering the teacher's question.
+  tiles: vraag · van · arts · de · antwoord · lerares · op · de · antwoordt · baas · Maria
+  => Maria antwoordt op de vraag van de lerares
 
 [sentence_builder] nl:dat#prod  (skill little-words)
   Translate this sentence
-  I know that you are a teacher.
-  tiles: leraar · bent · je · weet · weten · diagnose · rang · ik · dat
-  => ik weet dat je leraar bent
+  Girls say that all the time.
+  tiles: hele · dag · vrouw · de · tijd · dat · zeg · zeggen · meisjes
+  => meisjes zeggen dat de hele tijd
 
 [sentence_builder] nl:een.2#prod  (skill little-words)
   Translate this sentence
-  Do you have a knife?
-  tiles: jij · mes · een · cel · computer · heb · zelfmoord
-  => heb jij een mes
+  We're going to Boston for a week.
+  tiles: gaan · week · een · we · naar · Boston · gaat · ga · over · voor
+  => we gaan naar Boston voor een week
 
 [sentence_builder] nl:niet#prod  (skill little-words)
   Translate this sentence
-  I can't answer that question.
-  tiles: vraag · er · antwoorden · op · kan · kunnen · niet · die · kunt · ik
-  => ik kan niet antwoorden op die vraag
-  => op die vraag kan ik niet antwoorden
+  Who hasn't done that yet?
+  tiles: wie · gedaan · niet · heeft · dat · nog · nu · hebt · heb
+  => wie heeft dat nog niet gedaan
 
 [sentence_builder] nl:en#prod  (skill little-words)
   Translate this sentence
-  Why are Tom and Mary scared?
-  tiles: ben · waarom · bezorgd · en · Tom · bang · bent · Mary · zijn
-  => waarom zijn Tom en Mary bang
+  What good will that do?
+  tiles: is · bent · dat · voor · goed · waar · en · ben · binnen
+  => en waar is dat goed voor
 
 [sentence_builder] nl:van#prod  (skill little-words)
   Translate this sentence
-  She doesn't like eggs.
-  tiles: hoe · hou · in · ze · niet · houdt · van · eieren
-  => ze houdt niet van eieren
+  He is the father of two children.
+  tiles: bent · kinderen · twee · is · familie · van · vader · ben · hij
+  => hij is vader van twee kinderen
 
 [sentence_builder] nl:wat#prod  (skill little-words)
   Translate this sentence
-  Are you sure you know what he wants?
-  tiles: wil · wat · kijken · je · hij · weet · zeker · af · wilt
-  => weet je zeker wat hij wil
+  Tell me what happened.
+  tiles: gebeurd · is · bent · er · me · vertel · ben · wat · niet
+  => vertel me wat er is gebeurd
 
 --- cloze: 8 example(s)
 [cloze] nl:het#prod  (skill little-words)
   Fill in the gap
-  Ik breng ___ je morgen.   (it)
-  "I'll bring it to you tomorrow."
-  *het  |   deze  |   dit  |   die
+  ___ is tien voor elf.   (the, it)
+  "It's ten to eleven."
+   Die  |   Dit  |   Dat  |  *Het
 
 [cloze] nl:de#prod  (skill little-words)
   Fill in the gap
-  Ik ben Maria, ___ dochter van Tom.   (the)
-  "I'm Mary, Tom's daughter."
-   die  |   een  |   geen  |  *de
+  Ze zal niet op tijd zijn voor ___ vergadering.   (the)
+  "She won't be in time for the meeting."
+   een  |   wiens  |  *de  |   geen
 
 [cloze] nl:dat#prod  (skill little-words)
   Fill in the gap
   Maar ___ is wat ik zeg.   (that)
   "But that's what I'm saying."
-   wie  |   het  |   wat  |  *dat
+   wie  |  *dat  |   dit  |   deze
 
 [cloze] nl:een.2#prod  (skill little-words)
   Fill in the gap
-  Ik wil ___ mes.   (a)
-  "I want a knife."
-   de  |   geen  |  *een  |   die
+  Geef me ___ minuutje met haar.   (a)
+  "Give me a minute with her."
+  *een  |   haar  |   geen  |   de
 
 [cloze] nl:niet#prod  (skill little-words)
   Fill in the gap
-  We kennen elkaar ___.   (not)
-  "We don't know each other."
-   nog  |  *niet  |   wel  |   hier
+  We hebben haar ___ gezien.   (not)
+  "We didn't see her."
+   waar  |   ook  |   wel  |  *niet
 
 [cloze] nl:en#prod  (skill little-words)
   Fill in the gap
-  Wij zijn man ___ vrouw.   (and)
-  "We are husband and wife."
-   maar  |   als  |   wanneer  |  *en
+  Laten we nu beginnen ___ jij gaat eerst.   (and)
+  "Let's start now, and you go first."
+   wanneer  |   als  |  *en  |   of
 
 [cloze] nl:van#prod  (skill little-words)
   Fill in the gap
-  Dat is die ___ hen.   (of, from)
-  "That's theirs."
-  *van  |   aan  |   in  |   te
+  Ben je een vriend ___ Tom?   (of)
+  "Are you a friend of Tom's?"
+   voor  |  *van  |   met  |   in
 
 [cloze] nl:wat#prod  (skill little-words)
   Fill in the gap
@@ -711,100 +731,100 @@ SKILL people (vocab)  People
 --- sentence_builder: 8 example(s)
 [sentence_builder] nl:ik#prod  (skill people)
   Translate this sentence
-  I am drinking coffee.
-  tiles: koffie · bent · ik · is · drinken · ben · aan · zonder · het
-  => ik ben koffie aan het drinken
+  I guess I'll be going now.
+  tiles: gaan · ga · denk · ik · gaat · nu · denken · ik · dat
+  => ik denk dat ik nu ga
 
 [sentence_builder] nl:je#prod  (skill people)
   Translate this sentence
-  Is this your first time here?
-  tiles: je · in · met · hier · voor · samen · het · eerst · ben
-  => ben je hier voor het eerst
+  When are you coming to the Netherlands?
+  tiles: zodat · je · Nederland · bij · naar · kom · onder · wanneer
+  => wanneer kom je naar Nederland
 
 [sentence_builder] nl:we#prod  (skill people)
   Translate this sentence
-  We think that he will come.
-  tiles: denk · hij · komen · denken · dat · we · zal · denkt · zult
-  => we denken dat hij zal komen
+  We often hear you sing.
+  tiles: we · ontsnappen · zingen · eerst · horen · je · vaak · neer
+  => we horen je vaak zingen
 
 [sentence_builder] nl:ze#prod  (skill people)
   Translate this sentence
-  They say that he will never return.
-  tiles: terugkomen · dat · zult · nooit · zeg · doen · hij · zal · zeggen · ze
-  => ze zeggen dat hij nooit zal terugkomen
+  She does that sometimes.
+  tiles: dat · bijna · ergens · doet · doe · ze · soms
+  => ze doet dat soms
 
 [sentence_builder] nl:hij#prod  (skill people)
   Translate this sentence
-  He doesn't like eggs.
-  tiles: hou · niet · van · nu · houdt · programma · eieren · hij
-  => hij houdt niet van eieren
+  How good is he?
+  tiles: hij · is · goed · nu · hoe · bent · ben
+  => hoe goed is hij
 
 [sentence_builder] nl:u#prod  (skill people)
   Translate this sentence
-  Do you have any family in Boston?
-  tiles: familie · kind · u · zullen · in · binnen · Boston · heeft
-  => heeft u familie in Boston
+  You're a good guy.
+  tiles: dag · bent · tijd · een · baby · u · mens · goede
+  => u bent een goede mens
 
 [sentence_builder] nl:jij#prod  (skill people)
   Translate this sentence
   Are you older than Tom?
-  tiles: echt · Tom · ouder · paraplu · kind · dan · ben · jij
+  tiles: ben · jij · nog · dus · hebben · dan · ouder · Tom
   => ben jij ouder dan Tom
 
 [sentence_builder] nl:jullie#prod  (skill people)
   Translate this sentence
-  You always forget.
-  tiles: vergeten · het · jullie · dansen · gisteren · jongen · altijd
-  => jullie vergeten het altijd
+  You like fruit.
+  tiles: aan · houden · jullie · hou · fruit · jongedame · van
+  => jullie houden van fruit
 
 --- cloze: 8 example(s)
 [cloze] nl:ik#prod  (skill people)
   Fill in the gap
-  Je ziet beter dan ___.   (I)
-  "You have better sight than me."
-   u  |   jullie  |  *ik  |   jij
+  ___ ben de tweede uit drie kinderen.   (I)
+  "I'm the second oldest of three children."
+  *Ik  |   Jij  |   Hij  |   Wij
 
 [cloze] nl:je#prod  (skill people)
   Fill in the gap
-  Wat wil ___ dat we doen?   (you)
-  "What would you have us do?"
-  *je  |   wij  |   hij  |   we
+  Ik kan ___ niet zeggen wanneer Tom hier zal aankomen.   (you)
+  "I can't tell you when Tom will get here."
+   ze  |  *je  |   wij  |   hij
 
 [cloze] nl:we#prod  (skill people)
   Fill in the gap
-  ___ helpen Tom.   (we)
-  "We help Tom."
-   Zij  |   Ik  |   Jij  |  *We
+  ___ komen over een uurtje aan.   (we)
+  "We will arrive within an hour."
+   Ze  |   Ik  |   Jullie  |  *We
 
 [cloze] nl:ze#prod  (skill people)
   Fill in the gap
   ___ probeert.   (she)
   "She is trying."
-  *Ze  |   We  |   Wij  |   Hij
+   Jij  |   We  |  *Ze  |   Wij
 
 [cloze] nl:hij#prod  (skill people)
   Fill in the gap
-  Doe wat ___ je vraagt.   (he)
-  "Do what he tells you."
-  *hij  |   ze  |   zij  |   jij
+  ___ is verhuisd.   (he)
+  "He's moved away."
+  *Hij  |   Je  |   Jullie  |   Jij
 
 [cloze] nl:u#prod  (skill people)
   Fill in the gap
-  Wilt ___ met me dansen?   (you (formal))
-  "Would you like to dance with me?"
-   ik  |   we  |   wij  |  *u
+  ___ kunt zingen als u wilt.   (you (formal))
+  "You can sing if you want to."
+   Hij  |   Zij  |  *U  |   Wij
 
 [cloze] nl:jij#prod  (skill people)
   Fill in the gap
-  Weet ___ wat er gebeurt?   (you)
-  "Do you know what's happening?"
-   ze  |   zij  |  *jij  |   hij
+  Weet ___ wat er hier gebeurt?   (you)
+  "Do you know what's going on here?"
+   hij  |  *jij  |   wij  |   zij
 
 [cloze] nl:jullie#prod  (skill people)
   Fill in the gap
-  Waar wonen ___ in Turkije?   (you (plural))
-  "Where in Turkey do you live?"
-   zij  |   ze  |  *jullie  |   we
+  ___ mogen gaan.   (you (plural))
+  "You can go."
+   Wij  |   Ik  |   Hij  |  *Jullie
 
 --- listen_pick: 8 example(s)
 [listen_pick] nl:ik#rec  (skill people)
@@ -989,9 +1009,9 @@ SKILL present-regular (grammar)  The present tense
 
 [cloze] nl:maken#form:tegenwoordige_tijd  (skill present-regular)
   Fill in the right form
-  Ik ___ van jou een man.   (maken (ik, present))
-  "I will make a man of you."
-   maakt  |  *maak  |   maken
+  Ik ___ koffie.   (maken (ik, present))
+  "I'm making coffee."
+  *maak  |   maken  |   maakt
 
 [cloze] nl:vinden#form:tegenwoordige_tijd  (skill present-regular)
   Fill in the right form
@@ -1038,9 +1058,9 @@ SKILL present-regular (grammar)  The present tense
 
 [spot_error] nl:maken#form:tegenwoordige_tijd  (skill present-regular)
   Tap the wrong word
-  We maakt er maar het beste van.
-  "We'll just have to make the best of it."
-  error: "maakt" -> "maken"
+  Wie maak hun ontbijt?
+  "Who makes breakfast for them?"
+  error: "maak" -> "maakt"
 
 [spot_error] nl:vinden#form:tegenwoordige_tijd  (skill present-regular)
   Tap the wrong word
@@ -1553,9 +1573,9 @@ SKILL numbers (vocab)  Numbers
 --- sentence_builder: 8 example(s)
 [sentence_builder] nl:een.2#prod  (skill numbers)
   Translate this sentence
-  He is not a teacher but a doctor.
-  tiles: een · maar · geen · ben · is · hij · dokter · bent · leraar · rang
-  => hij is geen leraar maar een dokter
+  I think Tom is a student.
+  tiles: denk · ik · student · denkt · denken · Tom · is · een · dat · bent
+  => ik denk dat Tom een student is
 
 [sentence_builder] nl:twee#prod  (skill numbers)
   Translate this sentence
@@ -1565,15 +1585,15 @@ SKILL numbers (vocab)  Numbers
 
 [sentence_builder] nl:drie#prod  (skill numbers)
   Translate this sentence
-  Mr Suzuki has three daughters.
-  tiles: meneer · heeft · hebt · dochters · drie · heb · Suzuki · jongen
-  => meneer Suzuki heeft drie dochters
+  They got married three months later.
+  tiles: maanden · ze · zijn · ben · bent · later · kans · drie · getrouwd
+  => ze zijn drie maanden later getrouwd
 
 [sentence_builder] nl:eerste#prod  (skill numbers)
   Translate this sentence
-  Sunday is the first day of the week.
-  tiles: de · zondag · de · week · eerste · bent · verdriet · is · van · ben · dag
-  => zondag is de eerste dag van de week
+  I'm first.
+  tiles: geweldig · ik · de · is · eerste · bent · ben
+  => ik ben de eerste
 
 [sentence_builder] nl:vijf#prod  (skill numbers)
   Translate this sentence
@@ -1604,7 +1624,7 @@ SKILL numbers (vocab)  Numbers
   Fill in the gap
   Ik ben ___ student uit Italië.   (a)
   "I'm a student from Italy."
-   wiens  |  *een  |   de  |   geen
+  *een  |   geen  |   de  |   haar
 
 [cloze] nl:twee#prod  (skill numbers)
   Fill in the gap
@@ -1614,15 +1634,15 @@ SKILL numbers (vocab)  Numbers
 
 [cloze] nl:drie#prod  (skill numbers)
   Fill in the gap
-  Dit huis heeft ___ badkamers.   (three)
-  "This house has three bathrooms."
-  *drie  |   tien  |   vier  |   vijftien
+  Nu heb ik er nog ___.   (three)
+  "Now I have three left."
+  *drie  |   tien  |   negen  |   dertig
 
 [cloze] nl:eerste#prod  (skill numbers)
   Fill in the gap
-  De ___ dag van de week is maandag.   (first)
-  "The first day of the week is Monday."
-   tweede  |   half  |  *eerste  |   oud
+  Wie gaat er als ___?   (first)
+  "Who's first?"
+  *eerste  |   half  |   tweede  |   hoog
 
 [cloze] nl:vijf#prod  (skill numbers)
   Fill in the gap
@@ -1784,38 +1804,38 @@ SKILL present-irregular (grammar)  Key verbs: zijn, hebben and modals
 --- cloze: 8 example(s)
 [cloze] nl:zijn#form:tegenwoordige_tijd  (skill present-irregular)
   Fill in the right form
-  Wat ___ jullie aan het lezen?   (zijn (jullie (you, plural), present))
-  "What are you reading?"
-   ben  |   is  |   bent  |  *zijn
+  Ik ___ er, wil je praten?   (zijn (ik, present))
+  "I'm here. Do you want to chat?"
+   is  |   zijn  |  *ben  |   bent
 
 [cloze] nl:hebben#form:tegenwoordige_tijd  (skill present-irregular)
   Fill in the right form
-  Ze ___ een man en twee dochters.   (hebben (hij/zij/het (he/she/it), present))
-  "She has a husband and two daughters."
-   heb  |  *heeft  |   hebt
+  Ik kan mijn kamer niet opruimen. Ik ___ geen tijd.   (hebben (ik, present))
+  "I cannot tidy my room. I don't have time."
+   hebben  |  *heb  |   heeft  |   hebt
 
 [cloze] nl:kunnen#form:tegenwoordige_tijd  (skill present-irregular)
   Fill in the right form
-  Jullie ___ gaan als jullie willen.   (kunnen (jullie (you, plural), present))
-  "You can go if you want to."
+  We ___ er morgen over praten.   (kunnen (wij/we (we), present))
+  "We can talk about this tomorrow."
    kunt  |   kan  |  *kunnen
 
 [cloze] nl:willen#form:tegenwoordige_tijd  (skill present-irregular)
   Fill in the right form
-  Je mag ook komen als je ___.   (willen (jij/je (you), present))
-  "You can come, too, if you want to."
-   wil  |   willen  |  *wilt
+  Ik ___ niet over hem horen.   (willen (ik, present))
+  "I don't want to hear about him."
+   willen  |   wilt  |  *wil
 
 [cloze] nl:zullen#form:tegenwoordige_tijd  (skill present-irregular)
   Fill in the right form
-  Ik ___ ze voor jou vinden.   (zullen (ik, present))
-  "I'll find them for you."
-   zullen  |  *zal  |   zult
+  Ik ___ het uitleggen.   (zullen (ik, present))
+  "I'll explain."
+  *zal  |   zullen  |   zult
 
 [cloze] nl:gaan#form:tegenwoordige_tijd  (skill present-irregular)
   Fill in the right form
-  Vanavond ___ we bij Mary eten.   (gaan (wij/we (we), present))
-  "We will go eat at Mary's this evening."
+  Waarom ___ jullie niet naar huis?   (gaan (jullie (you, plural), present))
+  "Why don't you guys head on home?"
   *gaan  |   gaat  |   ga
 
 [cloze] nl:doen#form:tegenwoordige_tijd  (skill present-irregular)
@@ -1826,34 +1846,34 @@ SKILL present-irregular (grammar)  Key verbs: zijn, hebben and modals
 
 [cloze] nl:komen#form:tegenwoordige_tijd  (skill present-irregular)
   Fill in the right form
-  Ik bel je voor ik ___.   (komen (ik, present))
-  "I'll give you a call before I come."
-   komt  |  *kom  |   komen
+  Weet Tom dat je ___?   (komen (jij/je (you), present))
+  "Does Tom know you're coming?"
+  *komt  |   kom  |   komen
 
 --- spot_error: 8 example(s)
 [spot_error] nl:zijn#form:tegenwoordige_tijd  (skill present-irregular)
   Tap the wrong word
-  Ik bent er over tien minuten.
-  "I'll be there in ten minutes."
-  error: "bent" -> "ben"
+  Ze bent niet kunnen ontsnappen.
+  "She couldn't have gotten out."
+  error: "bent" -> "is"
 
 [spot_error] nl:hebben#form:tegenwoordige_tijd  (skill present-irregular)
   Tap the wrong word
-  Ik hebben een pen.
-  "I have a pen."
-  error: "hebben" -> "heb"
+  We heeft families waar we voor moeten zorgen.
+  "We have families we have to take care of."
+  error: "heeft" -> "hebben"
 
 [spot_error] nl:kunnen#form:tegenwoordige_tijd  (skill present-irregular)
   Tap the wrong word
-  Hoe kunnen ik Vlaamse Gebarentaal leren?
-  "How can I learn Flemish Sign Language?"
-  error: "kunnen" -> "kan"
+  Je kan maar beter goed luisteren.
+  "You'd better listen carefully."
+  error: "kan" -> "kunt"
 
 [spot_error] nl:willen#form:tegenwoordige_tijd  (skill present-irregular)
   Tap the wrong word
-  Ik kan blijven als je willen.
-  "I can stay if you want."
-  error: "willen" -> "wilt"
+  Wie wilt de les van vandaag uitleggen?
+  "Who wants to explain today's lesson?"
+  error: "wilt" -> "wil"
 
 [spot_error] nl:mogen#form:tegenwoordige_tijd  (skill present-irregular)
   Tap the wrong word
@@ -1863,20 +1883,20 @@ SKILL present-irregular (grammar)  Key verbs: zijn, hebben and modals
 
 [spot_error] nl:moeten#form:tegenwoordige_tijd  (skill present-irregular)
   Tap the wrong word
-  Je moeten de tafel opruimen.
-  "You must clear the table."
+  Ik moeten dit aan hem uitleggen.
+  "I have to explain this to him."
   error: "moeten" -> "moet"
 
 [spot_error] nl:zullen#form:tegenwoordige_tijd  (skill present-irregular)
   Tap the wrong word
-  Je zegt dat ik dat zult doen.
-  "You say that I'll do that."
-  error: "zult" -> "zal"
+  Ik zullen het Tom morgen vragen.
+  "I'll ask Tom tomorrow."
+  error: "zullen" -> "zal"
 
 [spot_error] nl:gaan#form:tegenwoordige_tijd  (skill present-irregular)
   Tap the wrong word
-  Hoe ga het met jullie moeder?
-  "How's your mother?"
+  "De telefoon ga over." "Ik zal hem wel opnemen."
+  ""The phone is ringing." "I'll get it.""
   error: "ga" -> "gaat"
 
 --- transform: 8 example(s)
@@ -2497,7 +2517,7 @@ SKILL time (vocab)  Time and days
 [sentence_builder] nl:nu#prod  (skill time)
   Translate this sentence
   Her husband is now living in Tokyo.
-  tiles: man · woon · nu · haar · familie · woont · jongen · Tokio · in
+  tiles: in · wel · woont · haar · woon · nu · man · dus · Tokio
   => haar man woont nu in Tokio
 
 [sentence_builder] nl:nooit#prod  (skill time)
@@ -2508,9 +2528,9 @@ SKILL time (vocab)  Time and days
 
 [sentence_builder] nl:tijd#prod  (skill time)
   Translate this sentence
-  Are you free on Tuesday?
-  tiles: je · tijd · vrouw · zijn · zeggen · heb · dinsdag
-  => heb je dinsdag tijd
+  Do you have time to eat?
+  tiles: te · eten · uit · heeft · om · tijd · u · liggen · bellen
+  => heeft u tijd om te eten
 
 [sentence_builder] nl:jaar#prod  (skill time)
   Translate this sentence
@@ -2520,15 +2540,15 @@ SKILL time (vocab)  Time and days
 
 [sentence_builder] nl:altijd#prod  (skill time)
   Translate this sentence
-  You always forget.
-  tiles: jullie · het · vergeten · altijd · nu · even · morgen
-  => jullie vergeten het altijd
+  Mr Brown always carries a book with him.
+  tiles: hebt · Brown · heb · boek · bij · bord · meneer · zich · altijd · een · heeft
+  => meneer Brown heeft altijd een boek bij zich
 
 [sentence_builder] nl:dag#prod  (skill time)
   Translate this sentence
-  I'll do that later today.
-  tiles: nooit · dag · ik · maand · het · doe · later · de · op · doet
-  => ik doe het later op de dag
+  Good day. See you soon.
+  tiles: ziens · tot · avond · nodig · dag · mooi · goede
+  => goede dag tot ziens
 
 [sentence_builder] nl:uur#prod  (skill time)
   Translate this sentence
@@ -2547,7 +2567,7 @@ SKILL time (vocab)  Time and days
   Fill in the gap
   Ik ga ___ weg.   (now)
   "I'm leaving now."
-   later  |  *nu  |   straks  |   soms
+   vaak  |  *nu  |   vandaag  |   morgen
 
 [cloze] nl:nooit#prod  (skill time)
   Fill in the gap
@@ -2557,9 +2577,9 @@ SKILL time (vocab)  Time and days
 
 [cloze] nl:tijd#prod  (skill time)
   Fill in the gap
-  Heb je ___ om te eten?   (time)
-  "Do you have time to eat?"
-  *tijd  |   middag  |   zaterdag  |   zondag
+  Ik ben hier de hele ___.   (time)
+  "I'm here all the time."
+  *tijd  |   week  |   zondag  |   donderdag
 
 [cloze] nl:jaar#prod  (skill time)
   Fill in the gap
@@ -2569,15 +2589,15 @@ SKILL time (vocab)  Time and days
 
 [cloze] nl:altijd#prod  (skill time)
   Fill in the gap
-  Dat is ___ zo geweest.   (always)
-  "This is always the way it has been."
-   vaak  |  *altijd  |   vanavond  |   nu
+  Ik heb ___ van je gehouden, Tom.   (always)
+  "I've always loved you, Tom."
+   vandaag  |  *altijd  |   morgen  |   eerst
 
 [cloze] nl:dag#prod  (skill time)
   Fill in the gap
-  Lekkere ___, of niet?   (day)
-  "Beautiful day, isn't it?"
-   zaterdag  |   maand  |  *dag  |   woensdag
+  Ik kan ___ en nacht lopen.   (day)
+  "I can walk day and night."
+   ochtend  |   uur  |   nacht  |  *dag
 
 [cloze] nl:uur#prod  (skill time)
   Fill in the gap
@@ -2783,9 +2803,9 @@ SKILL family (vocab)  Family
 
 [sentence_builder] nl:mama#prod  (skill family)
   Translate this sentence
-  Mom is older than Dad.
-  tiles: ouder · is · bent · ben · al · dan · mama · papa
-  => mama is ouder dan papa
+  I helped Mommy in the kitchen.
+  tiles: ik · hebt · geholpen · in · heb · hebben · de · mama · gevoel · keuken
+  => ik heb mama in de keuken geholpen
 
 [sentence_builder] nl:oom#prod  (skill family)
   Translate this sentence
@@ -2826,15 +2846,15 @@ SKILL family (vocab)  Family
 --- cloze: 8 example(s)
 [cloze] nl:papa#prod  (skill family)
   Fill in the gap
-  ___ werkt.   (dad)
-  "Dad's working."
-   Opa  |   Oom  |   Echtgenote  |  *Papa
+  Mama is ouder dan ___.   (dad)
+  "Mom is older than Dad."
+   opa  |   oom  |   echtgenote  |  *papa
 
 [cloze] nl:mama#prod  (skill family)
   Fill in the gap
-  Welterusten, ___.   (mom)
-  "Good night, Mom."
-   tante  |  *mama  |   bruiloft  |   verjaardag
+  Kijk ___, ik kan lezen!   (mum)
+  "Look Mummy, I can read!"
+   verjaardag  |   neef  |  *mama  |   opa
 
 [cloze] nl:oom#prod  (skill family)
   Fill in the gap
@@ -3065,7 +3085,7 @@ SKILL everyday-verbs (vocab)  Everyday verbs
 [sentence_builder] nl:eten#prod  (skill everyday-verbs)
   Translate this sentence
   Let's eat Grandma.
-  tiles: we · eten · maken · grootvader · oma · laat · laten
+  tiles: rechercheur · laten · we · oma · eten · laat · maken
   => laten we oma eten
   => laten we eten oma
 
@@ -3116,7 +3136,7 @@ SKILL everyday-verbs (vocab)  Everyday verbs
   Fill in the gap
   Ik ga niet vaak uit ___.   (to eat)
   "I don't eat out very often."
-  *eten  |   vragen  |   lezen  |   rijden
+   wassen  |   drinken  |  *eten  |   kopen
 
 [cloze] nl:werken#prod  (skill everyday-verbs)
   Fill in the gap
@@ -3340,100 +3360,100 @@ SKILL pronouns (grammar)  Me, you, him: object pronouns
 --- sentence_builder: 8 example(s)
 [sentence_builder] nl:me#prod  (skill pronouns)
   Translate this sentence
-  Tell me what you have.
-  tiles: me · wat · vertel · hebben · hebt · heb · je · doen
-  => vertel me wat je hebt
+  Give me ten minutes.
+  tiles: me · geef · moment · drie · horen · tien · minuten
+  => geef me tien minuten
 
 [sentence_builder] nl:hem#prod  (skill pronouns)
   Translate this sentence
-  Why was she telling him this?
-  tiles: hem · ze · gezegd · heeft · dat · nog · hebt · waarom · heb
-  => waarom heeft ze hem dat gezegd
+  I don't want to see him, let alone go out with him.
+  tiles: willen · niet · hem · zitten · wil · hem · zien · met · laat · wilt · ik · staan · uitgaan
+  => ik wil hem niet zien laat staan met hem uitgaan
 
 [sentence_builder] nl:ons.2#prod  (skill pronouns)
   Translate this sentence
-  Do you think Tom saw us?
-  tiles: maken · gezien · Tom · hebt · ons · heb · dat · jij · denk · heeft
-  => denk jij dat Tom ons gezien heeft
+  I know you've helped us.
+  tiles: heb · je · hebben · weet · ik · hebt · dat · geholpen · weten · ons
+  => ik weet dat je ons hebt geholpen
 
 [sentence_builder] nl:haar.2#prod  (skill pronouns)
   Translate this sentence
-  Tomorrow is her birthday.
-  tiles: bent · haar · verjaardag · is · precies · ben · morgen
-  => morgen is haar verjaardag
+  Who helps her?
+  tiles: haar · praten · proberen · helpt · wie · help
+  => wie helpt haar
 
 [sentence_builder] nl:mij#prod  (skill pronouns)
   Translate this sentence
-  She is a friend of mine.
-  tiles: bent · is · ze · orde · mij · van · ben · vriend · een
-  => ze is een vriend van mij
+  Stay here with me.
+  tiles: blijf · dus · binnen · mij · hier · willen · bij
+  => blijf hier bij mij
 
 [sentence_builder] nl:jou#prod  (skill pronouns)
   Translate this sentence
-  We're staying with you.
-  tiles: blijf · wij · blijft · blijven · te · bij · jou
-  => wij blijven bij jou
+  Yours is over there.
+  tiles: van · jou · ook · is · die · daar · bent · ben
+  => die van jou is daar
 
 [sentence_builder] nl:hun#prod  (skill pronouns)
   Translate this sentence
-  How did she tell them?
-  tiles: heeft · hun · nemen · gaan · alstublieft · verteld · het · ze · hoe
-  => hoe heeft ze het hun verteld
+  That's theirs.
+  tiles: van · bent · ben · achter · dat · die · is · hun
+  => dat is die van hun
 
 [sentence_builder] nl:zich#prod  (skill pronouns)
   Translate this sentence
   Mr Brown always carries a book with him.
-  tiles: bij · een · meneer · boek · zeker · hebt · heb · heeft · altijd · Brown · zich
+  tiles: hebt · Brown · meneer · moeten · een · heeft · bij · boek · heb · zich · altijd
   => meneer Brown heeft altijd een boek bij zich
 
 --- cloze: 8 example(s)
 [cloze] nl:me#prod  (skill pronouns)
   Fill in the gap
-  Geef ___ het zout alsjeblieft.   (me)
-  "Could you pass me the salt, please?"
-   haar  |  *me  |   zich  |   ons
+  Geef ___ een glas melk.   (me)
+  "Give me a glass of milk."
+   elkaar  |   hen  |   jezelf  |  *me
 
 [cloze] nl:hem#prod  (skill pronouns)
   Fill in the gap
-  Ik maak ___ af.   (him)
-  "I'll kill him."
-  *hem  |   hen  |   jou  |   jezelf
+  Ik heb je met ___ gezien.   (him)
+  "I saw you with him."
+   jezelf  |   me  |   mezelf  |  *hem
 
 [cloze] nl:ons.2#prod  (skill pronouns)
   Fill in the gap
-  Zij hebben ___ geholpen.   (us)
-  "They helped us."
-  *ons  |   me  |   haar  |   elkaar
+  Hij kan ___ helpen ontsnappen.   (us)
+  "He can help us escape."
+   jezelf  |   haar  |  *ons  |   mezelf
 
 [cloze] nl:haar.2#prod  (skill pronouns)
   Fill in the gap
-  Laten we ___ gaan helpen!   (her)
-  "Let's go help her!"
-  *haar  |   elkaar  |   mij  |   jezelf
+  Wat is er van ___ zoon geworden?   (her)
+  "What has become of her son?"
+  *haar  |   hen  |   mij  |   jezelf
 
 [cloze] nl:mij#prod  (skill pronouns)
   Fill in the gap
-  Een hoop hiervan is van ___.   (me)
-  "A lot of these are mine."
-   hem  |   hen  |  *mij  |   haar
+  Bedankt dat u ___ altijd helpt.   (me)
+  "Thanks for always helping me."
+   jezelf  |   mezelf  |  *mij  |   haar
 
 [cloze] nl:jou#prod  (skill pronouns)
   Fill in the gap
   Ik laat het aan ___ over.   (you)
   "I'll leave it to you."
-  *jou  |   me  |   hen  |   mij
+  *jou  |   mij  |   elkaar  |   haar
 
 [cloze] nl:hun#prod  (skill pronouns)
   Fill in the gap
-  Ze zijn trots op ___ dochter.   (their)
-  "They are proud of their daughter."
+  Wie maakt ___ ontbijt?   (them)
+  "Who makes breakfast for them?"
    zijn  |   mijn  |   jouw  |  *hun
 
 [cloze] nl:zich#prod  (skill pronouns)
   Fill in the gap
   Ze voelt ___ niet goed, zie ik.   (himself, herself, itself)
   "I can see she's not feeling well."
-   jou  |   mij  |  *zich  |   me
+  *zich  |   me  |   ons  |   hen
 
 --- listen_pick: 8 example(s)
 [listen_pick] nl:me#rec  (skill pronouns)
@@ -3627,9 +3647,9 @@ SKILL separable (grammar)  Separable verbs
 
 [sentence_builder] nl:voorstellen#prod  (skill separable)
   Translate this sentence
-  I'll introduce you to him.
-  tiles: voor · zal · je · bouwen · voorstellen · zingen · aan · hem · ik
-  => ik zal je aan hem voorstellen
+  I can't imagine why.
+  tiles: ik · waarom · me · hetzelfde · kunnen · voorstellen · kan · niet · kunt
+  => ik kan me niet voorstellen waarom
 
 [sentence_builder] nl:nadenken#prod  (skill separable)
   Translate this sentence
@@ -3677,9 +3697,9 @@ SKILL separable (grammar)  Separable verbs
 
 [cloze] nl:voorstellen#prod  (skill separable)
   Fill in the gap
-  Dat kan ik me niet ___.   (to imagine)
-  "I can't imagine that."
-   uitkijken  |   thuiskomen  |  *voorstellen  |   meegaan
+  Dat kan ik me ___.   (to imagine)
+  "I can imagine that."
+   opletten  |  *voorstellen  |   meenemen  |   opstaan
 
 [cloze] nl:nadenken#prod  (skill separable)
   Fill in the gap
@@ -3808,13 +3828,13 @@ SKILL plurals (grammar)  One and many: plurals
   Fill in the right form
   Wie zijn die ___?   (mens (plural))
   "Who are these people?"
-  *mensen  |   menzen
+   menzen  |  *mensen
 
 [cloze] nl:kind#infl:number  (skill plurals)
   Fill in the right form
-  Zij houdt van haar ___.   (kind (plural))
-  "She loves her children."
-  *kinderen  |   kinden
+  Ik ben de tweede uit drie ___.   (kind (plural))
+  "I'm the second oldest of three children."
+   kinden  |  *kinderen
 
 [cloze] nl:meisje#infl:number  (skill plurals)
   Fill in the right form
@@ -3855,14 +3875,14 @@ SKILL plurals (grammar)  One and many: plurals
 --- spot_error: 8 example(s)
 [spot_error] nl:mens#infl:number  (skill plurals)
   Tap the wrong word
-  Er wonen 14 menzen hier.
-  "Fourteen people live here."
+  Aardappels eten geen menzen!
+  "Potatoes don't eat people!"
   error: "menzen" -> "mensen"
 
 [spot_error] nl:kind#infl:number  (skill plurals)
   Tap the wrong word
-  Ik ben de tweede van drie kinden
-  "I'm the second oldest of three children."
+  Zij houdt van haar kinden.
+  "She loves her children."
   error: "kinden" -> "kinderen"
 
 [spot_error] nl:meisje#infl:number  (skill plurals)
@@ -4183,287 +4203,6 @@ SKILL work (vocab)  Work and school
    verband  |   veld  |   gedrag  |  *vraag
 
 ========================================================================
-SKILL feelings (vocab)  Feelings
-========================================================================
---- flashcard: 8 example(s)
-[flashcard] nl:zeker#prod  (skill feelings)
-  How do you say this?
-  sure, certainly  =>  zeker   [adv]
-
-[flashcard] nl:zeker#rec  (skill feelings)
-  What does this mean?
-  zeker  =>  sure, certainly   [adv]
-
-[flashcard] nl:bang#prod  (skill feelings)
-  How do you say this?
-  afraid, scared  =>  bang   [adj]
-
-[flashcard] nl:bang#rec  (skill feelings)
-  What does this mean?
-  bang  =>  afraid, scared   [adj]
-
-[flashcard] nl:rustig.2#prod  (skill feelings)
-  How do you say this?
-  calm, quiet, calmly  =>  rustig   [adj]
-
-[flashcard] nl:rustig.2#rec  (skill feelings)
-  What does this mean?
-  rustig  =>  calm, quiet, calmly   [adj]
-
-[flashcard] nl:gevoel#prod  (skill feelings)
-  How do you say this?
-  feeling  =>  het gevoel   [noun]
-
-[flashcard] nl:gevoel#rec  (skill feelings)
-  What does this mean?
-  het gevoel  =>  feeling   [noun]
-
---- multiple_choice: 8 example(s)
-[multiple_choice] nl:zeker#prod  (skill feelings)
-  Pick the right word
-  sure
-  *zeker  |   erg  |   nou  |   bijna
-
-[multiple_choice] nl:zeker#rec  (skill feelings)
-  Pick the right translation
-  zeker
-   away  |   shortly  |  *sure  |   here
-
-[multiple_choice] nl:bang#prod  (skill feelings)
-  Pick the right word
-  afraid
-   eenzaam  |   trots  |  *bang  |   teleurgesteld
-
-[multiple_choice] nl:bang#rec  (skill feelings)
-  Pick the right translation
-  bang
-   lonely  |  *afraid  |   proud  |   jealous
-
-[multiple_choice] nl:rustig.2#prod  (skill feelings)
-  Pick the right word
-  calm
-  *rustig  |   zenuwachtig  |   trots  |   teleurgesteld
-
-[multiple_choice] nl:rustig.2#rec  (skill feelings)
-  Pick the right translation
-  rustig
-   satisfied  |   proud  |  *calm  |   disappointed
-
-[multiple_choice] nl:gevoel#prod  (skill feelings)
-  Pick the right word
-  feeling
-   traan  |   angst  |  *gevoel  |   verdriet
-
-[multiple_choice] nl:gevoel#rec  (skill feelings)
-  Pick the right translation
-  gevoel   (het gevoel)
-  *feeling  |   fear  |   sorrow  |   love
-
---- match_pairs: 8 example(s)
-[match_pairs] nl:zeker#rec  (skill feelings)
-  Match the pairs
-  verbaasd  =  surprised
-  gevoel  =  feeling
-  bang  =  afraid
-  zeker  =  sure
-  jaloers  =  jealous
-
-[match_pairs] nl:bang#rec  (skill feelings)
-  Match the pairs
-  boos  =  angry
-  bang  =  afraid
-  trots  =  proud
-  hoop  =  hope
-  woede  =  anger
-
-[match_pairs] nl:rustig.2#rec  (skill feelings)
-  Match the pairs
-  geluk  =  happiness
-  teleurgesteld  =  disappointed
-  rustig  =  calm
-  zenuwachtig  =  nervous
-  hoop  =  hope
-
-[match_pairs] nl:gevoel#rec  (skill feelings)
-  Match the pairs
-  zenuwachtig  =  nervous
-  boos  =  angry
-  angst  =  fear
-  eenzaam  =  lonely
-  gevoel  =  feeling
-
-[match_pairs] nl:liefde#rec  (skill feelings)
-  Match the pairs
-  liefde  =  love
-  trots  =  proud
-  hoop  =  hope
-  boos  =  angry
-  gevoel  =  feeling
-
-[match_pairs] nl:geluk#rec  (skill feelings)
-  Match the pairs
-  glimlach  =  smile
-  zenuwachtig  =  nervous
-  tevreden  =  satisfied
-  hoop  =  hope
-  geluk  =  happiness
-
-[match_pairs] nl:boos#rec  (skill feelings)
-  Match the pairs
-  liefde  =  love
-  angst  =  fear
-  traan  =  tear
-  boos  =  angry
-  vreugde  =  joy
-
-[match_pairs] nl:trots#rec  (skill feelings)
-  Match the pairs
-  tevreden  =  satisfied
-  rustig  =  calm
-  traan  =  tear
-  trots  =  proud
-  eenzaam  =  lonely
-
---- sentence_builder: 8 example(s)
-[sentence_builder] nl:zeker#prod  (skill feelings)
-  Translate this sentence
-  Tom is certainly over thirty.
-  tiles: Tom · dertig · zeker · ben · ouder · is · bent · dan · af
-  => Tom is zeker ouder dan dertig
-
-[sentence_builder] nl:bang#prod  (skill feelings)
-  Translate this sentence
-  It scares me.
-  tiles: bang · word · van · er · ik · worden · wordt · boos
-  => ik word er bang van
-
-[sentence_builder] nl:rustig.2#prod  (skill feelings)
-  Translate this sentence
-  Please keep quiet.
-  tiles: je · krijgen · alsjeblieft · hoe · rustig · houd · volgend
-  => houd je alsjeblieft rustig
-
-[sentence_builder] nl:gevoel#prod  (skill feelings)
-  Translate this sentence
-  I have a feeling that she will come today.
-  tiles: heb · dat · ik · het · zal · ze · zelf · gevoel · vandaag · hebben · hebt · komen
-  => ik heb het gevoel dat ze vandaag zal komen
-
-[sentence_builder] nl:liefde#prod  (skill feelings)
-  Translate this sentence
-  They're talking about love.
-  tiles: praten · liefde · op · over · ze · helpen · brengen
-  => ze praten over liefde
-
-[sentence_builder] nl:geluk#prod  (skill feelings)
-  Translate this sentence
-  They were lucky.
-  tiles: heb · angst · hebben · ze · gehad · hebt · geluk
-  => ze hebben geluk gehad
-
-[sentence_builder] nl:boos#prod  (skill feelings)
-  Translate this sentence
-  Your wife is mad at you.
-  tiles: op · vrouw · je · ben · bent · doen · boos · je · is
-  => je vrouw is boos op je
-
-[sentence_builder] nl:trots#prod  (skill feelings)
-  Translate this sentence
-  They are proud of their daughter.
-  tiles: trots · bent · zijn · ben · op · rustig · ze · hun · dochter
-  => ze zijn trots op hun dochter
-
---- cloze: 8 example(s)
-[cloze] nl:zeker#prod  (skill feelings)
-  Fill in the gap
-  Ik ben er morgen, ___ weten.   (sure)
-  "I'll be there tomorrow, for sure."
-   steeds  |  *zeker  |   echt  |   alsjeblieft
-
-[cloze] nl:bang#prod  (skill feelings)
-  Fill in the gap
-  Waar is Tom ___ voor?   (afraid)
-  "What's Tom afraid of?"
-  *bang  |   boos  |   rustig  |   teleurgesteld
-
-[cloze] nl:rustig.2#prod  (skill feelings)
-  Fill in the gap
-  We moeten ___ blijven.   (calm)
-  "We must keep calm."
-   verbaasd  |   teleurgesteld  |  *rustig  |   eenzaam
-
-[cloze] nl:gevoel#prod  (skill feelings)
-  Fill in the gap
-  "Hoe weet je dat?" "Het is maar een ___."   (feeling)
-  ""How do you know?" "It's just a hunch.""
-   verdriet  |   vreugde  |  *gevoel  |   hoop
-
-[cloze] nl:liefde#prod  (skill feelings)
-  Fill in the gap
-  Ik wil weten wat ___ is.   (love)
-  "I want to know what love is."
-  *liefde  |   angst  |   vreugde  |   verdriet
-
-[cloze] nl:geluk#prod  (skill feelings)
-  Fill in the gap
-  We hebben ___ dat we nog leven.   (luck)
-  "We're lucky to be alive."
-   gevoel  |   hoop  |  *geluk  |   angst
-
-[cloze] nl:boos#prod  (skill feelings)
-  Fill in the gap
-  Op wie ben je ___?   (angry)
-  "Who are you angry with?"
-   tevreden  |   teleurgesteld  |   jaloers  |  *boos
-
-[cloze] nl:trots#prod  (skill feelings)
-  Fill in the gap
-  Ik ben ___ op je.   (proud)
-  "I'm proud of you."
-   bang  |   boos  |   bezorgd  |  *trots
-
---- listen_pick: 8 example(s)
-[listen_pick] nl:zeker#rec  (skill feelings)
-  Which word do you hear?
-  (speak, nl) zeker   "sure"
-  *zeker  |   zelf  |   hier  |   zelfs
-
-[listen_pick] nl:bang#rec  (skill feelings)
-  Which word do you hear?
-  (speak, nl) bang   "afraid"
-  *bang  |   blij  |   bezig  |   boos
-
-[listen_pick] nl:rustig.2#rec  (skill feelings)
-  Which word do you hear?
-  (speak, nl) rustig   "calm"
-   nodig  |  *rustig  |   gelukkig  |   geweldig
-
-[listen_pick] nl:gevoel#rec  (skill feelings)
-  Which word do you hear?
-  (speak, nl) gevoel   "feeling"
-   gezicht  |  *gevoel  |   glimlach  |   geluk
-
-[listen_pick] nl:liefde#rec  (skill feelings)
-  Which word do you hear?
-  (speak, nl) liefde   "love"
-  *liefde  |   lichaam  |   woede  |   vreugde
-
-[listen_pick] nl:geluk#rec  (skill feelings)
-  Which word do you hear?
-  (speak, nl) geluk   "happiness"
-   gevoel  |  *geluk  |   gang  |   gat
-
-[listen_pick] nl:boos#rec  (skill feelings)
-  Which word do you hear?
-  (speak, nl) boos   "angry"
-   bang  |   bezig  |  *boos  |   braaf
-
-[listen_pick] nl:trots#rec  (skill feelings)
-  Which word do you hear?
-  (speak, nl) trots   "proud"
-   taai  |  *trots  |   typisch  |   tweede
-
-========================================================================
 SKILL perfectum-hebben (grammar)  Perfect tense with hebben
 ========================================================================
 --- conj_grid: 8 example(s)
@@ -4558,8 +4297,8 @@ SKILL perfectum-hebben (grammar)  Perfect tense with hebben
 --- cloze: 8 example(s)
 [cloze] nl:hebben#form:perfectum  (skill perfectum-hebben)
   Fill in the right form
-  Sami ___ het hierover gehad.   (hebben (hij/zij/het (he/she/it), present perfect))
-  "Sami talked about this subject."
+  Mary ___ nog nooit een vriend gehad.   (hebben (hij/zij/het (he/she/it), present perfect))
+  "Mary has never had a boyfriend."
    is  |   hebt  |  *heeft  |   heb
 
 [cloze] nl:doen#form:perfectum  (skill perfectum-hebben)
@@ -4582,15 +4321,15 @@ SKILL perfectum-hebben (grammar)  Perfect tense with hebben
 
 [cloze] nl:zien#form:perfectum  (skill perfectum-hebben)
   Fill in the right form
-  ___ jullie hem vandaag gezien?   (zien (jullie (you, plural), present perfect))
-  "Have you guys seen him today?"
-   Hebt  |  *Hebben  |   Heb  |   Heeft
+  ___ jullie hen vandaag gezien?   (zien (jullie (you, plural), present perfect))
+  "Have you guys seen them today?"
+  *Hebben  |   Heb  |   Heeft  |   Hebt
 
 [cloze] nl:maken#form:perfectum  (skill perfectum-hebben)
   Fill in the right form
   Ik ___ dit voor jou gemaakt.   (maken (ik, present perfect))
   "I built this for you."
-   heeft  |  *heb  |   hebt  |   hebben
+   hebt  |  *heb  |   hebben  |   heeft
 
 [cloze] nl:vinden#form:perfectum  (skill perfectum-hebben)
   Fill in the right form
@@ -4607,9 +4346,9 @@ SKILL perfectum-hebben (grammar)  Perfect tense with hebben
 --- spot_error: 8 example(s)
 [spot_error] nl:hebben#form:perfectum  (skill perfectum-hebben)
   Tap the wrong word
-  Ze heb geluk gehad.
-  "They were lucky."
-  error: "heb" -> "hebben"
+  Mary heb nog nooit een vriendje gehad.
+  "Mary has never had a boyfriend."
+  error: "heb" -> "heeft"
 
 [spot_error] nl:doen#form:perfectum  (skill perfectum-hebben)
   Tap the wrong word
@@ -4631,15 +4370,15 @@ SKILL perfectum-hebben (grammar)  Perfect tense with hebben
 
 [spot_error] nl:zien#form:perfectum  (skill perfectum-hebben)
   Tap the wrong word
-  Vertel Tom wat je hebben gezien.
-  "Tell Tom what you saw."
-  error: "hebben" -> "hebt"
+  Heeft jullie haar vandaag gezien?
+  "Have you seen her today?"
+  error: "Heeft" -> "Hebben"
 
 [spot_error] nl:maken#form:perfectum  (skill perfectum-hebben)
   Tap the wrong word
-  Wie heb dit plan gemaakt?
-  "Who made this plan?"
-  error: "heb" -> "heeft"
+  Ik heeft ontbijt gemaakt voor Tom.
+  "I prepared breakfast for Tom."
+  error: "heeft" -> "heb"
 
 [spot_error] nl:vinden#form:perfectum  (skill perfectum-hebben)
   Tap the wrong word
@@ -5074,9 +4813,9 @@ SKILL adjectives (grammar)  Adjectives
 --- sentence_builder: 8 example(s)
 [sentence_builder] nl:groot#prod  (skill adjectives)
   Translate this sentence
-  I don't want a big, fancy wedding.
-  tiles: wil · wilt · willen · ik · grote · grootmoeder · bruiloft · geen · mooie
-  => ik wil geen grote mooie bruiloft
+  I have big houses.
+  tiles: huizen · heb · grote · hebben · ik · hebt · aardig
+  => ik heb grote huizen
 
 [sentence_builder] nl:lang#prod  (skill adjectives)
   Translate this sentence
@@ -5086,21 +4825,21 @@ SKILL adjectives (grammar)  Adjectives
 
 [sentence_builder] nl:mooi#prod  (skill adjectives)
   Translate this sentence
-  You have a very nice room.
-  tiles: gewoon · u · heeft · heel · een · goed · kamer · belangrijk · mooie
-  => u heeft een heel mooie kamer
+  The women of France are beautiful.
+  tiles: vrouwen · zijn · mooi · bent · Frankrijk · de · goed · ben · van
+  => de vrouwen van Frankrijk zijn mooi
 
 [sentence_builder] nl:leuk#prod  (skill adjectives)
   Translate this sentence
-  I know what I like.
-  tiles: weet · leuk · weten · vindt · vind · ik · ik · vinden · wat
-  => ik weet wat ik leuk vind
+  I don't like it, either.
+  tiles: ook · niet · vindt · vind · het · al · vinden · ik · leuk
+  => ik vind het ook niet leuk
 
 [sentence_builder] nl:nieuw#prod  (skill adjectives)
   Translate this sentence
   Did you get a new computer?
-  tiles: een · moeten · heb · nieuwe · je · computer · heel · ander
-  => heb je een nieuwe computer
+  tiles: hebben · badkamer · jullie · een · doen · druk · nieuwe · computer
+  => hebben jullie een nieuwe computer
 
 [sentence_builder] nl:klein#prod  (skill adjectives)
   Translate this sentence
@@ -5110,9 +4849,9 @@ SKILL adjectives (grammar)  Adjectives
 
 [sentence_builder] nl:oud#prod  (skill adjectives)
   Translate this sentence
-  This baby is six months old.
-  tiles: zaak · ben · is · zes · dit · kind · oud · maanden · bent
-  => dit kind is zes maanden oud
+  I am the oldest of the three.
+  tiles: zeggen · ik · de · bent · oudste · de · drie · is · ben · van
+  => ik ben de oudste van de drie
 
 [sentence_builder] nl:belangrijk#prod  (skill adjectives)
   Translate this sentence
@@ -5123,9 +4862,9 @@ SKILL adjectives (grammar)  Adjectives
 --- cloze: 8 example(s)
 [cloze] nl:groot#infl:agreement  (skill adjectives)
   Fill in the right form
-  Hij is een ___ jongen.   (groot)
-  "He's a big boy."
-  *grote  |   groot
+  Heeft hij een ___ familie?   (groot)
+  "Does he have a big family?"
+   groot  |  *grote
 
 [cloze] nl:groot#prod  (skill adjectives)
   Fill in the gap
@@ -5147,9 +4886,9 @@ SKILL adjectives (grammar)  Adjectives
 
 [cloze] nl:mooi#infl:agreement  (skill adjectives)
   Fill in the right form
-  Je bent een hele ___ vrouw geworden   (mooi)
-  "You've become a very beautiful woman."
-   mooi  |  *mooie
+  Ik wil geen grote, ___ bruiloft.   (mooi)
+  "I don't want a big, fancy wedding."
+  *mooie  |   mooi
 
 [cloze] nl:mooi#prod  (skill adjectives)
   Fill in the gap
@@ -5159,14 +4898,14 @@ SKILL adjectives (grammar)  Adjectives
 
 [cloze] nl:leuk#infl:agreement  (skill adjectives)
   Fill in the right form
-  Ik vind het ook niet ___.   (leuk)
-  "I don't like it, either."
+  Ik vind dit nummer niet ___.   (leuk)
+  "I do not like this song."
    leuke  |  *leuk
 
 [cloze] nl:leuk#prod  (skill adjectives)
   Fill in the gap
-  Vinden jullie Engels ___?   (nice, fun, pleasant)
-  "Do you like English?"
+  Ik weet wat ik ___ vind.   (nice, fun, pleasant)
+  "I know what I like."
    koud  |   kort  |  *leuk  |   rijk
 
 --- spot_error: 8 example(s)
@@ -5190,8 +4929,8 @@ SKILL adjectives (grammar)  Adjectives
 
 [spot_error] nl:leuk#infl:agreement  (skill adjectives)
   Tap the wrong word
-  Vindt Tom meisjes niet leuke?
-  "Doesn't Tom like girls?"
+  Waarom vinden jullie Australië leuke.
+  "Why do you like Australia?"
   error: "leuke" -> "leuk"
 
 [spot_error] nl:nieuw#infl:agreement  (skill adjectives)
@@ -5258,287 +4997,6 @@ SKILL adjectives (grammar)  Adjectives
   Which word do you hear?
   (speak, nl) belangrijk   "important"
    moeilijk  |   makkelijk  |  *belangrijk  |   duidelijk
-
-========================================================================
-SKILL body (vocab)  Body and health
-========================================================================
---- flashcard: 8 example(s)
-[flashcard] nl:hand#prod  (skill body)
-  How do you say this?
-  hand  =>  de hand   [noun]
-
-[flashcard] nl:hand#rec  (skill body)
-  What does this mean?
-  de hand  =>  hand   [noun]
-
-[flashcard] nl:hoofd#prod  (skill body)
-  How do you say this?
-  head  =>  het hoofd   [noun]
-
-[flashcard] nl:hoofd#rec  (skill body)
-  What does this mean?
-  het hoofd  =>  head   [noun]
-
-[flashcard] nl:pijn#prod  (skill body)
-  How do you say this?
-  pain, ache  =>  de pijn   [noun]
-
-[flashcard] nl:pijn#rec  (skill body)
-  What does this mean?
-  de pijn  =>  pain, ache   [noun]
-
-[flashcard] nl:lichaam#prod  (skill body)
-  How do you say this?
-  body  =>  het lichaam   [noun]
-
-[flashcard] nl:lichaam#rec  (skill body)
-  What does this mean?
-  het lichaam  =>  body   [noun]
-
---- multiple_choice: 8 example(s)
-[multiple_choice] nl:hand#prod  (skill body)
-  Pick the right word
-  hand
-  *hand  |   rug  |   pijn  |   hart
-
-[multiple_choice] nl:hand#rec  (skill body)
-  Pick the right translation
-  hand   (de hand)
-   pain  |   body  |  *hand  |   tooth
-
-[multiple_choice] nl:hoofd#prod  (skill body)
-  Pick the right word
-  head
-   been  |   buik  |   hart  |  *hoofd
-
-[multiple_choice] nl:hoofd#rec  (skill body)
-  Pick the right translation
-  hoofd   (het hoofd)
-   knee  |   skin  |   nose  |  *head
-
-[multiple_choice] nl:pijn#prod  (skill body)
-  Pick the right word
-  pain
-  *pijn  |   bloed  |   hand  |   stem
-
-[multiple_choice] nl:pijn#rec  (skill body)
-  Pick the right translation
-  pijn   (de pijn)
-   shoulder  |  *pain  |   mouth  |   blood
-
-[multiple_choice] nl:lichaam#prod  (skill body)
-  Pick the right word
-  body
-   oog  |   been  |  *lichaam  |   buik
-
-[multiple_choice] nl:lichaam#rec  (skill body)
-  Pick the right translation
-  lichaam   (het lichaam)
-   blood  |   leg  |   head  |  *body
-
---- match_pairs: 8 example(s)
-[match_pairs] nl:hand#rec  (skill body)
-  Match the pairs
-  hand  =  hand
-  gezicht  =  face
-  ziek  =  ill
-  voet  =  foot
-  huid  =  skin
-
-[match_pairs] nl:hoofd#rec  (skill body)
-  Match the pairs
-  schouder  =  shoulder
-  arm  =  arm
-  gezondheid  =  health
-  hoofd  =  head
-  oor  =  ear
-
-[match_pairs] nl:pijn#rec  (skill body)
-  Match the pairs
-  bloed  =  blood
-  pijn  =  pain
-  huid  =  skin
-  gezicht  =  face
-  rug  =  back
-
-[match_pairs] nl:lichaam#rec  (skill body)
-  Match the pairs
-  stem  =  voice
-  lichaam  =  body
-  hand  =  hand
-  hoofd  =  head
-  pijn  =  pain
-
-[match_pairs] nl:gezicht#rec  (skill body)
-  Match the pairs
-  been  =  leg
-  gezicht  =  face
-  oor  =  ear
-  gezondheid  =  health
-  nek  =  neck
-
-[match_pairs] nl:hart#rec  (skill body)
-  Match the pairs
-  nek  =  neck
-  neus  =  nose
-  pijn  =  pain
-  medicijn  =  medicine
-  hart  =  heart
-
-[match_pairs] nl:mond#rec  (skill body)
-  Match the pairs
-  been  =  leg
-  gezicht  =  face
-  oor  =  ear
-  mond  =  mouth
-  pijn  =  pain
-
-[match_pairs] nl:ziek#rec  (skill body)
-  Match the pairs
-  ziek  =  ill
-  oog  =  eye
-  tand  =  tooth
-  pijn  =  pain
-  bloed  =  blood
-
---- sentence_builder: 8 example(s)
-[sentence_builder] nl:hand#prod  (skill body)
-  Translate this sentence
-  Why didn't you wash your hands?
-  tiles: je · waarom · gewassen · daar · hier · gezicht · niet · heb · je · handen
-  => waarom heb je je handen niet gewassen
-
-[sentence_builder] nl:hoofd#prod  (skill body)
-  Translate this sentence
-  You never know what's going to come out of that head.
-  tiles: gaat · weet · uit · er · weten · komen · eerst · hoofd · je · ga · nooit · wat · dat
-  => je weet nooit wat er uit dat hoofd gaat komen
-
-[sentence_builder] nl:pijn#prod  (skill body)
-  Translate this sentence
-  Do you feel pain when you do that?
-  tiles: stad · je · dat · pijn · heb · als · gaan · doe · doet · je
-  => heb je pijn als je dat doet
-
-[sentence_builder] nl:lichaam#prod  (skill body)
-  Translate this sentence
-  They haven't found Tom's body.
-  tiles: hebben · niet · lichaam · gevonden · heb · ze · waarheid · Toms · hebt
-  => ze hebben Toms lichaam niet gevonden
-
-[sentence_builder] nl:gezicht#prod  (skill body)
-  Translate this sentence
-  Yanni can see your face now.
-  tiles: kan · gezicht · waarheid · arm · Yanni · denken · zien · je · nu
-  => Yanni kan je gezicht nu zien
-
-[sentence_builder] nl:hart#prod  (skill body)
-  Translate this sentence
-  You have no heart.
-  tiles: hart · heb · hebben · zullen · geen · hebt · je
-  => je hebt geen hart
-
-[sentence_builder] nl:mond#prod  (skill body)
-  Translate this sentence
-  Shut your mouth.
-  tiles: gezondheid · je · hou · mond · geluk · mogen
-  => hou je mond
-
-[sentence_builder] nl:ziek#prod  (skill body)
-  Translate this sentence
-  Tell her you're sick.
-  tiles: haar · is · zeg · dat · ziek · je · bent · ben · persoonlijk
-  => zeg haar dat je ziek bent
-
---- cloze: 8 example(s)
-[cloze] nl:hand#prod  (skill body)
-  Fill in the gap
-  Je moet je ___ wassen.   (hand)
-  "You need to wash your hands."
-  *handen  |   voeten  |   lichamen  |   monden
-
-[cloze] nl:hoofd#prod  (skill body)
-  Fill in the gap
-  Heb je geen ogen in je ___?   (head)
-  "Don't you have eyes in your head?"
-   voet  |   bloed  |   rug  |  *hoofd
-
-[cloze] nl:pijn#prod  (skill body)
-  Fill in the gap
-  Ik heb haar nooit ___ gedaan.   (pain, ache)
-  "I never harmed her."
-   tand  |   nek  |  *pijn  |   vinger
-
-[cloze] nl:lichaam#prod  (skill body)
-  Fill in the gap
-  Te veel eten is niet goed voor het ___.   (body)
-  "Overeating is bad for the body."
-   medicijn  |   arm  |   huid  |  *lichaam
-
-[cloze] nl:gezicht#prod  (skill body)
-  Fill in the gap
-  We hebben haar ___ gezien.   (face)
-  "We saw her face."
-   been  |   medicijn  |  *gezicht  |   nek
-
-[cloze] nl:hart#prod  (skill body)
-  Fill in the gap
-  U heeft geen ___.   (heart)
-  "You have no heart."
-   gezondheid  |   voet  |   tand  |  *hart
-
-[cloze] nl:mond#prod  (skill body)
-  Fill in the gap
-  Houd je ___.   (mouth)
-  "Shut your mouth."
-   voet  |  *mond  |   neus  |   hart
-
-[cloze] nl:ziek#prod  (skill body)
-  Fill in the gap
-  Ik denk dat Yumi ___ is.   (sick)
-  "I think that Yumi is sick."
-  *ziek  |   grappig  |   diep  |   snel
-
---- listen_pick: 8 example(s)
-[listen_pick] nl:hand#rec  (skill body)
-  Which word do you hear?
-  (speak, nl) hand   "hand"
-  *hand  |   tand  |   huid  |   hart
-
-[listen_pick] nl:hoofd#rec  (skill body)
-  Which word do you hear?
-  (speak, nl) hoofd   "head"
-  *hoofd  |   hand  |   hart  |   huid
-
-[listen_pick] nl:pijn#rec  (skill body)
-  Which word do you hear?
-  (speak, nl) pijn   "pain"
-   papa  |  *pijn  |   plek  |   pizza
-
-[listen_pick] nl:lichaam#rec  (skill body)
-  Which word do you hear?
-  (speak, nl) lichaam   "body"
-   lunch  |   laars  |  *lichaam  |   liefde
-
-[listen_pick] nl:gezicht#rec  (skill body)
-  Which word do you hear?
-  (speak, nl) gezicht   "face"
-   gevoel  |   gunst  |   nacht  |  *gezicht
-
-[listen_pick] nl:hart#rec  (skill body)
-  Which word do you hear?
-  (speak, nl) hart   "heart"
-   hoofd  |  *hart  |   huid  |   hand
-
-[listen_pick] nl:mond#rec  (skill body)
-  Which word do you hear?
-  (speak, nl) mond   "mouth"
-   hand  |   tand  |  *mond  |   hond
-
-[listen_pick] nl:ziek#rec  (skill body)
-  Which word do you hear?
-  (speak, nl) ziek   "ill"
-  *ziek  |   zeer  |   zwaar  |   gek
 
 ========================================================================
 SKILL adverbs (vocab)  Useful adverbs
@@ -5746,8 +5204,8 @@ SKILL adverbs (vocab)  Useful adverbs
 
 [cloze] nl:echt#prod  (skill adverbs)
   Fill in the gap
-  We zijn wel ___ goede vriendinnen.   (really)
-  "We really are good friends."
+  Hij geeft ___ om zijn ouders.   (really)
+  "He really cares for his parents."
    waarschijnlijk  |   al  |   opnieuw  |  *echt
 
 [cloze] nl:alleen#prod  (skill adverbs)
@@ -5764,9 +5222,9 @@ SKILL adverbs (vocab)  Useful adverbs
 
 [cloze] nl:misschien#prod  (skill adverbs)
   Fill in the gap
-  Hij is bezorgd dat hij ___ te laat komt.   (maybe, perhaps)
-  "He's worried that he might be late."
-   opnieuw  |   zelfs  |   eigenlijk  |  *misschien
+  ___ kan ik nu beter ophouden.   (maybe)
+  "Maybe I should stop now."
+   Opnieuw  |   Zelfs  |   Eigenlijk  |  *Misschien
 
 [cloze] nl:erg#prod  (skill adverbs)
   Fill in the gap
@@ -6248,27 +5706,27 @@ SKILL possessives (grammar)  My, your, his: possessives
 --- sentence_builder: 8 example(s)
 [sentence_builder] nl:zijn.2#prod  (skill possessives)
   Translate this sentence
-  Potatoes are vegetables.
-  tiles: avondeten · kroeg · aardappelen · groentes · sector · zijn
-  => aardappelen zijn groentes
+  In France, potatoes are vegetables, while in the Netherlands, they are not.
+  tiles: Nederland · hoe · om · niet · kroeg · in · Frankrijk · in · zijn · groente · aardappelen · een
+  => in Frankrijk zijn aardappelen een groente in Nederland niet
 
 [sentence_builder] nl:ons.2#prod  (skill possessives)
   Translate this sentence
-  Our son lives in Munich.
-  tiles: zoon · onze · klinken · woont · München · woon · in · aan
-  => onze zoon woont in München
+  Our husbands are Canadians.
+  tiles: onze · zijn · echtgenoten · bent · majoor · Canadezen · ben
+  => onze echtgenoten zijn Canadezen
 
 [sentence_builder] nl:haar.2#prod  (skill possessives)
   Translate this sentence
-  He didn't see her.
-  tiles: gezien · alleen · heeft · heb · hebt · haar · niet · hij
-  => hij heeft haar niet gezien
+  He will make her a good husband.
+  tiles: zal · haar · zijn · goede · eeuw · een · echtgenoot · door · zult · hij · voor
+  => hij zal een goede echtgenoot voor haar zijn
 
 [sentence_builder] nl:uw#prod  (skill possessives)
   Translate this sentence
-  Don't sugar your tea.
-  tiles: thee · doe · geen · suiker · uw · eiland · tegen · bier · in
-  => doe geen suiker in uw thee
+  This is your key.
+  tiles: bent · boord · dit · is · sleutel · ben · uw
+  => dit is uw sleutel
 
 [sentence_builder] nl:hun#prod  (skill possessives)
   Translate this sentence
@@ -6278,70 +5736,70 @@ SKILL possessives (grammar)  My, your, his: possessives
 
 [sentence_builder] nl:jouw#prod  (skill possessives)
   Translate this sentence
-  Where's your aunt?
-  tiles: ben · jouw · is · daar · waar · tante · bent
-  => waar is jouw tante
+  What's your job?
+  tiles: is · jouw · bent · wat · coma · ben · baan
+  => wat is jouw baan
 
 [sentence_builder] nl:mijn#prod  (skill possessives)
   Translate this sentence
-  My grandma turned one hundred.
-  tiles: ben · bent · is · drie · honderd · geworden · oma · mijn
-  => mijn oma is honderd geworden
+  My girlfriend Judy is in the Netherlands with her aunt Greta.
+  tiles: Greta · ben · mijn · bent · haar · vriendin · tante · is · Judy · in · Nederland · met · echtgenote
+  => mijn vriendin Judy is met haar tante Greta in Nederland
 
 [sentence_builder] nl:zijn.2#prod  (skill possessives)
   Translate this sentence
-  Tom is proud of his students.
-  tiles: op · bent · is · trots · zijn · ben · Tom · leerlingen · naar
-  => Tom is trots op zijn leerlingen
+  The man is helping his wife.
+  tiles: zijn · helpt · de · familie · man · probleem · help · vrouw
+  => de man helpt zijn vrouw
 
 --- cloze: 8 example(s)
 [cloze] nl:zijn.2#prod  (skill possessives)
   Fill in the gap
-  Tom is ___ collega's aan het helpen.   (his)
-  "Tom is helping his colleagues."
-   jouw  |   uw  |  *zijn  |   mijn
+  Waarom verkoopt jouw broer ___ huis?   (his)
+  "Why is your brother selling his house?"
+   hun  |   jouw  |  *zijn  |   uw
 
 [cloze] nl:ons.2#prod  (skill possessives)
   Fill in the gap
-  Wie heeft dit aan ___ gegeven?   (us)
-  "Who gave this to us?"
-   mij  |  *ons  |   jou  |   zich
+  We gaan ___ huis verkopen.   (our)
+  "We're going to sell our house."
+   jou  |  *ons  |   zich  |   mezelf
 
 [cloze] nl:haar.2#prod  (skill possessives)
   Fill in the gap
-  We kennen ___ niet.   (her)
-  "We don't know her."
-   jou  |  *haar  |   mij  |   hen
+  Ik ben vrienden geworden met ___.   (her)
+  "I made friends with her."
+   hen  |  *haar  |   mezelf  |   jou
 
 [cloze] nl:uw#prod  (skill possessives)
   Fill in the gap
-  Er is geen antwoord op ___ vraag.   (your (formal))
-  "There is no answer to your question."
-   mijn  |   hun  |   zijn  |  *uw
+  Doe geen suiker in ___ thee.   (your (formal))
+  "Don't sugar your tea."
+  *uw  |   zijn  |   mijn  |   hun
 
 [cloze] nl:hun#prod  (skill possessives)
   Fill in the gap
-  Hij kan niet antwoorden op ___ vragen.   (their)
-  "He cannot answer their questions."
+  Ouders houden van ___ kinderen.   (their)
+  "Parents love their children."
   *hun  |   jouw  |   zijn  |   mijn
 
 [cloze] nl:jouw#prod  (skill possessives)
   Fill in the gap
-  Dit is ___ slaapkamer.   (your)
-  "This is your bedroom."
-   hun  |   zijn  |   mijn  |  *jouw
+  Ik ben ___ echtgenote niet.   (your)
+  "I am not your wife."
+  *jouw  |   mijn  |   hun  |   zijn
 
 [cloze] nl:mijn#prod  (skill possessives)
   Fill in the gap
-  ___ baas komt uit Israël.   (my)
-  "My boss is from Israel."
-   Uw  |  *Mijn  |   Hun  |   Zijn
+  ___ moeder heeft vier broers.   (my)
+  "My mother has four brothers."
+   Jouw  |  *Mijn  |   Hun  |   Zijn
 
 [cloze] nl:zijn.2#prod  (skill possessives)
   Fill in the gap
-  Waarom ___ mensen bang voor jou?   (his, its)
-  "Why are people scared of you?"
-   uw  |  *zijn  |   hun  |   jouw
+  Het ___ twee neven en nichten.   (his, its)
+  "They are two cousins."
+  *zijn  |   uw  |   jouw  |   hun
 
 --- listen_pick: 8 example(s)
 [listen_pick] nl:zijn.2#rec  (skill possessives)
@@ -6456,8 +5914,8 @@ SKILL diminutives (grammar)  Small words: diminutives
 
 [cloze] nl:dag#infl:diminutive  (skill diminutives)
   Fill in the right form
-  Tom wordt zeker een ___ ouder.   (dag (diminutive))
-  "Tom is certainly getting along in years."
+  Lekker ___, of niet?   (dag (diminutive))
+  "Beautiful day, isn't it?"
    dagtje  |   dagetje  |  *dagje  |   daggetje
 
 [cloze] nl:kind#infl:diminutive  (skill diminutives)
@@ -6487,8 +5945,8 @@ SKILL diminutives (grammar)  Small words: diminutives
 
 [spot_error] nl:dag#infl:diminutive  (skill diminutives)
   Tap the wrong word
-  Lekker dagtje, of niet?
-  "Beautiful day, isn't it?"
+  Tom wordt zeker een dagtje ouder.
+  "Tom is certainly getting along in years."
   error: "dagtje" -> "dagje"
 
 [spot_error] nl:hand#infl:diminutive  (skill diminutives)
@@ -7090,1411 +6548,6 @@ SKILL travel (vocab)  Travel
   *kaartje  |   maatje  |   kwart  |   koffer
 
 ========================================================================
-SKILL kitchen (vocab)  In the kitchen
-========================================================================
---- flashcard: 8 example(s)
-[flashcard] nl:taart#prod  (skill kitchen)
-  How do you say this?
-  cake, pie  =>  de taart   [noun]
-
-[flashcard] nl:taart#rec  (skill kitchen)
-  What does this mean?
-  de taart  =>  cake, pie   [noun]
-
-[flashcard] nl:koekje#prod  (skill kitchen)
-  How do you say this?
-  cookie, biscuit  =>  het koekje   [noun]
-
-[flashcard] nl:koekje#rec  (skill kitchen)
-  What does this mean?
-  het koekje  =>  cookie, biscuit   [noun]
-
-[flashcard] nl:broodje#prod  (skill kitchen)
-  How do you say this?
-  sandwich, bread roll  =>  het broodje   [noun]
-
-[flashcard] nl:broodje#rec  (skill kitchen)
-  What does this mean?
-  het broodje  =>  sandwich, bread roll   [noun]
-
-[flashcard] nl:zoet#prod  (skill kitchen)
-  How do you say this?
-  sweet  =>  zoet   [adj]
-
-[flashcard] nl:zoet#rec  (skill kitchen)
-  What does this mean?
-  zoet  =>  sweet   [adj]
-
---- multiple_choice: 8 example(s)
-[multiple_choice] nl:taart#prod  (skill kitchen)
-  Pick the right word
-  cake
-  *taart  |   druif  |   koekje  |   chocolade
-
-[multiple_choice] nl:taart#rec  (skill kitchen)
-  Pick the right translation
-  taart   (de taart)
-   garlic  |   sausage  |  *cake  |   banana
-
-[multiple_choice] nl:koekje#prod  (skill kitchen)
-  Pick the right word
-  cookie
-   lepel  |  *koekje  |   sinaasappel  |   dorst
-
-[multiple_choice] nl:koekje#rec  (skill kitchen)
-  Pick the right translation
-  koekje   (het koekje)
-   soup  |  *cookie  |   fork  |   grape
-
-[multiple_choice] nl:broodje#prod  (skill kitchen)
-  Pick the right word
-  sandwich
-  *broodje  |   honger  |   knoflook  |   taart
-
-[multiple_choice] nl:broodje#rec  (skill kitchen)
-  Pick the right translation
-  broodje   (het broodje)
-   bottle  |   thirst  |  *sandwich  |   orange
-
-[multiple_choice] nl:zoet#prod  (skill kitchen)
-  Pick the right word
-  sweet
-   bewusteloos  |   verschrikkelijk  |  *zoet  |   roze
-
-[multiple_choice] nl:zoet#rec  (skill kitchen)
-  Pick the right translation
-  zoet
-   unconscious  |  *sweet  |   yonder  |   internal
-
---- match_pairs: 8 example(s)
-[match_pairs] nl:taart#rec  (skill kitchen)
-  Match the pairs
-  taart  =  cake
-  broodje  =  sandwich
-  druif  =  grape
-  worst  =  sausage
-  pan  =  pan
-
-[match_pairs] nl:koekje#rec  (skill kitchen)
-  Match the pairs
-  worst  =  sausage
-  ui  =  onion
-  soep  =  soup
-  druif  =  grape
-  koekje  =  cookie
-
-[match_pairs] nl:broodje#rec  (skill kitchen)
-  Match the pairs
-  citroen  =  lemon
-  taart  =  cake
-  broodje  =  sandwich
-  oven  =  oven
-  knoflook  =  garlic
-
-[match_pairs] nl:zoet#rec  (skill kitchen)
-  Match the pairs
-  ui  =  onion
-  zoet  =  sweet
-  sap  =  juice
-  koekje  =  cookie
-  fles  =  bottle
-
-[match_pairs] nl:recept#rec  (skill kitchen)
-  Match the pairs
-  ham  =  ham
-  zoet  =  sweet
-  vork  =  fork
-  recept  =  recipe
-  ui  =  onion
-
-[match_pairs] nl:soep#rec  (skill kitchen)
-  Match the pairs
-  recept  =  recipe
-  soep  =  soup
-  vork  =  fork
-  broodje  =  sandwich
-  wortel  =  carrot
-
-[match_pairs] nl:chocolade#rec  (skill kitchen)
-  Match the pairs
-  chocolade  =  chocolate
-  sinaasappel  =  orange
-  citroen  =  lemon
-  wortel  =  carrot
-  taart  =  cake
-
-[match_pairs] nl:pan#rec  (skill kitchen)
-  Match the pairs
-  aardbei  =  strawberry
-  pan  =  pan
-  sinaasappel  =  orange
-  worst  =  sausage
-  honger  =  hunger
-
---- sentence_builder: 8 example(s)
-[sentence_builder] nl:taart#prod  (skill kitchen)
-  Translate this sentence
-  Will there be a cake?
-  tiles: er · zijn · taart · zal · hebben · niet · chocolade
-  => zal er taart zijn
-
-[sentence_builder] nl:koekje#prod  (skill kitchen)
-  Translate this sentence
-  Mary is eating cookies, isn't she?
-  tiles: zeker · Mary · het · voor · aan · ben · bent · eten · koekjes · is
-  => Mary is zeker koekjes aan het eten
-
-[sentence_builder] nl:broodje#prod  (skill kitchen)
-  Translate this sentence
-  I'm eating a sandwich.
-  tiles: ik · weten · een · bellen · aardbei · broodje · eet
-  => ik eet een broodje
-
-[sentence_builder] nl:zoet#prod  (skill kitchen)
-  Translate this sentence
-  This tea is too sweet for me.
-  tiles: voor · thee · binnen · te · zoet · deze · bent · is · mij · ben
-  => deze thee is te zoet voor mij
-
-[sentence_builder] nl:recept#prod  (skill kitchen)
-  Translate this sentence
-  Go to the doctor to get your prescription!
-  tiles: over · dokter · ga · halen · binnen · je · de · te · naar · recept · om · zonder
-  => ga naar de dokter om je recept te halen
-
-[sentence_builder] nl:soep#prod  (skill kitchen)
-  Translate this sentence
-  Eat your soup!
-  tiles: soep · weten · eet · aardbei · je · drinken
-  => eet je soep
-
-[sentence_builder] nl:chocolade#prod  (skill kitchen)
-  Translate this sentence
-  She loves chocolate, too.
-  tiles: bij · chocolade · hou · houdt · van · zij · om · ook
-  => zij houdt ook van chocolade
-
-[sentence_builder] nl:pan#prod  (skill kitchen)
-  Translate this sentence
-  The pot is boiling over.
-  tiles: binnen · over · kookt · kook · naar · de · pan
-  => de pan kookt over
-
---- cloze: 8 example(s)
-[cloze] nl:taart#prod  (skill kitchen)
-  Fill in the gap
-  Laten we deze ___ proberen.   (cake)
-  "Let's try this cake."
-   soep  |   sinaasappel  |  *taart  |   broodje
-
-[cloze] nl:koekje#prod  (skill kitchen)
-  Fill in the gap
-  Wie wil er ___?   (cookie)
-  "Who wants cookies?"
-  *koekjes  |   aardbeien  |   lepels  |   sinaasappelen
-
-[cloze] nl:broodje#prod  (skill kitchen)
-  Fill in the gap
-  Ze eten ___.   (bread roll)
-  "They're eating rolls."
-   sappen  |   wortels  |  *broodjes  |   recepten
-
-[cloze] nl:zoet#prod  (skill kitchen)
-  Fill in the gap
-  Maar de koffie is niet ___.   (sweet)
-  "But the coffee isn't sweet."
-   stevig  |  *zoet  |   handig  |   bloot
-
-[cloze] nl:recept#prod  (skill kitchen)
-  Fill in the gap
-  Ik heb het ___ gevolgd.   (recipe)
-  "I followed the recipe."
-   taart  |   pan  |  *recept  |   aardbei
-
-[cloze] nl:soep#prod  (skill kitchen)
-  Fill in the gap
-  Je eet je ___.   (soup)
-  "You eat your soup."
-   wortel  |   honger  |   aardbei  |  *soep
-
-[cloze] nl:chocolade#prod  (skill kitchen)
-  Fill in the gap
-  Houden jullie van ___?   (chocolate)
-  "Do you like chocolate?"
-   dorst  |   oven  |   wortel  |  *chocolade
-
-[cloze] nl:pan#prod  (skill kitchen)
-  Fill in the gap
-  Haal het vlees uit de ___.   (pan)
-  "Take the meat out of the pan."
-  *pan  |   honger  |   soep  |   vork
-
---- listen_pick: 8 example(s)
-[listen_pick] nl:taart#rec  (skill kitchen)
-  Which word do you hear?
-  (speak, nl) taart   "cake"
-  *taart  |   toegang  |   talent  |   toetje
-
-[listen_pick] nl:koekje#rec  (skill kitchen)
-  Which word do you hear?
-  (speak, nl) koekje   "cookie"
-   knoflook  |   toetje  |  *koekje  |   broodje
-
-[listen_pick] nl:broodje#rec  (skill kitchen)
-  Which word do you hear?
-  (speak, nl) broodje   "sandwich"
-   banaan  |   toetje  |  *broodje  |   koekje
-
-[listen_pick] nl:zoet#rec  (skill kitchen)
-  Which word do you hear?
-  (speak, nl) zoet   "sweet"
-   heet  |  *zoet  |   violet  |   zwaar
-
-[listen_pick] nl:recept#rec  (skill kitchen)
-  Which word do you hear?
-  (speak, nl) recept   "recipe"
-  *recept  |   rand  |   rijst  |   roman
-
-[listen_pick] nl:soep#rec  (skill kitchen)
-  Which word do you hear?
-  (speak, nl) soep   "soup"
-   schema  |  *soep  |   sap  |   stress
-
-[listen_pick] nl:chocolade#rec  (skill kitchen)
-  Which word do you hear?
-  (speak, nl) chocolade   "chocolate"
-   conclusie  |   citroen  |  *chocolade  |   champagne
-
-[listen_pick] nl:pan#rec  (skill kitchen)
-  Which word do you hear?
-  (speak, nl) pan   "pan"
-  *pan  |   peper  |   paus  |   pijl
-
-========================================================================
-SKILL shopping (vocab)  Shopping
-========================================================================
---- flashcard: 8 example(s)
-[flashcard] nl:dollar#prod  (skill shopping)
-  How do you say this?
-  dollar  =>  de dollar   [noun]
-
-[flashcard] nl:dollar#rec  (skill shopping)
-  What does this mean?
-  de dollar  =>  dollar   [noun]
-
-[flashcard] nl:klant#prod  (skill shopping)
-  How do you say this?
-  customer, client  =>  de klant   [noun]
-
-[flashcard] nl:klant#rec  (skill shopping)
-  What does this mean?
-  de klant  =>  customer, client   [noun]
-
-[flashcard] nl:maat#prod  (skill shopping)
-  How do you say this?
-  size, measure  =>  de maat   [noun]
-
-[flashcard] nl:maat#rec  (skill shopping)
-  What does this mean?
-  de maat  =>  size, measure   [noun]
-
-[flashcard] nl:rekening#prod  (skill shopping)
-  How do you say this?
-  bill, account  =>  de rekening   [noun]
-
-[flashcard] nl:rekening#rec  (skill shopping)
-  What does this mean?
-  de rekening  =>  bill, account   [noun]
-
---- multiple_choice: 8 example(s)
-[multiple_choice] nl:dollar#prod  (skill shopping)
-  Pick the right word
-  dollar
-  *dollar  |   klant  |   boodschappen  |   rekening
-
-[multiple_choice] nl:dollar#rec  (skill shopping)
-  Pick the right translation
-  dollar   (de dollar)
-   price  |   discount  |  *dollar  |   money
-
-[multiple_choice] nl:klant#prod  (skill shopping)
-  Pick the right word
-  customer
-   pakje  |   rekening  |  *klant  |   euro
-
-[multiple_choice] nl:klant#rec  (skill shopping)
-  Pick the right translation
-  klant   (de klant)
-   discount  |   euro  |  *customer  |   parcel
-
-[multiple_choice] nl:maat#prod  (skill shopping)
-  Pick the right word
-  size
-  *maat  |   pakje  |   rekening  |   supermarkt
-
-[multiple_choice] nl:maat#rec  (skill shopping)
-  Pick the right translation
-  maat   (de maat)
-   dollar  |   supermarket  |  *size  |   bag
-
-[multiple_choice] nl:rekening#prod  (skill shopping)
-  Pick the right word
-  bill
-   prijs  |   korting  |  *rekening  |   verkoper
-
-[multiple_choice] nl:rekening#rec  (skill shopping)
-  Pick the right translation
-  rekening   (de rekening)
-   discount  |   bag  |   present  |  *bill
-
---- match_pairs: 8 example(s)
-[match_pairs] nl:dollar#rec  (skill shopping)
-  Match the pairs
-  boodschappen  =  shopping
-  maat  =  size
-  gratis  =  free
-  dollar  =  dollar
-  prijs  =  price
-
-[match_pairs] nl:klant#rec  (skill shopping)
-  Match the pairs
-  euro  =  euro
-  rekening  =  bill
-  pakje  =  parcel
-  boodschappen  =  shopping
-  klant  =  customer
-
-[match_pairs] nl:maat#rec  (skill shopping)
-  Match the pairs
-  supermarkt  =  supermarket
-  maat  =  size
-  euro  =  euro
-  dollar  =  dollar
-  geld  =  money
-
-[match_pairs] nl:rekening#rec  (skill shopping)
-  Match the pairs
-  geld  =  money
-  gratis  =  free
-  klant  =  customer
-  rekening  =  bill
-  goedkoop  =  cheap
-
-[match_pairs] nl:geld#rec  (skill shopping)
-  Match the pairs
-  dollar  =  dollar
-  geld  =  money
-  pakje  =  parcel
-  cadeau  =  present
-  rekening  =  bill
-
-[match_pairs] nl:tas#rec  (skill shopping)
-  Match the pairs
-  euro  =  euro
-  cadeau  =  present
-  dollar  =  dollar
-  tas  =  bag
-  geld  =  money
-
-[match_pairs] nl:gratis#rec  (skill shopping)
-  Match the pairs
-  rekening  =  bill
-  euro  =  euro
-  gratis  =  free
-  supermarkt  =  supermarket
-  tas  =  bag
-
-[match_pairs] nl:cadeau#rec  (skill shopping)
-  Match the pairs
-  geld  =  money
-  gratis  =  free
-  verkoper  =  salesman
-  euro  =  euro
-  cadeau  =  present
-
---- sentence_builder: 8 example(s)
-[sentence_builder] nl:dollar#prod  (skill shopping)
-  Translate this sentence
-  We're going to charge thirty dollars for this.
-  tiles: dollar · breng · brengen · rekening · brengt · mevrouw · hiervoor · in · we · dertig
-  => hiervoor brengen we dertig dollar in rekening
-
-[sentence_builder] nl:klant#prod  (skill shopping)
-  Translate this sentence
-  You are a good customer.
-  tiles: leuk · bent · een · u · moeten · kassa · goede · klant
-  => u bent een goede klant
-
-[sentence_builder] nl:maat#prod  (skill shopping)
-  Translate this sentence
-  Hello, my friend.
-  tiles: hallo · ster · hè · maat · o
-  => hallo maat
-
-[sentence_builder] nl:rekening#prod  (skill shopping)
-  Translate this sentence
-  I don't have any money on that account.
-  tiles: dank · op · rekening · hebben · die · ik · geld · hebt · geen · heb
-  => ik heb geen geld op die rekening
-
-[sentence_builder] nl:geld#prod  (skill shopping)
-  Translate this sentence
-  Your money or your life!
-  tiles: je · klant · leef · en · leven · je · geld · of
-  => je geld of je leven
-
-[sentence_builder] nl:tas#prod  (skill shopping)
-  Translate this sentence
-  They can't find their bags.
-  tiles: vertellen · komen · tassen · kunt · kunnen · ze · niet · vinden · hun
-  => ze kunnen hun tassen niet vinden
-
-[sentence_builder] nl:gratis#prod  (skill shopping)
-  Translate this sentence
-  I got this for free.
-  tiles: leven · dit · hebt · gekregen · gratis · heb · ik · hebben
-  => ik heb dit gratis gekregen
-
-[sentence_builder] nl:cadeau#prod  (skill shopping)
-  Translate this sentence
-  It's a present for you.
-  tiles: jou · het · cadeau · een · voor · om · ben · is · bent
-  => het is een cadeau voor jou
-
---- cloze: 8 example(s)
-[cloze] nl:dollar#prod  (skill shopping)
-  Fill in the gap
-  Ik heb het boek gekocht voor tien ___.   (dollar)
-  "I bought the book for ten dollars."
-   verkoper  |  *dollar  |   boodschappen  |   euro
-
-[cloze] nl:klant#prod  (skill shopping)
-  Fill in the gap
-  Jij bent een goede ___.   (customer)
-  "You are a good customer."
-   verkoper  |   tas  |  *klant  |   rekening
-
-[cloze] nl:maat#prod  (skill shopping)
-  Fill in the gap
-  Geef me er een in ___ M alstublieft.   (size)
-  "Get me one in size "M", please."
-  *maat  |   klant  |   boodschappen  |   euro
-
-[cloze] nl:rekening#prod  (skill shopping)
-  Fill in the gap
-  Ik zal de ___ betalen.   (bill)
-  "I'll pay the bill."
-   geld  |   dollar  |   kassa  |  *rekening
-
-[cloze] nl:geld#prod  (skill shopping)
-  Fill in the gap
-  We hebben een hoop ___.   (money)
-  "We have a lot of money."
-   tas  |  *geld  |   supermarkt  |   boodschappen
-
-[cloze] nl:tas#prod  (skill shopping)
-  Fill in the gap
-  Die ___ is van mij.   (bag)
-  "That bag is mine."
-  *tas  |   euro  |   kassa  |   verkoper
-
-[cloze] nl:gratis#prod  (skill shopping)
-  Fill in the gap
-  Dit telefoontje is ___.   (free)
-  "This phone call is free."
-  *gratis  |   goedkoop  |   duur  |   eenvoudig
-
-[cloze] nl:cadeau#prod  (skill shopping)
-  Fill in the gap
-  Het is een ___ voor u.   (present)
-  "It's a present for you."
-   korting  |   boodschappen  |   klant  |  *cadeau
-
---- listen_pick: 8 example(s)
-[listen_pick] nl:dollar#rec  (skill shopping)
-  Which word do you hear?
-  (speak, nl) dollar   "dollar"
-  *dollar  |   dame  |   dochter  |   deur
-
-[listen_pick] nl:klant#rec  (skill shopping)
-  Which word do you hear?
-  (speak, nl) klant   "customer"
-  *klant  |   keer  |   kassa  |   korting
-
-[listen_pick] nl:maat#rec  (skill shopping)
-  Which word do you hear?
-  (speak, nl) maat   "size"
-   macht  |   ma  |  *maat  |   muur
-
-[listen_pick] nl:rekening#rec  (skill shopping)
-  Which word do you hear?
-  (speak, nl) rekening   "bill"
-   beslissing  |   verrassing  |  *rekening  |   korting
-
-[listen_pick] nl:geld#rec  (skill shopping)
-  Which word do you hear?
-  (speak, nl) geld   "money"
-  *geld  |   gedrag  |   grap  |   schuld
-
-[listen_pick] nl:tas#rec  (skill shopping)
-  Which word do you hear?
-  (speak, nl) tas   "bag"
-   taxi  |   tante  |  *tas  |   tent
-
-[listen_pick] nl:gratis#rec  (skill shopping)
-  Which word do you hear?
-  (speak, nl) gratis   "free"
-   goedkoop  |   geheim  |  *gratis  |   gemeen
-
-[listen_pick] nl:cadeau#rec  (skill shopping)
-  Which word do you hear?
-  (speak, nl) cadeau   "present"
-   niveau  |   carrière  |   contract  |  *cadeau
-
-========================================================================
-SKILL weather (vocab)  Weather and nature
-========================================================================
---- flashcard: 8 example(s)
-[flashcard] nl:aarde#prod  (skill weather)
-  How do you say this?
-  earth, soil  =>  de aarde   [noun]
-
-[flashcard] nl:aarde#rec  (skill weather)
-  What does this mean?
-  de aarde  =>  earth, soil   [noun]
-
-[flashcard] nl:ster#prod  (skill weather)
-  How do you say this?
-  star  =>  de ster   [noun]
-
-[flashcard] nl:ster#rec  (skill weather)
-  What does this mean?
-  de ster  =>  star   [noun]
-
-[flashcard] nl:bloem#prod  (skill weather)
-  How do you say this?
-  flower  =>  de bloem   [noun]
-
-[flashcard] nl:bloem#rec  (skill weather)
-  What does this mean?
-  de bloem  =>  flower   [noun]
-
-[flashcard] nl:rivier#prod  (skill weather)
-  How do you say this?
-  river  =>  de rivier   [noun]
-
-[flashcard] nl:rivier#rec  (skill weather)
-  What does this mean?
-  de rivier  =>  river   [noun]
-
---- multiple_choice: 8 example(s)
-[multiple_choice] nl:aarde#prod  (skill weather)
-  Pick the right word
-  earth
-   zomer  |   maan  |   natuur  |  *aarde
-
-[multiple_choice] nl:aarde#rec  (skill weather)
-  Pick the right translation
-  aarde   (de aarde)
-  *earth  |   flower  |   cloud  |   sun
-
-[multiple_choice] nl:ster#prod  (skill weather)
-  Pick the right word
-  star
-   seizoen  |  *ster  |   boom  |   sneeuw
-
-[multiple_choice] nl:ster#rec  (skill weather)
-  Pick the right translation
-  ster   (de ster)
-   cloud  |  *star  |   storm  |   air
-
-[multiple_choice] nl:bloem#prod  (skill weather)
-  Pick the right word
-  flower
-  *bloem  |   gras  |   ster  |   regen
-
-[multiple_choice] nl:bloem#rec  (skill weather)
-  Pick the right translation
-  bloem   (de bloem)
-   air  |  *flower  |   grass  |   spring
-
-[multiple_choice] nl:rivier#prod  (skill weather)
-  Pick the right word
-  river
-   sneeuw  |   natuur  |  *rivier  |   maan
-
-[multiple_choice] nl:rivier#rec  (skill weather)
-  Pick the right translation
-  rivier   (de rivier)
-  *river  |   sun  |   tree  |   wind
-
---- match_pairs: 8 example(s)
-[match_pairs] nl:aarde#rec  (skill weather)
-  Match the pairs
-  mist  =  fog
-  aarde  =  earth
-  lente  =  spring
-  sneeuw  =  snow
-  maan  =  moon
-
-[match_pairs] nl:ster#rec  (skill weather)
-  Match the pairs
-  ster  =  star
-  boom  =  tree
-  regenen  =  to rain
-  seizoen  =  season
-  bloem  =  flower
-
-[match_pairs] nl:bloem#rec  (skill weather)
-  Match the pairs
-  winter  =  winter
-  bloem  =  flower
-  zon  =  sun
-  mist  =  fog
-  herfst  =  autumn
-
-[match_pairs] nl:rivier#rec  (skill weather)
-  Match the pairs
-  zon  =  sun
-  gras  =  grass
-  winter  =  winter
-  natuur  =  nature
-  rivier  =  river
-
-[match_pairs] nl:zomer#rec  (skill weather)
-  Match the pairs
-  gras  =  grass
-  zomer  =  summer
-  seizoen  =  season
-  zon  =  sun
-  rivier  =  river
-
-[match_pairs] nl:natuur#rec  (skill weather)
-  Match the pairs
-  lente  =  spring
-  rivier  =  river
-  temperatuur  =  temperature
-  wolk  =  cloud
-  natuur  =  nature
-
-[match_pairs] nl:seizoen#rec  (skill weather)
-  Match the pairs
-  ster  =  star
-  temperatuur  =  temperature
-  bloem  =  flower
-  zomer  =  summer
-  seizoen  =  season
-
-[match_pairs] nl:winter#rec  (skill weather)
-  Match the pairs
-  winter  =  winter
-  wind  =  wind
-  zomer  =  summer
-  herfst  =  autumn
-  rivier  =  river
-
---- sentence_builder: 8 example(s)
-[sentence_builder] nl:aarde#prod  (skill weather)
-  Translate this sentence
-  We live on Earth.
-  tiles: antwoorden · wonen · aarde · op · woont · we · woon
-  => we wonen op aarde
-
-[sentence_builder] nl:ster#prod  (skill weather)
-  Translate this sentence
-  Today, I saw a star.
-  tiles: vandaag · hebben · een · gezien · hebt · heen · ik · ster · heb
-  => ik heb vandaag een ster gezien
-
-[sentence_builder] nl:bloem#prod  (skill weather)
-  Translate this sentence
-  Please water the flowers.
-  tiles: aardappel · houden · water · geef · boom · bloemen · de · alsjeblieft
-  => geef de bloemen alsjeblieft water
-
-[sentence_builder] nl:rivier#prod  (skill weather)
-  Translate this sentence
-  Tom and Mary live in a house by the river.
-  tiles: in · wonen · slaan · rivier · een · aan · Maria · en · huis · of · Tom · de · woon
-  => Tom en Maria wonen in een huis aan de rivier
-
-[sentence_builder] nl:zomer#prod  (skill weather)
-  Translate this sentence
-  I don't like summer.
-  tiles: ik · achter · houden · de · houdt · van · houd · niet · zomer
-  => ik houd niet van de zomer
-
-[sentence_builder] nl:natuur#prod  (skill weather)
-  Translate this sentence
-  I love nature.
-  tiles: hou · natuur · ik · van · houdt · aarde · houden · de
-  => ik hou van de natuur
-
-[sentence_builder] nl:seizoen#prod  (skill weather)
-  Translate this sentence
-  In Japan, there are four seasons.
-  tiles: zijn · er · ben · journalist · vier · bent · seizoenen · Japan · in
-  => in Japan zijn er vier seizoenen
-
-[sentence_builder] nl:winter#prod  (skill weather)
-  Translate this sentence
-  Winter is approaching.
-  tiles: het · van · verdriet · winter · wordt · word
-  => het wordt winter
-
---- cloze: 8 example(s)
-[cloze] nl:aarde#prod  (skill weather)
-  Fill in the gap
-  Vier jij de Dag van de ___?   (earth)
-  "Do you celebrate the Earth Day?"
-   Ster  |   Regen  |   Bloem  |  *Aarde
-
-[cloze] nl:ster#prod  (skill weather)
-  Fill in the gap
-  De zon is een ___.   (star)
-  "The sun is a star."
-   natuur  |   boom  |  *ster  |   zon
-
-[cloze] nl:bloem#prod  (skill weather)
-  Fill in the gap
-  Aan wie heb je de ___ gebracht?   (flower)
-  "Who did you bring the flowers to?"
-   wolken  |   luchten  |   stormen  |  *bloemen
-
-[cloze] nl:rivier#prod  (skill weather)
-  Fill in the gap
-  Ik mag in de ___ zwemmen.   (river)
-  "I am allowed to swim in the river."
-  *rivier  |   lucht  |   maan  |   mist
-
-[cloze] nl:zomer#prod  (skill weather)
-  Fill in the gap
-  Ik ga deze ___ naar Rome.   (summer)
-  "I'm going to visit Rome this summer."
-   storm  |  *zomer  |   bloem  |   herfst
-
-[cloze] nl:natuur#prod  (skill weather)
-  Fill in the gap
-  De ___ verandert.   (nature)
-  "Nature is changing."
-   sneeuw  |  *natuur  |   wind  |   zon
-
-[cloze] nl:seizoen#prod  (skill weather)
-  Fill in the gap
-  Dit is het beste ___ om te wandelen.   (season)
-  "This is the best season for hiking."
-   lente  |   rivier  |   maan  |  *seizoen
-
-[cloze] nl:winter#prod  (skill weather)
-  Fill in the gap
-  Het is ___ in Australië.   (winter)
-  "It's winter in Australia."
-   sneeuw  |  *winter  |   mist  |   regen
-
---- listen_pick: 8 example(s)
-[listen_pick] nl:aarde#rec  (skill weather)
-  Which word do you hear?
-  (speak, nl) aarde   "earth"
-   ader  |   orde  |   wade  |  *aarde
-
-[listen_pick] nl:ster#rec  (skill weather)
-  Which word do you hear?
-  (speak, nl) ster   "star"
-   winter  |   zomer  |  *ster  |   rivier
-
-[listen_pick] nl:bloem#rec  (skill weather)
-  Which word do you hear?
-  (speak, nl) bloem   "flower"
-   bos  |  *bloem  |   boom  |   basis
-
-[listen_pick] nl:rivier#rec  (skill weather)
-  Which word do you hear?
-  (speak, nl) rivier   "river"
-   regen  |  *rivier  |   ster  |   winter
-
-[listen_pick] nl:zomer#rec  (skill weather)
-  Which word do you hear?
-  (speak, nl) zomer   "summer"
-  *zomer  |   rivier  |   winter  |   ster
-
-[listen_pick] nl:natuur#rec  (skill weather)
-  Which word do you hear?
-  (speak, nl) natuur   "nature"
-   nier  |   nagel  |  *natuur  |   voorkeur
-
-[listen_pick] nl:seizoen#rec  (skill weather)
-  Which word do you hear?
-  (speak, nl) seizoen   "season"
-   storm  |   sneeuw  |  *seizoen  |   regen
-
-[listen_pick] nl:winter#rec  (skill weather)
-  Which word do you hear?
-  (speak, nl) winter   "winter"
-  *winter  |   wolk  |   zomer  |   ster
-
-========================================================================
-SKILL animals (vocab)  Animals
-========================================================================
---- flashcard: 8 example(s)
-[flashcard] nl:hond#prod  (skill animals)
-  How do you say this?
-  dog  =>  de hond   [noun]
-
-[flashcard] nl:hond#rec  (skill animals)
-  What does this mean?
-  de hond  =>  dog   [noun]
-
-[flashcard] nl:paard#prod  (skill animals)
-  How do you say this?
-  horse  =>  het paard   [noun]
-
-[flashcard] nl:paard#rec  (skill animals)
-  What does this mean?
-  het paard  =>  horse   [noun]
-
-[flashcard] nl:dier#prod  (skill animals)
-  How do you say this?
-  animal  =>  het dier   [noun]
-
-[flashcard] nl:dier#rec  (skill animals)
-  What does this mean?
-  het dier  =>  animal   [noun]
-
-[flashcard] nl:kip#prod  (skill animals)
-  How do you say this?
-  chicken, hen  =>  de kip   [noun]
-
-[flashcard] nl:kip#rec  (skill animals)
-  What does this mean?
-  de kip  =>  chicken, hen   [noun]
-
---- multiple_choice: 8 example(s)
-[multiple_choice] nl:hond#prod  (skill animals)
-  Pick the right word
-  dog
-  *hond  |   wolf  |   konijn  |   kip
-
-[multiple_choice] nl:hond#rec  (skill animals)
-  Pick the right translation
-  hond   (de hond)
-   butterfly  |   cow  |  *dog  |   mouse
-
-[multiple_choice] nl:paard#prod  (skill animals)
-  Pick the right word
-  horse
-   koe  |  *paard  |   konijn  |   kat
-
-[multiple_choice] nl:paard#rec  (skill animals)
-  Pick the right translation
-  paard   (het paard)
-   snake  |  *horse  |   monkey  |   lion
-
-[multiple_choice] nl:dier#prod  (skill animals)
-  Pick the right word
-  animal
-  *dier  |   muis  |   vogel  |   leeuw
-
-[multiple_choice] nl:dier#rec  (skill animals)
-  Pick the right translation
-  dier   (het dier)
-   sheep  |   cow  |  *animal  |   mouse
-
-[multiple_choice] nl:kip#prod  (skill animals)
-  Pick the right word
-  chicken
-   tijger  |   konijn  |  *kip  |   leeuw
-
-[multiple_choice] nl:kip#rec  (skill animals)
-  Pick the right translation
-  kip   (de kip)
-  *chicken  |   butterfly  |   mouse  |   dog
-
---- match_pairs: 8 example(s)
-[match_pairs] nl:hond#rec  (skill animals)
-  Match the pairs
-  paard  =  horse
-  varken  =  pig
-  vos  =  fox
-  hond  =  dog
-  leeuw  =  lion
-
-[match_pairs] nl:paard#rec  (skill animals)
-  Match the pairs
-  aap  =  monkey
-  paard  =  horse
-  schaap  =  sheep
-  olifant  =  elephant
-  vlinder  =  butterfly
-
-[match_pairs] nl:dier#rec  (skill animals)
-  Match the pairs
-  dier  =  animal
-  vogel  =  bird
-  varken  =  pig
-  eend  =  duck
-  vlinder  =  butterfly
-
-[match_pairs] nl:kip#rec  (skill animals)
-  Match the pairs
-  schaap  =  sheep
-  kip  =  chicken
-  tijger  =  tiger
-  slang  =  snake
-  dier  =  animal
-
-[match_pairs] nl:wolf#rec  (skill animals)
-  Match the pairs
-  paard  =  horse
-  wolf  =  wolf
-  tijger  =  tiger
-  schaap  =  sheep
-  koe  =  cow
-
-[match_pairs] nl:aap#rec  (skill animals)
-  Match the pairs
-  beer  =  bear
-  aap  =  monkey
-  olifant  =  elephant
-  tijger  =  tiger
-  vogel  =  bird
-
-[match_pairs] nl:slang#rec  (skill animals)
-  Match the pairs
-  konijn  =  rabbit
-  varken  =  pig
-  slang  =  snake
-  paard  =  horse
-  muis  =  mouse
-
-[match_pairs] nl:varken#rec  (skill animals)
-  Match the pairs
-  beer  =  bear
-  varken  =  pig
-  leeuw  =  lion
-  aap  =  monkey
-  slang  =  snake
-
---- sentence_builder: 8 example(s)
-[sentence_builder] nl:hond#prod  (skill animals)
-  Translate this sentence
-  He is afraid of the dogs.
-  tiles: is · hij · bang · honden · bent · de · voor · ben · oorlog
-  => hij is bang voor de honden
-
-[sentence_builder] nl:paard#prod  (skill animals)
-  Translate this sentence
-  These horses are theirs.
-  tiles: hen · zijn · ben · deze · van · zonder · bent · paarden
-  => deze paarden zijn van hen
-
-[sentence_builder] nl:dier#prod  (skill animals)
-  Translate this sentence
-  Animals are our friends.
-  tiles: bent · ben · eend · zijn · vrienden · onze · dieren
-  => dieren zijn onze vrienden
-
-[sentence_builder] nl:kip#prod  (skill animals)
-  Translate this sentence
-  The chicken is in the kitchen.
-  tiles: doelwit · bent · de · ben · de · is · kip · in · keuken
-  => de kip is in de keuken
-
-[sentence_builder] nl:wolf#prod  (skill animals)
-  Translate this sentence
-  Man is a wolf to man.
-  tiles: bent · mens · is · familie · voor · ben · de · wolf · de · een · mens
-  => de mens is een wolf voor de mens
-
-[sentence_builder] nl:aap#prod  (skill animals)
-  Translate this sentence
-  The doctor is a monkey!
-  tiles: ben · de · deur · bent · aap · dokter · is · een
-  => de dokter is een aap
-
-[sentence_builder] nl:slang#prod  (skill animals)
-  Translate this sentence
-  Dogs are afraid of snakes.
-  tiles: honden · zijn · papier · ben · slangen · voor · bent · bang
-  => honden zijn bang voor slangen
-
-[sentence_builder] nl:varken#prod  (skill animals)
-  Translate this sentence
-  What is a pig?
-  tiles: hond · wat · ben · een · is · varken · bent
-  => wat is een varken
-
---- cloze: 8 example(s)
-[cloze] nl:hond#prod  (skill animals)
-  Fill in the gap
-  Ik ga morgen een ___ kopen.   (dog)
-  "I'm going to buy a dog tomorrow."
-   konijn  |   vlinder  |  *hond  |   vogel
-
-[cloze] nl:paard#prod  (skill animals)
-  Fill in the gap
-  Deze ___ zijn van jullie.   (horse)
-  "These horses are yours."
-   muizen  |   vogels  |   beren  |  *paarden
-
-[cloze] nl:dier#prod  (skill animals)
-  Fill in the gap
-  Een leeuw is een ___.   (animal)
-  "A lion is an animal."
-   tijger  |  *dier  |   muis  |   vogel
-
-[cloze] nl:kip#prod  (skill animals)
-  Fill in the gap
-  Ik eet vaak ___.   (chicken)
-  "I often eat chicken."
-  *kip  |   kat  |   paard  |   schaap
-
-[cloze] nl:wolf#prod  (skill animals)
-  Fill in the gap
-  Waar zijn de ___?   (wolf)
-  "Where are the wolves?"
-   konijnen  |  *wolven  |   dieren  |   vossen
-
-[cloze] nl:aap#prod  (skill animals)
-  Fill in the gap
-  We zien hier vaak ___.   (monkey)
-  "We often see monkeys around here."
-  *apen  |   muizen  |   koeien  |   kippen
-
-[cloze] nl:slang#prod  (skill animals)
-  Fill in the gap
-  Leeft die ___?   (snake)
-  "Is the snake alive?"
-  *slang  |   vlinder  |   dier  |   leeuw
-
-[cloze] nl:varken#prod  (skill animals)
-  Fill in the gap
-  Tom eet als een ___.   (pig)
-  "Tom eats like a pig."
-   wolf  |   vos  |  *varken  |   muis
-
---- listen_pick: 8 example(s)
-[listen_pick] nl:hond#rec  (skill animals)
-  Which word do you hear?
-  (speak, nl) hond   "dog"
-  *hond  |   avond  |   hart  |   eend
-
-[listen_pick] nl:paard#rec  (skill animals)
-  Which word do you hear?
-  (speak, nl) paard   "horse"
-   partner  |   waard  |  *paard  |   plezier
-
-[listen_pick] nl:dier#rec  (skill animals)
-  Which word do you hear?
-  (speak, nl) dier   "animal"
-   beer  |   tijger  |  *dier  |   dader
-
-[listen_pick] nl:kip#rec  (skill animals)
-  Which word do you hear?
-  (speak, nl) kip   "chicken"
-   knul  |  *kip  |   kat  |   koe
-
-[listen_pick] nl:wolf#rec  (skill animals)
-  Which word do you hear?
-  (speak, nl) wolf   "wolf"
-  *wolf  |   wezen  |   wind  |   wiet
-
-[listen_pick] nl:aap#rec  (skill animals)
-  Which word do you hear?
-  (speak, nl) aap   "monkey"
-   april  |  *aap  |   alarm  |   pap
-
-[listen_pick] nl:slang#rec  (skill animals)
-  Which word do you hear?
-  (speak, nl) slang   "snake"
-   stilte  |   schaap  |  *slang  |   long
-
-[listen_pick] nl:varken#rec  (skill animals)
-  Which word do you hear?
-  (speak, nl) varken   "pig"
-  *varken  |   vlinder  |   vogel  |   vaarwel
-
-========================================================================
-SKILL clothes (vocab)  Clothes
-========================================================================
---- flashcard: 8 example(s)
-[flashcard] nl:dragen#prod  (skill clothes)
-  How do you say this?
-  to carry, to wear  =>  dragen   [verb]
-
-[flashcard] nl:dragen#rec  (skill clothes)
-  What does this mean?
-  dragen  =>  to carry, to wear   [verb]
-
-[flashcard] nl:kleren#prod  (skill clothes)
-  How do you say this?
-  clothes  =>  kleren   [noun]
-
-[flashcard] nl:kleren#rec  (skill clothes)
-  What does this mean?
-  kleren  =>  clothes   [noun]
-
-[flashcard] nl:schoen#prod  (skill clothes)
-  How do you say this?
-  shoe  =>  de schoen   [noun]
-
-[flashcard] nl:schoen#rec  (skill clothes)
-  What does this mean?
-  de schoen  =>  shoe   [noun]
-
-[flashcard] nl:broek#prod  (skill clothes)
-  How do you say this?
-  trousers, pants  =>  de broek   [noun]
-
-[flashcard] nl:broek#rec  (skill clothes)
-  What does this mean?
-  de broek  =>  trousers, pants   [noun]
-
---- multiple_choice: 8 example(s)
-[multiple_choice] nl:dragen#prod  (skill clothes)
-  Pick the right word
-  to carry
-   drinken  |   klinken  |  *dragen  |   schieten
-
-[multiple_choice] nl:dragen#rec  (skill clothes)
-  Pick the right translation
-  dragen
-   to lose  |  *to carry  |   to disappear  |   to call
-
-[multiple_choice] nl:kleren#prod  (skill clothes)
-  Pick the right word
-  clothes
-   jurk  |  *kleren  |   laars  |   horloge
-
-[multiple_choice] nl:kleren#rec  (skill clothes)
-  Pick the right translation
-  kleren   (kleren)
-   ring  |  *clothes  |   glasses  |   shirt
-
-[multiple_choice] nl:schoen#prod  (skill clothes)
-  Pick the right word
-  shoe
-  *schoen  |   laars  |   sok  |   kleren
-
-[multiple_choice] nl:schoen#rec  (skill clothes)
-  Pick the right translation
-  schoen   (de schoen)
-   boot  |  *shoe  |   coat  |   umbrella
-
-[multiple_choice] nl:broek#prod  (skill clothes)
-  Pick the right word
-  trousers
-   rok  |   kleren  |  *broek  |   laars
-
-[multiple_choice] nl:broek#rec  (skill clothes)
-  Pick the right translation
-  broek   (de broek)
-  *trousers  |   shirt  |   watch  |   coat
-
---- match_pairs: 8 example(s)
-[match_pairs] nl:dragen#rec  (skill clothes)
-  Match the pairs
-  paraplu  =  umbrella
-  broek  =  trousers
-  kleren  =  clothes
-  dragen  =  to carry
-  bril  =  glasses
-
-[match_pairs] nl:kleren#rec  (skill clothes)
-  Match the pairs
-  horloge  =  watch
-  kleren  =  clothes
-  shirt  =  shirt
-  sok  =  sock
-  das  =  tie
-
-[match_pairs] nl:schoen#rec  (skill clothes)
-  Match the pairs
-  ring  =  ring
-  jas  =  coat
-  schoen  =  shoe
-  zak  =  pocket
-  sok  =  sock
-
-[match_pairs] nl:broek#rec  (skill clothes)
-  Match the pairs
-  zak  =  pocket
-  horloge  =  watch
-  pak  =  suit
-  handschoen  =  glove
-  broek  =  trousers
-
-[match_pairs] nl:jurk#rec  (skill clothes)
-  Match the pairs
-  jurk  =  dress
-  shirt  =  shirt
-  sok  =  sock
-  horloge  =  watch
-  broek  =  trousers
-
-[match_pairs] nl:ring#rec  (skill clothes)
-  Match the pairs
-  hoed  =  hat
-  zak  =  pocket
-  riem  =  belt
-  sok  =  sock
-  ring  =  ring
-
-[match_pairs] nl:horloge#rec  (skill clothes)
-  Match the pairs
-  jurk  =  dress
-  pak  =  suit
-  laars  =  boot
-  horloge  =  watch
-  overhemd  =  shirt
-
-[match_pairs] nl:shirt#rec  (skill clothes)
-  Match the pairs
-  riem  =  belt
-  schoen  =  shoe
-  laars  =  boot
-  shirt  =  shirt
-  handschoen  =  glove
-
---- sentence_builder: 8 example(s)
-[sentence_builder] nl:dragen#prod  (skill clothes)
-  Translate this sentence
-  He is wearing gloves.
-  tiles: draag · horloge · draagt · hij · das · handschoenen
-  => hij draagt handschoenen
-
-[sentence_builder] nl:kleren#prod  (skill clothes)
-  Translate this sentence
-  Where are your clothes?
-  tiles: kleren · zijn · je · hebben · waar · god · zeggen
-  => waar zijn je kleren
-
-[sentence_builder] nl:schoen#prod  (skill clothes)
-  Translate this sentence
-  Where did you buy these shoes?
-  tiles: bekijken · waar · heeft · deze · u · er · gekocht · zeggen · schoenen
-  => waar heeft u deze schoenen gekocht
-
-[sentence_builder] nl:broek#prod  (skill clothes)
-  Translate this sentence
-  I wear pants, a shirt, and shoes.
-  tiles: een · draag · en · broek · shirt · een · draagt · schoenen · dragen · hoed · ik
-  => ik draag een broek een shirt en schoenen
-
-[sentence_builder] nl:jurk#prod  (skill clothes)
-  Translate this sentence
-  That dress looks good on you.
-  tiles: das · die · goed · jurk · staat · eiland · u · mooi
-  => die jurk staat u goed
-
-[sentence_builder] nl:ring#prod  (skill clothes)
-  Translate this sentence
-  I have a ring.
-  tiles: hebt · ik · hebben · gaan · ring · een · heb
-  => ik heb een ring
-
-[sentence_builder] nl:horloge#prod  (skill clothes)
-  Translate this sentence
-  He's bought me a watch.
-  tiles: gekocht · heb · heeft · hij · een · hebt · me · voor · in · horloge
-  => hij heeft een horloge voor me gekocht
-
-[sentence_builder] nl:shirt#prod  (skill clothes)
-  Translate this sentence
-  She has given me a shirt.
-  tiles: mij · hebt · gebeuren · gegeven · een · heeft · zij · shirt · heb
-  => zij heeft mij een shirt gegeven
-
---- cloze: 8 example(s)
-[cloze] nl:dragen#prod  (skill clothes)
-  Fill in the gap
-  Deze schoenen kan ik niet ___.   (to wear)
-  "I can't wear these shoes."
-   beschermen  |  *dragen  |   slaan  |   pakken
-
-[cloze] nl:kleren#prod  (skill clothes)
-  Fill in the gap
-  Hoe vaak koop je ___?   (clothes)
-  "How often do you buy clothes?"
-   overhemd  |  *kleren  |   hoed  |   riem
-
-[cloze] nl:schoen#prod  (skill clothes)
-  Fill in the gap
-  Deze ___ zijn van Tom.   (shoe)
-  "These shoes belong to Tom."
-  *schoenen  |   hoeden  |   brillen  |   jurken
-
-[cloze] nl:broek#prod  (skill clothes)
-  Fill in the gap
-  Wat hebt u met mijn ___ gedaan?   (trousers)
-  "What have you done with my trousers?"
-   riem  |   kleren  |   pak  |  *broek
-
-[cloze] nl:jurk#prod  (skill clothes)
-  Fill in the gap
-  Waarom dragen jullie geen ___?   (dress)
-  "Why don't you wear a dress?"
-   zak  |   bril  |  *jurk  |   jas
-
-[cloze] nl:ring#prod  (skill clothes)
-  Fill in the gap
-  Deze ___ heb ik van mijn moeder gekregen.   (ring)
-  "This ring was given to me by my mother."
-   riem  |   paraplu  |   kleren  |  *ring
-
-[cloze] nl:horloge#prod  (skill clothes)
-  Fill in the gap
-  Deze ___ is van mij.   (watch)
-  "This watch is mine."
-  *horloge  |   shirt  |   das  |   overhemd
-
-[cloze] nl:shirt#prod  (skill clothes)
-  Fill in the gap
-  Wil je dit ___ hebben?   (shirt)
-  "Do you want this shirt?"
-   jas  |   handschoen  |  *shirt  |   zak
-
---- listen_pick: 8 example(s)
-[listen_pick] nl:dragen#rec  (skill clothes)
-  Which word do you hear?
-  (speak, nl) dragen   "to carry"
-   drinken  |   klinken  |  *dragen  |   schieten
-
-[listen_pick] nl:kleren#rec  (skill clothes)
-  Which word do you hear?
-  (speak, nl) kleren   "clothes"
-   schoen  |   klant  |  *kleren  |   kogel
-
-[listen_pick] nl:schoen#rec  (skill clothes)
-  Which word do you hear?
-  (speak, nl) schoen   "shoe"
-   kleren  |  *schoen  |   shirt  |   ster
-
-[listen_pick] nl:broek#rec  (skill clothes)
-  Which word do you hear?
-  (speak, nl) broek   "trousers"
-   borst  |  *broek  |   bevel  |   bril
-
-[listen_pick] nl:jurk#rec  (skill clothes)
-  Which word do you hear?
-  (speak, nl) jurk   "dress"
-  *jurk  |   jungle  |   jas  |   jood
-
-[listen_pick] nl:ring#rec  (skill clothes)
-  Which word do you hear?
-  (speak, nl) ring   "ring"
-   regel  |  *ring  |   riem  |   rok
-
-[listen_pick] nl:horloge#rec  (skill clothes)
-  Which word do you hear?
-  (speak, nl) horloge   "watch"
-   hoofdstuk  |   houding  |  *horloge  |   marge
-
-[listen_pick] nl:shirt#rec  (skill clothes)
-  Which word do you hear?
-  (speak, nl) shirt   "shirt"
-  *shirt  |   sok  |   special  |   schoen
-
-========================================================================
 SKILL verleden-tijd-weak (grammar)  Simple past: weak verbs
 ========================================================================
 --- conj_pick: 8 example(s)
@@ -8636,21 +6689,21 @@ SKILL verleden-tijd-weak (grammar)  Simple past: weak verbs
 
 [cloze] nl:willen#form:verleden_tijd  (skill verleden-tijd-weak)
   Fill in the right form
-  Wat ___ ze?   (willen (zij/ze (they), simple past))
-  "What did they want?"
-   wil  |   wilt  |  *wilden  |   willen
+  We ___ jou.   (willen (wij/we (we), simple past))
+  "We wanted you."
+   wilt  |   willen  |  *wilden  |   wilde
 
 [cloze] nl:vertellen#form:verleden_tijd  (skill verleden-tijd-weak)
   Fill in the right form
-  Waarom ___ ze dat aan mij?   (vertellen (hij/zij/het (he/she/it), simple past))
-  "Why did she tell me that?"
-   vertel  |  *vertelde  |   vertellen  |   vertelt
+  Hij ___ me wat hij wilde.   (vertellen (hij/zij/het (he/she/it), simple past))
+  "He told me what he wanted."
+   vertelt  |  *vertelde  |   vertellen  |   vertel
 
 [cloze] nl:leven#form:verleden_tijd  (skill verleden-tijd-weak)
   Fill in the right form
-  Hij ___ bij de Indianen.   (leven (hij/zij/het (he/she/it), simple past))
-  "He was living with the Indians."
-  *leefde  |   leef  |   leeft  |   leven
+  Jij ___ een jaar in Nederland.   (leven (jij/je (you), simple past))
+  "You lived in the Netherlands for a year."
+   leefden  |  *leefde  |   leeft  |   leef
 
 [cloze] nl:gebeuren#form:verleden_tijd  (skill verleden-tijd-weak)
   Fill in the right form
@@ -8660,9 +6713,9 @@ SKILL verleden-tijd-weak (grammar)  Simple past: weak verbs
 
 [cloze] nl:horen#form:verleden_tijd  (skill verleden-tijd-weak)
   Fill in the right form
-  Je ___ er te zijn.   (horen (jij/je (you), simple past))
-  "You were supposed to be there."
-   hoor  |   hoort  |   hoorden  |  *hoorde
+  We ___ het.   (horen (wij/we (we), simple past))
+  "We heard."
+   horen  |  *hoorden  |   hoort  |   hoorde
 
 [cloze] nl:kennen#form:verleden_tijd  (skill verleden-tijd-weak)
   Fill in the right form
@@ -8672,33 +6725,33 @@ SKILL verleden-tijd-weak (grammar)  Simple past: weak verbs
 
 [cloze] nl:proberen#form:verleden_tijd  (skill verleden-tijd-weak)
   Fill in the right form
-  Zij ___.   (proberen (zij/ze (they), simple past))
-  "They tried."
-   probeer  |   probeert  |  *probeerden  |   proberen
+  Ik ___ met je te praten.   (proberen (ik, simple past))
+  "I was trying to talk to you."
+   proberen  |   probeer  |  *probeerde  |   probeerden
 
 --- spot_error: 8 example(s)
 [spot_error] nl:maken#form:verleden_tijd  (skill verleden-tijd-weak)
   Tap the wrong word
-  Ik maakten het uit met Tom.
-  "I broke up with Tom."
-  error: "maakten" -> "maakte"
+  Wij maakte ontbijt.
+  "We made breakfast."
+  error: "maakte" -> "maakten"
 
 [spot_error] nl:willen#form:verleden_tijd  (skill verleden-tijd-weak)
   Tap the wrong word
-  We wilde u.
+  Wij wilde u.
   "We wanted you."
   error: "wilde" -> "wilden"
 
 [spot_error] nl:vertellen#form:verleden_tijd  (skill verleden-tijd-weak)
   Tap the wrong word
-  Ik vertelden Tom een verhaal.
-  "I told Tom a story."
+  Ik vertelden Tom met wie hij moest praten.
+  "I told Tom who he should talk to."
   error: "vertelden" -> "vertelde"
 
 [spot_error] nl:leven#form:verleden_tijd  (skill verleden-tijd-weak)
   Tap the wrong word
-  We leefde een jaar in Utrecht.
-  "We lived in Utrecht for a year."
+  We leefde bij de zee.
+  "We lived by the sea."
   error: "leefde" -> "leefden"
 
 [spot_error] nl:horen#form:verleden_tijd  (skill verleden-tijd-weak)
@@ -8888,9 +6941,9 @@ SKILL verleden-tijd-strong (grammar)  Simple past: strong and irregular verbs
 
 [cloze] nl:moeten#form:verleden_tijd  (skill verleden-tijd-strong)
   Fill in the right form
-  Wij ___ niet komen.   (moeten (wij/we (we), simple past))
-  "We didn't have to come."
-  *moesten  |   moet  |   moeten  |   moest
+  Waarom ___ ze gaan?   (moeten (hij/zij/het (he/she/it), simple past))
+  "Why did she have to go?"
+   moet  |   moeten  |  *moest
 
 [cloze] nl:doen#form:verleden_tijd  (skill verleden-tijd-strong)
   Fill in the right form
@@ -8937,8 +6990,8 @@ SKILL verleden-tijd-strong (grammar)  Simple past: strong and irregular verbs
 
 [spot_error] nl:moeten#form:verleden_tijd  (skill verleden-tijd-strong)
   Tap the wrong word
-  Tom zei dat we vroeg moest beginnen.
-  "Tom said that we should start early."
+  Vind je dat we er met Tom over moest praten?
+  "Do you think we should've talked to Tom about this?"
   error: "moest" -> "moesten"
 
 [spot_error] nl:doen#form:verleden_tijd  (skill verleden-tijd-strong)
@@ -8968,9 +7021,9 @@ SKILL verleden-tijd-strong (grammar)  Simple past: strong and irregular verbs
 --- transform: 8 example(s)
 [transform] nl:zijn#form:verleden_tijd  (skill verleden-tijd-strong)
   Change the tense
-  Ik ben aan het verhuizen.   → simple past
-  tiles: het · ik · ben · was · verhuizen · aan · waren
-  => ik was aan het verhuizen
+  Het is goed u te zien.   → simple past
+  tiles: u · is · te · het · zien · was · goed
+  => het was goed u te zien
 
 [transform] nl:hebben#form:verleden_tijd  (skill verleden-tijd-strong)
   Change the tense
@@ -8986,9 +7039,9 @@ SKILL verleden-tijd-strong (grammar)  Simple past: strong and irregular verbs
 
 [transform] nl:moeten#form:verleden_tijd  (skill verleden-tijd-strong)
   Change the tense
-  Hij moet met haar meegaan.   → simple past
-  tiles: moest · meegaan · met · haar · moet · hij
-  => hij moest met haar meegaan
+  Het moet ophouden.   → simple past
+  tiles: het · ophouden · moest · moet
+  => het moest ophouden
 
 [transform] nl:doen#form:verleden_tijd  (skill verleden-tijd-strong)
   Change the tense
@@ -9014,287 +7067,6 @@ SKILL verleden-tijd-strong (grammar)  Simple past: strong and irregular verbs
   Hoe kan ik ervoor betalen?   → simple past
   tiles: betalen · hoe · konden · ik · kon · ervoor · kan
   => hoe kon ik ervoor betalen
-
-========================================================================
-SKILL leisure (vocab)  Free time
-========================================================================
---- flashcard: 8 example(s)
-[flashcard] nl:foto#prod  (skill leisure)
-  How do you say this?
-  photo, picture  =>  de foto   [noun]
-
-[flashcard] nl:foto#rec  (skill leisure)
-  What does this mean?
-  de foto  =>  photo, picture   [noun]
-
-[flashcard] nl:team#prod  (skill leisure)
-  How do you say this?
-  team  =>  het team   [noun]
-
-[flashcard] nl:team#rec  (skill leisure)
-  What does this mean?
-  het team  =>  team   [noun]
-
-[flashcard] nl:muziek#prod  (skill leisure)
-  How do you say this?
-  music  =>  de muziek   [noun]
-
-[flashcard] nl:muziek#rec  (skill leisure)
-  What does this mean?
-  de muziek  =>  music   [noun]
-
-[flashcard] nl:wedstrijd#prod  (skill leisure)
-  How do you say this?
-  match, game, competition  =>  de wedstrijd   [noun]
-
-[flashcard] nl:wedstrijd#rec  (skill leisure)
-  What does this mean?
-  de wedstrijd  =>  match, game, competition   [noun]
-
---- multiple_choice: 8 example(s)
-[multiple_choice] nl:foto#prod  (skill leisure)
-  Pick the right word
-  photo
-  *foto  |   piano  |   roman  |   hobby
-
-[multiple_choice] nl:foto#rec  (skill leisure)
-  Pick the right translation
-  foto   (de foto)
-  *photo  |   piano  |   concert  |   magazine
-
-[multiple_choice] nl:team#prod  (skill leisure)
-  Pick the right word
-  team
-   feest  |  *team  |   film  |   muziek
-
-[multiple_choice] nl:team#rec  (skill leisure)
-  Pick the right translation
-  team   (het team)
-   novel  |  *team  |   radio  |   song
-
-[multiple_choice] nl:muziek#prod  (skill leisure)
-  Pick the right word
-  music
-  *muziek  |   tijdschrift  |   piano  |   team
-
-[multiple_choice] nl:muziek#rec  (skill leisure)
-  Pick the right translation
-  muziek   (de muziek)
-   radio  |  *music  |   newspaper  |   sport
-
-[multiple_choice] nl:wedstrijd#prod  (skill leisure)
-  Pick the right word
-  match
-   sport  |   krant  |  *wedstrijd  |   hobby
-
-[multiple_choice] nl:wedstrijd#rec  (skill leisure)
-  Pick the right translation
-  wedstrijd   (de wedstrijd)
-   film  |   song  |  *match  |   drawing
-
---- match_pairs: 8 example(s)
-[match_pairs] nl:foto#rec  (skill leisure)
-  Match the pairs
-  sport  =  sport
-  wedstrijd  =  match
-  team  =  team
-  foto  =  photo
-  tekening  =  drawing
-
-[match_pairs] nl:team#rec  (skill leisure)
-  Match the pairs
-  radio  =  radio
-  team  =  team
-  lied  =  song
-  tijdschrift  =  magazine
-  spel  =  game
-
-[match_pairs] nl:muziek#rec  (skill leisure)
-  Match the pairs
-  film  =  film
-  voetbal  =  football
-  muziek  =  music
-  hobby  =  hobby
-  tijdschrift  =  magazine
-
-[match_pairs] nl:wedstrijd#rec  (skill leisure)
-  Match the pairs
-  hobby  =  hobby
-  radio  =  radio
-  roman  =  novel
-  concert  =  concert
-  wedstrijd  =  match
-
-[match_pairs] nl:krant#rec  (skill leisure)
-  Match the pairs
-  krant  =  newspaper
-  lied  =  song
-  tijdschrift  =  magazine
-  radio  =  radio
-  wedstrijd  =  match
-
-[match_pairs] nl:film#rec  (skill leisure)
-  Match the pairs
-  tennis  =  tennis
-  hobby  =  hobby
-  piano  =  piano
-  tijdschrift  =  magazine
-  film  =  film
-
-[match_pairs] nl:radio#rec  (skill leisure)
-  Match the pairs
-  krant  =  newspaper
-  roman  =  novel
-  dans  =  dance
-  radio  =  radio
-  feest  =  party
-
-[match_pairs] nl:lied#rec  (skill leisure)
-  Match the pairs
-  piano  =  piano
-  muziek  =  music
-  dans  =  dance
-  lied  =  song
-  concert  =  concert
-
---- sentence_builder: 8 example(s)
-[sentence_builder] nl:foto#prod  (skill leisure)
-  Translate this sentence
-  Please do not take photos here.
-  tiles: neem · geen · foto's · feest · alsjeblieft · namen · nemen
-  => geen foto's nemen alsjeblieft
-
-[sentence_builder] nl:team#prod  (skill leisure)
-  Translate this sentence
-  The whole team needs to be there.
-  tiles: het · zijn · team · gaan · nu · er · hele · moet · hebben
-  => het hele team moet er zijn
-
-[sentence_builder] nl:muziek#prod  (skill leisure)
-  Translate this sentence
-  Let's sing and make music!
-  tiles: muziek · we · en · lieten · maken · laat · zingen · laten · zien
-  => laten we zingen en muziek maken
-
-[sentence_builder] nl:wedstrijd#prod  (skill leisure)
-  Translate this sentence
-  It was a competition.
-  tiles: was · zeggen · is · een · systeem · het · wedstrijd
-  => het was een wedstrijd
-
-[sentence_builder] nl:krant#prod  (skill leisure)
-  Translate this sentence
-  Where are the newspapers?
-  tiles: staan · stonden · sta · waar · kranten · de · precies
-  => waar staan de kranten
-
-[sentence_builder] nl:film#prod  (skill leisure)
-  Translate this sentence
-  The movie starts in thirty minutes.
-  tiles: dertig · film · dag · minuten · begin · begint · begon · de · over
-  => de film begint over dertig minuten
-
-[sentence_builder] nl:radio#prod  (skill leisure)
-  Translate this sentence
-  I wasn't listening to the radio.
-  tiles: naar · ben · nog · radio · ik · de · niet · was · luisteren · aan · waren · het
-  => ik was niet naar de radio aan het luisteren
-
-[sentence_builder] nl:lied#prod  (skill leisure)
-  Translate this sentence
-  I do not like this song.
-  tiles: ik · houdt · dit · hield · houden · niet · van · liedje · hou
-  => ik hou niet van dit liedje
-
---- cloze: 8 example(s)
-[cloze] nl:foto#prod  (skill leisure)
-  Fill in the gap
-  Ik nam een ___.   (picture)
-  "I took a picture."
-  *foto  |   sport  |   film  |   tijdschrift
-
-[cloze] nl:team#prod  (skill leisure)
-  Fill in the gap
-  Dit is een heel goed ___.   (team)
-  "This is a very good team."
-   dans  |   muziek  |   krant  |  *team
-
-[cloze] nl:muziek#prod  (skill leisure)
-  Fill in the gap
-  Ik hou van Engels en ___.   (music)
-  "I like English and music."
-   team  |  *muziek  |   tekening  |   sport
-
-[cloze] nl:wedstrijd#prod  (skill leisure)
-  Fill in the gap
-  Ben je de ___ aan het kijken?   (game)
-  "Are you watching the game?"
-  *wedstrijd  |   foto  |   piano  |   radio
-
-[cloze] nl:krant#prod  (skill leisure)
-  Fill in the gap
-  Ik wil vandaag geen ___ kopen.   (newspaper)
-  "I don't want to buy a newspaper today."
-   lied  |   muziek  |   concert  |  *krant
-
-[cloze] nl:film#prod  (skill leisure)
-  Fill in the gap
-  Wat vind je van de ___?   (movie)
-  "What do you think of the movie?"
-   gitaar  |   radio  |   hobby  |  *film
-
-[cloze] nl:radio#prod  (skill leisure)
-  Fill in the gap
-  Ik heb het gehoord op de ___.   (radio)
-  "I heard it on the radio."
-  *radio  |   bal  |   foto  |   piano
-
-[cloze] nl:lied#prod  (skill leisure)
-  Fill in the gap
-  Ik heb haar een ___ horen zingen.   (song)
-  "I heard her singing a song."
-   spel  |   sport  |  *lied  |   krant
-
---- listen_pick: 8 example(s)
-[listen_pick] nl:foto#rec  (skill leisure)
-  Which word do you hear?
-  (speak, nl) foto   "photo"
-  *foto  |   film  |   fout  |   feest
-
-[listen_pick] nl:team#rec  (skill leisure)
-  Which word do you hear?
-  (speak, nl) team   "team"
-   tennis  |   mam  |  *team  |   toetje
-
-[listen_pick] nl:muziek#rec  (skill leisure)
-  Which word do you hear?
-  (speak, nl) muziek   "music"
-   muur  |  *muziek  |   moeder  |   gesprek
-
-[listen_pick] nl:wedstrijd#rec  (skill leisure)
-  Which word do you hear?
-  (speak, nl) wedstrijd   "match"
-   wachtwoord  |   leeftijd  |   website  |  *wedstrijd
-
-[listen_pick] nl:krant#rec  (skill leisure)
-  Which word do you hear?
-  (speak, nl) krant   "newspaper"
-  *krant  |   kont  |   keu  |   cliënt
-
-[listen_pick] nl:film#rec  (skill leisure)
-  Which word do you hear?
-  (speak, nl) film   "film"
-   feest  |  *film  |   fles  |   foto
-
-[listen_pick] nl:radio#rec  (skill leisure)
-  Which word do you hear?
-  (speak, nl) radio   "radio"
-   rivier  |   roman  |  *radio  |   regen
-
-[listen_pick] nl:lied#rec  (skill leisure)
-  Which word do you hear?
-  (speak, nl) lied   "song"
-  *lied  |   lijf  |   lawaai  |   laptop
 
 ========================================================================
 SKILL more-verbs (vocab)  More verbs
@@ -9441,15 +7213,15 @@ SKILL more-verbs (vocab)  More verbs
 --- sentence_builder: 8 example(s)
 [sentence_builder] nl:veranderen#prod  (skill more-verbs)
   Translate this sentence
-  I don't want you to change.
-  tiles: wilde · ik · willen · niet · wilt · u · wil · dat · verandert
-  => ik wil niet dat u verandert
+  I changed Tom's mind.
+  tiles: ik · doen · naar · hebt · gedacht · van · heb · veranderen · hebben · Tom
+  => ik heb Tom van gedacht doen veranderen
 
 [sentence_builder] nl:ontmoeten#prod  (skill more-verbs)
   Translate this sentence
-  I met Mattias in Spain.
-  tiles: hebben · in · Spanje · heb · ik · Mattias · hebt · ontmoet · zonder
-  => ik heb Mattias in Spanje ontmoet
+  How did your parents meet?
+  tiles: elkaar · accepteren · je · hoe · ontmoet · ouders · paraplu · hebben · schieten
+  => hoe hebben je ouders elkaar ontmoet
 
 [sentence_builder] nl:winnen#prod  (skill more-verbs)
   Translate this sentence
@@ -9465,9 +7237,9 @@ SKILL more-verbs (vocab)  More verbs
 
 [sentence_builder] nl:verliezen#prod  (skill more-verbs)
   Translate this sentence
-  We should not lose hope.
-  tiles: de · moeten · we · niet · verliezen · moesten · moet · hoop · drinken
-  => we moeten de hoop niet verliezen
+  What if I lose?
+  tiles: ik · verliezen · verloor · verlies · verliest · als · wat
+  => wat als ik verlies
 
 [sentence_builder] nl:zetten#prod  (skill more-verbs)
   Translate this sentence
@@ -9491,15 +7263,15 @@ SKILL more-verbs (vocab)  More verbs
 --- cloze: 8 example(s)
 [cloze] nl:veranderen#prod  (skill more-verbs)
   Fill in the gap
-  Ik zie niet wat er ___ is.   (to change)
-  "I don't see what's changed."
-   geduwd  |  *veranderd  |   getekend  |   gehuild
+  Jezus ___ water in wijn.   (to change)
+  "Jesus turned water into wine."
+   ontmoette  |  *veranderde  |   besliste  |   droomde
 
 [cloze] nl:ontmoeten#prod  (skill more-verbs)
   Fill in the gap
-  Ik had haar nog nooit ___.   (to meet)
-  "I'd never met her before."
-   gerust  |   getoond  |   beslist  |  *ontmoet
+  Ik heb je altijd willen ___.   (to meet)
+  "I've always wanted to meet you."
+   dromen  |   kiezen  |  *ontmoeten  |   zetten
 
 [cloze] nl:winnen#prod  (skill more-verbs)
   Fill in the gap
@@ -9858,5 +7630,2253 @@ SKILL ideas (vocab)  Ideas and opinions
   Which word do you hear?
   (speak, nl) waarheid   "truth"
   *waarheid  |   wortel  |   wonder  |   weekend
+
+========================================================================
+SKILL feelings (vocab)  Feelings
+========================================================================
+--- flashcard: 8 example(s)
+[flashcard] nl:zeker#prod  (skill feelings)
+  How do you say this?
+  sure, certainly  =>  zeker   [adv]
+
+[flashcard] nl:zeker#rec  (skill feelings)
+  What does this mean?
+  zeker  =>  sure, certainly   [adv]
+
+[flashcard] nl:bang#prod  (skill feelings)
+  How do you say this?
+  afraid, scared  =>  bang   [adj]
+
+[flashcard] nl:bang#rec  (skill feelings)
+  What does this mean?
+  bang  =>  afraid, scared   [adj]
+
+[flashcard] nl:rustig.2#prod  (skill feelings)
+  How do you say this?
+  calm, quiet, calmly  =>  rustig   [adj]
+
+[flashcard] nl:rustig.2#rec  (skill feelings)
+  What does this mean?
+  rustig  =>  calm, quiet, calmly   [adj]
+
+[flashcard] nl:gevoel#prod  (skill feelings)
+  How do you say this?
+  feeling  =>  het gevoel   [noun]
+
+[flashcard] nl:gevoel#rec  (skill feelings)
+  What does this mean?
+  het gevoel  =>  feeling   [noun]
+
+--- multiple_choice: 8 example(s)
+[multiple_choice] nl:zeker#prod  (skill feelings)
+  Pick the right word
+  sure
+  *zeker  |   erg  |   nou  |   bijna
+
+[multiple_choice] nl:zeker#rec  (skill feelings)
+  Pick the right translation
+  zeker
+   away  |   shortly  |  *sure  |   here
+
+[multiple_choice] nl:bang#prod  (skill feelings)
+  Pick the right word
+  afraid
+   eenzaam  |   trots  |  *bang  |   teleurgesteld
+
+[multiple_choice] nl:bang#rec  (skill feelings)
+  Pick the right translation
+  bang
+   lonely  |  *afraid  |   proud  |   jealous
+
+[multiple_choice] nl:rustig.2#prod  (skill feelings)
+  Pick the right word
+  calm
+  *rustig  |   zenuwachtig  |   trots  |   teleurgesteld
+
+[multiple_choice] nl:rustig.2#rec  (skill feelings)
+  Pick the right translation
+  rustig
+   satisfied  |   proud  |  *calm  |   disappointed
+
+[multiple_choice] nl:gevoel#prod  (skill feelings)
+  Pick the right word
+  feeling
+   traan  |   angst  |  *gevoel  |   verdriet
+
+[multiple_choice] nl:gevoel#rec  (skill feelings)
+  Pick the right translation
+  gevoel   (het gevoel)
+  *feeling  |   fear  |   sorrow  |   love
+
+--- match_pairs: 8 example(s)
+[match_pairs] nl:zeker#rec  (skill feelings)
+  Match the pairs
+  verbaasd  =  surprised
+  gevoel  =  feeling
+  bang  =  afraid
+  zeker  =  sure
+  jaloers  =  jealous
+
+[match_pairs] nl:bang#rec  (skill feelings)
+  Match the pairs
+  boos  =  angry
+  bang  =  afraid
+  trots  =  proud
+  hoop  =  hope
+  woede  =  anger
+
+[match_pairs] nl:rustig.2#rec  (skill feelings)
+  Match the pairs
+  geluk  =  happiness
+  teleurgesteld  =  disappointed
+  rustig  =  calm
+  zenuwachtig  =  nervous
+  hoop  =  hope
+
+[match_pairs] nl:gevoel#rec  (skill feelings)
+  Match the pairs
+  zenuwachtig  =  nervous
+  boos  =  angry
+  angst  =  fear
+  eenzaam  =  lonely
+  gevoel  =  feeling
+
+[match_pairs] nl:liefde#rec  (skill feelings)
+  Match the pairs
+  liefde  =  love
+  trots  =  proud
+  hoop  =  hope
+  boos  =  angry
+  gevoel  =  feeling
+
+[match_pairs] nl:geluk#rec  (skill feelings)
+  Match the pairs
+  glimlach  =  smile
+  zenuwachtig  =  nervous
+  tevreden  =  satisfied
+  hoop  =  hope
+  geluk  =  happiness
+
+[match_pairs] nl:boos#rec  (skill feelings)
+  Match the pairs
+  liefde  =  love
+  angst  =  fear
+  traan  =  tear
+  boos  =  angry
+  vreugde  =  joy
+
+[match_pairs] nl:trots#rec  (skill feelings)
+  Match the pairs
+  tevreden  =  satisfied
+  rustig  =  calm
+  traan  =  tear
+  trots  =  proud
+  eenzaam  =  lonely
+
+--- sentence_builder: 8 example(s)
+[sentence_builder] nl:zeker#prod  (skill feelings)
+  Translate this sentence
+  Tom is certainly over thirty.
+  tiles: Tom · dertig · zeker · ben · ouder · is · bent · dan · af
+  => Tom is zeker ouder dan dertig
+
+[sentence_builder] nl:bang#prod  (skill feelings)
+  Translate this sentence
+  It scares me.
+  tiles: bang · word · van · er · ik · worden · wordt · boos
+  => ik word er bang van
+
+[sentence_builder] nl:rustig.2#prod  (skill feelings)
+  Translate this sentence
+  Please keep quiet.
+  tiles: je · krijgen · alsjeblieft · hoe · rustig · houd · volgend
+  => houd je alsjeblieft rustig
+
+[sentence_builder] nl:gevoel#prod  (skill feelings)
+  Translate this sentence
+  I have a feeling that she will come today.
+  tiles: heb · dat · ik · het · zal · ze · zelf · gevoel · vandaag · hebben · hebt · komen
+  => ik heb het gevoel dat ze vandaag zal komen
+
+[sentence_builder] nl:liefde#prod  (skill feelings)
+  Translate this sentence
+  They're talking about love.
+  tiles: praten · liefde · op · over · ze · helpen · brengen
+  => ze praten over liefde
+
+[sentence_builder] nl:geluk#prod  (skill feelings)
+  Translate this sentence
+  They were lucky.
+  tiles: heb · angst · hebben · ze · gehad · hebt · geluk
+  => ze hebben geluk gehad
+
+[sentence_builder] nl:boos#prod  (skill feelings)
+  Translate this sentence
+  Your wife is mad at you.
+  tiles: op · vrouw · je · ben · bent · doen · boos · je · is
+  => je vrouw is boos op je
+
+[sentence_builder] nl:trots#prod  (skill feelings)
+  Translate this sentence
+  They are proud of their daughter.
+  tiles: trots · bent · zijn · ben · op · rustig · ze · hun · dochter
+  => ze zijn trots op hun dochter
+
+--- cloze: 8 example(s)
+[cloze] nl:zeker#prod  (skill feelings)
+  Fill in the gap
+  Ik ben er morgen, ___ weten.   (sure)
+  "I'll be there tomorrow, for sure."
+   steeds  |  *zeker  |   echt  |   alsjeblieft
+
+[cloze] nl:bang#prod  (skill feelings)
+  Fill in the gap
+  Waar is Tom ___ voor?   (afraid)
+  "What's Tom afraid of?"
+  *bang  |   boos  |   rustig  |   teleurgesteld
+
+[cloze] nl:rustig.2#prod  (skill feelings)
+  Fill in the gap
+  We moeten ___ blijven.   (calm)
+  "We must keep calm."
+   verbaasd  |   teleurgesteld  |  *rustig  |   eenzaam
+
+[cloze] nl:gevoel#prod  (skill feelings)
+  Fill in the gap
+  "Hoe weet je dat?" "Het is maar een ___."   (feeling)
+  ""How do you know?" "It's just a hunch.""
+   verdriet  |   vreugde  |  *gevoel  |   hoop
+
+[cloze] nl:liefde#prod  (skill feelings)
+  Fill in the gap
+  Ik wil weten wat ___ is.   (love)
+  "I want to know what love is."
+  *liefde  |   angst  |   vreugde  |   verdriet
+
+[cloze] nl:geluk#prod  (skill feelings)
+  Fill in the gap
+  We hebben ___ dat we nog leven.   (luck)
+  "We're lucky to be alive."
+   gevoel  |   hoop  |  *geluk  |   angst
+
+[cloze] nl:boos#prod  (skill feelings)
+  Fill in the gap
+  Op wie ben je ___?   (angry)
+  "Who are you angry with?"
+   tevreden  |   teleurgesteld  |   jaloers  |  *boos
+
+[cloze] nl:trots#prod  (skill feelings)
+  Fill in the gap
+  Ik ben ___ op je.   (proud)
+  "I'm proud of you."
+   bang  |   boos  |   bezorgd  |  *trots
+
+--- listen_pick: 8 example(s)
+[listen_pick] nl:zeker#rec  (skill feelings)
+  Which word do you hear?
+  (speak, nl) zeker   "sure"
+  *zeker  |   zelf  |   hier  |   zelfs
+
+[listen_pick] nl:bang#rec  (skill feelings)
+  Which word do you hear?
+  (speak, nl) bang   "afraid"
+  *bang  |   blij  |   bezig  |   boos
+
+[listen_pick] nl:rustig.2#rec  (skill feelings)
+  Which word do you hear?
+  (speak, nl) rustig   "calm"
+   nodig  |  *rustig  |   gelukkig  |   geweldig
+
+[listen_pick] nl:gevoel#rec  (skill feelings)
+  Which word do you hear?
+  (speak, nl) gevoel   "feeling"
+   gezicht  |  *gevoel  |   glimlach  |   geluk
+
+[listen_pick] nl:liefde#rec  (skill feelings)
+  Which word do you hear?
+  (speak, nl) liefde   "love"
+  *liefde  |   lichaam  |   woede  |   vreugde
+
+[listen_pick] nl:geluk#rec  (skill feelings)
+  Which word do you hear?
+  (speak, nl) geluk   "happiness"
+   gevoel  |  *geluk  |   gang  |   gat
+
+[listen_pick] nl:boos#rec  (skill feelings)
+  Which word do you hear?
+  (speak, nl) boos   "angry"
+   bang  |   bezig  |  *boos  |   braaf
+
+[listen_pick] nl:trots#rec  (skill feelings)
+  Which word do you hear?
+  (speak, nl) trots   "proud"
+   taai  |  *trots  |   typisch  |   tweede
+
+========================================================================
+SKILL body (vocab)  Body and health
+========================================================================
+--- flashcard: 8 example(s)
+[flashcard] nl:hand#prod  (skill body)
+  How do you say this?
+  hand  =>  de hand   [noun]
+
+[flashcard] nl:hand#rec  (skill body)
+  What does this mean?
+  de hand  =>  hand   [noun]
+
+[flashcard] nl:hoofd#prod  (skill body)
+  How do you say this?
+  head  =>  het hoofd   [noun]
+
+[flashcard] nl:hoofd#rec  (skill body)
+  What does this mean?
+  het hoofd  =>  head   [noun]
+
+[flashcard] nl:pijn#prod  (skill body)
+  How do you say this?
+  pain, ache  =>  de pijn   [noun]
+
+[flashcard] nl:pijn#rec  (skill body)
+  What does this mean?
+  de pijn  =>  pain, ache   [noun]
+
+[flashcard] nl:lichaam#prod  (skill body)
+  How do you say this?
+  body  =>  het lichaam   [noun]
+
+[flashcard] nl:lichaam#rec  (skill body)
+  What does this mean?
+  het lichaam  =>  body   [noun]
+
+--- multiple_choice: 8 example(s)
+[multiple_choice] nl:hand#prod  (skill body)
+  Pick the right word
+  hand
+  *hand  |   rug  |   pijn  |   hart
+
+[multiple_choice] nl:hand#rec  (skill body)
+  Pick the right translation
+  hand   (de hand)
+   pain  |   body  |  *hand  |   tooth
+
+[multiple_choice] nl:hoofd#prod  (skill body)
+  Pick the right word
+  head
+   been  |   buik  |   hart  |  *hoofd
+
+[multiple_choice] nl:hoofd#rec  (skill body)
+  Pick the right translation
+  hoofd   (het hoofd)
+   knee  |   skin  |   nose  |  *head
+
+[multiple_choice] nl:pijn#prod  (skill body)
+  Pick the right word
+  pain
+  *pijn  |   bloed  |   hand  |   stem
+
+[multiple_choice] nl:pijn#rec  (skill body)
+  Pick the right translation
+  pijn   (de pijn)
+   shoulder  |  *pain  |   mouth  |   blood
+
+[multiple_choice] nl:lichaam#prod  (skill body)
+  Pick the right word
+  body
+   oog  |   been  |  *lichaam  |   buik
+
+[multiple_choice] nl:lichaam#rec  (skill body)
+  Pick the right translation
+  lichaam   (het lichaam)
+   blood  |   leg  |   head  |  *body
+
+--- match_pairs: 8 example(s)
+[match_pairs] nl:hand#rec  (skill body)
+  Match the pairs
+  hand  =  hand
+  gezicht  =  face
+  ziek  =  ill
+  voet  =  foot
+  huid  =  skin
+
+[match_pairs] nl:hoofd#rec  (skill body)
+  Match the pairs
+  schouder  =  shoulder
+  arm  =  arm
+  gezondheid  =  health
+  hoofd  =  head
+  oor  =  ear
+
+[match_pairs] nl:pijn#rec  (skill body)
+  Match the pairs
+  bloed  =  blood
+  pijn  =  pain
+  huid  =  skin
+  gezicht  =  face
+  rug  =  back
+
+[match_pairs] nl:lichaam#rec  (skill body)
+  Match the pairs
+  stem  =  voice
+  lichaam  =  body
+  hand  =  hand
+  hoofd  =  head
+  pijn  =  pain
+
+[match_pairs] nl:gezicht#rec  (skill body)
+  Match the pairs
+  been  =  leg
+  gezicht  =  face
+  oor  =  ear
+  gezondheid  =  health
+  nek  =  neck
+
+[match_pairs] nl:hart#rec  (skill body)
+  Match the pairs
+  nek  =  neck
+  neus  =  nose
+  pijn  =  pain
+  medicijn  =  medicine
+  hart  =  heart
+
+[match_pairs] nl:mond#rec  (skill body)
+  Match the pairs
+  been  =  leg
+  gezicht  =  face
+  oor  =  ear
+  mond  =  mouth
+  pijn  =  pain
+
+[match_pairs] nl:ziek#rec  (skill body)
+  Match the pairs
+  ziek  =  ill
+  oog  =  eye
+  tand  =  tooth
+  pijn  =  pain
+  bloed  =  blood
+
+--- sentence_builder: 8 example(s)
+[sentence_builder] nl:hand#prod  (skill body)
+  Translate this sentence
+  Why didn't you wash your hands?
+  tiles: je · waarom · gewassen · daar · hier · gezicht · niet · heb · je · handen
+  => waarom heb je je handen niet gewassen
+
+[sentence_builder] nl:hoofd#prod  (skill body)
+  Translate this sentence
+  You never know what's going to come out of that head.
+  tiles: gaat · weet · uit · er · weten · komen · eerst · hoofd · je · ga · nooit · wat · dat
+  => je weet nooit wat er uit dat hoofd gaat komen
+
+[sentence_builder] nl:pijn#prod  (skill body)
+  Translate this sentence
+  Do you feel pain when you do that?
+  tiles: stad · je · dat · pijn · heb · als · gaan · doe · doet · je
+  => heb je pijn als je dat doet
+
+[sentence_builder] nl:lichaam#prod  (skill body)
+  Translate this sentence
+  They haven't found Tom's body.
+  tiles: hebben · niet · lichaam · gevonden · heb · ze · waarheid · Toms · hebt
+  => ze hebben Toms lichaam niet gevonden
+
+[sentence_builder] nl:gezicht#prod  (skill body)
+  Translate this sentence
+  Yanni can see your face now.
+  tiles: kan · gezicht · waarheid · arm · Yanni · denken · zien · je · nu
+  => Yanni kan je gezicht nu zien
+
+[sentence_builder] nl:hart#prod  (skill body)
+  Translate this sentence
+  You have no heart.
+  tiles: hart · heb · hebben · zullen · geen · hebt · je
+  => je hebt geen hart
+
+[sentence_builder] nl:mond#prod  (skill body)
+  Translate this sentence
+  Shut your mouth.
+  tiles: gezondheid · je · hou · mond · geluk · mogen
+  => hou je mond
+
+[sentence_builder] nl:ziek#prod  (skill body)
+  Translate this sentence
+  Tell her you're sick.
+  tiles: haar · is · zeg · dat · ziek · je · bent · ben · persoonlijk
+  => zeg haar dat je ziek bent
+
+--- cloze: 8 example(s)
+[cloze] nl:hand#prod  (skill body)
+  Fill in the gap
+  Je moet je ___ wassen.   (hand)
+  "You need to wash your hands."
+  *handen  |   voeten  |   lichamen  |   monden
+
+[cloze] nl:hoofd#prod  (skill body)
+  Fill in the gap
+  Heb je geen ogen in je ___?   (head)
+  "Don't you have eyes in your head?"
+   voet  |   bloed  |   rug  |  *hoofd
+
+[cloze] nl:pijn#prod  (skill body)
+  Fill in the gap
+  Ik heb haar nooit ___ gedaan.   (pain, ache)
+  "I never harmed her."
+   tand  |   nek  |  *pijn  |   vinger
+
+[cloze] nl:lichaam#prod  (skill body)
+  Fill in the gap
+  Te veel eten is niet goed voor het ___.   (body)
+  "Overeating is bad for the body."
+   medicijn  |   arm  |   huid  |  *lichaam
+
+[cloze] nl:gezicht#prod  (skill body)
+  Fill in the gap
+  We hebben haar ___ gezien.   (face)
+  "We saw her face."
+   been  |   medicijn  |  *gezicht  |   nek
+
+[cloze] nl:hart#prod  (skill body)
+  Fill in the gap
+  U heeft geen ___.   (heart)
+  "You have no heart."
+   gezondheid  |   voet  |   tand  |  *hart
+
+[cloze] nl:mond#prod  (skill body)
+  Fill in the gap
+  Houd je ___.   (mouth)
+  "Shut your mouth."
+   voet  |  *mond  |   neus  |   hart
+
+[cloze] nl:ziek#prod  (skill body)
+  Fill in the gap
+  Ik denk dat Yumi ___ is.   (sick)
+  "I think that Yumi is sick."
+  *ziek  |   grappig  |   diep  |   snel
+
+--- listen_pick: 8 example(s)
+[listen_pick] nl:hand#rec  (skill body)
+  Which word do you hear?
+  (speak, nl) hand   "hand"
+  *hand  |   tand  |   huid  |   hart
+
+[listen_pick] nl:hoofd#rec  (skill body)
+  Which word do you hear?
+  (speak, nl) hoofd   "head"
+  *hoofd  |   hand  |   hart  |   huid
+
+[listen_pick] nl:pijn#rec  (skill body)
+  Which word do you hear?
+  (speak, nl) pijn   "pain"
+   papa  |  *pijn  |   plek  |   pizza
+
+[listen_pick] nl:lichaam#rec  (skill body)
+  Which word do you hear?
+  (speak, nl) lichaam   "body"
+   lunch  |   laars  |  *lichaam  |   liefde
+
+[listen_pick] nl:gezicht#rec  (skill body)
+  Which word do you hear?
+  (speak, nl) gezicht   "face"
+   gevoel  |   gunst  |   nacht  |  *gezicht
+
+[listen_pick] nl:hart#rec  (skill body)
+  Which word do you hear?
+  (speak, nl) hart   "heart"
+   hoofd  |  *hart  |   huid  |   hand
+
+[listen_pick] nl:mond#rec  (skill body)
+  Which word do you hear?
+  (speak, nl) mond   "mouth"
+   hand  |   tand  |  *mond  |   hond
+
+[listen_pick] nl:ziek#rec  (skill body)
+  Which word do you hear?
+  (speak, nl) ziek   "ill"
+  *ziek  |   zeer  |   zwaar  |   gek
+
+========================================================================
+SKILL kitchen (vocab)  In the kitchen
+========================================================================
+--- flashcard: 8 example(s)
+[flashcard] nl:taart#prod  (skill kitchen)
+  How do you say this?
+  cake, pie  =>  de taart   [noun]
+
+[flashcard] nl:taart#rec  (skill kitchen)
+  What does this mean?
+  de taart  =>  cake, pie   [noun]
+
+[flashcard] nl:koekje#prod  (skill kitchen)
+  How do you say this?
+  cookie, biscuit  =>  het koekje   [noun]
+
+[flashcard] nl:koekje#rec  (skill kitchen)
+  What does this mean?
+  het koekje  =>  cookie, biscuit   [noun]
+
+[flashcard] nl:broodje#prod  (skill kitchen)
+  How do you say this?
+  sandwich, bread roll  =>  het broodje   [noun]
+
+[flashcard] nl:broodje#rec  (skill kitchen)
+  What does this mean?
+  het broodje  =>  sandwich, bread roll   [noun]
+
+[flashcard] nl:zoet#prod  (skill kitchen)
+  How do you say this?
+  sweet  =>  zoet   [adj]
+
+[flashcard] nl:zoet#rec  (skill kitchen)
+  What does this mean?
+  zoet  =>  sweet   [adj]
+
+--- multiple_choice: 8 example(s)
+[multiple_choice] nl:taart#prod  (skill kitchen)
+  Pick the right word
+  cake
+  *taart  |   druif  |   koekje  |   chocolade
+
+[multiple_choice] nl:taart#rec  (skill kitchen)
+  Pick the right translation
+  taart   (de taart)
+   garlic  |   sausage  |  *cake  |   banana
+
+[multiple_choice] nl:koekje#prod  (skill kitchen)
+  Pick the right word
+  cookie
+   lepel  |  *koekje  |   sinaasappel  |   dorst
+
+[multiple_choice] nl:koekje#rec  (skill kitchen)
+  Pick the right translation
+  koekje   (het koekje)
+   soup  |  *cookie  |   fork  |   grape
+
+[multiple_choice] nl:broodje#prod  (skill kitchen)
+  Pick the right word
+  sandwich
+  *broodje  |   honger  |   knoflook  |   taart
+
+[multiple_choice] nl:broodje#rec  (skill kitchen)
+  Pick the right translation
+  broodje   (het broodje)
+   bottle  |   thirst  |  *sandwich  |   orange
+
+[multiple_choice] nl:zoet#prod  (skill kitchen)
+  Pick the right word
+  sweet
+   bewusteloos  |   verschrikkelijk  |  *zoet  |   roze
+
+[multiple_choice] nl:zoet#rec  (skill kitchen)
+  Pick the right translation
+  zoet
+   unconscious  |  *sweet  |   yonder  |   internal
+
+--- match_pairs: 8 example(s)
+[match_pairs] nl:taart#rec  (skill kitchen)
+  Match the pairs
+  taart  =  cake
+  broodje  =  sandwich
+  druif  =  grape
+  worst  =  sausage
+  pan  =  pan
+
+[match_pairs] nl:koekje#rec  (skill kitchen)
+  Match the pairs
+  worst  =  sausage
+  ui  =  onion
+  soep  =  soup
+  druif  =  grape
+  koekje  =  cookie
+
+[match_pairs] nl:broodje#rec  (skill kitchen)
+  Match the pairs
+  citroen  =  lemon
+  taart  =  cake
+  broodje  =  sandwich
+  oven  =  oven
+  knoflook  =  garlic
+
+[match_pairs] nl:zoet#rec  (skill kitchen)
+  Match the pairs
+  ui  =  onion
+  zoet  =  sweet
+  sap  =  juice
+  koekje  =  cookie
+  fles  =  bottle
+
+[match_pairs] nl:recept#rec  (skill kitchen)
+  Match the pairs
+  ham  =  ham
+  zoet  =  sweet
+  vork  =  fork
+  recept  =  recipe
+  ui  =  onion
+
+[match_pairs] nl:soep#rec  (skill kitchen)
+  Match the pairs
+  recept  =  recipe
+  soep  =  soup
+  vork  =  fork
+  broodje  =  sandwich
+  wortel  =  carrot
+
+[match_pairs] nl:chocolade#rec  (skill kitchen)
+  Match the pairs
+  chocolade  =  chocolate
+  sinaasappel  =  orange
+  citroen  =  lemon
+  wortel  =  carrot
+  taart  =  cake
+
+[match_pairs] nl:pan#rec  (skill kitchen)
+  Match the pairs
+  aardbei  =  strawberry
+  pan  =  pan
+  sinaasappel  =  orange
+  worst  =  sausage
+  honger  =  hunger
+
+--- sentence_builder: 8 example(s)
+[sentence_builder] nl:taart#prod  (skill kitchen)
+  Translate this sentence
+  Will there be a cake?
+  tiles: er · zijn · taart · zal · hebben · niet · chocolade
+  => zal er taart zijn
+
+[sentence_builder] nl:koekje#prod  (skill kitchen)
+  Translate this sentence
+  Who wants cookies?
+  tiles: wilt · wie · verrader · ook · koekjes · wil · er
+  => wie wil er koekjes
+
+[sentence_builder] nl:broodje#prod  (skill kitchen)
+  Translate this sentence
+  I'm eating a sandwich.
+  tiles: ik · weten · een · bellen · aardbei · broodje · eet
+  => ik eet een broodje
+
+[sentence_builder] nl:zoet#prod  (skill kitchen)
+  Translate this sentence
+  This tea is too sweet for me.
+  tiles: voor · thee · binnen · te · zoet · deze · bent · is · mij · ben
+  => deze thee is te zoet voor mij
+
+[sentence_builder] nl:recept#prod  (skill kitchen)
+  Translate this sentence
+  Go to the doctor to get your prescription!
+  tiles: over · dokter · ga · halen · binnen · je · de · te · naar · recept · om · zonder
+  => ga naar de dokter om je recept te halen
+
+[sentence_builder] nl:soep#prod  (skill kitchen)
+  Translate this sentence
+  Eat your soup!
+  tiles: soep · weten · eet · aardbei · je · drinken
+  => eet je soep
+
+[sentence_builder] nl:chocolade#prod  (skill kitchen)
+  Translate this sentence
+  She loves chocolate, too.
+  tiles: bij · chocolade · hou · houdt · van · zij · om · ook
+  => zij houdt ook van chocolade
+
+[sentence_builder] nl:pan#prod  (skill kitchen)
+  Translate this sentence
+  The pot is boiling over.
+  tiles: binnen · over · kookt · kook · naar · de · pan
+  => de pan kookt over
+
+--- cloze: 8 example(s)
+[cloze] nl:taart#prod  (skill kitchen)
+  Fill in the gap
+  Laten we deze ___ proberen.   (cake)
+  "Let's try this cake."
+   soep  |   sinaasappel  |  *taart  |   broodje
+
+[cloze] nl:koekje#prod  (skill kitchen)
+  Fill in the gap
+  Ik heb ___ bij me.   (cookie)
+  "I brought cookies."
+  *koekjes  |   aardbeien  |   lepels  |   sinaasappelen
+
+[cloze] nl:broodje#prod  (skill kitchen)
+  Fill in the gap
+  Ze eten ___.   (bread roll)
+  "They're eating rolls."
+   sappen  |   wortels  |  *broodjes  |   recepten
+
+[cloze] nl:zoet#prod  (skill kitchen)
+  Fill in the gap
+  Maar de koffie is niet ___.   (sweet)
+  "But the coffee isn't sweet."
+   stevig  |  *zoet  |   handig  |   bloot
+
+[cloze] nl:recept#prod  (skill kitchen)
+  Fill in the gap
+  Ik heb het ___ gevolgd.   (recipe)
+  "I followed the recipe."
+   taart  |   pan  |  *recept  |   aardbei
+
+[cloze] nl:soep#prod  (skill kitchen)
+  Fill in the gap
+  Je eet je ___.   (soup)
+  "You eat your soup."
+   wortel  |   honger  |   aardbei  |  *soep
+
+[cloze] nl:chocolade#prod  (skill kitchen)
+  Fill in the gap
+  Houden jullie van ___?   (chocolate)
+  "Do you like chocolate?"
+   dorst  |   oven  |   wortel  |  *chocolade
+
+[cloze] nl:pan#prod  (skill kitchen)
+  Fill in the gap
+  Haal het vlees uit de ___.   (pan)
+  "Take the meat out of the pan."
+  *pan  |   honger  |   soep  |   vork
+
+--- listen_pick: 8 example(s)
+[listen_pick] nl:taart#rec  (skill kitchen)
+  Which word do you hear?
+  (speak, nl) taart   "cake"
+  *taart  |   toegang  |   talent  |   toetje
+
+[listen_pick] nl:koekje#rec  (skill kitchen)
+  Which word do you hear?
+  (speak, nl) koekje   "cookie"
+   knoflook  |   toetje  |  *koekje  |   broodje
+
+[listen_pick] nl:broodje#rec  (skill kitchen)
+  Which word do you hear?
+  (speak, nl) broodje   "sandwich"
+   banaan  |   toetje  |  *broodje  |   koekje
+
+[listen_pick] nl:zoet#rec  (skill kitchen)
+  Which word do you hear?
+  (speak, nl) zoet   "sweet"
+   heet  |  *zoet  |   violet  |   zwaar
+
+[listen_pick] nl:recept#rec  (skill kitchen)
+  Which word do you hear?
+  (speak, nl) recept   "recipe"
+  *recept  |   rand  |   rijst  |   roman
+
+[listen_pick] nl:soep#rec  (skill kitchen)
+  Which word do you hear?
+  (speak, nl) soep   "soup"
+   schema  |  *soep  |   sap  |   stress
+
+[listen_pick] nl:chocolade#rec  (skill kitchen)
+  Which word do you hear?
+  (speak, nl) chocolade   "chocolate"
+   conclusie  |   citroen  |  *chocolade  |   champagne
+
+[listen_pick] nl:pan#rec  (skill kitchen)
+  Which word do you hear?
+  (speak, nl) pan   "pan"
+  *pan  |   peper  |   paus  |   pijl
+
+========================================================================
+SKILL shopping (vocab)  Shopping
+========================================================================
+--- flashcard: 8 example(s)
+[flashcard] nl:dollar#prod  (skill shopping)
+  How do you say this?
+  dollar  =>  de dollar   [noun]
+
+[flashcard] nl:dollar#rec  (skill shopping)
+  What does this mean?
+  de dollar  =>  dollar   [noun]
+
+[flashcard] nl:klant#prod  (skill shopping)
+  How do you say this?
+  customer, client  =>  de klant   [noun]
+
+[flashcard] nl:klant#rec  (skill shopping)
+  What does this mean?
+  de klant  =>  customer, client   [noun]
+
+[flashcard] nl:maat#prod  (skill shopping)
+  How do you say this?
+  size, measure  =>  de maat   [noun]
+
+[flashcard] nl:maat#rec  (skill shopping)
+  What does this mean?
+  de maat  =>  size, measure   [noun]
+
+[flashcard] nl:rekening#prod  (skill shopping)
+  How do you say this?
+  bill, account  =>  de rekening   [noun]
+
+[flashcard] nl:rekening#rec  (skill shopping)
+  What does this mean?
+  de rekening  =>  bill, account   [noun]
+
+--- multiple_choice: 8 example(s)
+[multiple_choice] nl:dollar#prod  (skill shopping)
+  Pick the right word
+  dollar
+  *dollar  |   klant  |   boodschappen  |   rekening
+
+[multiple_choice] nl:dollar#rec  (skill shopping)
+  Pick the right translation
+  dollar   (de dollar)
+   price  |   discount  |  *dollar  |   money
+
+[multiple_choice] nl:klant#prod  (skill shopping)
+  Pick the right word
+  customer
+   pakje  |   rekening  |  *klant  |   euro
+
+[multiple_choice] nl:klant#rec  (skill shopping)
+  Pick the right translation
+  klant   (de klant)
+   discount  |   euro  |  *customer  |   parcel
+
+[multiple_choice] nl:maat#prod  (skill shopping)
+  Pick the right word
+  size
+  *maat  |   pakje  |   rekening  |   supermarkt
+
+[multiple_choice] nl:maat#rec  (skill shopping)
+  Pick the right translation
+  maat   (de maat)
+   dollar  |   supermarket  |  *size  |   bag
+
+[multiple_choice] nl:rekening#prod  (skill shopping)
+  Pick the right word
+  bill
+   prijs  |   korting  |  *rekening  |   verkoper
+
+[multiple_choice] nl:rekening#rec  (skill shopping)
+  Pick the right translation
+  rekening   (de rekening)
+   discount  |   bag  |   present  |  *bill
+
+--- match_pairs: 8 example(s)
+[match_pairs] nl:dollar#rec  (skill shopping)
+  Match the pairs
+  boodschappen  =  shopping
+  maat  =  size
+  gratis  =  free
+  dollar  =  dollar
+  prijs  =  price
+
+[match_pairs] nl:klant#rec  (skill shopping)
+  Match the pairs
+  euro  =  euro
+  rekening  =  bill
+  pakje  =  parcel
+  boodschappen  =  shopping
+  klant  =  customer
+
+[match_pairs] nl:maat#rec  (skill shopping)
+  Match the pairs
+  supermarkt  =  supermarket
+  maat  =  size
+  euro  =  euro
+  dollar  =  dollar
+  geld  =  money
+
+[match_pairs] nl:rekening#rec  (skill shopping)
+  Match the pairs
+  geld  =  money
+  gratis  =  free
+  klant  =  customer
+  rekening  =  bill
+  goedkoop  =  cheap
+
+[match_pairs] nl:geld#rec  (skill shopping)
+  Match the pairs
+  dollar  =  dollar
+  geld  =  money
+  pakje  =  parcel
+  cadeau  =  present
+  rekening  =  bill
+
+[match_pairs] nl:tas#rec  (skill shopping)
+  Match the pairs
+  euro  =  euro
+  cadeau  =  present
+  dollar  =  dollar
+  tas  =  bag
+  geld  =  money
+
+[match_pairs] nl:gratis#rec  (skill shopping)
+  Match the pairs
+  rekening  =  bill
+  euro  =  euro
+  gratis  =  free
+  supermarkt  =  supermarket
+  tas  =  bag
+
+[match_pairs] nl:cadeau#rec  (skill shopping)
+  Match the pairs
+  geld  =  money
+  gratis  =  free
+  verkoper  =  salesman
+  euro  =  euro
+  cadeau  =  present
+
+--- sentence_builder: 8 example(s)
+[sentence_builder] nl:dollar#prod  (skill shopping)
+  Translate this sentence
+  We're going to charge thirty dollars for this.
+  tiles: dollar · breng · brengen · rekening · brengt · mevrouw · hiervoor · in · we · dertig
+  => hiervoor brengen we dertig dollar in rekening
+
+[sentence_builder] nl:klant#prod  (skill shopping)
+  Translate this sentence
+  You are a good customer.
+  tiles: leuk · bent · een · u · moeten · kassa · goede · klant
+  => u bent een goede klant
+
+[sentence_builder] nl:maat#prod  (skill shopping)
+  Translate this sentence
+  Hello, my friend.
+  tiles: kassa · oh · maat · hallo · goedemorgen
+  => hallo maat
+
+[sentence_builder] nl:rekening#prod  (skill shopping)
+  Translate this sentence
+  I don't have any money on that account.
+  tiles: dank · op · rekening · hebben · die · ik · geld · hebt · geen · heb
+  => ik heb geen geld op die rekening
+
+[sentence_builder] nl:geld#prod  (skill shopping)
+  Translate this sentence
+  Your money or your life!
+  tiles: je · klant · leef · en · leven · je · geld · of
+  => je geld of je leven
+
+[sentence_builder] nl:tas#prod  (skill shopping)
+  Translate this sentence
+  They can't find their bags.
+  tiles: vertellen · komen · tassen · kunt · kunnen · ze · niet · vinden · hun
+  => ze kunnen hun tassen niet vinden
+
+[sentence_builder] nl:gratis#prod  (skill shopping)
+  Translate this sentence
+  I got this for free.
+  tiles: leven · dit · hebt · gekregen · gratis · heb · ik · hebben
+  => ik heb dit gratis gekregen
+
+[sentence_builder] nl:cadeau#prod  (skill shopping)
+  Translate this sentence
+  It's a present for you.
+  tiles: jou · het · cadeau · een · voor · om · ben · is · bent
+  => het is een cadeau voor jou
+
+--- cloze: 8 example(s)
+[cloze] nl:dollar#prod  (skill shopping)
+  Fill in the gap
+  Ik heb het boek gekocht voor tien ___.   (dollar)
+  "I bought the book for ten dollars."
+   verkoper  |  *dollar  |   boodschappen  |   euro
+
+[cloze] nl:klant#prod  (skill shopping)
+  Fill in the gap
+  Jij bent een goede ___.   (customer)
+  "You are a good customer."
+   verkoper  |   tas  |  *klant  |   rekening
+
+[cloze] nl:maat#prod  (skill shopping)
+  Fill in the gap
+  Geef me er een in ___ M alstublieft.   (size)
+  "Get me one in size "M", please."
+   verkoper  |  *maat  |   klant  |   boodschappen
+
+[cloze] nl:rekening#prod  (skill shopping)
+  Fill in the gap
+  Ik zal de ___ betalen.   (bill)
+  "I'll pay the bill."
+   geld  |   dollar  |   kassa  |  *rekening
+
+[cloze] nl:geld#prod  (skill shopping)
+  Fill in the gap
+  Dit ___ is niet van mij.   (money)
+  "This isn't my money."
+   tas  |  *geld  |   supermarkt  |   boodschappen
+
+[cloze] nl:tas#prod  (skill shopping)
+  Fill in the gap
+  Die ___ is van mij.   (bag)
+  "That bag is mine."
+  *tas  |   euro  |   kassa  |   verkoper
+
+[cloze] nl:gratis#prod  (skill shopping)
+  Fill in the gap
+  Dit telefoontje is ___.   (free)
+  "This phone call is free."
+  *gratis  |   goedkoop  |   duur  |   eenvoudig
+
+[cloze] nl:cadeau#prod  (skill shopping)
+  Fill in the gap
+  Het is een ___ voor u.   (present)
+  "It's a present for you."
+   korting  |   boodschappen  |   klant  |  *cadeau
+
+--- listen_pick: 8 example(s)
+[listen_pick] nl:dollar#rec  (skill shopping)
+  Which word do you hear?
+  (speak, nl) dollar   "dollar"
+  *dollar  |   dame  |   dochter  |   deur
+
+[listen_pick] nl:klant#rec  (skill shopping)
+  Which word do you hear?
+  (speak, nl) klant   "customer"
+  *klant  |   keer  |   kassa  |   korting
+
+[listen_pick] nl:maat#rec  (skill shopping)
+  Which word do you hear?
+  (speak, nl) maat   "size"
+   macht  |   ma  |  *maat  |   muur
+
+[listen_pick] nl:rekening#rec  (skill shopping)
+  Which word do you hear?
+  (speak, nl) rekening   "bill"
+   beslissing  |   verrassing  |  *rekening  |   korting
+
+[listen_pick] nl:geld#rec  (skill shopping)
+  Which word do you hear?
+  (speak, nl) geld   "money"
+  *geld  |   gedrag  |   grap  |   schuld
+
+[listen_pick] nl:tas#rec  (skill shopping)
+  Which word do you hear?
+  (speak, nl) tas   "bag"
+   taxi  |   tante  |  *tas  |   tent
+
+[listen_pick] nl:gratis#rec  (skill shopping)
+  Which word do you hear?
+  (speak, nl) gratis   "free"
+   goedkoop  |   geheim  |  *gratis  |   gemeen
+
+[listen_pick] nl:cadeau#rec  (skill shopping)
+  Which word do you hear?
+  (speak, nl) cadeau   "present"
+   niveau  |   carrière  |   contract  |  *cadeau
+
+========================================================================
+SKILL clothes (vocab)  Clothes
+========================================================================
+--- flashcard: 8 example(s)
+[flashcard] nl:dragen#prod  (skill clothes)
+  How do you say this?
+  to carry, to wear  =>  dragen   [verb]
+
+[flashcard] nl:dragen#rec  (skill clothes)
+  What does this mean?
+  dragen  =>  to carry, to wear   [verb]
+
+[flashcard] nl:kleren#prod  (skill clothes)
+  How do you say this?
+  clothes  =>  kleren   [noun]
+
+[flashcard] nl:kleren#rec  (skill clothes)
+  What does this mean?
+  kleren  =>  clothes   [noun]
+
+[flashcard] nl:schoen#prod  (skill clothes)
+  How do you say this?
+  shoe  =>  de schoen   [noun]
+
+[flashcard] nl:schoen#rec  (skill clothes)
+  What does this mean?
+  de schoen  =>  shoe   [noun]
+
+[flashcard] nl:broek#prod  (skill clothes)
+  How do you say this?
+  trousers, pants  =>  de broek   [noun]
+
+[flashcard] nl:broek#rec  (skill clothes)
+  What does this mean?
+  de broek  =>  trousers, pants   [noun]
+
+--- multiple_choice: 8 example(s)
+[multiple_choice] nl:dragen#prod  (skill clothes)
+  Pick the right word
+  to carry
+   drinken  |   klinken  |  *dragen  |   schieten
+
+[multiple_choice] nl:dragen#rec  (skill clothes)
+  Pick the right translation
+  dragen
+   to lose  |  *to carry  |   to disappear  |   to call
+
+[multiple_choice] nl:kleren#prod  (skill clothes)
+  Pick the right word
+  clothes
+   jurk  |  *kleren  |   laars  |   horloge
+
+[multiple_choice] nl:kleren#rec  (skill clothes)
+  Pick the right translation
+  kleren   (kleren)
+   ring  |  *clothes  |   glasses  |   shirt
+
+[multiple_choice] nl:schoen#prod  (skill clothes)
+  Pick the right word
+  shoe
+  *schoen  |   laars  |   sok  |   kleren
+
+[multiple_choice] nl:schoen#rec  (skill clothes)
+  Pick the right translation
+  schoen   (de schoen)
+   boot  |  *shoe  |   coat  |   umbrella
+
+[multiple_choice] nl:broek#prod  (skill clothes)
+  Pick the right word
+  trousers
+   rok  |   kleren  |  *broek  |   laars
+
+[multiple_choice] nl:broek#rec  (skill clothes)
+  Pick the right translation
+  broek   (de broek)
+  *trousers  |   shirt  |   watch  |   coat
+
+--- match_pairs: 8 example(s)
+[match_pairs] nl:dragen#rec  (skill clothes)
+  Match the pairs
+  paraplu  =  umbrella
+  broek  =  trousers
+  kleren  =  clothes
+  dragen  =  to carry
+  bril  =  glasses
+
+[match_pairs] nl:kleren#rec  (skill clothes)
+  Match the pairs
+  horloge  =  watch
+  kleren  =  clothes
+  shirt  =  shirt
+  sok  =  sock
+  das  =  tie
+
+[match_pairs] nl:schoen#rec  (skill clothes)
+  Match the pairs
+  ring  =  ring
+  jas  =  coat
+  schoen  =  shoe
+  zak  =  pocket
+  sok  =  sock
+
+[match_pairs] nl:broek#rec  (skill clothes)
+  Match the pairs
+  zak  =  pocket
+  horloge  =  watch
+  pak  =  suit
+  handschoen  =  glove
+  broek  =  trousers
+
+[match_pairs] nl:jurk#rec  (skill clothes)
+  Match the pairs
+  jurk  =  dress
+  shirt  =  shirt
+  sok  =  sock
+  horloge  =  watch
+  broek  =  trousers
+
+[match_pairs] nl:ring#rec  (skill clothes)
+  Match the pairs
+  hoed  =  hat
+  zak  =  pocket
+  riem  =  belt
+  sok  =  sock
+  ring  =  ring
+
+[match_pairs] nl:horloge#rec  (skill clothes)
+  Match the pairs
+  jurk  =  dress
+  pak  =  suit
+  laars  =  boot
+  horloge  =  watch
+  overhemd  =  shirt
+
+[match_pairs] nl:shirt#rec  (skill clothes)
+  Match the pairs
+  riem  =  belt
+  schoen  =  shoe
+  laars  =  boot
+  shirt  =  shirt
+  handschoen  =  glove
+
+--- sentence_builder: 8 example(s)
+[sentence_builder] nl:dragen#prod  (skill clothes)
+  Translate this sentence
+  He is wearing gloves.
+  tiles: draag · horloge · draagt · hij · das · handschoenen
+  => hij draagt handschoenen
+
+[sentence_builder] nl:kleren#prod  (skill clothes)
+  Translate this sentence
+  Where are your clothes?
+  tiles: kleren · zijn · je · hebben · waar · god · zeggen
+  => waar zijn je kleren
+
+[sentence_builder] nl:schoen#prod  (skill clothes)
+  Translate this sentence
+  Where did you buy these shoes?
+  tiles: bekijken · waar · heeft · deze · u · er · gekocht · zeggen · schoenen
+  => waar heeft u deze schoenen gekocht
+
+[sentence_builder] nl:broek#prod  (skill clothes)
+  Translate this sentence
+  I wear pants, a shirt, and shoes.
+  tiles: een · draag · en · broek · shirt · een · draagt · schoenen · dragen · hoed · ik
+  => ik draag een broek een shirt en schoenen
+
+[sentence_builder] nl:jurk#prod  (skill clothes)
+  Translate this sentence
+  That dress looks good on you.
+  tiles: das · die · goed · jurk · staat · eiland · u · mooi
+  => die jurk staat u goed
+
+[sentence_builder] nl:ring#prod  (skill clothes)
+  Translate this sentence
+  I have a ring.
+  tiles: hebt · ik · hebben · gaan · ring · een · heb
+  => ik heb een ring
+
+[sentence_builder] nl:horloge#prod  (skill clothes)
+  Translate this sentence
+  He's bought me a watch.
+  tiles: gekocht · heb · heeft · hij · een · hebt · me · voor · in · horloge
+  => hij heeft een horloge voor me gekocht
+
+[sentence_builder] nl:shirt#prod  (skill clothes)
+  Translate this sentence
+  She has given me a shirt.
+  tiles: mij · hebt · gebeuren · gegeven · een · heeft · zij · shirt · heb
+  => zij heeft mij een shirt gegeven
+
+--- cloze: 8 example(s)
+[cloze] nl:dragen#prod  (skill clothes)
+  Fill in the gap
+  Deze schoenen kan ik niet ___.   (to wear)
+  "I can't wear these shoes."
+   beschermen  |  *dragen  |   slaan  |   pakken
+
+[cloze] nl:kleren#prod  (skill clothes)
+  Fill in the gap
+  Hoe vaak koop je ___?   (clothes)
+  "How often do you buy clothes?"
+   overhemd  |  *kleren  |   hoed  |   riem
+
+[cloze] nl:schoen#prod  (skill clothes)
+  Fill in the gap
+  Deze ___ zijn van Tom.   (shoe)
+  "These shoes belong to Tom."
+  *schoenen  |   hoeden  |   brillen  |   jurken
+
+[cloze] nl:broek#prod  (skill clothes)
+  Fill in the gap
+  Wat hebt u met mijn ___ gedaan?   (trousers)
+  "What have you done with my trousers?"
+   riem  |   kleren  |   pak  |  *broek
+
+[cloze] nl:jurk#prod  (skill clothes)
+  Fill in the gap
+  Waarom dragen jullie geen ___?   (dress)
+  "Why don't you wear a dress?"
+   zak  |   bril  |  *jurk  |   jas
+
+[cloze] nl:ring#prod  (skill clothes)
+  Fill in the gap
+  Deze ___ heb ik van mijn moeder gekregen.   (ring)
+  "This ring was given to me by my mother."
+   riem  |   paraplu  |   kleren  |  *ring
+
+[cloze] nl:horloge#prod  (skill clothes)
+  Fill in the gap
+  Deze ___ is van mij.   (watch)
+  "This watch is mine."
+  *horloge  |   shirt  |   das  |   overhemd
+
+[cloze] nl:shirt#prod  (skill clothes)
+  Fill in the gap
+  Wil je dit ___ hebben?   (shirt)
+  "Do you want this shirt?"
+   jas  |   handschoen  |  *shirt  |   zak
+
+--- listen_pick: 8 example(s)
+[listen_pick] nl:dragen#rec  (skill clothes)
+  Which word do you hear?
+  (speak, nl) dragen   "to carry"
+   drinken  |   klinken  |  *dragen  |   schieten
+
+[listen_pick] nl:kleren#rec  (skill clothes)
+  Which word do you hear?
+  (speak, nl) kleren   "clothes"
+   schoen  |   klant  |  *kleren  |   kogel
+
+[listen_pick] nl:schoen#rec  (skill clothes)
+  Which word do you hear?
+  (speak, nl) schoen   "shoe"
+   kleren  |  *schoen  |   shirt  |   ster
+
+[listen_pick] nl:broek#rec  (skill clothes)
+  Which word do you hear?
+  (speak, nl) broek   "trousers"
+   borst  |  *broek  |   bevel  |   bril
+
+[listen_pick] nl:jurk#rec  (skill clothes)
+  Which word do you hear?
+  (speak, nl) jurk   "dress"
+  *jurk  |   jungle  |   jas  |   jood
+
+[listen_pick] nl:ring#rec  (skill clothes)
+  Which word do you hear?
+  (speak, nl) ring   "ring"
+   regel  |  *ring  |   riem  |   rok
+
+[listen_pick] nl:horloge#rec  (skill clothes)
+  Which word do you hear?
+  (speak, nl) horloge   "watch"
+   hoofdstuk  |   houding  |  *horloge  |   marge
+
+[listen_pick] nl:shirt#rec  (skill clothes)
+  Which word do you hear?
+  (speak, nl) shirt   "shirt"
+  *shirt  |   sok  |   special  |   schoen
+
+========================================================================
+SKILL weather (vocab)  Weather and nature
+========================================================================
+--- flashcard: 8 example(s)
+[flashcard] nl:aarde#prod  (skill weather)
+  How do you say this?
+  earth, soil  =>  de aarde   [noun]
+
+[flashcard] nl:aarde#rec  (skill weather)
+  What does this mean?
+  de aarde  =>  earth, soil   [noun]
+
+[flashcard] nl:ster#prod  (skill weather)
+  How do you say this?
+  star  =>  de ster   [noun]
+
+[flashcard] nl:ster#rec  (skill weather)
+  What does this mean?
+  de ster  =>  star   [noun]
+
+[flashcard] nl:bloem#prod  (skill weather)
+  How do you say this?
+  flower  =>  de bloem   [noun]
+
+[flashcard] nl:bloem#rec  (skill weather)
+  What does this mean?
+  de bloem  =>  flower   [noun]
+
+[flashcard] nl:rivier#prod  (skill weather)
+  How do you say this?
+  river  =>  de rivier   [noun]
+
+[flashcard] nl:rivier#rec  (skill weather)
+  What does this mean?
+  de rivier  =>  river   [noun]
+
+--- multiple_choice: 8 example(s)
+[multiple_choice] nl:aarde#prod  (skill weather)
+  Pick the right word
+  earth
+   zomer  |   maan  |   natuur  |  *aarde
+
+[multiple_choice] nl:aarde#rec  (skill weather)
+  Pick the right translation
+  aarde   (de aarde)
+  *earth  |   flower  |   cloud  |   sun
+
+[multiple_choice] nl:ster#prod  (skill weather)
+  Pick the right word
+  star
+   seizoen  |  *ster  |   boom  |   sneeuw
+
+[multiple_choice] nl:ster#rec  (skill weather)
+  Pick the right translation
+  ster   (de ster)
+   cloud  |  *star  |   storm  |   air
+
+[multiple_choice] nl:bloem#prod  (skill weather)
+  Pick the right word
+  flower
+  *bloem  |   gras  |   ster  |   regen
+
+[multiple_choice] nl:bloem#rec  (skill weather)
+  Pick the right translation
+  bloem   (de bloem)
+   air  |  *flower  |   grass  |   spring
+
+[multiple_choice] nl:rivier#prod  (skill weather)
+  Pick the right word
+  river
+   sneeuw  |   natuur  |  *rivier  |   maan
+
+[multiple_choice] nl:rivier#rec  (skill weather)
+  Pick the right translation
+  rivier   (de rivier)
+  *river  |   sun  |   tree  |   wind
+
+--- match_pairs: 8 example(s)
+[match_pairs] nl:aarde#rec  (skill weather)
+  Match the pairs
+  mist  =  fog
+  aarde  =  earth
+  lente  =  spring
+  sneeuw  =  snow
+  maan  =  moon
+
+[match_pairs] nl:ster#rec  (skill weather)
+  Match the pairs
+  ster  =  star
+  boom  =  tree
+  regenen  =  to rain
+  seizoen  =  season
+  bloem  =  flower
+
+[match_pairs] nl:bloem#rec  (skill weather)
+  Match the pairs
+  winter  =  winter
+  bloem  =  flower
+  zon  =  sun
+  mist  =  fog
+  herfst  =  autumn
+
+[match_pairs] nl:rivier#rec  (skill weather)
+  Match the pairs
+  zon  =  sun
+  gras  =  grass
+  winter  =  winter
+  natuur  =  nature
+  rivier  =  river
+
+[match_pairs] nl:zomer#rec  (skill weather)
+  Match the pairs
+  gras  =  grass
+  zomer  =  summer
+  seizoen  =  season
+  zon  =  sun
+  rivier  =  river
+
+[match_pairs] nl:natuur#rec  (skill weather)
+  Match the pairs
+  lente  =  spring
+  rivier  =  river
+  temperatuur  =  temperature
+  wolk  =  cloud
+  natuur  =  nature
+
+[match_pairs] nl:seizoen#rec  (skill weather)
+  Match the pairs
+  ster  =  star
+  temperatuur  =  temperature
+  bloem  =  flower
+  zomer  =  summer
+  seizoen  =  season
+
+[match_pairs] nl:winter#rec  (skill weather)
+  Match the pairs
+  winter  =  winter
+  wind  =  wind
+  zomer  =  summer
+  herfst  =  autumn
+  rivier  =  river
+
+--- sentence_builder: 8 example(s)
+[sentence_builder] nl:aarde#prod  (skill weather)
+  Translate this sentence
+  We live on Earth.
+  tiles: op · wonen · woon · aarde · we · woont · woonden
+  => we wonen op aarde
+
+[sentence_builder] nl:ster#prod  (skill weather)
+  Translate this sentence
+  Today, I saw a star.
+  tiles: vandaag · hebben · een · gezien · hebt · heen · ik · ster · heb
+  => ik heb vandaag een ster gezien
+
+[sentence_builder] nl:bloem#prod  (skill weather)
+  Translate this sentence
+  We need to water the flowers.
+  tiles: geven · water · de · moeten · moesten · we · lot · moet · bloemen
+  => we moeten de bloemen water geven
+
+[sentence_builder] nl:rivier#prod  (skill weather)
+  Translate this sentence
+  Let's go and swim in the river.
+  tiles: laten · lieten · zwemmen · in · de · op · rivier · laat · we
+  => laten we in de rivier zwemmen
+
+[sentence_builder] nl:zomer#prod  (skill weather)
+  Translate this sentence
+  I love summer.
+  tiles: ik · houdt · hou · van · zomer · houden · de · hield
+  => ik hou van de zomer
+
+[sentence_builder] nl:natuur#prod  (skill weather)
+  Translate this sentence
+  I love nature.
+  tiles: de · hou · natuur · hield · houdt · ik · van · houden
+  => ik hou van de natuur
+
+[sentence_builder] nl:seizoen#prod  (skill weather)
+  Translate this sentence
+  In Japan, there are four seasons.
+  tiles: in · seizoenen · vier · Japan · zijn · ben · er · waren · bent
+  => in Japan zijn er vier seizoenen
+
+[sentence_builder] nl:winter#prod  (skill weather)
+  Translate this sentence
+  He likes winter.
+  tiles: houdt · hij · de · winter · van · geven · hou · hield
+  => hij houdt van de winter
+
+--- cloze: 8 example(s)
+[cloze] nl:aarde#prod  (skill weather)
+  Fill in the gap
+  Vier jij de Dag van de ___?   (earth)
+  "Do you celebrate the Earth Day?"
+   Ster  |   Regen  |   Bloem  |  *Aarde
+
+[cloze] nl:ster#prod  (skill weather)
+  Fill in the gap
+  De zon is een ___.   (star)
+  "The sun is a star."
+   natuur  |   boom  |  *ster  |   zon
+
+[cloze] nl:bloem#prod  (skill weather)
+  Fill in the gap
+  ___ praten niet.   (flower)
+  "Flowers do not talk."
+   Winters  |   Seizoenen  |  *Bloemen  |   Wolken
+
+[cloze] nl:rivier#prod  (skill weather)
+  Fill in the gap
+  Is dit een ___?   (river)
+  "Is this a river?"
+   wolk  |   regen  |  *rivier  |   mist
+
+[cloze] nl:zomer#prod  (skill weather)
+  Fill in the gap
+  Het wordt ___.   (summer)
+  "Summer is coming."
+   zon  |   maan  |  *zomer  |   regen
+
+[cloze] nl:natuur#prod  (skill weather)
+  Fill in the gap
+  De ___ verandert.   (nature)
+  "Nature is changing."
+   regen  |  *natuur  |   winter  |   sneeuw
+
+[cloze] nl:seizoen#prod  (skill weather)
+  Fill in the gap
+  Dit is het beste ___ om te wandelen.   (season)
+  "This is the best season for hiking."
+   lente  |   rivier  |   maan  |  *seizoen
+
+[cloze] nl:winter#prod  (skill weather)
+  Fill in the gap
+  Het sneeuwt hier altijd in de ___.   (winter)
+  "It always snows here in winter."
+  *winter  |   regen  |   sneeuw  |   storm
+
+--- listen_pick: 8 example(s)
+[listen_pick] nl:aarde#rec  (skill weather)
+  Which word do you hear?
+  (speak, nl) aarde   "earth"
+   ader  |   orde  |   wade  |  *aarde
+
+[listen_pick] nl:ster#rec  (skill weather)
+  Which word do you hear?
+  (speak, nl) ster   "star"
+   winter  |   zomer  |  *ster  |   rivier
+
+[listen_pick] nl:bloem#rec  (skill weather)
+  Which word do you hear?
+  (speak, nl) bloem   "flower"
+   bos  |  *bloem  |   boom  |   basis
+
+[listen_pick] nl:rivier#rec  (skill weather)
+  Which word do you hear?
+  (speak, nl) rivier   "river"
+   regen  |  *rivier  |   ster  |   winter
+
+[listen_pick] nl:zomer#rec  (skill weather)
+  Which word do you hear?
+  (speak, nl) zomer   "summer"
+  *zomer  |   rivier  |   winter  |   ster
+
+[listen_pick] nl:natuur#rec  (skill weather)
+  Which word do you hear?
+  (speak, nl) natuur   "nature"
+   nier  |   nagel  |  *natuur  |   voorkeur
+
+[listen_pick] nl:seizoen#rec  (skill weather)
+  Which word do you hear?
+  (speak, nl) seizoen   "season"
+   storm  |   sneeuw  |  *seizoen  |   regen
+
+[listen_pick] nl:winter#rec  (skill weather)
+  Which word do you hear?
+  (speak, nl) winter   "winter"
+  *winter  |   wolk  |   zomer  |   ster
+
+========================================================================
+SKILL animals (vocab)  Animals
+========================================================================
+--- flashcard: 8 example(s)
+[flashcard] nl:hond#prod  (skill animals)
+  How do you say this?
+  dog  =>  de hond   [noun]
+
+[flashcard] nl:hond#rec  (skill animals)
+  What does this mean?
+  de hond  =>  dog   [noun]
+
+[flashcard] nl:paard#prod  (skill animals)
+  How do you say this?
+  horse  =>  het paard   [noun]
+
+[flashcard] nl:paard#rec  (skill animals)
+  What does this mean?
+  het paard  =>  horse   [noun]
+
+[flashcard] nl:dier#prod  (skill animals)
+  How do you say this?
+  animal  =>  het dier   [noun]
+
+[flashcard] nl:dier#rec  (skill animals)
+  What does this mean?
+  het dier  =>  animal   [noun]
+
+[flashcard] nl:kip#prod  (skill animals)
+  How do you say this?
+  chicken, hen  =>  de kip   [noun]
+
+[flashcard] nl:kip#rec  (skill animals)
+  What does this mean?
+  de kip  =>  chicken, hen   [noun]
+
+--- multiple_choice: 8 example(s)
+[multiple_choice] nl:hond#prod  (skill animals)
+  Pick the right word
+  dog
+  *hond  |   wolf  |   konijn  |   kip
+
+[multiple_choice] nl:hond#rec  (skill animals)
+  Pick the right translation
+  hond   (de hond)
+   butterfly  |   cow  |  *dog  |   mouse
+
+[multiple_choice] nl:paard#prod  (skill animals)
+  Pick the right word
+  horse
+   koe  |  *paard  |   konijn  |   kat
+
+[multiple_choice] nl:paard#rec  (skill animals)
+  Pick the right translation
+  paard   (het paard)
+   snake  |  *horse  |   monkey  |   lion
+
+[multiple_choice] nl:dier#prod  (skill animals)
+  Pick the right word
+  animal
+  *dier  |   muis  |   vogel  |   leeuw
+
+[multiple_choice] nl:dier#rec  (skill animals)
+  Pick the right translation
+  dier   (het dier)
+   sheep  |   cow  |  *animal  |   mouse
+
+[multiple_choice] nl:kip#prod  (skill animals)
+  Pick the right word
+  chicken
+   tijger  |   konijn  |  *kip  |   leeuw
+
+[multiple_choice] nl:kip#rec  (skill animals)
+  Pick the right translation
+  kip   (de kip)
+  *chicken  |   butterfly  |   mouse  |   dog
+
+--- match_pairs: 8 example(s)
+[match_pairs] nl:hond#rec  (skill animals)
+  Match the pairs
+  paard  =  horse
+  varken  =  pig
+  vos  =  fox
+  hond  =  dog
+  leeuw  =  lion
+
+[match_pairs] nl:paard#rec  (skill animals)
+  Match the pairs
+  aap  =  monkey
+  paard  =  horse
+  schaap  =  sheep
+  olifant  =  elephant
+  vlinder  =  butterfly
+
+[match_pairs] nl:dier#rec  (skill animals)
+  Match the pairs
+  dier  =  animal
+  vogel  =  bird
+  varken  =  pig
+  eend  =  duck
+  vlinder  =  butterfly
+
+[match_pairs] nl:kip#rec  (skill animals)
+  Match the pairs
+  schaap  =  sheep
+  kip  =  chicken
+  tijger  =  tiger
+  slang  =  snake
+  dier  =  animal
+
+[match_pairs] nl:wolf#rec  (skill animals)
+  Match the pairs
+  paard  =  horse
+  wolf  =  wolf
+  tijger  =  tiger
+  schaap  =  sheep
+  koe  =  cow
+
+[match_pairs] nl:aap#rec  (skill animals)
+  Match the pairs
+  beer  =  bear
+  aap  =  monkey
+  olifant  =  elephant
+  tijger  =  tiger
+  vogel  =  bird
+
+[match_pairs] nl:slang#rec  (skill animals)
+  Match the pairs
+  konijn  =  rabbit
+  varken  =  pig
+  slang  =  snake
+  paard  =  horse
+  muis  =  mouse
+
+[match_pairs] nl:varken#rec  (skill animals)
+  Match the pairs
+  beer  =  bear
+  varken  =  pig
+  leeuw  =  lion
+  aap  =  monkey
+  slang  =  snake
+
+--- sentence_builder: 8 example(s)
+[sentence_builder] nl:hond#prod  (skill animals)
+  Translate this sentence
+  The dog goes across the road.
+  tiles: oorlog · de · hond · over · kip · gaat · de · meenemen · weg
+  => de hond gaat over de weg
+
+[sentence_builder] nl:paard#prod  (skill animals)
+  Translate this sentence
+  These horses are theirs.
+  tiles: waren · paarden · zijn · hen · van · bent · deze · ben
+  => deze paarden zijn van hen
+
+[sentence_builder] nl:dier#prod  (skill animals)
+  Translate this sentence
+  A lion is an animal.
+  tiles: dier · een · een · ben · was · is · bent · leeuw
+  => een leeuw is een dier
+
+[sentence_builder] nl:kip#prod  (skill animals)
+  Translate this sentence
+  The chicken is in the kitchen.
+  tiles: keuken · de · kip · was · in · is · bent · ben · de
+  => de kip is in de keuken
+
+[sentence_builder] nl:wolf#prod  (skill animals)
+  Translate this sentence
+  Where are the wolves?
+  tiles: wolven · de · ben · bent · waar · zijn · waren
+  => waar zijn de wolven
+
+[sentence_builder] nl:aap#prod  (skill animals)
+  Translate this sentence
+  The doctor is a monkey!
+  tiles: dokter · ben · was · aap · de · bent · een · is
+  => de dokter is een aap
+
+[sentence_builder] nl:slang#prod  (skill animals)
+  Translate this sentence
+  I saw a snake.
+  tiles: dier · heb · ik · een · hebt · gezien · hebben · slang
+  => ik heb een slang gezien
+
+[sentence_builder] nl:varken#prod  (skill animals)
+  Translate this sentence
+  What is a pig?
+  tiles: bent · is · wat · varken · ben · een · was
+  => wat is een varken
+
+--- cloze: 8 example(s)
+[cloze] nl:hond#prod  (skill animals)
+  Fill in the gap
+  Ik heb een ___ gehad.   (dog)
+  "I used to have a dog."
+   vos  |   muis  |  *hond  |   aap
+
+[cloze] nl:paard#prod  (skill animals)
+  Fill in the gap
+  Wij gaven onze ___ water.   (horse)
+  "We watered our horse."
+   vlinder  |   vos  |   leeuw  |  *paard
+
+[cloze] nl:dier#prod  (skill animals)
+  Fill in the gap
+  Een mens is een ___.   (animal)
+  "A human is an animal."
+   olifant  |   eend  |   koe  |  *dier
+
+[cloze] nl:kip#prod  (skill animals)
+  Fill in the gap
+  Ik eet vaak ___.   (chicken)
+  "I often eat chicken."
+  *kip  |   kat  |   paard  |   schaap
+
+[cloze] nl:wolf#prod  (skill animals)
+  Fill in the gap
+  De mens is een ___ voor de mens.   (wolf)
+  "Man is a wolf to man."
+   kat  |   dier  |   varken  |  *wolf
+
+[cloze] nl:aap#prod  (skill animals)
+  Fill in the gap
+  We zien hier vaak ___.   (monkey)
+  "We often see monkeys around here."
+  *apen  |   muizen  |   koeien  |   kippen
+
+[cloze] nl:slang#prod  (skill animals)
+  Fill in the gap
+  Leeft die ___?   (snake)
+  "Is the snake alive?"
+  *slang  |   vlinder  |   dier  |   leeuw
+
+[cloze] nl:varken#prod  (skill animals)
+  Fill in the gap
+  Tom eet als een ___.   (pig)
+  "Tom eats like a pig."
+   wolf  |   vos  |  *varken  |   muis
+
+--- listen_pick: 8 example(s)
+[listen_pick] nl:hond#rec  (skill animals)
+  Which word do you hear?
+  (speak, nl) hond   "dog"
+  *hond  |   avond  |   hart  |   eend
+
+[listen_pick] nl:paard#rec  (skill animals)
+  Which word do you hear?
+  (speak, nl) paard   "horse"
+   partner  |   waard  |  *paard  |   plezier
+
+[listen_pick] nl:dier#rec  (skill animals)
+  Which word do you hear?
+  (speak, nl) dier   "animal"
+   beer  |   tijger  |  *dier  |   dader
+
+[listen_pick] nl:kip#rec  (skill animals)
+  Which word do you hear?
+  (speak, nl) kip   "chicken"
+   knul  |  *kip  |   kat  |   koe
+
+[listen_pick] nl:wolf#rec  (skill animals)
+  Which word do you hear?
+  (speak, nl) wolf   "wolf"
+  *wolf  |   wezen  |   wind  |   wiet
+
+[listen_pick] nl:aap#rec  (skill animals)
+  Which word do you hear?
+  (speak, nl) aap   "monkey"
+   april  |  *aap  |   alarm  |   pap
+
+[listen_pick] nl:slang#rec  (skill animals)
+  Which word do you hear?
+  (speak, nl) slang   "snake"
+   stilte  |   schaap  |  *slang  |   long
+
+[listen_pick] nl:varken#rec  (skill animals)
+  Which word do you hear?
+  (speak, nl) varken   "pig"
+  *varken  |   vlinder  |   vogel  |   vaarwel
+
+========================================================================
+SKILL leisure (vocab)  Free time
+========================================================================
+--- flashcard: 8 example(s)
+[flashcard] nl:foto#prod  (skill leisure)
+  How do you say this?
+  photo, picture  =>  de foto   [noun]
+
+[flashcard] nl:foto#rec  (skill leisure)
+  What does this mean?
+  de foto  =>  photo, picture   [noun]
+
+[flashcard] nl:team#prod  (skill leisure)
+  How do you say this?
+  team  =>  het team   [noun]
+
+[flashcard] nl:team#rec  (skill leisure)
+  What does this mean?
+  het team  =>  team   [noun]
+
+[flashcard] nl:muziek#prod  (skill leisure)
+  How do you say this?
+  music  =>  de muziek   [noun]
+
+[flashcard] nl:muziek#rec  (skill leisure)
+  What does this mean?
+  de muziek  =>  music   [noun]
+
+[flashcard] nl:wedstrijd#prod  (skill leisure)
+  How do you say this?
+  match, game, competition  =>  de wedstrijd   [noun]
+
+[flashcard] nl:wedstrijd#rec  (skill leisure)
+  What does this mean?
+  de wedstrijd  =>  match, game, competition   [noun]
+
+--- multiple_choice: 8 example(s)
+[multiple_choice] nl:foto#prod  (skill leisure)
+  Pick the right word
+  photo
+  *foto  |   piano  |   roman  |   hobby
+
+[multiple_choice] nl:foto#rec  (skill leisure)
+  Pick the right translation
+  foto   (de foto)
+  *photo  |   piano  |   concert  |   magazine
+
+[multiple_choice] nl:team#prod  (skill leisure)
+  Pick the right word
+  team
+   feest  |  *team  |   film  |   muziek
+
+[multiple_choice] nl:team#rec  (skill leisure)
+  Pick the right translation
+  team   (het team)
+   novel  |  *team  |   radio  |   song
+
+[multiple_choice] nl:muziek#prod  (skill leisure)
+  Pick the right word
+  music
+  *muziek  |   tijdschrift  |   piano  |   team
+
+[multiple_choice] nl:muziek#rec  (skill leisure)
+  Pick the right translation
+  muziek   (de muziek)
+   radio  |  *music  |   newspaper  |   sport
+
+[multiple_choice] nl:wedstrijd#prod  (skill leisure)
+  Pick the right word
+  match
+   sport  |   krant  |  *wedstrijd  |   hobby
+
+[multiple_choice] nl:wedstrijd#rec  (skill leisure)
+  Pick the right translation
+  wedstrijd   (de wedstrijd)
+   film  |   song  |  *match  |   drawing
+
+--- match_pairs: 8 example(s)
+[match_pairs] nl:foto#rec  (skill leisure)
+  Match the pairs
+  sport  =  sport
+  wedstrijd  =  match
+  team  =  team
+  foto  =  photo
+  tekening  =  drawing
+
+[match_pairs] nl:team#rec  (skill leisure)
+  Match the pairs
+  radio  =  radio
+  team  =  team
+  lied  =  song
+  tijdschrift  =  magazine
+  spel  =  game
+
+[match_pairs] nl:muziek#rec  (skill leisure)
+  Match the pairs
+  film  =  film
+  voetbal  =  football
+  muziek  =  music
+  hobby  =  hobby
+  tijdschrift  =  magazine
+
+[match_pairs] nl:wedstrijd#rec  (skill leisure)
+  Match the pairs
+  hobby  =  hobby
+  radio  =  radio
+  roman  =  novel
+  concert  =  concert
+  wedstrijd  =  match
+
+[match_pairs] nl:krant#rec  (skill leisure)
+  Match the pairs
+  krant  =  newspaper
+  lied  =  song
+  tijdschrift  =  magazine
+  radio  =  radio
+  wedstrijd  =  match
+
+[match_pairs] nl:film#rec  (skill leisure)
+  Match the pairs
+  tennis  =  tennis
+  hobby  =  hobby
+  piano  =  piano
+  tijdschrift  =  magazine
+  film  =  film
+
+[match_pairs] nl:radio#rec  (skill leisure)
+  Match the pairs
+  krant  =  newspaper
+  roman  =  novel
+  dans  =  dance
+  radio  =  radio
+  feest  =  party
+
+[match_pairs] nl:lied#rec  (skill leisure)
+  Match the pairs
+  piano  =  piano
+  muziek  =  music
+  dans  =  dance
+  lied  =  song
+  concert  =  concert
+
+--- sentence_builder: 8 example(s)
+[sentence_builder] nl:foto#prod  (skill leisure)
+  Translate this sentence
+  Please do not take photos here.
+  tiles: neem · geen · foto's · feest · alsjeblieft · namen · nemen
+  => geen foto's nemen alsjeblieft
+
+[sentence_builder] nl:team#prod  (skill leisure)
+  Translate this sentence
+  The whole team needs to be there.
+  tiles: het · zijn · team · gaan · nu · er · hele · moet · hebben
+  => het hele team moet er zijn
+
+[sentence_builder] nl:muziek#prod  (skill leisure)
+  Translate this sentence
+  Let's sing and make music!
+  tiles: muziek · we · en · lieten · maken · laat · zingen · laten · zien
+  => laten we zingen en muziek maken
+
+[sentence_builder] nl:wedstrijd#prod  (skill leisure)
+  Translate this sentence
+  It was a competition.
+  tiles: was · zeggen · is · een · systeem · het · wedstrijd
+  => het was een wedstrijd
+
+[sentence_builder] nl:krant#prod  (skill leisure)
+  Translate this sentence
+  Where are the newspapers?
+  tiles: staan · stonden · sta · waar · kranten · de · precies
+  => waar staan de kranten
+
+[sentence_builder] nl:film#prod  (skill leisure)
+  Translate this sentence
+  The movie starts in thirty minutes.
+  tiles: dertig · film · dag · minuten · begin · begint · begon · de · over
+  => de film begint over dertig minuten
+
+[sentence_builder] nl:radio#prod  (skill leisure)
+  Translate this sentence
+  I wasn't listening to the radio.
+  tiles: naar · ben · nog · radio · ik · de · niet · was · luisteren · aan · waren · het
+  => ik was niet naar de radio aan het luisteren
+
+[sentence_builder] nl:lied#prod  (skill leisure)
+  Translate this sentence
+  I do not like this song.
+  tiles: ik · houdt · dit · hield · houden · niet · van · liedje · hou
+  => ik hou niet van dit liedje
+
+--- cloze: 8 example(s)
+[cloze] nl:foto#prod  (skill leisure)
+  Fill in the gap
+  Ik nam een ___.   (picture)
+  "I took a picture."
+  *foto  |   sport  |   film  |   tijdschrift
+
+[cloze] nl:team#prod  (skill leisure)
+  Fill in the gap
+  Dit is een heel goed ___.   (team)
+  "This is a very good team."
+   dans  |   muziek  |   krant  |  *team
+
+[cloze] nl:muziek#prod  (skill leisure)
+  Fill in the gap
+  Ik hou van Engels en ___.   (music)
+  "I like English and music."
+   team  |  *muziek  |   tekening  |   sport
+
+[cloze] nl:wedstrijd#prod  (skill leisure)
+  Fill in the gap
+  Ben je de ___ aan het kijken?   (game)
+  "Are you watching the game?"
+  *wedstrijd  |   foto  |   piano  |   radio
+
+[cloze] nl:krant#prod  (skill leisure)
+  Fill in the gap
+  Ik wil vandaag geen ___ kopen.   (newspaper)
+  "I don't want to buy a newspaper today."
+   lied  |   muziek  |   concert  |  *krant
+
+[cloze] nl:film#prod  (skill leisure)
+  Fill in the gap
+  Wat vind je van de ___?   (movie)
+  "What do you think of the movie?"
+   gitaar  |   radio  |   hobby  |  *film
+
+[cloze] nl:radio#prod  (skill leisure)
+  Fill in the gap
+  Ik heb het gehoord op de ___.   (radio)
+  "I heard it on the radio."
+  *radio  |   bal  |   foto  |   piano
+
+[cloze] nl:lied#prod  (skill leisure)
+  Fill in the gap
+  Ik heb haar een ___ horen zingen.   (song)
+  "I heard her singing a song."
+   spel  |   sport  |  *lied  |   krant
+
+--- listen_pick: 8 example(s)
+[listen_pick] nl:foto#rec  (skill leisure)
+  Which word do you hear?
+  (speak, nl) foto   "photo"
+  *foto  |   film  |   fout  |   feest
+
+[listen_pick] nl:team#rec  (skill leisure)
+  Which word do you hear?
+  (speak, nl) team   "team"
+   tennis  |   mam  |  *team  |   toetje
+
+[listen_pick] nl:muziek#rec  (skill leisure)
+  Which word do you hear?
+  (speak, nl) muziek   "music"
+   muur  |  *muziek  |   moeder  |   gesprek
+
+[listen_pick] nl:wedstrijd#rec  (skill leisure)
+  Which word do you hear?
+  (speak, nl) wedstrijd   "match"
+   wachtwoord  |   leeftijd  |   website  |  *wedstrijd
+
+[listen_pick] nl:krant#rec  (skill leisure)
+  Which word do you hear?
+  (speak, nl) krant   "newspaper"
+  *krant  |   kont  |   keu  |   cliënt
+
+[listen_pick] nl:film#rec  (skill leisure)
+  Which word do you hear?
+  (speak, nl) film   "film"
+   feest  |  *film  |   fles  |   foto
+
+[listen_pick] nl:radio#rec  (skill leisure)
+  Which word do you hear?
+  (speak, nl) radio   "radio"
+   rivier  |   roman  |  *radio  |   regen
+
+[listen_pick] nl:lied#rec  (skill leisure)
+  Which word do you hear?
+  (speak, nl) lied   "song"
+  *lied  |   lijf  |   lawaai  |   laptop
 
 
