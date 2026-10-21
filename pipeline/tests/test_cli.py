@@ -53,6 +53,22 @@ def test_round_trip_new_validate_build_info(scaffolded, tmp_path, capsys):
     assert "CC-BY-SA-4.0" in capsys.readouterr().out
 
 
+def test_template_topic_example_builds(scaffolded, tmp_path):
+    """The starter's commented-out topic (pack format 1.2) validates and builds once uncommented."""
+    p = scaffolded / "course.yaml"
+    lines = p.read_text(encoding="utf-8").split("\n")
+    start = lines.index("# topics:")
+    lines[start:] = [ln[2:] if ln.startswith("# ") else ln for ln in lines[start:]]
+    p.write_text("\n".join(lines), encoding="utf-8")
+    assert yaml.safe_load(p.read_text(encoding="utf-8"))["topics"][0]["id"] == "market"
+    assert validate(load_pack(scaffolded)) == []
+    out = tmp_path / "xx.sqlite"
+    assert cli.main(["build", str(scaffolded), "-o", str(out)]) == 0
+    con = sqlite3.connect(out)
+    assert con.execute("SELECT id, anchor FROM topics").fetchall() == [("market", "things")]
+    assert dict(con.execute("SELECT key, value FROM meta"))["schema_minor"] == "3"
+
+
 def test_compiled_pack_follows_the_contract(scaffolded, tmp_path):
     out = tmp_path / "xx.sqlite"
     assert cli.main(["build", str(scaffolded), "-o", str(out)]) == 0

@@ -60,6 +60,7 @@ import re
 from collections import defaultdict
 from types import SimpleNamespace
 
+from .content import all_units, skill_topics
 from . import query
 from .lang import get_lang
 
@@ -449,11 +450,13 @@ class SkillGraph:
         self.base: set[str] = set(course.get("base_features") or [])
         self.order: list[str] = []
         self.skill: dict[str, dict] = {}
-        for unit in course["units"]:
+        for unit in all_units(course):
             for s in unit.get("skills") or []:
                 self.order.append(s["id"])
                 self.skill[s["id"]] = s
         self.pos = {sid: i for i, sid in enumerate(self.order)}
+        # skill -> its topic (None: the main tree)
+        self.tree: dict[str, str | None] = skill_topics(course)
         self.introduces: dict[str, set[str]] = {}
         for sid in self.order:
             s = self.skill[sid]
@@ -536,16 +539,28 @@ class SkillGraph:
         unknown = sorted(f for f in feats - self.base if f not in self.feature_skill)
         if unknown:
             out.append(f"features {unknown} are introduced by no skill")
-        home = self.home(toks, feats)
-        if home is not None:
-            missing = sorted(feats - self.allowed[home] - set(unknown))
-            if missing:
-                out.append(f"home skill {home} does not allow {missing}")
+        touched = self.touched(toks, feats)
+        if not touched:
+            return out
+        # One home skill per tree (pack format 1.2, topics): the main tree and a topic are not
+        # ordered against each other. The app only shows the sentence once the learner has started
+        # every touched skill, so what any tree's home skill allows is allowed. Without topics this
+        # is the single home skill, as before.
+        homes: dict[str | None, str] = {}
+        for s in touched:
+            t = self.tree.get(s)
+            if t not in homes or self.pos[s] > self.pos[homes[t]]:
+                homes[t] = s
+        allowed = set().union(*(self.allowed[h] for h in homes.values()))
+        missing = sorted(feats - allowed - set(unknown))
+        if missing:
+            names = " + ".join(homes[t] for t in sorted(homes, key=lambda t: (t is not None, t or "")))
+            out.append(f"home skill {names} does not allow {missing}")
         return out
 
 
 def build(course: dict, items: list[dict], verbs: dict[str, dict]) -> tuple[FeatureTagger, SkillGraph]:
     resolved = {s["id"]: query.resolve(s, items, verbs, query.course_persons(course))
-                for u in course["units"] for s in (u.get("skills") or [])}
+                for u in all_units(course) for s in (u.get("skills") or [])}
     tagger = FeatureTagger(course, items, verbs)
     return tagger, SkillGraph(course, resolved, tagger)

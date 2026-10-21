@@ -100,6 +100,26 @@ class _SkillSheetState extends ConsumerState<SkillSheet> {
               const SizedBox(height: 10),
               Text(description, key: const ValueKey('skill-description'), style: theme.textTheme.bodyMedium),
             ],
+            // A topic's skill: how many of its words the learner already
+            // knows from the main tree or another topic (they aren't taught again).
+            if (CourseTrees.of(course).treeOf(skill.id) case final topicId?)
+              if (ref.watch(skillKnownWordsProvider(skill.id)).value case final k? when k.total > 0) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Icon(Icons.alt_route, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '${CourseTrees.of(course).topic(topicId)?.titleIn(lang) ?? topicId} · '
+                        '${k.known} of ${k.total} words already known',
+                        key: const ValueKey('skill-known-words'),
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,

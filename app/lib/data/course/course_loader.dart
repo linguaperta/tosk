@@ -25,9 +25,44 @@ CourseRepo loadCourseRepoFromSqlite(CommonDatabase db) {
   final raw = readRawMeta(db);
   final meta = parseCourseMeta(raw);
 
+  // Optional tables (additive in schema 1; packs built before them have none).
+  final tables = {
+    for (final r in db.select(
+      "SELECT name FROM sqlite_master WHERE type = 'table' "
+      "AND name IN ('sentence_features', 'skill_features', 'inflections', 'stories', 'story_sentences', "
+      "'story_questions', 'topics', 'topic_units')",
+    ).rows)
+      r[0] as String,
+  };
+
+  // Topic trees (schema minor 3): which units belong to which topic.
+  final hasTopics = tables.containsAll(const ['topics', 'topic_units']);
+  final topics = hasTopics
+      ? [
+          for (final r in db.select(
+            'SELECT id, ord, title, short_title, description, icon, anchor FROM topics ORDER BY ord',
+          ).rows)
+            Topic(
+              id: r[0] as String,
+              ord: r[1] as int,
+              title: _i18n(r[2]),
+              shortTitle: _i18n(r[3]),
+              description: _i18n(r[4]),
+              icon: r[5] as String?,
+              anchor: r[6] as String,
+            ),
+        ]
+      : const <Topic>[];
+  final topicIds = {for (final t in topics) t.id};
+  final unitTopic = <String, String>{
+    if (hasTopics)
+      for (final r in db.select('SELECT unit_id, topic_id FROM topic_units').rows)
+        if (topicIds.contains(r[1])) r[0] as String: r[1] as String,
+  };
+
   final units = [
     for (final r in db.select('SELECT id, ord, title FROM units ORDER BY ord').rows)
-      Unit(id: r[0] as String, ord: r[1] as int, title: _i18n(r[2])),
+      Unit(id: r[0] as String, ord: r[1] as int, title: _i18n(r[2]), topic: unitTopic[r[0] as String]),
   ];
 
   final requires = <String, List<String>>{};
@@ -155,14 +190,7 @@ CourseRepo loadCourseRepoFromSqlite(CommonDatabase db) {
     (notes[r[0] as String] ??= {})[r[1] as String] = r[2] as String;
   }
 
-  // Grammar gating tables (additive in schema 1; packs built before them have none).
-  final tables = {
-    for (final r in db.select(
-      "SELECT name FROM sqlite_master WHERE type = 'table' "
-      "AND name IN ('sentence_features', 'skill_features', 'inflections', 'stories', 'story_sentences', 'story_questions')",
-    ).rows)
-      r[0] as String,
-  };
+  // Grammar gating tables.
   final sentenceFeatures = <String, Set<String>>{};
   if (tables.contains('sentence_features')) {
     for (final r in db.select('SELECT sentence_id, feature FROM sentence_features').rows) {
@@ -214,6 +242,7 @@ CourseRepo loadCourseRepoFromSqlite(CommonDatabase db) {
     sentenceFeatures: sentenceFeatures,
     skillFeatures: skillFeatures,
     inflections: inflections,
+    topics: topics,
   );
   sw.stop();
   return CourseRepo(

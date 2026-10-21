@@ -26,9 +26,39 @@ class Pack:
         return self.course["id"]
 
     def skills(self):
-        for ui, unit in enumerate(self.course.get("units") or []):
+        """(unit index, unit, skill index, skill) over every tree: the main tree's units, then each
+        topic's units (course order, `all_units`)."""
+        for ui, unit in enumerate(all_units(self.course)):
             for si, skill in enumerate(unit.get("skills") or []):
                 yield ui, unit, si, skill
+
+
+def all_units(course: dict) -> list[dict]:
+    """Every unit in course order: the main tree's `units`, then the units of each topic in
+    `topics` order (pack format 1.2). Topic skills therefore come after every main-tree skill, so
+    a facet shared with the main tree is introduced by its main-tree skill."""
+    out = list(course.get("units") or [])
+    for t in course.get("topics") or []:
+        out.extend(t.get("units") or [])
+    return out
+
+
+def unit_topics(course: dict) -> dict[str, str]:
+    """Unit id -> topic id for the units of topics (main-tree units are not listed)."""
+    return {u["id"]: t["id"] for t in course.get("topics") or [] for u in t.get("units") or []}
+
+
+def skill_topics(course: dict) -> dict[str, str | None]:
+    """Skill id -> its topic id, or None for a main-tree skill."""
+    out: dict[str, str | None] = {}
+    for u in course.get("units") or []:
+        for s in u.get("skills") or []:
+            out[s["id"]] = None
+    for t in course.get("topics") or []:
+        for u in t.get("units") or []:
+            for s in u.get("skills") or []:
+                out[s["id"]] = t["id"]
+    return out
 
 
 def required_translations(course: dict) -> list[str]:

@@ -67,6 +67,19 @@ CREATE TABLE inflections (item_id, tbl, cell, form, stem, ending, alts, wrong, P
 - **Verbs** stay in `verb_forms`; conceptually a verb table is the special case table = tense, cell = person.
 - **Old apps:** apps before 0.4.0 failed on `kind = 'infl'` (`FacetKind.parse`); from this version on the loader skips facet kinds it doesn't know. The compiler therefore writes `meta.min_app_version = 0.4.0` into packs that train inflection tables, and `publish` copies it into the pack index, so older apps are offered an app update instead of the pack.
 
+## Topic trees (schema minor 3, pack format 1.2)
+
+A course has a main tree and optionally built-in **topics**: themed side trees attached to the main tree at an anchor skill (docs/extensions.md; source format and rules in docs/pack-format.md 3.3).
+
+```sql
+CREATE TABLE topics (id, ord, title, short_title, description, icon, anchor);
+CREATE TABLE topic_units (unit_id, topic_id);
+```
+
+- Topic units and skills are ordinary `units` / `skills` rows, ordered after every main-tree unit, so course order is the main tree, then each topic. Facets are shared by id, so progress, stats, XP and gating need nothing new.
+- **Old apps** ignore the two tables and show the topic units as further units at the end of the main tree, locked by their prerequisites: safe, so topic packs set no `min_app_version`.
+- **App:** `CourseTrees` (`core/trees.dart`) splits the trees; the map draws the main tree with a branch per topic and each topic as its own map (docs/ui.md "Topic trees").
+
 ## Exercise type ids
 
 `flashcard`, `multiple_choice`, `match_pairs`, `conj_pick`, `conj_grid`, `sentence_builder`, `cloze`, `spot_error`, `transform`, and since v0.5 `listen_pick` (on-device text-to-speech; generated only when the device has a voice for the course language, `SessionOptions.listening`).

@@ -70,6 +70,12 @@ abstract interface class CourseData {
   List<Story> get stories;
 
   Story? story(String id);
+
+  /// Built-in topic trees in order (schema minor 3); empty for packs without
+  /// them. [units] and [skills] hold every tree (the main tree first, then
+  /// each topic); [Unit.topic] says which tree a unit belongs to, and
+  /// `CourseTrees` (`core/trees.dart`) splits them.
+  List<Topic> get topics;
 }
 
 /// Straightforward indexed implementation used by both the data layer and tests.
@@ -89,7 +95,9 @@ class InMemoryCourseData implements CourseData {
     Map<String, Set<String>> skillFeatures = const {}, // skillId -> features
     List<Story> stories = const [],
     List<InflectionForm> inflections = const [],
-  }) : units = (List.of(units)..sort((a, b) => a.ord.compareTo(b.ord))) {
+    List<Topic> topics = const [],
+  }) : units = (List.of(units)..sort((a, b) => a.ord.compareTo(b.ord))),
+       topics = List.unmodifiable(List.of(topics)..sort((a, b) => a.ord.compareTo(b.ord))) {
     _notes = notes;
     _sentenceFeatures = sentenceFeatures;
     _skillFeatures = skillFeatures;
@@ -148,6 +156,8 @@ class InMemoryCourseData implements CourseData {
   final CourseMeta meta;
   @override
   final List<Unit> units;
+  @override
+  final List<Topic> topics;
   @override
   late final List<Skill> skills;
 

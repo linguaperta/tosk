@@ -240,9 +240,95 @@ final sourceLangProvider = Provider<String>((ref) {
   return effectiveSourceLang(wanted, meta);
 });
 
+/// The main tree's layout (the topics are their own maps).
 final mapLayoutProvider = FutureProvider<MapLayout>((ref) async {
   final course = await ref.watch(courseDataProvider.future);
-  return layoutSkillMap(course.units, course.skills);
+  final trees = CourseTrees.of(course);
+  return layoutSkillMap(trees.mainUnits, trees.mainSkills);
+});
+
+/// The band at the top of a topic's map: its root, the anchor skill of the
+/// main tree it grows from ([topicMapSkills]).
+const String kTopicRootUnit = '~root';
+
+/// The skills of [topic]'s map: its root (the anchor skill, in the
+/// [kTopicRootUnit] band) and the topic's skills, whose main-tree
+/// prerequisites all hang from the root.
+List<Skill> topicMapSkills(CourseTrees trees, Topic topic) {
+  final anchor = trees.course.skill(topic.anchor);
+  return [
+    if (anchor != null)
+      Skill(
+        id: anchor.id,
+        unitId: kTopicRootUnit,
+        ord: 0,
+        kind: anchor.kind,
+        title: anchor.title,
+        icon: anchor.icon,
+        tense: anchor.tense,
+      ),
+    for (final s in trees.skillsOf(topic.id))
+      Skill(
+        id: s.id,
+        unitId: s.unitId,
+        ord: s.ord,
+        kind: s.kind,
+        title: s.title,
+        icon: s.icon,
+        tense: s.tense,
+        exercises: s.exercises,
+        posX: s.posX,
+        posY: s.posY,
+        requires: {
+          for (final r in s.requires)
+            if (trees.treeOf(r) == topic.id) r else if (anchor != null && trees.course.skill(r) != null) anchor.id,
+        }.toList(),
+      ),
+  ];
+}
+
+/// A topic tree's layout: the root band with the anchor, then the topic's units.
+final topicLayoutProvider = FutureProvider.family<MapLayout, String>((ref, topicId) async {
+  final course = await ref.watch(courseDataProvider.future);
+  final trees = CourseTrees.of(course);
+  final topic = trees.topic(topicId);
+  if (topic == null) return MapLayout.empty;
+  return layoutSkillMap(
+    [const Unit(id: kTopicRootUnit, ord: -1, title: {}), ...trees.unitsOf(topicId)],
+    topicMapSkills(trees, topic),
+  );
+});
+
+/// The tree the map shows: null for the main tree, else a topic id. Back to
+/// the main tree whenever the active course changes.
+final mapTreeProvider = NotifierProvider<MapTree, String?>(MapTree.new);
+
+class MapTree extends Notifier<String?> {
+  @override
+  String? build() {
+    ref.watch(activeCourseIdProvider);
+    return null;
+  }
+
+  void show(String? tree) => state = tree;
+}
+
+/// How many of [skillId]'s words the learner already knows (any facet of the
+/// word practised, in any tree) out of its words: "34 of 120 words already
+/// known" on a topic skill's sheet.
+final skillKnownWordsProvider = FutureProvider.family<({int known, int total}), String>((ref, skillId) async {
+  ref.watch(progressRevisionProvider);
+  final course = await ref.watch(courseDataProvider.future);
+  final items = course.skillItems(skillId);
+  final facets = <String, Set<String>>{
+    for (final i in items) i.id: {'${i.id}#rec', '${i.id}#prod'},
+  };
+  for (final f in course.skillFacets(skillId)) {
+    facets[f.itemId]?.add(f.facetId);
+  }
+  final states = await ref.watch(progressStoreProvider).states({for (final s in facets.values) ...s});
+  final known = facets.values.where((ids) => ids.any(states.containsKey)).length;
+  return (known: known, total: items.length);
 });
 
 // ------------------------------------------------------------------ engine

@@ -34,6 +34,9 @@ CREATE TABLE meta (
 --   schema_minor     '1'  additive revision within the major version (absent = 0). 1 = inflection
 --                    tables: the `inflections` table, meta.inflection_tables, facet kind 'infl' and
 --                    token forms 'infl:{table}.{cell}'. Apps skip facet kinds they don't know.
+--                    2 = moods and recognition-only skills (meta.tense_persons, tense_person_labels,
+--                    tense_groups, recognition_skills). 3 = built-in topic trees (`topics`,
+--                    `topic_units`); written only by packs that have topics.
 --   min_app_version  semver of the oldest app that can use the pack (publish.py copies it into the
 --                    index); set by the compiler to '0.4.0' when the pack trains inflection tables
 --                    (older apps failed on facet kind 'infl'), or from course.yaml min_app_version
@@ -63,6 +66,26 @@ CREATE TABLE units (
   id     TEXT PRIMARY KEY,           -- 'u1'
   ord    INTEGER NOT NULL,           -- 0-based display order
   title  TEXT NOT NULL               -- i18n JSON
+);
+
+-- Built-in topic trees (schema_minor 3; docs/pack-format.md, "Topics"). A topic is a themed side
+-- tree: its units and skills are ordinary rows of `units` and `skills` (ords after every main-tree
+-- unit, so course order is the main tree, then each topic), listed in `topic_units`. Units not in
+-- `topic_units` form the main tree. Apps before minor 3 ignore these two tables and show the topic
+-- units as further units at the end of the main tree (their prerequisites keep them locked until
+-- the anchor), which is safe: ids, facets and progress are the same.
+CREATE TABLE topics (
+  id          TEXT PRIMARY KEY,      -- 'cucina', unique among the course's topics
+  ord         INTEGER NOT NULL,      -- 0-based order (the tree selector, branches on one anchor)
+  title       TEXT NOT NULL,         -- i18n JSON
+  short_title TEXT NOT NULL DEFAULT '{}', -- i18n JSON: name for the branch carving when the title doesn't fit
+  description TEXT NOT NULL DEFAULT '{}', -- i18n JSON
+  icon        TEXT,                  -- icon key (as skills.icon)
+  anchor      TEXT NOT NULL          -- main-tree skill the topic's branch grows from (skills.id)
+);
+CREATE TABLE topic_units (
+  unit_id  TEXT PRIMARY KEY,         -- units.id
+  topic_id TEXT NOT NULL REFERENCES topics(id)
 );
 
 CREATE TABLE skills (

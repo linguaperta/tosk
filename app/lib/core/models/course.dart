@@ -182,10 +182,55 @@ class InflectionForm {
 
 @immutable
 class Unit {
-  const Unit({required this.id, required this.ord, required this.title});
+  const Unit({required this.id, required this.ord, required this.title, this.topic});
   final String id;
   final int ord;
   final I18n title;
+
+  /// The topic tree this unit belongs to (`topic_units`, schema minor 3), or
+  /// null for a unit of the main tree.
+  final String? topic;
+}
+
+/// A built-in topic tree (`topics`, schema minor 3; docs/pack-format.md
+/// "Topics"): a themed side tree with its own units and skills, drawn as its
+/// own map and attached to the main tree at its [anchor] skill. Its units are
+/// the course's [Unit]s whose [Unit.topic] is [id].
+@immutable
+class Topic {
+  const Topic({
+    required this.id,
+    required this.ord,
+    required this.title,
+    required this.anchor,
+    this.shortTitle = const {},
+    this.description = const {},
+    this.icon,
+  });
+
+  final String id;
+  final int ord;
+  final I18n title;
+
+  /// A short name for the branch carving where [title] doesn't fit (empty:
+  /// the title's first word, see [shortTitleIn]).
+  final I18n shortTitle;
+  final I18n description;
+  final String? icon;
+
+  /// The main-tree skill the topic's branch grows from (the last main-tree
+  /// skill its skills require).
+  final String anchor;
+
+  String titleIn(String lang) => pickLang(title, lang);
+
+  /// The short name: `short_title`, else the title's first word.
+  String shortTitleIn(String lang) {
+    if (shortTitle.isNotEmpty) return pickLang(shortTitle, lang);
+    final t = titleIn(lang).trim();
+    final i = t.indexOf(RegExp(r'[\s,;:]'));
+    return i <= 0 ? t : t.substring(0, i);
+  }
 }
 
 enum SkillKind { vocab, grammar }
