@@ -119,9 +119,13 @@ def validate_topics(course: dict) -> list[str]:
         if trees[anchor] is not None:
             errors.append(f"{where}: anchor {anchor!r} is a skill of topic {trees[anchor]!r}, not of the main tree")
             continue
+        # The anchor is the last main-tree skill the topic needs: every other requirement is one of
+        # its prerequisites or a sibling no deeper than it (kitchen requires colours and possessives).
         before = closure(course, anchor)
-        later = [r for r in main_requirements(course, t) if r not in before]
+        depth = main_depths(course)
+        later = [r for r in main_requirements(course, t)
+                 if r not in before and depth.get(r, 0) > depth.get(anchor, 0)]
         if later:
-            errors.append(f"{where}: requires main-tree skills {later} that are no prerequisite of its anchor "
+            errors.append(f"{where}: requires main-tree skills {later} that come after its anchor "
                           f"{anchor!r}; the anchor must be the last main-tree skill the topic needs")
     return errors

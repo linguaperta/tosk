@@ -152,12 +152,38 @@ def test_pack_without_topics_keeps_its_minor(mini_pack_dir, tmp_path):
 
 
 def test_explicit_anchor(topic_pack):
-    set_topics(topic_pack, food_topic(anchor="present-are"), travel_topic())
+    set_topics(topic_pack, food_topic(anchor="greetings"), travel_topic())
     errs = errors(topic_pack)
-    # articles is required but no prerequisite of present-are
-    assert any("no prerequisite of its anchor 'present-are'" in e for e in errs), errs
+    # articles (depth 1) is required, and comes after greetings (depth 0)
+    assert any("['articles'] that come after its anchor 'greetings'" in e for e in errs), errs
+    # a sibling at the same depth is fine: articles and present-are both follow greetings
+    set_topics(topic_pack, food_topic(anchor="present-are"), travel_topic())
+    assert errors(topic_pack) == []
     set_topics(topic_pack, food_topic(anchor="passato"), travel_topic())
     assert errors(topic_pack) == []
+
+
+def test_sentences_across_trees_take_each_trees_home(topic_pack):
+    """A sentence with a topic word and a later main-tree tense is valid when the main tree's home
+    skill allows the tense: the app shows it only once both skills are started."""
+    from pipeline.content import read_jsonl
+    p = topic_pack / "sentences" / "u1.jsonl"
+    recs = [r for _, r in read_jsonl(p)]
+    recs.append({"id": "s:90", "text": "Noi abbiamo mangiato il pane.", "tr": {"en": "We ate the bread.", "nl": "Wij aten het brood."},
+                 "tokens": [{"t": "Noi", "lex": "it:noi"}, {"t": "abbiamo", "pre": " ", "lex": "it:avere", "form": "presente.noi"},
+                            {"t": "mangiato", "pre": " ", "lex": "it:mangiare", "form": "passato_prossimo.noi"},
+                            {"t": "il", "pre": " ", "lex": "it:il"}, {"t": "pane", "pre": " ", "lex": "it:pane"},
+                            {"t": ".", "is_word": False}]})
+    write_jsonl(p, recs)
+    edit_course(topic_pack, lambda c: c.__setitem__("base_features", ["tense:presente"]))
+    assert errors(topic_pack) == []
+    # (with one home skill in course order, the topic skill cibo-words, it was an error)
+    from pipeline import features
+    pack = load_pack(topic_pack)
+    tagger, graph = features.build(pack.course, pack.items, pack.verbs)
+    s = next(x for x in pack.sentences if x["id"] == "s:90")
+    assert graph.home(s["tokens"], tagger.tag(s["tokens"])) == "cibo-words"
+    assert "tense:passato_prossimo" not in graph.allowed["cibo-words"]
 
 
 def test_anchor_must_be_a_main_tree_skill(topic_pack):
