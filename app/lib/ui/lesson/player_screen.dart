@@ -879,7 +879,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
           header: outcome == null
               ? null
               : summary.mode == SessionMode.placement
-              ? PlacementResultCard(outcome: outcome)
+              ? PlacementResultCard(outcome: outcome, showTosk: false)
               : AssessmentResultCard(outcome: outcome, mode: summary.mode),
         );
       case PlayerPhase.playing:

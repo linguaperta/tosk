@@ -220,8 +220,11 @@ String unitRanges(CourseData course, Iterable<String> unitIds) {
 /// back. Icons and words, never colour alone. Brings the placed unit into
 /// view on the map ([mapFocusProvider]).
 class PlacementResultCard extends ConsumerStatefulWidget {
-  const PlacementResultCard({super.key, required this.outcome});
+  const PlacementResultCard({super.key, required this.outcome, this.showTosk = true});
   final AssessmentOutcome outcome;
+
+  /// Tosk beside the headline (off on the session summary, which has its own).
+  final bool showTosk;
 
   @override
   ConsumerState<PlacementResultCard> createState() => _PlacementResultCardState();
@@ -321,8 +324,10 @@ class _PlacementResultCardState extends ConsumerState<PlacementResultCard> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                ToskImage(pose: o.passed ? ToskPose.celebrating : ToskPose.pointing, height: 64),
-                const SizedBox(width: 12),
+                if (widget.showTosk) ...[
+                  ToskImage(pose: o.passed ? ToskPose.celebrating : ToskPose.pointing, height: 64),
+                  const SizedBox(width: 12),
+                ],
                 Expanded(
                   child: Semantics(
                     header: true,
