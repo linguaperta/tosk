@@ -7,7 +7,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tosk/core/core.dart';
 import 'package:tosk/engine/engine.dart' show FocusPresets;
 import 'package:tosk/providers.dart';
 import 'package:tosk/ui/lesson/player_screen.dart';
