@@ -1,4 +1,25 @@
-pyyaml>=6.0
-jsonschema>=4.20
-requests>=2.31
-pytest>=8.0
+# Exact versions, so CI installs what was tested (pyproject.toml keeps the ranges for
+# `pip install -e pipeline`). To update: `pip install -U <package>` in pipeline/.venv, run
+# pytest, then copy the versions from `pip freeze` here.
+
+# Direct dependencies
+PyYAML==6.0.3
+jsonschema==4.26.0
+requests==2.34.2
+pytest==9.1.1
+
+# Their dependencies
+attrs==26.1.0
+# 2026.10.19 or newer: drops the emSign roots (GHSA-6q48-6c7w-9gw2)
+certifi==2026.10.19
+charset-normalizer==3.5.2
+colorama==0.4.6 ; sys_platform == "win32"
+idna==3.20
+iniconfig==2.3.1
+jsonschema-specifications==2025.9.1
+packaging==26.3
+pluggy==1.6.0
+Pygments==2.21.0
+referencing==0.37.0
+rpds-py==2026.9.1
+urllib3==2.8.0
