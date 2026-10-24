@@ -225,6 +225,8 @@ Each one at the expanded it/nl scale: 8–10 units, ~30 skills, ~1000 taught wor
 
 ## Web app (QA 20 October)
 
+- [x] Live at https://linguaperta.github.io/tosk/ (Pages on, 24 Oct), packs from the gz mirror
+- [ ] First web visit: the course picker lists the demo stand-ins ("Demo", "v0.0.0-demo", and "Unverified" on Dutch) next to the real downloads; show only the catalog entries until a course is installed
 - [x] Web QA pass and fixes: first load ~10 MB (packs from the mirror instead of bundled), offline app shell after one visit, async web voices, flutter_tts web replay fix, typed-answer focus on desktop, English sign-in button, centred Lab on wide windows (`docs/release.md` "Web app QA")
 - [ ] Map on wide screens: leaf sprigs float free of the branches near unit boundaries; zoom steps subtle and zoom-out already at its limit at 1280×800; at 1920 the tree stays ~400 px wide; crowded labels ("Everyday verbs" / "Object pronouns")
 - [ ] Decide: autofocus the typed-answer field on phones/tablets too (now desktop only, so the on-screen keyboard doesn't pop up)
@@ -251,7 +253,7 @@ Each one at the expanded it/nl scale: 8–10 units, ~30 skills, ~1000 taught wor
 - [x] Move source-specific importers for copyrighted sources into a private repo (`timoverlaan/tosk-data-private`, 20 Oct); public pipeline has a plugin point (`TOSK_PRIVATE_PIPELINE`) and a generic restricted-course safeguard: `docs/private-importers.md`
 - [ ] Expansions (design: `docs/extensions.md`, agreed 20 Oct): `extends`, course families, word-derived ids `<lang>~<lemma>.<pos>`, `variant_of`, topics inside packs (`topics:` with an `anchor`), validator rules, installed-expansion list synced
 - [x] App: topic trees (own map), a branch leaving the main map at the anchor with an arrow and name carved/painted into the bark and "Go to <topic>", a tree selector at the top of the map, "N of M words already known"
-- [~] Built-in topics: pack format 1.2 (`topics:`, anchors, validator), done. Tidy the it/nl/es main trees: proposal in `docs/topic-split-proposal.md` (it 16 skills → 9 topics, nl 6 → 4, es 6 → 4) awaiting the owner; applying it needs story rewrites in main units. Decisions: late anchors (it food at u11), borderline skills, it `crime`
+- [x] Built-in topics: pack format 1.2 (`topics:`, anchors, validator), done. Tidy the it/nl/es main trees: proposal in `docs/topic-split-proposal.md` (it 16 skills → 9 topics, nl 6 → 4, es 6 → 4) awaiting the owner; applying it needs story rewrites in main units. Decisions: late anchors (it food at u11), borderline skills, it `crime`
 - [ ] Topics: perf run on a split pack; Tosk marker can overlap a unit plaque; extension packs (`extends`) not started
 - [ ] Later: book expansions as a guided e-reader (`pack from-text`); move the stories into the same model
 - [ ] `pack from-text <book>`: lemmatise with the base course tables, per-chapter frequency, drop known words (from an exported progress log), chapter units, sentences from the text, AI glosses for missing/dialect words (labelled), reading readiness per chapter. First target: Montalbano (Camilleri, Sicilian vigatese)
