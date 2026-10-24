@@ -23,19 +23,37 @@ import 'package:flutter_test/flutter_test.dart';
 import '../fixtures/big_map_course.dart';
 import 'helpers.dart';
 
-/// Records reminder calls; permission as configured.
+/// Records reminder calls; permission as configured: [access] is what a
+/// check says now, [grant] what a request answers (a granted request also
+/// turns [access] to granted).
 class FakeReminderBackend implements ReminderBackend {
-  FakeReminderBackend({this.grant = true, this.supported = true});
-  final bool grant;
+  FakeReminderBackend({this.grant = true, this.supported = true, this.access = NotificationAccess.denied});
+  bool grant;
+  NotificationAccess access;
   @override
   final bool supported;
   int permissionRequests = 0;
+  int permissionChecks = 0;
+  int settingsOpened = 0;
   final List<List<ReminderSlot>> scheduled = [];
+
+  @override
+  Future<NotificationAccess> checkPermission() async {
+    permissionChecks++;
+    return access;
+  }
 
   @override
   Future<bool> requestPermission() async {
     permissionRequests++;
+    if (grant) access = NotificationAccess.granted;
     return grant;
+  }
+
+  @override
+  Future<bool> openSettings() async {
+    settingsOpened++;
+    return true;
   }
 
   @override
@@ -395,6 +413,8 @@ void main() {
       );
       await goTab(tester, 'Settings');
       await tapKey(tester, 'reminder-switch');
+      // A one-line explanation first, then the system's question.
+      await tapKey(tester, 'reminder-explain-continue');
       expect(backend.permissionRequests, 1);
       expect(store.settings[LearnerSettingKeys.reminderEnabled], 'true');
       expect(find.byKey(const ValueKey('reminder-time')), findsOneWidget);
@@ -413,7 +433,7 @@ void main() {
       expect(backend.scheduled.last, isEmpty, reason: 'cancelled');
     });
 
-    testWidgets('permission denied: stays off with a message; unsupported: no reminder option', (tester) async {
+    testWidgets('permission denied: on with "Notifications are off"; unsupported: no reminder option', (tester) async {
       final denied = FakeReminderBackend(grant: false);
       final store = await pumpApp(
         tester,
@@ -422,9 +442,10 @@ void main() {
       );
       await goTab(tester, 'Settings');
       await tapKey(tester, 'reminder-switch');
-      expect(store.settings[LearnerSettingKeys.reminderEnabled], isNot('true'));
+      await tapKey(tester, 'reminder-explain-continue');
+      expect(store.settings[LearnerSettingKeys.reminderEnabled], 'true');
       expect(find.byKey(const ValueKey('reminder-denied')), findsOneWidget);
-      expect(denied.scheduled, isEmpty);
+      expect(find.text('Notifications are off for tosk'), findsOneWidget);
       await tester.pumpWidget(const SizedBox());
 
       await pumpApp(

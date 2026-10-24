@@ -84,9 +84,18 @@ jobs:
           BASE_HREF: ${{ vars.PAGES_BASE_HREF || format('/{0}/', github.event.repository.name) }}
         run: |
           flutter pub get
+          # A build id from what goes into the bundle (the git trees of lib,
+          # web, assets and the lockfile), compiled in (TOSK_BUILD) and stamped
+          # into sw.js: a deploy that changes the app changes the service
+          # worker, and the open app offers a reload (docs/release.md, "Update
+          # notice"). Docs- or test-only commits and the daily rebuild keep it.
+          BUILD=$(git rev-parse HEAD:app/lib HEAD:app/web HEAD:app/assets HEAD:app/pubspec.lock | sha1sum | cut -c1-12)
+          echo "BUILD=$BUILD" >> "$GITHUB_ENV"
           # --no-web-resources-cdn: CanvasKit is served from the site, so the
           # installed PWA works offline.
-          flutter build web --release --base-href "$BASE_HREF" --no-web-resources-cdn $DEFINES
+          flutter build web --release --base-href "$BASE_HREF" --no-web-resources-cdn --dart-define=TOSK_BUILD="$BUILD" $DEFINES
+          sed -i "s/__TOSK_BUILD__/$BUILD/" build/web/sw.js
+          grep -q "const BUILD = '$BUILD'" build/web/sw.js
           rm -f firebase-config.json
           # The web app reads its courses from the pack mirror below (gzipped,
           # only the ones the learner picks), never from the bundle, so the
@@ -102,6 +111,10 @@ jobs:
           else
             python -m pipeline mirror --out ../app/build/web/packs
           fi
+      - name: What's new (this version's release notes, for the web app)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash .github/scripts/whats-new.sh app/pubspec.yaml "$BUILD" "${{ github.repository }}" app/build/web/whats_new.json
       - uses: actions/upload-pages-artifact@v3
         with:
           path: app/build/web

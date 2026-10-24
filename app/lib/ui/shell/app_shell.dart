@@ -7,12 +7,15 @@ import 'package:go_router/go_router.dart';
 import '../../device/device_info.dart' show openTtsSettings;
 import '../../providers.dart';
 import '../../speech/speech_providers.dart';
+import '../../updates/update_check.dart';
+import '../../updates/web_update.dart';
 import '../courses/course_picker.dart';
 import '../courses/course_updates.dart';
 import '../goal/daily_goal_providers.dart';
 import '../routes.dart';
 import '../settings/setting_keys.dart';
 import '../theme/bw_skin.dart';
+import '../updates/update_notice.dart';
 
 /// Top-level destinations. Order matches the shell branches in `router.dart`.
 const _destinations = [
@@ -39,6 +42,7 @@ class AppShell extends ConsumerStatefulWidget {
 
 class _AppShellState extends ConsumerState<AppShell> {
   bool _pickerShown = false;
+  AppLifecycleListener? _lifecycle;
 
   StatefulNavigationShell get shell => widget.shell;
 
@@ -55,8 +59,23 @@ class _AppShellState extends ConsumerState<AppShell> {
     // Daily reminder: keep the scheduled notifications in line with the
     // goal, the reminder setting and today's progress.
     syncReminders(ref);
+    // Back in the app: re-check the notification permission and re-plan the
+    // reminders (the day or the time zone may have changed).
+    _lifecycle = AppLifecycleListener(onResume: () => ref.read(reminderResumeProvider.notifier).bump());
     // Course updates: the cached index, and a check at most once a day.
     ref.read(courseUpdatesProvider.notifier).startup();
+    // App updates: GitHub Releases at most once a day (sideloaded builds), a
+    // new service worker on the web; the web's one-time "What's new".
+    unawaited(ref.read(appUpdateProvider.notifier).startup());
+    unawaited(ref.read(webUpdateProvider.notifier).startup());
+    ref.listenManual<WhatsNew?>(webUpdateProvider.select((s) => s.whatsNew), (_, info) {
+      if (info == null) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted) return;
+        await showWhatsNewSheet(context, info);
+        await ref.read(webUpdateProvider.notifier).whatsNewShown();
+      });
+    }, fireImmediately: true);
     // No voice for the course language (Android): say how to install one,
     // once per language.
     ref.listenManual<VoiceNotice?>(voiceNoticeProvider, (_, notice) {
@@ -95,6 +114,12 @@ class _AppShellState extends ConsumerState<AppShell> {
     );
   }
 
+  @override
+  void dispose() {
+    _lifecycle?.dispose();
+    super.dispose();
+  }
+
   void _go(int index) => shell.goBranch(index, initialLocation: index == shell.currentIndex);
 
   @override
@@ -102,7 +127,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     final width = MediaQuery.sizeOf(context).width;
     if (width < AppShell.railBreakpoint) {
       return Scaffold(
-        body: shell,
+        body: UpdateNoticeHost(child: shell),
         // Five labels of up to ~8 letters: on narrow phones larger text would
         // wrap them ("Non-/stop"), so the bar caps its own text scale.
         bottomNavigationBar: MediaQuery.withClampedTextScaling(
@@ -153,7 +178,7 @@ class _AppShellState extends ConsumerState<AppShell> {
             ),
           ),
           const VerticalDivider(width: 1),
-          Expanded(child: shell),
+          Expanded(child: UpdateNoticeHost(child: shell)),
         ],
       ),
     );

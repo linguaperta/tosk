@@ -12,6 +12,7 @@ import '../courses/course_picker.dart';
 import '../courses/course_updates.dart';
 import '../routes.dart';
 import '../shell/course_switcher.dart';
+import '../updates/update_notice.dart';
 import 'ai_settings_section.dart';
 import 'answer_input_section.dart';
 import 'app_settings.dart';
@@ -191,6 +192,8 @@ class SettingsScreen extends ConsumerWidget {
                       child: BrandLockup(caption: 'Version $kAppVersion · free and offline-first'),
                     ),
                   ),
+                  // Sideloaded builds: GitHub Releases (the web updates itself).
+                  const UpdateCheckTile(),
                   if (meta != null && meta.attribution.isNotEmpty)
                     ListTile(
                       leading: const Icon(Icons.info_outline),
