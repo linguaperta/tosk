@@ -14,9 +14,17 @@ abstract interface class Scheduler {
   double retrievability(FacetState? state, DateTime now);
 }
 
+/// Folds one replayable event (see `replayable` in models/progress.dart) into
+/// the facet's state: a skill reset ([kResetType]) clears it (null: never
+/// reviewed), anything else is a [Scheduler.review].
+FacetState? replayStep(Scheduler scheduler, FacetState? previous, ReviewEvent e) =>
+    e.isReset ? null : scheduler.review(e.facetId, previous, e.rating, e.at);
+
 abstract interface class ProgressStore {
-  /// Appends [event] to the review log and updates that facet's state. Returns the new state.
-  Future<FacetState> record(ReviewEvent event);
+  /// Appends [event] to the review log and updates that facet's state. Returns
+  /// the new state: null when the facet has none afterwards (a skill reset,
+  /// [kResetType]; answers always give one).
+  Future<FacetState?> record(ReviewEvent event);
 
   Future<FacetState?> state(String facetId);
 

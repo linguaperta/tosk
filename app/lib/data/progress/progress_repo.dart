@@ -36,14 +36,14 @@ class ProgressRepo implements ProgressStore, EventImporter, SettingsLister, Sequ
   // ------------------------------------------------------------------ record
 
   @override
-  Future<FacetState> record(ReviewEvent event) async {
+  Future<FacetState?> record(ReviewEvent event) async {
     final e = normalizeEvent(event);
     var fresh = false;
     final result = await db.transaction(() async {
       final log = db.reviewLogEntries;
       final dup = await (db.select(log)..where((t) => t.id.equals(e.id))).getSingleOrNull();
       if (dup != null) {
-        return (await state(e.facetId)) ?? (await _replayFacet(e.facetId))!;
+        return (await state(e.facetId)) ?? await _replayFacet(e.facetId);
       }
       fresh = true;
       final latest = await (db.select(log)
@@ -56,13 +56,19 @@ class ProgressRepo implements ProgressStore, EventImporter, SettingsLister, Sequ
       final previous = latest == null ? null : await state(e.facetId);
       final inOrder = latest == null ||
           compareEventKeys(e.at.millisecondsSinceEpoch, e.id, latest.at, latest.id) > 0;
-      // An override rewrites an earlier event: always replay the facet.
-      if (inOrder && !e.isOverride && (latest == null || previous != null)) {
+      // An override rewrites an earlier event, an undo cancels an earlier
+      // reset: always replay the facet. A reset in order clears the state.
+      if (inOrder && e.isReset) {
+        await (db.delete(db.facetStates)..where((t) => t.facetId.equals(e.facetId))).go();
+        return null;
+      }
+      final afterReset = latest != null && latest.exerciseType == kResetType;
+      if (inOrder && !e.isOverride && !e.isResetUndo && (latest == null || previous != null || afterReset)) {
         final next = scheduler.review(e.facetId, previous, e.rating, e.at);
         await db.into(db.facetStates).insertOnConflictUpdate(stateToRow(next));
         return next;
       }
-      return (await _replayFacet(e.facetId))!;
+      return _replayFacet(e.facetId);
     });
     if (fresh) listeners.recorded(e);
     return result;
@@ -146,8 +152,13 @@ class ProgressRepo implements ProgressStore, EventImporter, SettingsLister, Sequ
               ..orderBy([(t) => OrderingTerm.asc(t.at), (t) => OrderingTerm.asc(t.id)]))
             .get();
         final states = <String, FacetState>{};
-        for (final e in applyOverrides(rows.map(rowToEvent).toList())) {
-          states[e.facetId] = scheduler.review(e.facetId, states[e.facetId], e.rating, e.at);
+        for (final e in replayable(rows.map(rowToEvent).toList())) {
+          final s = replayStep(scheduler, states[e.facetId], e);
+          if (s == null) {
+            states.remove(e.facetId);
+          } else {
+            states[e.facetId] = s;
+          }
         }
         await db.delete(db.facetStates).go();
         await db.batch((b) => b.insertAll(db.facetStates, states.values.map(stateToRow)));

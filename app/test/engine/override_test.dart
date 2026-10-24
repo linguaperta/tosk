@@ -87,7 +87,7 @@ void main() {
         final (store, _) = await make();
         await store.record(_ev('a', f, 0, Rating.good));
         await store.record(_ev('b', f, 600, Rating.again));
-        final after = await store.record(_override('c', 'b', f, 601));
+        final after = (await store.record(_override('c', 'b', f, 601)))!;
         final expected = foldFacet(scheduler, f, [_ev('a', f, 0, Rating.good), _ev('b', f, 600, Rating.good)]);
         expect(after, expected);
         expect(after.lapses, 0);

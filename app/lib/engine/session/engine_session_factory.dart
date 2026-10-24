@@ -99,8 +99,15 @@ class EngineSessionFactory implements SessionFactory {
   }
 
   @override
-  Future<PlacementSession> placement({int perSkill = 2, double passMark = 0.8}) =>
-      PlacementBuilder(perSkill: perSkill, passMark: passMark).start(_env());
+  Future<PlacementSession> placement({int maxExercises = kPlacementMaxExercises, PlacementConfig? config}) =>
+      PlacementBuilder(config: config ?? PlacementConfig(maxExercises: maxExercises)).start(_env());
+
+  @override
+  Future<AssessmentOutcome> skipAhead(List<String> unitIds) async {
+    final env = _env();
+    final states = await store.allStates(courseId: course.meta.id);
+    return SkipAheadSession(env, {for (final s in states) s.facetId: s}, unitIds).declare();
+  }
 
   @override
   Future<ToughWordsSession> toughWords({int length = 12, int minLapses = kDefaultLeechLapses}) =>

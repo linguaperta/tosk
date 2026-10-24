@@ -13,7 +13,8 @@ enum SessionMode {
   /// A short quiz over one skill; passing credits the skill (see [AssessmentSession]).
   testOut,
 
-  /// "Find my level": units in order until one is failed.
+  /// "Find my level": adaptive by unit over the main tree; also the mode of
+  /// self-declared credits ("Skip ahead without a test").
   placement,
 
   /// "Practice starred" (v0.4): the learner's bookmarks ([SessionFactory.starred]).
@@ -149,10 +150,16 @@ abstract interface class SessionFactory {
   /// facet of the skill (see `kTestOutCreditType`).
   Future<AssessmentSession> testOut(String skillId, {int length = 10, double passMark = 0.8});
 
-  /// Placement ("Find my level"): a few exercises per skill, unit by unit in
-  /// course order, stopping after the first unit scoring below [passMark];
-  /// every skill of the units passed before it is credited.
-  Future<AssessmentSession> placement({int perSkill = 2, double passMark = 0.8});
+  /// Placement ("Find my level", docs/engine.md "Placement"): adaptive by
+  /// unit over the main tree, at most [maxExercises]; the units passed are
+  /// credited for a light review soon. The session also implements
+  /// [PlacementControl] ("Stop here — place me now").
+  Future<AssessmentSession> placement({int maxExercises = 40});
+
+  /// "Skip ahead without a test": credits every skill of the main-tree units
+  /// [unitIds] as self-declared (`kSelfDeclaredCredit`; back for review in
+  /// about 2 days) and returns the outcome (mode placement, no exercises).
+  Future<AssessmentOutcome> skipAhead(List<String> unitIds);
 
   /// "Tough words": facets with at least [minLapses] lapses, each as a small
   /// recognition -> production ladder. Empty when there are none.
@@ -197,6 +204,11 @@ class AssessmentOutcome {
     this.creditedSkills = const [],
     this.passedUnits = const [],
     this.failedUnit,
+    this.placedUnit,
+    this.gapUnits = const [],
+    this.inferredUnits = const [],
+    this.knownUnits = const [],
+    this.selfDeclared = false,
   });
 
   /// Test-out: the score reached [passMark]. Placement: at least one unit passed.
@@ -208,11 +220,29 @@ class AssessmentOutcome {
   /// Skills whose facets were credited, in course order.
   final List<String> creditedSkills;
 
-  /// Placement: units passed, in course order.
+  /// Placement: the units credited (passed, or skipped by a jump whose next
+  /// unit passed; self-declared: the units chosen), in course order.
   final List<String> passedUnits;
 
-  /// Placement: the unit where it stopped (null when every unit passed).
+  /// Placement: the first unit that failed (null when none did).
   final String? failedUnit;
+
+  /// Placement: where the learner continues, the unit after the last one
+  /// done (null: past the last unit of the main tree).
+  final String? placedUnit;
+
+  /// Placement: units before [placedUnit] that are not done (a failed unit
+  /// between passed ones), left open to practise.
+  final List<String> gapUnits;
+
+  /// Placement: credited units that were skipped by a jump (not asked).
+  final List<String> inferredUnits;
+
+  /// Placement: units already learned before the test (a re-run).
+  final List<String> knownUnits;
+
+  /// "Skip ahead without a test": credits declared by the learner.
+  final bool selfDeclared;
 
   double get score => total == 0 ? 0 : correct / total;
 }
@@ -221,4 +251,16 @@ class AssessmentOutcome {
 abstract interface class AssessmentSession implements PracticeSession {
   /// Null while the session runs; set when it ended normally (not when stopped).
   AssessmentOutcome? get outcome;
+}
+
+/// What the player needs beyond [AssessmentSession] for a placement test.
+abstract interface class PlacementControl {
+  /// The test never asks more than this (the progress bar's scale: it shows
+  /// how far the test went, never how well).
+  int get maxExercises;
+
+  /// "Stop here — place me now": ends the test, places the learner with what
+  /// the answers so far show (a unit under way counts only when its answers
+  /// already decide it) and writes the credits. Returns the outcome.
+  Future<AssessmentOutcome?> placeNow();
 }

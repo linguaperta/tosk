@@ -25,7 +25,7 @@ class InMemoryProgressStore implements ProgressStore, EventImporter, SettingsLis
   final Map<String, String> _settings = {};
 
   @override
-  Future<FacetState> record(ReviewEvent event) async {
+  Future<FacetState?> record(ReviewEvent event) async {
     final e = normalizeEvent(event);
     final fresh = !_events.containsKey(e.id);
     final s = _record(e);
@@ -47,16 +47,22 @@ class InMemoryProgressStore implements ProgressStore, EventImporter, SettingsLis
   @override
   Future<int> countAfter(int after) async => (_events.length - after).clamp(0, 1 << 62);
 
-  FacetState _record(ReviewEvent e) {
+  FacetState? _record(ReviewEvent e) {
     if (_events.containsKey(e.id)) {
       // Idempotent: the same event (e.g. from a sync merge) is applied once.
-      return _states[e.facetId] ?? _replayFacet(e.facetId)!;
+      return _states[e.facetId] ?? _replayFacet(e.facetId);
     }
     _events[e.id] = e;
     final list = _byFacet[e.facetId] ??= [];
     final isLatest = list.isEmpty || compareEvents(e, list.last) > 0;
-    // An override rewrites an earlier event: always replay the facet.
-    if (isLatest && !e.isOverride && (list.isEmpty || _states.containsKey(e.facetId))) {
+    // An override rewrites an earlier event, an undo cancels an earlier
+    // reset: always replay the facet. A reset in order just clears the state.
+    if (isLatest && e.isReset) {
+      list.add(e);
+      _states.remove(e.facetId);
+      return null;
+    }
+    if (isLatest && !e.isOverride && !e.isResetUndo && (list.isEmpty || _states.containsKey(e.facetId) || list.last.isReset)) {
       list.add(e);
       return _states[e.facetId] = scheduler.review(e.facetId, _states[e.facetId], e.rating, e.at);
     }
@@ -64,7 +70,7 @@ class InMemoryProgressStore implements ProgressStore, EventImporter, SettingsLis
     list
       ..add(e)
       ..sort(compareEvents);
-    return _replayFacet(e.facetId)!;
+    return _replayFacet(e.facetId);
   }
 
   FacetState? _replayFacet(String facetId) {

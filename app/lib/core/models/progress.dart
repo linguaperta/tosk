@@ -77,6 +77,53 @@ const String kTestOutCreditType = 'test_out';
 /// order wins. See docs/engine.md.
 const String kOverrideType = 'override';
 
+/// [ReviewEvent.answer] of a test-out credit the learner declared without a
+/// test ("Skip ahead without a test", docs/engine.md "Placement"). The credit
+/// is otherwise an ordinary [kTestOutCreditType] event, so it replays and
+/// syncs the same way; the marker only keeps the log honest.
+const String kSelfDeclaredCredit = 'self-declared';
+
+/// [ReviewEvent.exerciseType] of a *skill reset* ("Reset this skill"): the
+/// learner says the app over-estimated a skill (placement, test out, luck).
+/// One event per facet of the reset skill(s), with rating Again (unused),
+/// `correct` false, `responseMs` 0, input `self`, mode `reset` and the skill
+/// id in [ReviewEvent.answer].
+///
+/// **Replay convention** ([resolveResets], [replayStep]): a reset puts the
+/// facet back to "never reviewed" (no state) at its instant; the facet's later
+/// events start from scratch. Earlier events stay in the log (the answer
+/// history is kept: XP, streaks and stats are unchanged, since progression
+/// never treats a reset as an answer). A reset cancelled by a
+/// [kResetUndoType] event has no effect. Every replay (incremental,
+/// `rebuildStates()`, sync merges, progression) gives the same result.
+const String kResetType = 'reset';
+
+/// [ReviewEvent.exerciseType] of an *undo of a reset* (the Undo right after
+/// "Reset this skill"): on the same facet, later in time, the reset event's id
+/// in [ReviewEvent.answer]. The undone reset and the undo itself are skipped
+/// by every replay, so the facet's state is as if the reset never happened.
+const String kResetUndoType = 'reset_undo';
+
+/// Drops undone resets and the undo events themselves ([kResetUndoType]),
+/// keeping order. Returns [events] itself when it holds no undo.
+List<ReviewEvent> resolveResets(List<ReviewEvent> events) {
+  Set<String>? undone;
+  for (final e in events) {
+    final target = e.undoneResetId;
+    if (target != null) (undone ??= {}).add(target);
+  }
+  if (undone == null) return events;
+  return [
+    for (final e in events)
+      if (!e.isResetUndo && !(e.isReset && undone.contains(e.id))) e,
+  ];
+}
+
+/// [events] (in canonical `(at, id)` order) as replays fold them: answer
+/// overrides applied ([applyOverrides]), undone resets dropped
+/// ([resolveResets]). Fold the result with [replayStep].
+List<ReviewEvent> replayable(List<ReviewEvent> events) => resolveResets(applyOverrides(events));
+
 /// One graded answer. Append-only; never edited. Facet ids embed the course id.
 @immutable
 class ReviewEvent {
@@ -117,6 +164,18 @@ class ReviewEvent {
 
   /// For an override, the id of the event it corrects.
   String? get overriddenId => isOverride ? answer : null;
+
+  /// A skill reset rather than an answer (see [kResetType]).
+  bool get isReset => exerciseType == kResetType;
+
+  /// The undo of a skill reset (see [kResetUndoType]).
+  bool get isResetUndo => exerciseType == kResetUndoType;
+
+  /// For the undo of a reset, the id of the reset it cancels.
+  String? get undoneResetId => isResetUndo ? answer : null;
+
+  /// A self-declared credit ("Skip ahead without a test", [kSelfDeclaredCredit]).
+  bool get isSelfDeclared => isCredit && answer == kSelfDeclaredCredit;
 
   ReviewEvent copyWith({DateTime? at, Rating? rating, bool? correct}) => ReviewEvent(
         id: id,
