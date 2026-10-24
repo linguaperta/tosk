@@ -21,7 +21,11 @@
 /// id (idempotent; `importEvents`), then every facet state is recomputed with
 /// `rebuildStates()`; mistakes are added when their id is new; settings only
 /// fill keys this device doesn't have (except "my courses", which is a
-/// union), and device-only keys (the reminder) are never imported.
+/// union). **Only learner preferences are imported** ([isImportableSetting]):
+/// a backup file may come from someone else, so device-only keys (the
+/// reminder, the course index URL), the AI provider, model and endpoint
+/// (`ai.*`, which decide where the AI key is sent) and any unknown key are
+/// skipped.
 ///
 /// **Bookmarks** (v0.4) merge last-writer-wins per bookmark
 /// (`BookmarkStore.mergeIn`), so an unstarred bookmark stays unstarred. Older
@@ -60,6 +64,41 @@ bool isLocalOnlySetting(String key) => kLocalOnlySettingPrefixes.any(key.startsW
 
 /// The setting "my courses" (comma-separated ids), merged as a union.
 const String kCoursesAddedKey = 'courses.added';
+
+/// Settings a backup may fill in (learner preferences; see `SettingKeys` and
+/// `LearnerSettingKeys`). A new preference is importable only once listed here.
+const Set<String> kImportableSettings = {
+  'course.active',
+  kCoursesAddedKey,
+  'ui.source_lang',
+  'ui.theme_mode',
+  'ui.reduce_motion',
+  'ui.display',
+  'ui.sound_effects',
+  'lesson.default_focus',
+  'lesson.accent_strictness',
+  'lesson.default_length',
+  'lesson.leech_lapses',
+  'lesson.answer_input',
+  'lesson.listening',
+  'goal.daily_xp',
+  'intro.seen',
+  'packs.auto_check',
+};
+
+/// Prefixes of importable per-course settings (the engine's recent-sentence memory).
+const List<String> kImportableSettingPrefixes = ['engine.recent_sentences.'];
+
+/// Prefixes never imported, whatever else allows them: the AI provider, model
+/// and endpoint decide where the user's AI key is sent.
+const List<String> kNeverImportedSettingPrefixes = ['ai.', 'tosk.'];
+
+/// Whether a backup may set [key] (see the library comment).
+bool isImportableSetting(String key) =>
+    !kDeviceOnlySettings.contains(key) &&
+    !isLocalOnlySetting(key) &&
+    !kNeverImportedSettingPrefixes.any(key.startsWith) &&
+    (kImportableSettings.contains(key) || kImportableSettingPrefixes.any(key.startsWith));
 
 /// Optional store capability: every stored setting (for the backup).
 abstract interface class SettingsLister {
@@ -235,7 +274,7 @@ Future<ProgressBackup> exportBackup(
   } else {
     settings = {for (final k in keys) k: ?await store.getSetting(k)};
   }
-  settings.removeWhere((k, _) => isLocalOnlySetting(k));
+  settings.removeWhere((k, _) => isLocalOnlySetting(k) || kNeverImportedSettingPrefixes.any(k.startsWith));
   return ProgressBackup(
     events: events,
     mistakes: mistakes,
@@ -294,7 +333,7 @@ Future<BackupImportReport> importBackup(
 
   var settings = 0;
   for (final e in backup.settings.entries) {
-    if (kDeviceOnlySettings.contains(e.key) || isLocalOnlySetting(e.key)) continue;
+    if (!isImportableSetting(e.key)) continue;
     final mine = await store.getSetting(e.key);
     if (e.key == kCoursesAddedKey && mine != null) {
       final ids = [

@@ -12,6 +12,9 @@ import 'package:tosk/data/progress/progress_repo.dart';
 import 'package:tosk/data/sync/progress_backup.dart';
 import 'package:tosk/data/sync/review_log_sync.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:tosk/ui/settings/learner_settings.dart';
+import 'package:tosk/ui/settings/setting_keys.dart';
+import 'package:tosk/ui/settings/synced_settings.dart';
 
 import '../fixtures/sample_log.dart';
 
@@ -146,5 +149,56 @@ void main() {
     expect(decodeBackup('{"format":"tosk-backup/1"}\n{"kind":"later","x":1}\n').events, isEmpty);
     // Backups written before the rename to tosk still import (split so a rename never touches it).
     expect(decodeBackup('{"format":"due' 'lingo-backup/1"}\n').events, isEmpty);
+  });
+  test('a backup never imports AI, device-only or unknown settings', () async {
+    final b = InMemoryProgressStore(scheduler: scheduler);
+    final backup = ProgressBackup(
+      events: const [],
+      settings: {
+        'ai.base_url': 'https://attacker.example',
+        'ai.provider': 'openai',
+        'ai.model': 'x',
+        'ai.explain_lang': 'en',
+        'tosk.ai.api_key': 'sk-ant-planted',
+        'packs.index_url': 'http://attacker.example/index.json',
+        'reminder.enabled': 'true',
+        'chat.conversations.it': '[]',
+        'something.new': '1',
+        'ui.theme_mode': 'dark',
+        'engine.recent_sentences.it': '["s:1"]',
+      },
+    );
+    final report = await importBackup(backup, store: b, importer: b);
+    expect(report.settingsAdded, 2);
+    expect(await b.getSetting('ui.theme_mode'), 'dark');
+    expect(await b.getSetting('engine.recent_sentences.it'), '["s:1"]');
+    for (final k in backup.settings.keys.where((k) => k != 'ui.theme_mode' && !k.startsWith('engine.'))) {
+      expect(await b.getSetting(k), isNull, reason: k);
+    }
+  });
+
+  test('every learner preference is importable; AI and device-only keys are not', () async {
+    for (final k in {...SettingKeys.all, ...kSyncedSettingKeys}) {
+      expect(isImportableSetting(k), isTrue, reason: k);
+    }
+    for (final k in [
+      'ai.provider',
+      'ai.model',
+      'ai.base_url',
+      'ai.explain_lang',
+      SettingKeys.packIndexUrl,
+      SettingKeys.packIndexCache,
+      SettingKeys.welcomeDone,
+      LearnerSettingKeys.reminderEnabled,
+      LearnerSettingKeys.onyxPen,
+    ]) {
+      expect(isImportableSetting(k), isFalse, reason: k);
+    }
+    // The AI settings are not exported either.
+    final a = InMemoryProgressStore(scheduler: scheduler);
+    await a.setSetting('ai.base_url', 'http://localhost:1234');
+    await a.setSetting('ui.theme_mode', 'dark');
+    final exported = await exportBackup(a, keys: ['ai.base_url', 'ui.theme_mode']);
+    expect(exported.settings, {'ui.theme_mode': 'dark'});
   });
 }
