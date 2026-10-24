@@ -442,6 +442,7 @@ class DemoAssessmentSession extends DemoPracticeSession implements AssessmentSes
       creditedSkills: credited,
       passedUnits: passedUnits,
       failedUnit: failed,
+      placedUnit: mode == SessionMode.placement ? failed : null,
     );
   }
 }

@@ -637,12 +637,16 @@ Future<void> writePlacementCredits(EngineSession session, Iterable<String> skill
   for (final skillId in skillIds) {
     for (final f in env.course.skillFacets(skillId)) {
       if (!seen.add(f.facetId)) continue;
-      if (isLearned(session.states[f.facetId] ?? await env.store.state(f.facetId))) continue;
+      final state = session.states[f.facetId] ?? await env.store.state(f.facetId);
+      if (isLearned(state)) continue;
+      // After the facet's last answer, even within the same millisecond.
+      final last = state?.lastReview.add(const Duration(milliseconds: 1));
+      final at = last != null && last.isAfter(now) ? last : now;
       for (var i = 0; i < ratings.length; i++) {
         await session.recordExtra(ReviewEvent(
           id: const Uuid().v4(),
           facetId: f.facetId,
-          at: now.add(Duration(milliseconds: i)),
+          at: at.add(Duration(milliseconds: i)),
           rating: ratings[i],
           exerciseType: kTestOutCreditType,
           inputMode: InputMode.self,

@@ -50,9 +50,16 @@ Future<List<ReviewEvent>> resetSkills(
   required DateTime now,
 }) async {
   final batch = const Uuid().v4();
-  final at = now.toUtc();
+  final facets = await resettableFacets(store, course, skillIds);
+  // After every event of the facets, even within the same millisecond (a
+  // reset right after a placement), so the replay order is certain.
+  var at = now.toUtc();
+  for (final s in (await store.states(facets.map((f) => f.$1))).values) {
+    final after = s.lastReview.add(const Duration(milliseconds: 1));
+    if (after.isAfter(at)) at = after;
+  }
   final events = [
-    for (final (facetId, skillId) in await resettableFacets(store, course, skillIds))
+    for (final (facetId, skillId) in facets)
       ReviewEvent(
         id: const Uuid().v4(),
         facetId: facetId,

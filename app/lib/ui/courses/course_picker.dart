@@ -20,8 +20,8 @@ import '../brand/tosk.dart';
 import '../../core/core.dart';
 import '../../providers.dart';
 import '../reference/reference_screen.dart' show wordLabel;
-import '../routes.dart';
 import '../settings/app_settings.dart';
+import '../placement/placement_ui.dart';
 import '../shell/course_switcher.dart' show DemoBadge, UnverifiedBadge;
 import '../theme/bw_skin.dart';
 import 'course_updates.dart';
@@ -45,7 +45,7 @@ Future<void> showCoursePicker(BuildContext context, {bool firstRun = false}) asy
     final active = await container.read(activeCourseIdProvider.future);
     await container.read(settingsProvider.notifier).change((s) => s.copyWith(coursesAdded: [active], courseId: active));
   }
-  if (action is _FindLevel) router?.push(Routes.placement);
+  if (action is _StartPlacement) startPlacement(router, action.choice);
 }
 
 /// The installed courses the picker lists. The demo stand-ins (the fallback
@@ -69,8 +69,10 @@ sealed class _PickerAction {
   const _PickerAction();
 }
 
-class _FindLevel extends _PickerAction {
-  const _FindLevel();
+/// "Find my level" or "Skip ahead" for the course just added (now active).
+class _StartPlacement extends _PickerAction {
+  const _StartPlacement(this.choice);
+  final PlacementChoice choice;
 }
 
 class CoursePickerSheet extends ConsumerStatefulWidget {
@@ -155,34 +157,17 @@ class _CoursePickerSheetState extends ConsumerState<CoursePickerSheet> {
     await ctl.change(
       (s) => s.copyWith(coursesAdded: [...mine, id], courseId: mine.isEmpty || !mine.contains(s.courseId) ? id : null),
     );
-    // A course without any progress: start from scratch or find my level.
+    // A course without any progress: "New to Italian?" Start at the
+    // beginning, find my level (the placement test) or skip ahead.
     final log = await ref.read(progressStoreProvider).log(courseId: id);
     if (!mounted || log.isNotEmpty) return;
-    final level = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Where do you want to start?'),
-        content: const Text(
-          'Start from scratch, or find your level: a short test, unit by unit, that marks what you '
-          'already know as learned.',
-        ),
-        actions: [
-          TextButton(
-            key: const ValueKey('placement-scratch'),
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Start from scratch'),
-          ),
-          FilledButton(
-            key: const ValueKey('placement-find'),
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Find my level'),
-          ),
-        ],
-      ),
-    );
-    if (level == true && mounted) {
+    final meta = (await ref.read(availableCoursesProvider.future)).where((c) => c.id == id).firstOrNull;
+    if (!mounted) return;
+    final language = meta == null ? id : pickLang(meta.title, ref.read(sourceLangProvider));
+    final choice = await showPlacementChoice(context, language: language);
+    if ((choice == PlacementChoice.findLevel || choice == PlacementChoice.skipAhead) && mounted) {
       await ctl.change((s) => s.copyWith(courseId: id));
-      if (mounted) Navigator.of(context).pop(const _FindLevel());
+      if (mounted) Navigator.of(context).pop(_StartPlacement(choice!));
     }
   }
 

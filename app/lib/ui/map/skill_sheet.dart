@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/core.dart';
+import '../../engine/engine.dart' show resettableFacets, resetSkills, undoReset;
 import '../../progression/progression.dart';
 import '../../providers.dart';
 import '../common/markdown.dart';
@@ -38,6 +41,65 @@ class SkillSheet extends ConsumerStatefulWidget {
 class _SkillSheetState extends ConsumerState<SkillSheet> {
   LessonFocus? _focus;
   SessionLength? _length;
+  bool _resetting = false;
+
+  /// "Reset this skill…": confirms (optionally the whole unit), writes reset
+  /// events (docs/engine.md, "Skill reset"), closes the sheet and offers Undo.
+  Future<void> _reset(CourseData course, Skill skill) async {
+    if (_resetting) return;
+    final store = ref.read(progressStoreProvider);
+    final lang = ref.read(sourceLangProvider);
+    final unitSkills = [
+      for (final s in course.skills)
+        if (s.unitId == skill.unitId && course.skillFacets(s.id).isNotEmpty) s.id,
+    ];
+    final own = await resettableFacets(store, course, [skill.id]);
+    final inUnit = await resettableFacets(store, course, unitSkills);
+    if (!mounted) return;
+    final unit = course.units.where((u) => u.id == skill.unitId).firstOrNull;
+    final mainUnits = CourseTrees.of(course).unitsOf(CourseTrees.of(course).treeOf(skill.id));
+    final unitNo = unit == null ? 0 : mainUnits.indexWhere((u) => u.id == unit.id) + 1;
+    final unitName = unit == null ? null : '${unitNo > 0 ? 'Unit $unitNo: ' : ''}${pickLang(unit.title, lang)}';
+    final shared = own.where((f) => course.skillsForFacet(f.$1).length > 1).length;
+    final scope = await showDialog<_ResetScope>(
+      context: context,
+      builder: (context) => _ResetDialog(
+        skillName: pickLang(skill.title, lang),
+        studied: own.length,
+        shared: shared,
+        unitName: unitSkills.length > 1 && inUnit.length > own.length ? unitName : null,
+        unitSkills: unitSkills.length,
+        unitStudied: inUnit.length,
+      ),
+    );
+    if (scope == null || !mounted) return;
+    setState(() => _resetting = true);
+    final messenger = ScaffoldMessenger.of(context);
+    final revision = ref.read(progressRevisionProvider.notifier);
+    final clock = ref.read(clockProvider);
+    final ids = scope == _ResetScope.unit ? unitSkills : [skill.id];
+    final events = await resetSkills(store, course, ids, now: clock());
+    revision.bump();
+    if (mounted) Navigator.of(context).pop();
+    final what = scope == _ResetScope.unit ? (unitName ?? 'The unit') : pickLang(skill.title, lang);
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          key: const ValueKey('skill-reset-done'),
+          duration: const Duration(seconds: 10),
+          content: Text('$what was reset: its words are new again.', maxLines: 3, overflow: TextOverflow.ellipsis),
+          action: SnackBarAction(
+            key: const ValueKey('skill-reset-undo'),
+            label: 'Undo',
+            onPressed: () async {
+              await undoReset(store, events, now: clock());
+              revision.bump();
+            },
+          ),
+        ),
+      );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -315,9 +377,120 @@ class _SkillSheetState extends ConsumerState<SkillSheet> {
                 if (items.isEmpty) const Text('No items in this skill yet.'),
               ],
             ),
+            // The app over-estimated this skill (placement, test out, luck):
+            // treat its words and grammar as new again. Only once studied.
+            if (stats.practicedFacets > 0) ...[
+              const SizedBox(height: 8),
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: TextButton.icon(
+                  key: const ValueKey('skill-reset'),
+                  style: TextButton.styleFrom(minimumSize: const Size(0, 48)),
+                  onPressed: _resetting ? null : () => unawaited(_reset(course, skill)),
+                  icon: const Icon(Icons.restart_alt),
+                  label: const Text('Reset this skill…'),
+                ),
+              ),
+            ],
           ],
         ),
       ),
+    );
+  }
+}
+
+enum _ResetScope { skill, unit }
+
+/// Confirms a reset: what happens, how much it touches, optionally the whole unit.
+class _ResetDialog extends StatefulWidget {
+  const _ResetDialog({
+    required this.skillName,
+    required this.studied,
+    required this.shared,
+    required this.unitName,
+    required this.unitSkills,
+    required this.unitStudied,
+  });
+
+  final String skillName;
+
+  /// Studied facets of the skill, of them [shared] also in other skills.
+  final int studied;
+  final int shared;
+
+  /// Offered when other skills of the unit were studied too (null: not offered).
+  final String? unitName;
+  final int unitSkills;
+  final int unitStudied;
+
+  @override
+  State<_ResetDialog> createState() => _ResetDialogState();
+}
+
+class _ResetDialogState extends State<_ResetDialog> {
+  bool _unit = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final n = _unit ? widget.unitStudied : widget.studied;
+    return AlertDialog(
+      scrollable: true,
+      title: Text(_unit ? 'Reset ${widget.unitName}?' : 'Reset ${widget.skillName}?'),
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 440),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Its words and grammar will be treated as new again; your answer history is kept.',
+              key: const ValueKey('skill-reset-explain'),
+              style: theme.textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '$n studied word${n == 1 ? '' : 's'} and form${n == 1 ? '' : 's'} will come back as new in lessons, '
+              'and the medal starts again. You can undo this right after.',
+              key: const ValueKey('skill-reset-count'),
+              style: theme.textTheme.bodyMedium,
+            ),
+            if (!_unit && widget.shared > 0) ...[
+              const SizedBox(height: 8),
+              Text(
+                '${widget.shared} of them ${widget.shared == 1 ? 'is' : 'are'} also in other skills, '
+                'which will show ${widget.shared == 1 ? 'it' : 'them'} as new too.',
+                key: const ValueKey('skill-reset-shared'),
+                style: theme.textTheme.bodySmall,
+              ),
+            ],
+            if (widget.unitName != null) ...[
+              const SizedBox(height: 8),
+              CheckboxListTile(
+                key: const ValueKey('skill-reset-unit'),
+                value: _unit,
+                onChanged: (v) => setState(() => _unit = v ?? false),
+                contentPadding: EdgeInsets.zero,
+                controlAffinity: ListTileControlAffinity.leading,
+                title: Text('Reset the whole unit (${widget.unitSkills} skills)'),
+                subtitle: Text(widget.unitName!),
+              ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          key: const ValueKey('skill-reset-cancel'),
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          key: const ValueKey('skill-reset-confirm'),
+          onPressed: () => Navigator.of(context).pop(_unit ? _ResetScope.unit : _ResetScope.skill),
+          child: Text(_unit ? 'Reset unit' : 'Reset skill'),
+        ),
+      ],
     );
   }
 }

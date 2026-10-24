@@ -218,8 +218,8 @@ void main() {
       expect(find.byType(PlayerScreen), findsOneWidget);
       expect(tester.widget<PlayerScreen>(find.byType(PlayerScreen)).request, isA<PlacementRequest>());
       await playToSummary(tester);
-      expect(find.byKey(const ValueKey('assessment-result')), findsOneWidget);
-      expect(find.textContaining('Your level'), findsOneWidget);
+      expect(find.byKey(const ValueKey('placement-result')), findsOneWidget);
+      expect(find.byKey(const ValueKey('placement-learned')), findsOneWidget);
       await tapKey(tester, 'summary-done');
       final stats = await containerOf(tester).read(skillStatsProvider.future);
       expect(stats['greetings']!.tier.index, greaterThanOrEqualTo(MapTier.bronze.index));

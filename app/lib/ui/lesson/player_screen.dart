@@ -19,6 +19,7 @@ import '../ai/ai_explanation_sheet.dart';
 import '../bookmarks/bookmarks_ui.dart';
 import '../common/async_view.dart';
 import '../feedback/flag_sheet.dart';
+import '../placement/placement_ui.dart' show PlacementResultCard;
 import '../routes.dart';
 import '../slots/progression_slots.dart';
 import 'exercises/common.dart' show FeedbackColors;
@@ -88,6 +89,12 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   final _focus = FocusNode(debugLabel: 'player');
 
   bool get _endless => widget.request.endless;
+
+  /// The placement test's controls ("Stop here — place me now"), when this is one.
+  PlacementControl? get _placement {
+    final s = _session;
+    return s is PlacementControl ? s as PlacementControl : null;
+  }
 
   /// E-ink (ONYX): a full refresh after the summary and when leaving the
   /// player, against ghosting (Settings → E-reader). Read up front: `ref`
@@ -391,6 +398,45 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     }
   }
 
+  /// "Stop here — place me now" (placement): ends the test with what the
+  /// answers so far show, then the result.
+  Future<void> _placeNow({bool confirm = true}) async {
+    final p = _placement;
+    if (p == null || _phase != PlayerPhase.playing) return;
+    if (confirm) {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Stop here and place me?'),
+          content: const Text(
+            'Tosk places you with what your answers show so far. A unit you are in the middle of '
+            'counts only if your answers already make it clear.',
+          ),
+          actions: [
+            TextButton(
+              key: const ValueKey('place-now-cancel'),
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Keep going'),
+            ),
+            FilledButton(
+              key: const ValueKey('place-now-confirm'),
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Place me now'),
+            ),
+          ],
+        ),
+      );
+      if (ok != true || !mounted) return;
+    }
+    setState(() => _busy = true);
+    try {
+      await p.placeNow();
+    } finally {
+      _busy = false;
+    }
+    if (mounted) _finish();
+  }
+
   /// Leave button, Esc and system back.
   Future<void> _requestExit() async {
     if (_phase != PlayerPhase.playing) {
@@ -400,6 +446,46 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     if (_endless) {
       _session?.stop();
       _finish();
+      return;
+    }
+    if (_placement != null) {
+      // Leaving a placement test: keep what it showed, or quit without placing.
+      final choice = await showDialog<String>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Leave the test?'),
+          content: const Text(
+            'Place me now keeps what your answers show so far. Quit marks nothing as learned; '
+            'your answers are saved.',
+          ),
+          actions: [
+            TextButton(
+              key: const ValueKey('exit-cancel'),
+              onPressed: () => Navigator.of(context).pop('stay'),
+              child: const Text('Keep going'),
+            ),
+            TextButton(
+              key: const ValueKey('exit-confirm'),
+              onPressed: () => Navigator.of(context).pop('quit'),
+              child: const Text('Quit'),
+            ),
+            FilledButton(
+              key: const ValueKey('exit-place-now'),
+              onPressed: () => Navigator.of(context).pop('place'),
+              child: const Text('Place me now'),
+            ),
+          ],
+        ),
+      );
+      if (!mounted) return;
+      if (choice == 'place') {
+        await _placeNow(confirm: false);
+      } else if (choice == 'quit') {
+        _session?.stop();
+        _bumpProgress();
+        setState(() => _phase = PlayerPhase.summary); // lets PopScope pop
+        _close();
+      }
       return;
     }
     final leave = await showDialog<bool>(
@@ -591,6 +677,27 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                   icon: const Icon(Icons.help_outline),
                   onPressed: _help,
                 ),
+              // "Stop here — place me now" (placement test).
+              if (playing && _placement != null)
+                Padding(
+                  padding: const EdgeInsets.only(right: 4),
+                  child: MediaQuery.sizeOf(context).width < 440
+                      ? IconButton(
+                          key: const ValueKey('placement-place-now'),
+                          tooltip: 'Stop here — place me now',
+                          icon: const Icon(Icons.flag_outlined),
+                          onPressed: _busy ? null : () => unawaited(_placeNow()),
+                        )
+                      : Tooltip(
+                          message: 'Stop here — place me now',
+                          child: TextButton.icon(
+                            key: const ValueKey('placement-place-now'),
+                            onPressed: _busy ? null : () => unawaited(_placeNow()),
+                            icon: const Icon(Icons.flag_outlined),
+                            label: const Text('Place me now'),
+                          ),
+                        ),
+                ),
               if (_endless && playing)
                 Padding(
                   padding: const EdgeInsets.only(right: 8),
@@ -617,6 +724,39 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
         s == null ? widget.request.title : '${s.answered} answered · ${s.correctCount} correct',
         key: const ValueKey('nonstop-count'),
         overflow: TextOverflow.ellipsis,
+      );
+    }
+    // Placement: how far the test went (questions out of the cap), never how
+    // well: no score, no unit verdicts until the result.
+    final placement = _placement;
+    if (placement != null && s != null) {
+      final max = placement.maxExercises;
+      final n = (s.answered + (_result == null ? 1 : 0)).clamp(1, max);
+      return Semantics(
+        label: 'Placement test, question $n, at most $max',
+        excludeSemantics: true,
+        child: Column(
+          key: const ValueKey('placement-progress'),
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: LinearProgressIndicator(
+                key: const ValueKey('lesson-progress'),
+                value: (s.answered / max).clamp(0.0, 1.0),
+                minHeight: 10,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Question $n · at most $max',
+              style: Theme.of(context).textTheme.labelMedium,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
       );
     }
     // Retries count in the planned length (the bar grows honestly with each
@@ -736,7 +876,11 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
           summary: summary,
           endless: _endless,
           onDone: _close,
-          header: outcome == null ? null : AssessmentResultCard(outcome: outcome, mode: summary.mode),
+          header: outcome == null
+              ? null
+              : summary.mode == SessionMode.placement
+              ? PlacementResultCard(outcome: outcome)
+              : AssessmentResultCard(outcome: outcome, mode: summary.mode),
         );
       case PlayerPhase.playing:
         return _playing(context);
