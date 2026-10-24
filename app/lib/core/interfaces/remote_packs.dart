@@ -15,6 +15,12 @@ import 'packs.dart';
 /// Highest `index_version` this app understands.
 const int kSupportedIndexVersion = 1;
 
+/// Largest `index.json` the app reads.
+const int kMaxIndexBytes = 1 << 20;
+
+/// Largest pack (and `.gz` copy) the app downloads, whatever an index announces.
+const int kMaxPackBytes = 500 * 1000 * 1000;
+
 /// One course in the release index.
 @immutable
 class RemotePack {
@@ -47,6 +53,10 @@ class RemotePack {
     }
     // The id names the installed pack's file: never a path.
     if (!isValidCourseId(id)) throw FormatException('Bad course id in the course list: ${jsonEncode(id)}');
+    final gzSize = j['gz_size'];
+    if (size <= 0 || size > kMaxPackBytes || (gzSize is int && (gzSize <= 0 || gzSize > kMaxPackBytes))) {
+      throw FormatException('Course $id has an implausible size: $size');
+    }
     return RemotePack(
       id: id,
       version: '${j['version'] ?? '0.0.0'}',

@@ -81,6 +81,26 @@ void main() {
       expect(model, 'claude-sonnet-5-5');
     });
 
+    test('never sends the key over plain http to a remote host', () async {
+      var sent = 0;
+      final client = MockClient((_) async {
+        sent++;
+        return http.Response(openAiStream(['ok']), 200);
+      });
+      const cfg = AiConfig(
+        provider: AiProvider.openaiCompatible,
+        baseUrl: 'http://llm.example.com/v1',
+        model: 'm',
+        apiKey: fakeKey,
+      );
+      expect(cfg.isConfigured, isFalse);
+      final x = OpenAiExplainer(config: cfg, client: client);
+      await expectLater(x.explain(wrongCtx).toList(), throwsA(isA<AiException>()));
+      final c = ClaudeExplainer(config: claude.copyWith(baseUrl: 'http://api.example.com'), client: client);
+      await expectLater(c.explain(wrongCtx).toList(), throwsA(isA<AiException>()));
+      expect(sent, 0);
+    });
+
     test('401 is an auth error', () async {
       final client = MockClient(
         (_) async => http.Response(

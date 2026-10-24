@@ -21,6 +21,12 @@
 ///   downloaded instead of `url`: the `.gz` is checked against `gz_size` and
 ///   `gz_sha256`, decompressed in the app, and the result against `size` and
 ///   `sha256` like any download. Relative URLs resolve against the index URL.
+/// * **Transport** (security audit 2026-10): indexes and packs are fetched
+///   over `https` only, also after redirects; plain `http` only to loopback
+///   (development) or to [sameOrigin] (the web page's own origin), see
+///   [isAllowedPackUrl]. `index.json` is capped at [kMaxIndexBytes], every
+///   download at the size the index announces (itself at most
+///   [kMaxPackBytes]), and a `.gz` never decompresses past the pack's `size`.
 /// * **Errors** are [PackDownloadException]s with a short, polite message; the
 ///   installed packs keep working whatever happens online.
 library;
@@ -54,6 +60,7 @@ class GitHubPackSource implements PackSource, RemotePackSource {
     this.verify,
     this.maxRedirects = 5,
     this.timeout = const Duration(seconds: 30),
+    this.sameOrigin,
     bool? preferWebPacks,
   }) : indexUrl = indexUrl ?? Uri.parse(kDefaultPackIndexUrl),
        preferWebPacks = preferWebPacks ?? _isWeb;
@@ -77,6 +84,10 @@ class GitHubPackSource implements PackSource, RemotePackSource {
   /// Connection and idle timeout.
   final Duration timeout;
 
+  /// The web page's origin, which may be plain `http` (a local test server);
+  /// null natively.
+  final Uri? sameOrigin;
+
   // ------------------------------------------------------------ PackSource (installed packs)
 
   @override
@@ -99,7 +110,18 @@ class GitHubPackSource implements PackSource, RemotePackSource {
     final res = await _get(from);
     final String text;
     try {
-      text = utf8.decode(await res.stream.timeout(timeout).expand((c) => c).toList());
+      final body = BytesBuilder(copy: false);
+      await for (final chunk in res.stream.timeout(timeout)) {
+        body.add(chunk);
+        if (body.length > kMaxIndexBytes) throw const _TooLarge();
+      }
+      text = utf8.decode(body.takeBytes());
+    } on _TooLarge {
+      throw const PackDownloadException(
+        PackDownloadError.corrupt,
+        "The course list is too large. It can't be a tosk course list.",
+        detail: 'index.json over $kMaxIndexBytes bytes',
+      );
     } on Object catch (e) {
       throw _network(e);
     }
@@ -142,7 +164,8 @@ class GitHubPackSource implements PackSource, RemotePackSource {
         await _fetchChecked(Uri.parse(pack.webUrl!), pack.gzSize!, pack.gzSha256!, gz.add, onProgress, cancel, abort);
         final Uint8List raw;
         try {
-          raw = Uint8List.fromList(const GZipDecoder().decodeBytes(gz.takeBytes()));
+          // Never past the announced size: a small .gz can expand to gigabytes.
+          raw = Uint8List.fromList(const GZipDecoder().decodeBytes(gz.takeBytes(), maxOutputSize: pack.size));
         } on Object catch (e) {
           throw PackDownloadException(
             PackDownloadError.corrupt,
@@ -244,6 +267,13 @@ class GitHubPackSource implements PackSource, RemotePackSource {
   Future<http.StreamedResponse> _get(Uri url, {Future<void>? abort}) async {
     var current = url;
     for (var hop = 0; hop <= maxRedirects; hop++) {
+      if (!isAllowedPackUrl(current, sameOrigin: sameOrigin)) {
+        throw PackDownloadException(
+          PackDownloadError.http,
+          'The course server must use a secure connection (https).',
+          detail: 'refused $current',
+        );
+      }
       final req = http.AbortableRequest('GET', current, abortTrigger: abort)..followRedirects = _isWeb;
       final http.StreamedResponse res;
       try {
@@ -279,6 +309,10 @@ class GitHubPackSource implements PackSource, RemotePackSource {
     "Couldn't reach the course server. Check your connection; everything installed keeps working offline.",
     detail: '$e',
   );
+}
+
+class _TooLarge implements Exception {
+  const _TooLarge();
 }
 
 class _HashSink implements Sink<crypto.Digest> {

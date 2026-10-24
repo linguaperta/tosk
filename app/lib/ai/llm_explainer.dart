@@ -59,6 +59,13 @@ abstract class LlmExplainer implements Explainer {
 
   /// Sends [request] and returns the streamed response, mapping HTTP errors.
   Future<http.StreamedResponse> send(http.Request request) async {
+    if (!isAllowedAiUrl(request.url)) {
+      // The request carries the API key: never in the clear to a remote host.
+      throw const AiException(
+        AiErrorKind.other,
+        'The AI server must use https (plain http only for this device or your local network).',
+      );
+    }
     final http.StreamedResponse res;
     try {
       res = await client.send(request).timeout(connectTimeout);

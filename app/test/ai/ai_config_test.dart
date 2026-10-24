@@ -56,6 +56,20 @@ void main() {
     expect(const AiConfig(provider: AiProvider.openai, apiKey: fakeKey, baseUrl: 'not a url').isConfigured, isFalse);
   });
 
+  test('plain http only to this device or the local network (the key would travel in the clear)', () {
+    bool ok(String url) =>
+        AiConfig(provider: AiProvider.openaiCompatible, model: 'm', apiKey: fakeKey, baseUrl: url).isConfigured;
+    expect(ok('https://llm.example.com/v1'), isTrue);
+    expect(ok('http://localhost:11434/v1'), isTrue);
+    expect(ok('http://192.168.1.20:8080/v1'), isTrue);
+    expect(ok('http://llm.example.com/v1'), isFalse);
+    expect(ok('http://8.8.8.8/v1'), isFalse);
+    expect(AiConfig.baseUrlProblem(''), isNull);
+    expect(AiConfig.baseUrlProblem('http://localhost:1234/v1'), isNull);
+    expect(AiConfig.baseUrlProblem('http://llm.example.com/v1'), contains('https'));
+    expect(AiConfig.baseUrlProblem('llm.example.com'), isNotNull);
+  });
+
   test('toString never shows the key', () {
     expect(const AiConfig(provider: AiProvider.anthropic, apiKey: fakeKey).toString(), isNot(contains(fakeKey)));
   });
