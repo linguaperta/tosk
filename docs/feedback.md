@@ -68,14 +68,14 @@ A chat with Tosk, an AI tutor who writes only in the target language, limited to
 The feedback panel always has a **Report** button (flag icon). It opens `FlagSheet`:
 
 - **Reason chips** (one or more): The answer is wrong · Multiple answers are possible · Unclear / confusing · Translation is wrong · Other. There is also a free-text comment (up to 1,000 characters).
-- **Submit** saves the flag on the device. The button then reads "Reported".
+- **Submit** saves the flag on the device. The button then reads "Reported". **Signed in** (a build with sync), the flag is also sent to the developer ("Reports to the developer" below); the sheet's last line says where flags go: "Submitted flags are sent to the developer and kept on this device", or, signed out in a build that can sign in, "Sign in to send flags to the developer automatically (Settings → Account & sync)…", or without sync the old "Flags stay on this device…". "I was right" (an answer override, which saves a flag) is sent the same way.
 - **Confer with AI** (only when AI is configured) sends the exercise, both answers, the reasons, the comment and the full exercise snapshot.
   - The model must start with `VERDICT: exercise_wrong | ambiguous | exercise_correct`, followed by at most 120 words of reasoning. `parseVerdict` tolerates bold, case and spacing.
   - The verdict is shown with an icon and a label, never color alone, and stored with the flag. The learner can still Submit or Discard.
 
 Flags live in the progress DB table `flags`, schema v2: id, created_at, course_id, skill_id, facet_id, exercise_type, exercise_json, given, expected, correct (the result), reason (comma-separated ids), comment, ai_verdict, ai_reasoning, app_version, pack_version, source_lang.
 
-### Export (Settings → Feedback & flags)
+### Export (Settings → Feedback → Flagged exercises)
 
 The settings tile opens `/flags`: a list of flags (delete with confirmation) and **Export N flags**. Export writes `tosk-flags-YYYYMMDD.jsonl` (local date) through `file_picker`'s `saveFile` with the bytes:
 
@@ -128,6 +128,56 @@ python -m pipeline flags summarize ~/Downloads/tosk-flags-20261014.jsonl [more.j
 - `--json` adds the raw snapshot.
 - Duplicate ids across files are read once.
 - `pipeline/tests/fixtures/flags/sample.jsonl` is written by the app's own export test (`UPDATE_FLAG_FIXTURE=1 flutter test test/feedback/feedback_test.dart`), so the app and the summarizer can't drift apart.
+
+## Reports to the developer (after v0.7.6)
+
+Flags, general feedback and crash reports reach the owner without any export, **only when the learner is signed in** (cloud sync, `docs/data-layer.md`) **and sends them**. Without an account nothing leaves the device: flags are exported as above, feedback is copied or mailed, a crash report is copied.
+
+| What | Where it starts | Firestore |
+| --- | --- | --- |
+| A flag (Submit, or "I was right") | the flag sheet, the player | `users/{uid}/feedback/{flag id}`, `kind: flag` |
+| General feedback | Settings → Feedback → **Send feedback** (`/feedback`, docs/ui.md) | `users/{uid}/feedback/{uuid}`, `kind: general` |
+| A crash report | the crash screen on the next start, **Send to the developer** | `users/{uid}/crashes/{uuid}` |
+
+**Queue** (`lib/sync/report_outbox.dart`). `SyncService.sendReport` (via `queueReport` in `sync_providers.dart`) adds an `OutgoingReport` (document id, collection, fields) to the **outbox**, a table of `sync.sqlite` (schema v2), and asks for a sync in 2 s. After every sync (also one that failed for another reason than being offline) the service flushes the outbox through the current backend (`ReportSender`, implemented by `FirestoreSyncBackend` and `FakeSyncBackend`): up to 20 reports per request (one Firestore `commit`), oldest first. Offline, nothing changes and the reports wait. Any other failure (e.g. HTTP 403 while the new rules aren't deployed) backs the batch off: 30 s, doubling, at most an hour (`ReportOutbox.backoff`). A request the server rejects as invalid (HTTP 400) is retried one report at a time and the bad one is dropped. The queue keeps at most 200 reports. Report failures never show as sync errors; the sync summary shows "N reports for the developer waiting to send". Sign-out keeps the queue (it goes with the next sign-in); **Delete my cloud data** empties it and deletes the reports already sent (they are in the user's own tree).
+
+**Documents** (the fields of `lib/feedback/reports.dart`, plus `up` = the server time, written with an update mask; the path says whose they are):
+
+| Field | `feedback` (flag) | `feedback` (general) | `crashes` |
+| --- | --- | --- | --- |
+| `v` | 1 | 1 | 1 |
+| `kind` | `flag` | `general` | — |
+| `app`, `platform` | app version (≤ 40), `android` / `web` / `ios` / `windows` … (≤ 20) | same | same |
+| `at` | the flag's time (UTC ms) | when sent | when sent |
+| `text` | the comment (≤ 4,000) | the message (≤ 4,000) | — |
+| `flag` | the flag as exported, one `tosk-flag/1` object as JSON (≤ 60,000; a huge AI reasoning is dropped first) | — | — |
+| `email` | — | only if typed in (≤ 200) | — |
+| `course` | the flag's course | the active course | — |
+| `device`, `report` | — | — | manufacturer and model on Android (≤ 200); the report exactly as shown (≤ 20,000, keeping its start and end) |
+| `seen` | the owner's mark (`feedback seen`), never written by the app | | |
+
+**Rules** (`firebase/firestore.rules`): only the signed-in owner of `users/{uid}` (signed in with Google) may **create** them, with the shape and limits above, a document id of 8–64 `[A-Za-z0-9_-]`, `up == request.time` and no `seen`; the sender can read and delete them ("Delete my cloud data"), nobody can change them (an identical re-send, a retry after a lost acknowledgement, may change only `up`), and no other user can see them. `firebase/test/rules.test.mjs` covers creating, reading, deleting, re-sending, other users and providers, and every cap. The owner reads all users' reports with admin credentials (below).
+
+**Crash reports** (`lib/device/crash_report.dart`, `crash_log*.dart`). The Android JVM and Onyx-SDK crashes (`ToskApplication.kt`) and uncaught Dart and Flutter errors (`FlutterError.onError`, skipping silent reports, and `PlatformDispatcher.onError`; the first three per run, with time, app version and platform) are kept until the next start: files in the app support directory, on the web the browser's localStorage. `CrashReportGate` then shows "The app stopped unexpectedly last time" (a native crash) or "Something went wrong last time" (errors the app survived, e.g. on the web), the selectable details, **Send to the developer** (signed in; it says the report holds the error, the app version and the device model, nothing else), **Copy details**, **Email** (only with `TOSK_FEEDBACK_EMAIL`, when not signed in), **Report on GitHub** and **Continue**.
+
+**Email address.** `--dart-define=TOSK_FEEDBACK_EMAIL=…` (or the same key in `firebase-config.json`) turns on the email drafts; empty (the default) hides them, so no personal address is in the code. Links (privacy policy, source, issues) are in `lib/ui/common/links.dart` (`TOSK_PRIVACY_URL`, `TOSK_SOURCE_URL` override them).
+
+### Reading them (owner)
+
+One-time setup: docs/firebase-setup.md, "Reading feedback". Then, from `pipeline/`:
+
+```bash
+python -m pipeline feedback pull --access-token "$(gcloud auth print-access-token)"   # or --service-account ~/keys/tosk-reader.json
+python -m pipeline feedback pull --mark-seen      # the same, then mark what was pulled as seen
+python -m pipeline feedback pull --all            # include reports already seen
+python -m pipeline flags summarize ~/tosk-feedback/flags.jsonl
+python -m pipeline feedback seen <id> users/<uid>/crashes/<id>
+python -m pipeline feedback delete --uid <uid>    # every report one user sent
+```
+
+- `pull` lists the `feedback` and `crashes` collection groups of all users (Firestore REST `runQuery` with `allDescendants`, paged by document name), skips documents marked `seen` unless `--all`, and merges into `flags.jsonl` (the `tosk-flag/1` objects plus `uid`, `received_at`, `report_id`, `platform`, so `flags summarize` reads them as it reads an export), `feedback.jsonl` and `crashes.jsonl` in `--out` (default `~/tosk-feedback`, outside the repository), keyed by id. It prints the general feedback (with "reply to …" when there is an email) and the first lines of each crash.
+- Credentials: `--access-token` / `$TOSK_GCP_ACCESS_TOKEN` (an OAuth token of a Google account with access to the project; sent with `x-goog-user-project`), or `--service-account` / `$TOSK_FIREBASE_SERVICE_ACCOUNT` / `$GOOGLE_APPLICATION_CREDENTIALS` (a key file, exchanged for a token with an RS256 JWT signed in pure Python). The project id comes from `--project`, `$TOSK_FIREBASE_PROJECT_ID`, the key file or `app/firebase-config.json`.
+- Tests: `pipeline/tests/test_feedback.py` (the JWT signature verified against a generated key, both credential paths, pull/merge/seen/delete and paging across users against a fake Firestore session, `flags summarize` on pulled flags); `app/test/sync/report_outbox_test.dart` (the outbox, its table and migration, the builders and limits, the Firestore request, `SyncService`); `app/test/ui/reports_ui_test.dart` and `app/test/device/crash_report_test.dart` (the UI).
 
 ## Sounds
 

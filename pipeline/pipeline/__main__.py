@@ -1,4 +1,4 @@
-"""CLI: python -m pipeline {fetch,import,build,validate,gen,flags,publish,mirror} ..."""
+"""CLI: python -m pipeline {fetch,import,build,validate,gen,flags,feedback,publish,mirror} ..."""
 from __future__ import annotations
 
 import argparse
@@ -75,6 +75,9 @@ def main(argv: list[str] | None = None) -> int:
     q.add_argument("--verdict", choices=["exercise_wrong", "ambiguous", "exercise_correct", "none"])
     q.add_argument("--json", action="store_true", help="also print each raw exercise snapshot")
 
+    from .feedback import add_parser as add_feedback_parser
+    add_feedback_parser(sub)
+
     a = ap.parse_args(argv)
     from .restricted import RestrictedContentError
     try:
@@ -134,6 +137,9 @@ def _run(a) -> int:
     if a.cmd == "flags":
         from .flags import main_summarize
         return main_summarize(a.files, a.course, a.verdict, a.json)
+    if a.cmd == "feedback":
+        from .feedback import main as feedback_main
+        return feedback_main(a)
     return 1
 
 

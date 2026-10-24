@@ -23,6 +23,7 @@ import '../../sync/sync_providers.dart';
 import '../../sync/sync_service.dart';
 import '../brand/tosk.dart';
 import '../common/external_link.dart';
+import '../common/privacy_link.dart';
 import '../routes.dart';
 import '../settings/setting_keys.dart';
 import '../settings/sync_section.dart' show SyncSignInButton;
@@ -604,6 +605,8 @@ class _SignInPage extends StatelessWidget {
           textAlign: TextAlign.center,
           style: theme.textTheme.bodyMedium,
         ),
+        const SizedBox(height: 4),
+        const PrivacyPolicyLink(key: ValueKey('welcome-privacy'), label: 'How your data is handled'),
         if (s != null && s.signedIn) ...[
           const SizedBox(height: 16),
           _StatusLine(

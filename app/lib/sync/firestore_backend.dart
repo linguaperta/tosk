@@ -12,6 +12,15 @@
 ///                                 dev: device id, up: server time
 /// ```
 ///
+/// Reports for the developer ([ReportSender], `report_outbox.dart`) go to
+/// `users/{uid}/feedback/{id}` and `users/{uid}/crashes/{id}` (their fields
+/// plus `up`), written with an update mask so a re-send leaves the owner's
+/// `seen` mark alone; [deleteAll] removes them too.
+///
+/// A batch whose events would pass [maxEventsChars] (the rules cap them at
+/// 250,000 characters) is split over `batchId`, `batchId-2`, … (the same
+/// split every time, so a retry still overwrites itself).
+///
 /// Events travel in batches (up to 400 per document) to stay well inside the
 /// free tier (20k writes and 50k reads a day): a year of daily practice is a
 /// few hundred documents. Pulls query `up` in order, so each run reads only
@@ -26,6 +35,7 @@ import 'package:http/http.dart' as http;
 import '../core/core.dart';
 import '../data/sync/review_log_sync.dart';
 import 'firebase_auth.dart';
+import 'report_outbox.dart';
 
 class FirestoreException implements Exception {
   const FirestoreException(this.status, this.message);
@@ -35,7 +45,7 @@ class FirestoreException implements Exception {
   String toString() => 'FirestoreException(HTTP $status: $message)';
 }
 
-class FirestoreSyncBackend implements SyncBackend {
+class FirestoreSyncBackend implements SyncBackend, ReportSender {
   FirestoreSyncBackend({required this.projectId, required this.client, required this.tokens});
 
   final String projectId;
@@ -44,6 +54,12 @@ class FirestoreSyncBackend implements SyncBackend {
 
   static const _timeout = Duration(seconds: 45);
   static const _maxWrites = 400;
+
+  /// The most characters of event lines in one batch document.
+  static const maxEventsChars = 200000;
+
+  /// A typed answer longer than this is cut (no real answer is).
+  static const maxAnswerChars = 2000;
 
   @override
   String get id => 'firestore';
@@ -157,19 +173,38 @@ class FirestoreSyncBackend implements SyncBackend {
 
   // ------------------------------------------------------------------ events
 
+  /// The event lines of [events] in documents of at most [maxEventsChars].
+  static List<(String lines, int n)> splitEvents(List<SyncedEvent> events) {
+    final parts = <(String, int)>[];
+    var b = StringBuffer();
+    var n = 0;
+    for (final s in events) {
+      final j = {...reviewEventToJson(s.event), 'off': s.utcOffsetMinutes};
+      if (j['answer'] case final String a when a.length > maxAnswerChars) j['answer'] = a.substring(0, maxAnswerChars);
+      final line = '${jsonEncode(j)}\n';
+      if (n > 0 && b.length + line.length > maxEventsChars) {
+        parts.add((b.toString(), n));
+        b = StringBuffer();
+        n = 0;
+      }
+      b.write(line);
+      n++;
+    }
+    if (n > 0) parts.add((b.toString(), n));
+    return parts;
+  }
+
   @override
   Future<void> pushEvents(String batchId, String device, List<SyncedEvent> events) async {
-    final lines = StringBuffer();
-    for (final s in events) {
-      lines.writeln(jsonEncode({...reviewEventToJson(s.event), 'off': s.utcOffsetMinutes}));
-    }
+    final parts = splitEvents(events);
     await _commit([
-      _write('$_user/batches/$batchId', {
-        'v': _int(1),
-        'dev': _str(device),
-        'n': _int(events.length),
-        'events': _str(lines.toString()),
-      }),
+      for (var i = 0; i < parts.length; i++)
+        _write('$_user/batches/${i == 0 ? batchId : '$batchId-${i + 1}'}', {
+          'v': _int(1),
+          'dev': _str(device),
+          'n': _int(parts[i].$2),
+          'events': _str(parts[i].$1),
+        }),
     ]);
   }
 
@@ -234,6 +269,41 @@ class FirestoreSyncBackend implements SyncBackend {
     return SyncPage(out, hasMore: more);
   }
 
+  // ------------------------------------------------------------------ reports
+
+  @override
+  Future<void> sendReports(List<OutgoingReport> reports) async {
+    if (reports.isEmpty) return;
+    Map<String, Object?> value(Object v) => v is int ? _int(v) : _str('$v');
+    final writes = [
+      for (final r in reports)
+        {
+          'update': {
+            'name': '$_user/${r.collection}/${r.id}',
+            'fields': {
+              for (final e in r.fields.entries)
+                if (e.key != 'up') e.key: value(e.value),
+            },
+          },
+          'updateMask': {
+            'fieldPaths': [
+              for (final k in r.fields.keys)
+                if (k != 'up') k,
+            ],
+          },
+          'updateTransforms': [
+            {'fieldPath': 'up', 'setToServerValue': 'REQUEST_TIME'},
+          ],
+        },
+    ];
+    try {
+      await _call('POST', _url('$_docs:commit'), body: {'writes': writes});
+    } on FirestoreException catch (e) {
+      if (e.status == 400) throw ReportRejected(e.message);
+      rethrow;
+    }
+  }
+
   // ------------------------------------------------------------------ delete
 
   Future<List<String>> _names(String collection) async {
@@ -254,7 +324,13 @@ class FirestoreSyncBackend implements SyncBackend {
 
   @override
   Future<void> deleteAll() async {
-    final names = [...await _names('batches'), ...await _names('settings'), _user];
+    final names = [
+      ...await _names('batches'),
+      ...await _names('settings'),
+      ...await _names(ReportCollections.feedback),
+      ...await _names(ReportCollections.crashes),
+      _user,
+    ];
     await _commit([
       for (final n in names) {'delete': n},
     ]);

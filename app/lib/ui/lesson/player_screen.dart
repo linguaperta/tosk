@@ -13,8 +13,10 @@ import '../../speech/speech_providers.dart';
 import '../../device/device_providers.dart';
 import '../../device/onyx.dart';
 import '../../feedback/answer_context.dart';
+import '../../feedback/reports.dart' show flagReport;
 import '../../progression/nonstop.dart';
 import '../../providers.dart';
+import '../../sync/sync_providers.dart' show queueReport;
 import '../ai/ai_explanation_sheet.dart';
 import '../bookmarks/bookmarks_ui.dart';
 import '../common/async_view.dart';
@@ -489,21 +491,20 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     final events = await s.overrideAnswer(ex.id);
     final course = ref.read(courseDataProvider).value;
     try {
-      await ref
-          .read(feedbackStoreProvider)
-          .saveFlag(
-            overrideFlag(
-              id: const Uuid().v4(),
-              at: ref.read(clockProvider)(),
-              courseId: course?.meta.id ?? '',
-              exercise: ex,
-              result: r,
-              overrides: events,
-              packVersion: course?.meta.version,
-              sourceLang: ref.read(sourceLangProvider),
-            ),
-          );
+      final flag = overrideFlag(
+        id: const Uuid().v4(),
+        at: ref.read(clockProvider)(),
+        courseId: course?.meta.id ?? '',
+        exercise: ex,
+        result: r,
+        overrides: events,
+        packVersion: course?.meta.version,
+        sourceLang: ref.read(sourceLangProvider),
+      );
+      await ref.read(feedbackStoreProvider).saveFlag(flag);
       ref.read(flagsRevisionProvider.notifier).bump();
+      // Like a submitted flag: to the developer when signed in.
+      await queueReport(ref, flagReport(flag));
     } catch (e) {
       debugPrint('[override] flag not saved: $e');
     }

@@ -20,6 +20,10 @@ abstract final class SyncMessages {
   static const expired = 'Sign-in expired, please sign in again.';
   static const signInFailed = "Sign-in didn't work. Please try again.";
   static const syncFailed = "Sync didn't work this time. Your answers are kept and will sync later.";
+  static const accountKept =
+      'Your answers, settings and reports were deleted from the cloud, but your sign-in account could not be '
+      'removed: Google needs a fresh sign-in for that. To finish, sign in again and choose '
+      '"Delete my cloud data" once more.';
 }
 
 /// Identity Toolkit codes that mean "a sign-in for this Google account raced

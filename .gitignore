@@ -23,6 +23,13 @@ Thumbs.db
 firebase-config.json
 google-services.json
 GoogleService-Info.plist
+# Admin credentials for `pipeline feedback` (keep them outside the checkout anyway)
+*service-account*.json
+*-firebase-adminsdk-*.json
+tosk-feedback-reader*.json
+# The rules test's npm install
+firebase/node_modules/
+firebase/package-lock.json
 
 # golden-test failure diffs
 app/test/ui/failures/

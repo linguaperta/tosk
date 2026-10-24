@@ -5,6 +5,7 @@
 library;
 
 import '../core/core.dart';
+import 'report_outbox.dart';
 
 /// The shared "server": several [FakeSyncBackend]s (devices) talk to one.
 class FakeSyncServer {
@@ -39,6 +40,16 @@ class FakeSyncServer {
 
   int batchCount(String account) => _batches[account]?.length ?? 0;
 
+  /// Reports received, by `collection/id`: the fields plus `uid` (the account
+  /// whose tree holds them).
+  final Map<String, Map<String, Object>> reports = {};
+
+  /// While true, [FakeSyncBackend.sendReports] fails like a permission error.
+  bool refuseReports = false;
+
+  /// Reports whose `text` equals this are rejected as invalid (HTTP 400).
+  String? rejectText;
+
   Map<String, String?> settings(String account) => {
         for (final s in (_settings[account] ?? const {}).values) s.value.key: s.value.value,
       };
@@ -67,7 +78,7 @@ bool _isAfter(SyncCursor c, SyncCursor? after) {
   return _cmp(c, after) > 0;
 }
 
-class FakeSyncBackend implements SyncBackend {
+class FakeSyncBackend implements SyncBackend, ReportSender {
   FakeSyncBackend(this.server, {this.account});
 
   final FakeSyncServer server;
@@ -134,9 +145,24 @@ class FakeSyncBackend implements SyncBackend {
   }
 
   @override
+  Future<void> sendReports(List<OutgoingReport> reports) async {
+    server._check();
+    final acct = _acct;
+    if (server.refuseReports) throw const SyncAuthException('Firestore refused access (HTTP 403)');
+    if (server.rejectText != null && reports.any((r) => r.fields['text'] == server.rejectText)) {
+      throw const ReportRejected('invalid report');
+    }
+    for (final r in reports) {
+      server.writes++;
+      server.reports['${r.collection}/${r.id}'] = {...r.fields, 'uid': acct};
+    }
+  }
+
+  @override
   Future<void> deleteAll() async {
     server._check();
     server._batches.remove(_acct);
     server._settings.remove(_acct);
+    server.reports.removeWhere((_, r) => r['uid'] == _acct);
   }
 }

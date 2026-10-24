@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="What the tosk language-learning app stores, where, and how to delete it.">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <title>Privacy policy · tosk</title>
+  <style>
+    :root { --paper: #F7F0E2; --ink: #2B1F17; --muted: #5c4b3f; --link: #7a3e12; --rule: #d8cbb3; }
+    @media (prefers-color-scheme: dark) {
+      :root { --paper: #2B1F17; --ink: #F7F0E2; --muted: #d8cbb3; --link: #f0b27a; --rule: #5c4b3f; }
+    }
+    html { background: var(--paper); color: var(--ink); }
+    body { margin: 0 auto; max-width: 42rem; padding: 1.5rem 1rem 3rem; font: 1rem/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    h1 { font-family: Georgia, serif; font-size: 1.8rem; margin: 0 0 .25rem; }
+    h2 { font-family: Georgia, serif; font-size: 1.2rem; margin: 2rem 0 .5rem; padding-top: 1rem; border-top: 1px solid var(--rule); }
+    .meta { color: var(--muted); margin: 0 0 1.5rem; }
+    a { color: var(--link); }
+    ul { padding-left: 1.25rem; }
+    li { margin: .25rem 0; }
+    .summary { border: 2px solid var(--rule); border-radius: 12px; padding: .75rem 1rem; }
+  </style>
+</head>
+<body>
+  <h1>Privacy policy</h1>
+  <p class="meta">tosk, the free language-learning app · last updated 25 October 2026</p>
+
+  <div class="summary">
+    <p><strong>In short:</strong> tosk works without an account, and then your progress stays on your device. There
+      are no ads, no analytics and no tracking, and nothing is sold. If you sign in, your progress is kept in your own
+      private space so it can sync between your devices. Reports reach the developer only when you send them, and
+      <em>Delete my cloud data</em> removes everything stored in the cloud.</p>
+  </div>
+
+  <h2>On your device</h2>
+  <ul>
+    <li>Your progress: every answer you give (see "What is stored per answer" below), your mistakes, starred items,
+      AI conversations and your settings.</li>
+    <li>The courses you download, and the flags you submit about exercises (until you delete them).</li>
+    <li>Your AI key, if you add one: in the system's secure storage. In the web app it is kept in this browser's
+      storage for this site.</li>
+  </ul>
+  <p>This stays until you remove the app (in the web app: clear this site's data). Settings → Backup lets you export
+    or import it yourself. On Android, if backup is switched on for your phone, Android's own backup may include the
+    app's data in your Google account's device backup; you control that in Android's settings.</p>
+
+  <h2>If you sign in (optional)</h2>
+  <p>Sign-in uses your Google account through Google Firebase Authentication, which receives your name, email
+    address and a user id for your account. tosk then keeps, linked to that user id, in Google Cloud Firestore (a
+    database hosted by Google in the European Union, multi-region eur3):</p>
+  <ul>
+    <li><strong>Your answer log.</strong> Per answer: a random id, the word or grammar item and the exercise type,
+      the time and your time zone offset, what you typed or chose, whether it was right, the rating the app gave it,
+      how long you took, how you answered (typing, tapping, handwriting), the lesson session and practice mode, and a
+      random id for the device it came from.</li>
+    <li><strong>The settings that sync:</strong> your courses, translation language, lesson focus and length,
+      accents, theme, sound effects, daily goal, answer input, listening exercises, the exercise intros you have
+      seen and automatic course updates, each with the time it changed and the device id.</li>
+    <li><strong>Reports you send</strong> (below).</li>
+  </ul>
+  <p>Only you can read this data; the database rules don't let other users in. The developer can reach the
+    database as its administrator and only looks at the reports you send. Starred items, AI conversations, your AI
+    key, display, reminder and e-reader settings are not synced.</p>
+
+  <h2>Reports you send</h2>
+  <p>When you are signed in and you submit a flag, send feedback (Settings → Send feedback) or send a crash report,
+    the developer receives it. A report contains what you wrote, for a flag the exercise and your answer, for a
+    crash report the error details and your device model, plus the app version and the platform (for example
+    Android or web). It is stored in your own space (linked to your user id) and contains your email address only if
+    you type it into the feedback form. Reports can't be changed once sent. Without signing in, nothing is sent:
+    you can export, copy or email it yourself.</p>
+  <p>Reports are used to fix exercises and bugs, and deleted when no longer needed.</p>
+
+  <h2>AI features (optional)</h2>
+  <p>Explanations, flag checks and conversation practice only work with your own API key (for example from
+    Anthropic). Each request goes directly from your device to that provider: the exercise, your answer and, in a
+    conversation, your messages. The provider's own privacy terms apply. The developer never sees these requests or
+    your key.</p>
+
+  <h2>Other services the app talks to</h2>
+  <ul>
+    <li><strong>GitHub.</strong> The web app is hosted on GitHub Pages, and courses are downloaded from GitHub
+      (GitHub Releases, or GitHub Pages for the web app). About once every 24 hours, when online, the app also asks
+      GitHub for the list of courses to see whether an update is available (Settings → "Check for course updates
+      automatically" turns this off). Like any website, GitHub receives your IP address with these requests.</li>
+    <li><strong>Fonts.</strong> The web app may load extra fonts from Google (fonts.gstatic.com) when it has to show
+      characters its own fonts don't include.</li>
+    <li><strong>Handwriting (Android).</strong> Handwriting recognition uses Google ML Kit: the language model is
+      downloaded from Google once and recognition then runs on the device. ML Kit may send Google basic usage and
+      diagnostic information about the model.</li>
+    <li><strong>Speech.</strong> Sentences are read aloud by your device's or browser's own text-to-speech voices.
+      In the web app some browsers offer online voices (for example Google's voices in Chrome); if one of those is
+      used, the browser sends the sentence to its maker to be spoken.</li>
+    <li><strong>Sign-in.</strong> Google's sign-in (and, in the web app, Google's sign-in button) as described above.</li>
+  </ul>
+
+  <h2>Deleting your data</h2>
+  <ul>
+    <li><strong>Cloud data:</strong> Settings → Account &amp; sync → <em>Delete my cloud data</em> deletes your
+      answers, settings, the reports you sent and your sign-in account. Google sometimes asks you to sign in once
+      more before an account can be removed; the app tells you if that is needed. Your devices keep their own
+      copy.</li>
+    <li><strong>On a device:</strong> remove the app, or in the web app clear this site's data.</li>
+    <li><strong>Copies of reports</strong> the developer already downloaded to fix something are deleted on request
+      (contact below).</li>
+  </ul>
+
+  <h2>Contact</h2>
+  <p>tosk is an open-source project of linguaperta. Questions and requests:
+    <a href="https://github.com/linguaperta/tosk/issues">github.com/linguaperta/tosk/issues</a>. The source code,
+    including exactly what is stored, is at <a href="https://github.com/linguaperta/tosk">github.com/linguaperta/tosk</a>.</p>
+  <p>If this policy changes, this page changes, with a new date at the top.</p>
+
+  <p><a href="./">Open the tosk web app</a></p>
+</body>
+</html>

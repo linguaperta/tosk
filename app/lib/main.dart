@@ -42,7 +42,7 @@ Future<void> main() async {
     ProviderScope(
       retry: (_, _) => null,
       overrides: overrides,
-      child: crash == null ? app : CrashReportGate(report: crash, child: app),
+      child: crash == null ? app : CrashReportGate(report: crash.text, native: crash.native, child: app),
     ),
   );
 }

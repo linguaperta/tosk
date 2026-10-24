@@ -186,6 +186,7 @@ void main() {
     expect(find.byKey(const ValueKey('bottom-nav')), findsNothing);
     await tester.tap(find.text('Settings').first);
     await tester.pumpAndSettle();
+    await enableDeveloperOptions(tester);
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('open-debug')),
       300,

@@ -12,6 +12,7 @@ import '../../providers.dart';
 import '../common/async_view.dart';
 import '../routes.dart';
 import '../settings/app_settings.dart' show exerciseTypeLabel;
+import '../common/error_text.dart';
 
 /// How the export is saved (file_picker's save flow; tests override it).
 final flagsSaverProvider = Provider<SaveBytes>((ref) => saveWithFilePicker);
@@ -72,7 +73,7 @@ class FlagsScreen extends ConsumerWidget {
         SnackBar(content: Text('Exported ${flags.length} flag${flags.length == 1 ? '' : 's'}')),
       );
     } catch (e) {
-      messenger?.showSnackBar(SnackBar(content: Text('Export failed: $e')));
+      messenger?.showSnackBar(SnackBar(content: Text(tryAgainMessage("The flags couldn't be exported.", e))));
     }
   }
 }

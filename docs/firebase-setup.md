@@ -5,7 +5,8 @@ Everything here is free: Firebase's Spark plan (no billing account, so nothing c
 How it works (details in `docs/data-layer.md`, "Cloud sync"):
 
 - **Sign-in:** Google, through Firebase Authentication. The app talks to Firebase over its REST API (no native Firebase SDKs), so builds don't need `google-services.json` and Windows keeps building. Sign-in works on **Android**, the **web app** (also on iPhone/iPad as a home-screen app) and **iOS** (when an iOS client id is set). Windows has no sign-in yet, so it shows no sync UI.
-- **Data:** Cloud Firestore, one private tree per user: `users/{uid}/batches/*` (answers, up to 400 per document) and `users/{uid}/settings/*`. The security rules (`firebase/firestore.rules`) let a user read and write only their own tree.
+- **Data:** Cloud Firestore, one private tree per user: `users/{uid}/batches/*` (answers, up to 400 per document) and `users/{uid}/settings/*`. The security rules (`firebase/firestore.rules`) let a user read and write only their own tree, signed in with Google, with fixed shapes and size caps.
+- **Reports for you** (after v0.7.6): flags, feedback and crash reports a signed-in learner sends land in `users/{uid}/feedback/*` and `users/{uid}/crashes/*`. Only the sender can read or delete them (so "Delete my cloud data" covers them) and nobody can change them. You read everyone's with admin credentials (step 10), which bypass the rules, so no user id of yours has to go into the rules.
 - **Web app:** GitHub Pages at `https://<owner>.github.io/<repo>/`, with the course packs mirrored (gzipped) at `.../packs/`.
 
 Values you will collect (keep them in a note while you go):
@@ -16,6 +17,7 @@ Values you will collect (keep them in a note while you go):
 | Web API key (`AIza...`) | `TOSK_FIREBASE_API_KEY` |
 | Web client id (`1234-abc.apps.googleusercontent.com`) | `TOSK_GOOGLE_WEB_CLIENT_ID` |
 | iOS client id (optional) | `TOSK_GOOGLE_IOS_CLIENT_ID` |
+| An address for feedback emails (optional) | `TOSK_FEEDBACK_EMAIL` (empty hides "Write an email" for learners who aren't signed in) |
 
 ## 1. Create the Firebase project
 
@@ -34,6 +36,8 @@ Values you will collect (keep them in a note while you go):
 5. Open the **Rules** tab, replace everything with the contents of `firebase/firestore.rules` from this repo, and click **Publish**.
 
    (Alternatively, from the `firebase/` folder: `npx firebase-tools login`, then `npx firebase-tools deploy --only firestore:rules --project <project id>`.)
+
+   Publish them again whenever `firebase/firestore.rules` changes (step 9).
 
 ## 3. Google sign-in
 
@@ -104,7 +108,8 @@ Create `app/firebase-config.json` (git-ignored; template `app/firebase-config.ex
   "TOSK_FIREBASE_PROJECT_ID": "tosk-4f2a1",
   "TOSK_FIREBASE_API_KEY": "AIza...",
   "TOSK_GOOGLE_WEB_CLIENT_ID": "1234-abc.apps.googleusercontent.com",
-  "TOSK_GOOGLE_IOS_CLIENT_ID": ""
+  "TOSK_GOOGLE_IOS_CLIENT_ID": "",
+  "TOSK_FEEDBACK_EMAIL": ""
 }
 ```
 
@@ -138,9 +143,75 @@ Every workflow works without them: no `FIREBASE_CONFIG_JSON` means builds withou
 3. The app is at `https://<owner>.github.io/<repo>/`. After a repository rename (e.g. to `tosk`) the address follows; to pin it, set the repository **variable** `PAGES_BASE_HREF` (Settings → Secrets and variables → Actions → Variables), e.g. `/tosk/`.
 4. Make sure `https://<owner>.github.io` is in the Firebase authorized domains (step 3.4) and the OAuth client's JavaScript origins (step 3, "Allow the web app's address").
 
+## 9. Updating the rules (after v0.7.6)
+
+The rules changed: reports (`users/{uid}/feedback`, `users/{uid}/crashes`), size caps on every document, and a Google sign-in for every write. Until they are published, reports are refused (HTTP 403); the app keeps them and retries with a backoff of at most an hour, and sync itself works as before. Publish before shipping an app build from after v0.7.6, because the new app splits large answer batches into documents named `<batch>-2`, … (allowed by both the old and the new rules):
+
+1. Firebase console → **Build → Firestore Database → Rules**.
+2. Select everything in the editor and replace it with the whole of `firebase/firestore.rules` from `main`.
+3. Optional: **Rules Playground** (button above the editor): a *get* of `/users/someone/feedback/abcdefgh12` as another signed-in user should be denied.
+4. Click **Publish**. It applies within a minute.
+
+Or from a terminal, in the repository's `firebase/` folder:
+
+```powershell
+npx firebase-tools login
+npx firebase-tools deploy --only firestore:rules --project <project id>
+```
+
+CI checks the same rules on the emulator (`cd firebase && npm install && npm test`, needs Java).
+
+## 10. Reading feedback (owner)
+
+`python -m pipeline feedback pull` (docs/feedback.md, "Reading them") reads every user's reports with credentials that have access to the project. They never go into the repository or the app. Pick one:
+
+**A. Your own Google account (nothing to store).** Install the Google Cloud CLI (<https://cloud.google.com/sdk/docs/install>), then once:
+
+```powershell
+gcloud auth login            # the Google account that owns the Firebase project
+gcloud config set project <project id>
+```
+
+and each time, from `pipeline/`:
+
+```powershell
+python -m pipeline feedback pull --project <project id> --access-token (gcloud auth print-access-token)
+```
+
+**B. A service account (no gcloud).**
+
+1. Open <https://console.cloud.google.com/iam-admin/serviceaccounts> and select the project.
+2. **Create service account**: name `tosk-feedback-reader`, **Create and continue**.
+3. Role: **Cloud Datastore User** (Firestore data only; the write access is for `--mark-seen` and `feedback delete`). **Continue → Done**.
+4. Open the new account → **Keys → Add key → Create new key → JSON → Create**. Save the file outside the repository, e.g. `C:\Users\timo\dev\keys\tosk-feedback-reader.json`.
+5. Point the pipeline at it (per shell, or as a user environment variable):
+
+   ```powershell
+   $env:TOSK_FIREBASE_SERVICE_ACCOUNT = "C:\Users\timo\dev\keys\tosk-feedback-reader.json"
+   python -m pipeline feedback pull
+   ```
+
+   If the key ever leaks, delete it on the same **Keys** tab and make a new one.
+
+Why there is no owner id in the rules: admin credentials bypass the security rules, so the rules never grant anyone else a read. There is no custom claim or hard-coded user id to maintain, and no app account, yours included, can read other people's reports.
+
+The first `pull` may answer with a link to create an index if Firestore wants one for the collection-group query; open it, click **Create**, wait a minute and pull again.
+
+## 11. OAuth consent screen (before outside testers sign in)
+
+Google shows this at sign-in; outside testers need it filled in and the app published.
+
+1. Open <https://console.cloud.google.com/auth/branding> (Google Auth Platform → **Branding**; older consoles: APIs & Services → **OAuth consent screen**) and select the project.
+2. **App name** `tosk`, **User support email** your address. **App logo**: optional (a logo can require Google's brand verification; without one it is quick).
+3. **App domain**: Application home page `https://linguaperta.github.io/tosk/`, **Application privacy policy link** `https://linguaperta.github.io/tosk/privacy.html` (the page is `app/web/privacy.html`, deployed with the web app), Terms of service: empty.
+4. **Authorized domains**: add `linguaperta.github.io`. **Developer contact information**: your email. **Save**.
+5. **Audience**: user type **External**; under **Publishing status** click **Publish app** (to *In production*). tosk asks only for the basic `openid`, `email` and `profile` scopes, which need no verification. (While it stays in *Testing*, only the accounts under **Test users**, at most 100, can sign in, and their sign-ins expire after 7 days.)
+6. **Data access** (scopes): nothing to add.
+7. Check the privacy page's facts against your project: it says Firestore is in the EU multi-region **eur3** (step 2's suggestion). If you picked another location, change that sentence in `app/web/privacy.html`.
+
 ## Free-tier budget
 
-Spark gives 50k document reads, 20k writes and 20k deletes per day, and 1 GiB storage. tosk writes one document per batch of up to 400 answers; a sync runs a minute after the last answer and when the app is paused or resumed, so a 200-answer day is about 10 writes (`test/sync/sync_engine_test.dart`, "free-tier budget"). Pulls read only documents written since the last sync. A year of daily practice is a few MB.
+Spark gives 50k document reads, 20k writes and 20k deletes per day, and 1 GiB storage. tosk writes one document per batch of up to 400 answers; a sync runs a minute after the last answer and when the app is paused or resumed, so a 200-answer day is about 10 writes (`test/sync/sync_engine_test.dart`, "free-tier budget"). Pulls read only documents written since the last sync. A year of daily practice is a few MB. Each report is one write (several go in one request); `feedback pull` reads every report document once per pull, so mark them seen and delete old ones now and then once there are thousands.
 
 ## Turning it off again
 

@@ -3,15 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../theme/tosk_palette.dart';
-import '../../app_version.dart';
-import '../brand/tosk.dart';
 import '../../core/core.dart';
 import '../../providers.dart';
+import '../../sync/sync_providers.dart';
 import '../common/async_view.dart';
 import '../courses/course_picker.dart';
 import '../courses/course_updates.dart';
 import '../routes.dart';
 import '../shell/course_switcher.dart';
+import 'about_section.dart';
 import 'ai_settings_section.dart';
 import 'answer_input_section.dart';
 import 'app_settings.dart';
@@ -125,6 +125,28 @@ class SettingsScreen extends ConsumerWidget {
                     label: (a) => a == AccentStrictness.strict ? 'Strict' : 'Lenient',
                     onChanged: (v) => ctl.change((s) => s.copyWith(accents: v)),
                   ),
+                  const _Section('Practice'),
+                  _Choice<SessionLength>(
+                    keyName: 'length',
+                    title: 'Default lesson length',
+                    subtitle: '${s.defaultLength.exercises} exercises; the lesson sheet offers the others',
+                    values: SessionLength.values,
+                    selected: s.defaultLength,
+                    label: sessionLengthLabel,
+                    onChanged: (v) => ctl.change((s) => s.copyWith(defaultLength: v)),
+                  ),
+                  _Choice<int>(
+                    keyName: 'leech',
+                    title: 'Tough word after this many lapses',
+                    subtitle: 'Words forgotten this often (after you knew them) go to the "Tough words" drill',
+                    values: const [3, 4, 5, 6],
+                    selected: s.leechLapses,
+                    label: (n) => '$n',
+                    onChanged: (v) => ctl.change((s) => s.copyWith(leechLapses: v)),
+                  ),
+                  // v0.3 practice extras (their own settings and widgets).
+                  const AnswerInputSection(),
+                  const DailyGoalSection(),
                   const _Section('Display'),
                   _Choice<DisplayMode>(
                     keyName: 'display',
@@ -168,75 +190,37 @@ class SettingsScreen extends ConsumerWidget {
                     value: s.soundEffects,
                     onChanged: (v) => ctl.change((s) => s.copyWith(soundEffects: v)),
                   ),
+                  const DeviceSection(),
                   const _Section('AI explanations'),
                   const AiSettingsSection(),
-                  const _Section('Feedback & flags'),
+                  // v0.7: only with a Firebase configuration (else nothing).
+                  const SyncSection(),
+                  const BackupSection(),
+                  const _Section('Feedback'),
+                  ListTile(
+                    key: const ValueKey('open-feedback'),
+                    leading: const Icon(Icons.chat_bubble_outline),
+                    title: const Text('Send feedback'),
+                    subtitle: Text(
+                      ref.watch(canSendReportsProvider)
+                          ? 'Ideas, problems, questions: straight to the developer'
+                          : 'Ideas, problems, questions for the developer',
+                    ),
+                    onTap: () => context.push(Routes.feedback),
+                  ),
                   ListTile(
                     key: const ValueKey('open-flags'),
                     leading: const Icon(Icons.outlined_flag),
                     title: const Text('Flagged exercises'),
                     subtitle: Text(switch (ref.watch(flagsProvider).value?.length ?? 0) {
-                      0 => 'None yet. Export them here for the developer',
+                      0 => 'None yet. Use the flag button after checking an answer to report a problem',
                       1 => '1 flag on this device · export',
                       final n => '$n flags on this device · export',
                     }),
                     onTap: () => context.push(Routes.flags),
                   ),
                   const _Section('About'),
-                  const Padding(
-                    key: ValueKey('about-brand'),
-                    padding: EdgeInsets.fromLTRB(16, 4, 16, 8),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: BrandLockup(caption: 'Version $kAppVersion · free and offline-first'),
-                    ),
-                  ),
-                  if (meta != null && meta.attribution.isNotEmpty)
-                    ListTile(
-                      leading: const Icon(Icons.info_outline),
-                      title: const Text('Course content'),
-                      subtitle: Text(meta.attribution),
-                    ),
-                  ListTile(
-                    key: const ValueKey('show-welcome'),
-                    leading: const Icon(Icons.waving_hand_outlined),
-                    title: const Text('Show welcome again'),
-                    subtitle: const Text('Who Tosk is, how tosk works, sign-in and the Claude key'),
-                    onTap: () => context.push(Routes.welcome()),
-                  ),
-                  ListTile(
-                    key: const ValueKey('open-debug'),
-                    leading: const Icon(Icons.bug_report_outlined),
-                    title: const Text('Debug'),
-                    subtitle: const Text('Courses, skills and strength'),
-                    onTap: () => context.push(Routes.debug),
-                  ),
-                  const _Section('Practice'),
-                  _Choice<SessionLength>(
-                    keyName: 'length',
-                    title: 'Default lesson length',
-                    subtitle: '${s.defaultLength.exercises} exercises; the lesson sheet offers the others',
-                    values: SessionLength.values,
-                    selected: s.defaultLength,
-                    label: sessionLengthLabel,
-                    onChanged: (v) => ctl.change((s) => s.copyWith(defaultLength: v)),
-                  ),
-                  _Choice<int>(
-                    keyName: 'leech',
-                    title: 'Tough word after this many lapses',
-                    subtitle: 'Words forgotten this often (after you knew them) go to the "Tough words" drill',
-                    values: const [3, 4, 5, 6],
-                    selected: s.leechLapses,
-                    label: (n) => '$n',
-                    onChanged: (v) => ctl.change((s) => s.copyWith(leechLapses: v)),
-                  ),
-                  // v0.3 practice extras (their own settings and widgets).
-                  const AnswerInputSection(),
-                  const DeviceSection(),
-                  const DailyGoalSection(),
-                  // v0.7: only with a Firebase configuration (else nothing).
-                  const SyncSection(),
-                  const BackupSection(),
+                  AboutSection(attribution: meta?.attribution),
                 ],
               ),
             ),
