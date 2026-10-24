@@ -281,6 +281,10 @@ CourseMeta parseCourseMeta(Map<String, String> raw) {
   if (missing.isNotEmpty) {
     throw CourseFormatException('Missing meta keys: ${missing.join(', ')}');
   }
+  // The id names the pack's file (`courses/{id}.sqlite`): never a path.
+  if (!isValidCourseId(raw['course_id']!)) {
+    throw CourseFormatException('Bad course_id: ${jsonEncode(raw['course_id'])}');
+  }
   final major = parseSchemaMajor(raw['schema_version']);
   if (major == null) {
     throw CourseFormatException('Bad schema_version: ${raw['schema_version']}');

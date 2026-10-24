@@ -95,6 +95,13 @@ class LocalPackSource implements PackSource {
     var changed = false;
     final present = (await store.installedIds()).toSet();
     for (final id in present) {
+      if (!isValidCourseId(id)) {
+        onWarning?.call(
+          'Skipping pack file $id.sqlite: the file name must be its course id '
+          '(lower-case letters, digits, "-" and "_", e.g. it.sqlite)',
+        );
+        continue;
+      }
       final known = manifest[id];
       if (known != null && known.origin != PackOrigin.local) continue;
       final CourseMeta meta;
@@ -225,7 +232,8 @@ class LocalPackSource implements PackSource {
       final j = jsonDecode(text) as Map<String, dynamic>;
       return {
         for (final e in (j['packs'] as Map<String, dynamic>).entries)
-          e.key: _Entry.fromJson(e.key, e.value as Map<String, dynamic>),
+          // A key that isn't a course id (a hand-edited or planted manifest) is dropped.
+          if (isValidCourseId(e.key)) e.key: _Entry.fromJson(e.key, e.value as Map<String, dynamic>),
       };
     } on Object catch (e) {
       onWarning?.call('Ignoring corrupt pack manifest: $e');

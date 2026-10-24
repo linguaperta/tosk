@@ -85,7 +85,7 @@ class MemoryPackFileStore implements PackFileStore {
   Future<int?> size(String courseId) async => _packs[courseId]?.length;
 
   @override
-  Future<void> writeBytes(String courseId, Uint8List bytes) async => _packs[courseId] = bytes;
+  Future<void> writeBytes(String courseId, Uint8List bytes) async => _packs[checkCourseId(courseId)] = bytes;
 
   @override
   Future<void> copyFile(String courseId, String sourcePath) =>
@@ -107,7 +107,7 @@ class MemoryPackFileStore implements PackFileStore {
   String location(String courseId) => 'memory:$courseId.sqlite';
 
   @override
-  Future<PackStaging> stage(String courseId) async => _MemoryStaging(this, courseId);
+  Future<PackStaging> stage(String courseId) async => _MemoryStaging(this, checkCourseId(courseId));
 }
 
 class _MemoryStaging implements PackStaging {

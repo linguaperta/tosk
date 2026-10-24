@@ -131,7 +131,7 @@ void main() {
     expect(packs.map((p) => '${p.id} ${p.version} ${p.origin.name} ${p.unverified}'),
         ['hns 0.1.0 local true', 'it 0.1.0 bundled false']);
     expect(warnings, hasLength(2));
-    expect(warnings.where((w) => w.contains('Sarnami.sqlite') && w.contains('name it hns.sqlite')), hasLength(1));
+    expect(warnings.where((w) => w.contains('Sarnami.sqlite') && w.contains('must be its course id')), hasLength(1));
     expect(warnings.where((w) => w.contains('junk.sqlite')), hasLength(1));
     final src = source(bundled, NativePackFileStore(dir));
     final course = await platform.loadCoursePack((await src.open('hns')).data);

@@ -8,6 +8,7 @@ import 'dart:convert';
 
 import 'package:meta/meta.dart';
 
+import '../course_id.dart';
 import '../models/course.dart';
 import 'packs.dart';
 
@@ -44,6 +45,8 @@ class RemotePack {
     if (id is! String || id.isEmpty || url is! String || sha is! String || size is! int) {
       throw FormatException('Course entry is missing id, url, sha256 or size: $j');
     }
+    // The id names the installed pack's file: never a path.
+    if (!isValidCourseId(id)) throw FormatException('Bad course id in the course list: ${jsonEncode(id)}');
     return RemotePack(
       id: id,
       version: '${j['version'] ?? '0.0.0'}',
