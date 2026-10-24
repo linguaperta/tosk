@@ -48,6 +48,23 @@ Future<void> showCoursePicker(BuildContext context, {bool firstRun = false}) asy
   if (action is _FindLevel) router?.push(Routes.placement);
 }
 
+/// The installed courses the picker lists. The demo stand-ins (the fallback
+/// when no pack is installed, e.g. a fresh web app) are left out whenever a
+/// real course can be chosen (an installed pack or one to download), and
+/// while the course server is being asked for the first time; they only
+/// remain when there is nothing else (offline, no packs).
+List<CourseMeta> pickerCourses(
+  List<CourseMeta> available, {
+  required bool Function(String id) isDemo,
+  required Map<String, CourseOffer> offers,
+  bool lookingOnline = false,
+}) {
+  final real = available.where((c) => !isDemo(c.id)).toList();
+  if (real.length == available.length) return available;
+  final canDownload = offers.values.any((o) => o.remote != null);
+  return real.isNotEmpty || canDownload || lookingOnline ? real : available;
+}
+
 sealed class _PickerAction {
   const _PickerAction();
 }
@@ -186,12 +203,19 @@ class _CoursePickerSheetState extends ConsumerState<CoursePickerSheet> {
     final mine = ref.watch(settingsProvider).value?.myCourseIds ?? const <String>[];
     final lang = ref.watch(sourceLangProvider);
     final theme = Theme.of(context);
-    final courses = available.value ?? const <CourseMeta>[];
-    final addedCount = courses.where((c) => mine.contains(c.id)).length;
     final online = ref.watch(remotePacksProvider) != null;
     final updates = ref.watch(courseUpdatesProvider);
     final offers = ref.watch(courseOffersProvider);
     final ctl = ref.read(courseUpdatesProvider.notifier);
+    final courses = pickerCourses(
+      available.value ?? const <CourseMeta>[],
+      isDemo: ref.watch(courseCatalogProvider).isDemo,
+      offers: offers,
+      lookingOnline: online && updates.checking && updates.index == null,
+    );
+    // Nothing to list yet while the first look at the course server runs.
+    final looking = online && updates.checking && courses.isEmpty && !offers.values.any((o) => o.remote != null);
+    final addedCount = courses.where((c) => mine.contains(c.id)).length;
     final listed = {for (final c in courses) c.id};
     final canAddFile = ref.watch(packInstallerProvider) != null;
 
@@ -232,6 +256,18 @@ class _CoursePickerSheetState extends ConsumerState<CoursePickerSheet> {
           _Notice(text: notice, error: _noticeIsError, onClose: () => _setNotice(null)),
         const SizedBox(height: 12),
         if (available.isLoading) const Center(child: CircularProgressIndicator()),
+        if (looking)
+          Padding(
+            key: const ValueKey('course-looking'),
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Row(
+              children: [
+                const SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+                const SizedBox(width: 12),
+                Expanded(child: Text('Looking for courses…', style: theme.textTheme.bodyMedium)),
+              ],
+            ),
+          ),
         for (final c in courses)
           _CourseCard(
             meta: c,

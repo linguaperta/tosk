@@ -9,6 +9,7 @@ import 'package:tosk/engine/engine.dart';
 import 'package:tosk/progression/calendar.dart';
 import 'package:tosk/providers.dart';
 import 'package:tosk/ui/settings/app_settings.dart';
+import 'package:tosk/ui/settings/setting_keys.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -174,6 +175,8 @@ void main() {
         options: AppDataOptions(dataDirectory: dir.path, bundled: fixtureBundledPacks()),
       ),
     ))!;
+    // The welcome was seen (welcome_test covers it); the picker comes next.
+    await tester.runAsync(() => boot.app.progress.setSetting(SettingKeys.welcomeDone, 'true'));
     setSurface(tester, const Size(420, 900));
     await tester.pumpWidget(
       ProviderScope(

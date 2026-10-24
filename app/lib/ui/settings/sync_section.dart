@@ -33,14 +33,7 @@ class SyncSection extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
           child: Align(
             alignment: Alignment.centerLeft,
-            child: service.identity.canCallSignIn
-                ? FilledButton.icon(
-                    key: const ValueKey('sync-sign-in'),
-                    onPressed: busy ? null : service.signIn,
-                    icon: const Icon(Icons.login),
-                    label: Text(busy ? 'Signing in…' : 'Sign in with Google'),
-                  )
-                : KeyedSubtree(key: const ValueKey('sync-sign-in-web'), child: service.identity.button()),
+            child: SyncSignInButton(service: service, busy: busy),
           ),
         ),
       ]);
@@ -149,5 +142,30 @@ class SyncSection extends ConsumerWidget {
     } on Object {
       // The status shows the error.
     }
+  }
+}
+
+/// "Sign in with Google": a button where the app can start the sign-in, else
+/// (the web) Google's own button. Settings → Account & sync and the welcome.
+class SyncSignInButton extends StatelessWidget {
+  const SyncSignInButton({super.key, required this.service, required this.busy, this.expand = false});
+  final SyncService service;
+  final bool busy;
+
+  /// Full width (the welcome's bottom actions).
+  final bool expand;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!service.identity.canCallSignIn) {
+      return KeyedSubtree(key: const ValueKey('sync-sign-in-web'), child: service.identity.button());
+    }
+    final button = FilledButton.icon(
+      key: const ValueKey('sync-sign-in'),
+      onPressed: busy ? null : service.signIn,
+      icon: const Icon(Icons.login),
+      label: Text(busy ? 'Signing in…' : 'Sign in with Google'),
+    );
+    return expand ? SizedBox(width: double.infinity, child: button) : button;
   }
 }

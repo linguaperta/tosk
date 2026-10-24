@@ -6,6 +6,7 @@ import 'package:tosk/providers.dart';
 import 'package:tosk/ui/debug/debug_screen.dart';
 import 'package:tosk/ui/router.dart';
 import 'package:tosk/ui/routes.dart';
+import 'package:tosk/ui/settings/setting_keys.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -18,6 +19,7 @@ void main() {
     final repo = ProgressRepo(ProgressDb(NativeDatabase.memory()));
     addTearDown(() => tester.runAsync(repo.close));
     final app = fixtureAppData(repo);
+    await tester.runAsync(() => repo.setSetting(SettingKeys.welcomeDone, 'true'));
     setSurface(tester, const Size(420, 900));
     await tester.pumpWidget(
       ProviderScope(

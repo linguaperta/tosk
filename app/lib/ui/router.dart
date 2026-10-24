@@ -25,6 +25,7 @@ import 'settings/settings_screen.dart';
 import 'stories/stories_view.dart';
 import 'stories/story_reader.dart';
 import 'shell/app_shell.dart';
+import 'welcome/welcome_screen.dart';
 
 /// A go_router page that shows its child as a modal bottom sheet.
 class BottomSheetPage<T> extends Page<T> {
@@ -192,6 +193,11 @@ GoRouter buildRouter({String initialLocation = Routes.map}) {
         path: Routes.nonstopPlay,
         parentNavigatorKey: rootNavigatorKey,
         builder: (_, _) => const PlayerScreen(request: NonStopRequest()),
+      ),
+      GoRoute(
+        path: '/welcome',
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (_, state) => WelcomeScreen(firstRun: state.uri.queryParameters['first'] == '1'),
       ),
       GoRoute(
         path: Routes.flags,

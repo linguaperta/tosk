@@ -4,6 +4,7 @@ import 'package:tosk/providers.dart';
 import 'package:tosk/ui/map/map_layout.dart';
 import 'package:tosk/ui/map/skill_map_view.dart';
 import 'package:tosk/ui/map/skill_node.dart';
+import 'package:tosk/ui/settings/setting_keys.dart';
 import 'package:tosk/ui/theme/skin.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -23,7 +24,13 @@ void main() {
     testWidgets('30 skills at ${size.width.round()}x${size.height.round()}, text $scale', (tester) async {
       tester.platformDispatcher.textScaleFactorTestValue = scale;
       addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
-      await pumpApp(tester, size: size, overrides: [courseCatalogProvider.overrideWithValue(BigCourseCatalog())]);
+      await pumpApp(
+        tester,
+        size: size,
+        // A first run on this catalog: the welcome was seen, the picker opens over the map.
+        store: TestProgressStore(settings: {SettingKeys.welcomeDone: 'true'}),
+        overrides: [courseCatalogProvider.overrideWithValue(BigCourseCatalog())],
+      );
       final scroll = find.byKey(const ValueKey('map-scroll'));
       // Every node and band title is reachable by scrolling, with a 48 px tap target.
       for (final s in course.skills) {
