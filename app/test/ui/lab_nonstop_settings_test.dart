@@ -200,6 +200,10 @@ void main() {
     setSurface(tester, const Size(400, 800));
     await tester.pumpWidget(const ProviderScope(child: ToskApp()));
     await tester.pumpAndSettle();
+    // A first run: the welcome, then the map under the course picker.
+    expect(find.byKey(const ValueKey('welcome')), findsOneWidget);
+    await tapKey(tester, 'welcome-skip-intro');
+    await tapKey(tester, 'welcome-key-skip');
     expect(find.byKey(const ValueKey('skill-node-greetings')), findsOneWidget);
   });
 }

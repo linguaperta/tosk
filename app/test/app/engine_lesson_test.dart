@@ -8,6 +8,7 @@ import 'package:tosk/ui/map/skill_node.dart';
 import 'package:tosk/ui/map/skill_stats.dart';
 import 'package:tosk/ui/router.dart';
 import 'package:tosk/ui/routes.dart';
+import 'package:tosk/ui/settings/setting_keys.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -21,6 +22,7 @@ void main() {
     final repo = fileProgressRepo('${dir.path}/progress.sqlite');
     addTearDown(() => tester.runAsync(repo.close));
     final app = fixtureAppData(repo);
+    await tester.runAsync(() => repo.setSetting(SettingKeys.welcomeDone, 'true'));
     setSurface(tester, const Size(420, 900));
 
     await tester.pumpWidget(

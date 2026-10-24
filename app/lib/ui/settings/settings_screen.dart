@@ -198,6 +198,13 @@ class SettingsScreen extends ConsumerWidget {
                       subtitle: Text(meta.attribution),
                     ),
                   ListTile(
+                    key: const ValueKey('show-welcome'),
+                    leading: const Icon(Icons.waving_hand_outlined),
+                    title: const Text('Show welcome again'),
+                    subtitle: const Text('Who Tosk is, how tosk works, sign-in and the Claude key'),
+                    onTap: () => context.push(Routes.welcome()),
+                  ),
+                  ListTile(
                     key: const ValueKey('open-debug'),
                     leading: const Icon(Icons.bug_report_outlined),
                     title: const Text('Debug'),

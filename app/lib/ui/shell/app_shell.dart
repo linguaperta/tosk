@@ -10,6 +10,8 @@ import '../../speech/speech_providers.dart';
 import '../courses/course_picker.dart';
 import '../courses/course_updates.dart';
 import '../goal/daily_goal_providers.dart';
+import '../routes.dart';
+import '../settings/setting_keys.dart';
 import '../theme/bw_skin.dart';
 
 /// Top-level destinations. Order matches the shell branches in `router.dart`.
@@ -47,7 +49,7 @@ class _AppShellState extends ConsumerState<AppShell> {
       if (!needs || _pickerShown) return;
       _pickerShown = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) showCoursePicker(context, firstRun: true);
+        if (mounted) unawaited(_firstRun());
       });
     }, fireImmediately: true);
     // Daily reminder: keep the scheduled notifications in line with the
@@ -63,6 +65,19 @@ class _AppShellState extends ConsumerState<AppShell> {
         if (mounted) unawaited(_showVoiceNotice(notice));
       });
     }, fireImmediately: true);
+  }
+
+  /// A fresh install: the welcome (once), then the course picker. Existing
+  /// installs never get here (they have a course), so they skip the welcome.
+  Future<void> _firstRun() async {
+    final router = GoRouter.of(context);
+    final done = await ref.read(progressStoreProvider).getSetting(SettingKeys.welcomeDone);
+    if (!mounted) return;
+    if (done != 'true') {
+      await router.push<void>(Routes.welcome(firstRun: true));
+      if (!mounted) return;
+    }
+    await showCoursePicker(context, firstRun: true);
   }
 
   Future<void> _showVoiceNotice(VoiceNotice notice) async {

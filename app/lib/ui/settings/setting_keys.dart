@@ -58,6 +58,12 @@ abstract final class SettingKeys {
   /// was shown, comma-separated (voices are per device).
   static const voiceNoticeShown = 'speech.voice_notice';
 
+  /// Device-only (not in [all], not synced): `'true'` once the first-run
+  /// welcome (who Tosk is, how it works, sign-in, Claude key) was left. A
+  /// fresh install shows it before the course picker; Settings → About →
+  /// "Show welcome again" opens it on demand.
+  static const welcomeDone = 'welcome.done';
+
   static const all = [
     course,
     sourceLang,

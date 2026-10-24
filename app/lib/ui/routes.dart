@@ -54,6 +54,10 @@ abstract final class Routes {
   /// Settings → Feedback & flags: flagged exercises and their export.
   static const flags = '/flags';
 
+  /// The welcome (who Tosk is, how it works, sign-in, Claude key), full
+  /// screen. [firstRun]: the course picker follows, so the last button says so.
+  static String welcome({bool firstRun = false}) => firstRun ? '/welcome?first=1' : '/welcome';
+
   /// Open mistakes of the active course, with "Review mistakes".
   static const mistakes = '/mistakes';
 

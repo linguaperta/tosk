@@ -22,10 +22,15 @@ const appRootKey = ValueKey('app-root');
 /// settings map (what `progressStoreProvider` defaults to, minus the presets).
 ///
 /// Both demo courses count as added ("my courses") unless [fresh] is true
-/// (a first run, which opens the course picker).
+/// (a first run, which opens the course picker). A fresh store has seen the
+/// welcome unless [welcome] is true (then the first run starts with it).
 class TestProgressStore extends InMemoryProgressStore {
-  TestProgressStore({Map<String, String>? settings, bool fresh = false})
-    : _settings = {if (!fresh) SettingKeys.coursesAdded: 'it,nl', ...?settings};
+  TestProgressStore({Map<String, String>? settings, bool fresh = false, bool welcome = false})
+    : _settings = {
+        if (!fresh) SettingKeys.coursesAdded: 'it,nl',
+        if (fresh && !welcome) SettingKeys.welcomeDone: 'true',
+        ...?settings,
+      };
 
   final Map<String, String> _settings;
 
