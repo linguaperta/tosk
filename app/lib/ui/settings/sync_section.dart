@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../sync/sync_providers.dart';
 import '../../sync/sync_service.dart';
+import '../common/privacy_link.dart';
 import 'settings_parts.dart';
 
 /// Settings → Account & sync (v0.7). Shown only when the build has a
@@ -66,11 +67,15 @@ class SyncSection extends ConsumerWidget {
           enabled: !busy,
           leading: Icon(Icons.delete_forever_outlined, color: theme.colorScheme.error),
           title: const Text('Delete my cloud data'),
-          subtitle: const Text('Removes your answers and settings from the account; this device keeps its copy'),
+          subtitle: const Text('Removes your answers, settings and sent reports from the cloud; this device keeps its copy'),
           onTap: () => _delete(context, service),
         ),
       ]);
     }
+    children.add(const Padding(
+      padding: EdgeInsets.symmetric(horizontal: 8),
+      child: Align(alignment: Alignment.centerLeft, child: PrivacyPolicyLink(key: ValueKey('sync-privacy'))),
+    ));
     if (status.notice case final n?) {
       children.add(Padding(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
@@ -102,6 +107,9 @@ class SyncSection extends ConsumerWidget {
     if (s.pending > 0) {
       parts.add('${s.pending} answer${s.pending == 1 ? '' : 's'} waiting to upload');
     }
+    if (s.reports > 0) {
+      parts.add('${s.reports} report${s.reports == 1 ? '' : 's'} for the developer waiting to send');
+    }
     return parts.join(' · ');
   }
 
@@ -118,9 +126,22 @@ class SyncSection extends ConsumerWidget {
       builder: (context) => AlertDialog(
         key: const ValueKey('sync-delete-confirm'),
         title: const Text('Delete your cloud data?'),
-        content: const Text(
-          'Every answer and setting stored in your account is deleted, and you are signed out. '
-          'The progress on this device is kept, and so is the progress on your other devices.',
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Every answer and setting stored in your account is deleted, and you are signed out. '
+                'The progress on this device is kept, and so is the progress on your other devices.',
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Flags, feedback and crash reports you sent to the developer are deleted from the cloud too. '
+                'Copies the developer already downloaded are deleted on request (see the privacy policy).',
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
@@ -135,9 +156,14 @@ class SyncSection extends ConsumerWidget {
     );
     if (ok != true) return;
     try {
-      await service.deleteCloudData();
+      final outcome = await service.deleteCloudData();
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cloud data deleted')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(switch (outcome) {
+            CloudDeleteOutcome.deleted => 'Cloud data deleted',
+            CloudDeleteOutcome.accountKept => 'Data deleted, but the account needs one more step (see Account & sync)',
+          }),
+        ));
       }
     } on Object {
       // The status shows the error.

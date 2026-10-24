@@ -9,6 +9,8 @@
 ///   whether the account already has it.
 /// * `setting_stamps`: per synced setting, the last value seen and when and
 ///   where it was changed, plus whether the change still has to be pushed.
+/// * `outbox` (schema v2): reports for the developer waiting to be uploaded
+///   (`report_outbox.dart`).
 library;
 
 import 'package:drift/drift.dart';
@@ -157,8 +159,8 @@ class InMemorySyncStore implements SyncStore {
 
 // -------------------------------------------------------------------- SQLite
 
-/// The sync database. Hand-written (raw SQL, no generated code): three small
-/// tables that only [DriftSyncStore] touches.
+/// The sync database. Hand-written (raw SQL, no generated code): small tables
+/// that only [DriftSyncStore] and `DriftOutboxStore` touch.
 class SyncDb extends GeneratedDatabase {
   SyncDb(super.executor);
 
@@ -168,7 +170,13 @@ class SyncDb extends GeneratedDatabase {
         'off INTEGER NOT NULL, uploaded INTEGER NOT NULL DEFAULT 0)',
     'CREATE TABLE IF NOT EXISTS setting_stamps (key TEXT NOT NULL PRIMARY KEY, value TEXT, '
         't INTEGER NOT NULL, device TEXT NOT NULL, dirty INTEGER NOT NULL)',
+    _outbox,
   ];
+
+  /// v2: reports for the developer (`report_outbox.dart`).
+  static const _outbox = 'CREATE TABLE IF NOT EXISTS outbox (id TEXT NOT NULL PRIMARY KEY, coll TEXT NOT NULL, '
+      'fields TEXT NOT NULL, created INTEGER NOT NULL, attempts INTEGER NOT NULL DEFAULT 0, '
+      'next_at INTEGER NOT NULL DEFAULT 0)';
 
   @override
   Iterable<TableInfo<Table, Object?>> get allTables => const [];
@@ -177,7 +185,7 @@ class SyncDb extends GeneratedDatabase {
   List<DatabaseSchemaEntity> get allSchemaEntities => const [];
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -188,6 +196,7 @@ class SyncDb extends GeneratedDatabase {
         },
         onUpgrade: (m, from, to) async {
           if (from > to) throw StateError('sync.sqlite is from a newer app version ($from > $to)');
+          if (from < 2) await customStatement(_outbox);
         },
       );
 }

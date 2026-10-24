@@ -5,7 +5,28 @@ import '../../core/core.dart';
 import '../../providers.dart';
 import '../theme/bw_skin.dart';
 
-/// Small chip warning that a course hasn't been checked by a speaker.
+/// What "Unverified" means (the badge's tap and tooltip).
+const kUnverifiedExplanation =
+    'No native speaker has checked this course yet. It is built from open dictionaries and example '
+    'sentences, partly written with AI, so a sentence may sometimes sound unnatural or even be wrong.';
+
+/// Shows [kUnverifiedExplanation] with what to do about a doubtful exercise.
+Future<void> showUnverifiedInfo(BuildContext context) => showDialog<void>(
+  context: context,
+  builder: (context) => AlertDialog(
+    key: const ValueKey('unverified-info'),
+    icon: const Icon(Icons.warning_amber_rounded),
+    title: const Text('Unverified course'),
+    content: const Text(
+      '$kUnverifiedExplanation\n\nMost exercises are fine. If one looks wrong, tap the flag button '
+      'after checking your answer: flagged exercises are how the course gets corrected.',
+    ),
+    actions: [TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Got it'))],
+  ),
+);
+
+/// Small chip warning that a course hasn't been checked by a speaker; a tap
+/// explains what that means.
 class UnverifiedBadge extends StatelessWidget {
   const UnverifiedBadge({super.key, this.compact = false});
   final bool compact;
@@ -14,28 +35,37 @@ class UnverifiedBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Tooltip(
-      message: 'This course has not been checked by a native speaker yet.',
-      child: Container(
-        key: const ValueKey('unverified-badge'),
-        padding: EdgeInsets.symmetric(horizontal: compact ? 6 : 8, vertical: 2),
-        // Black & white: outlined text (errorContainer is white there).
-        decoration: BoxDecoration(
-          color: scheme.errorContainer,
-          borderRadius: BorderRadius.circular(12),
-          border: isMonochrome(scheme) ? Border.all(color: kBwBlack, width: 1.5) : null,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.warning_amber_rounded, size: 14, color: scheme.onErrorContainer),
-            if (!compact) ...[
-              const SizedBox(width: 4),
-              Text(
-                'Unverified',
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(color: scheme.onErrorContainer),
-              ),
-            ],
-          ],
+      message: kUnverifiedExplanation,
+      child: Semantics(
+        button: true,
+        label: 'Unverified course. What does this mean?',
+        excludeSemantics: true,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => showUnverifiedInfo(context),
+          child: Container(
+            key: const ValueKey('unverified-badge'),
+            padding: EdgeInsets.symmetric(horizontal: compact ? 6 : 8, vertical: 2),
+            // Black & white: outlined text (errorContainer is white there).
+            decoration: BoxDecoration(
+              color: scheme.errorContainer,
+              borderRadius: BorderRadius.circular(12),
+              border: isMonochrome(scheme) ? Border.all(color: kBwBlack, width: 1.5) : null,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.warning_amber_rounded, size: 14, color: scheme.onErrorContainer),
+                if (!compact) ...[
+                  const SizedBox(width: 4),
+                  Text(
+                    'Unverified',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(color: scheme.onErrorContainer),
+                  ),
+                ],
+              ],
+            ),
+          ),
         ),
       ),
     );

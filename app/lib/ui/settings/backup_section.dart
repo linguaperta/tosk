@@ -12,6 +12,7 @@ import '../../sync/sync_providers.dart';
 import 'learner_settings.dart';
 import 'setting_keys.dart';
 import 'settings_parts.dart';
+import '../common/error_text.dart';
 
 /// Where backups are written and read. The real one uses file_picker, whose
 /// save flow fits each platform: a save dialog on desktop, the system
@@ -102,7 +103,7 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
       final n = {for (final e in backup.events) e.id}.length;
       _snack('Saved $n answer${n == 1 ? '' : 's'} to $where', key: const ValueKey('backup-saved'));
     } catch (e) {
-      if (mounted) _snack('Could not save the backup: $e', key: const ValueKey('backup-error'));
+      if (mounted) _snack(tryAgainMessage("The backup couldn't be saved.", e), key: const ValueKey('backup-error'));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -206,7 +207,7 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
       );
       refresh();
     } catch (e) {
-      if (mounted) _snack('Import failed: $e', key: const ValueKey('backup-error'));
+      if (mounted) _snack(tryAgainMessage("The backup couldn't be imported.", e), key: const ValueKey('backup-error'));
     } finally {
       if (mounted) setState(() => _busy = false);
     }

@@ -7,8 +7,11 @@ import '../../ai/prompts.dart' show ParsedVerdict;
 import '../../app_version.dart';
 import '../../core/core.dart';
 import '../../feedback/exercise_snapshot.dart';
+import '../../feedback/reports.dart';
 import '../../providers.dart';
+import '../../sync/sync_providers.dart';
 import '../common/markdown.dart';
+import '../common/error_text.dart';
 
 /// Everything a flag records about the checked exercise.
 class FlagDraft {
@@ -36,7 +39,8 @@ Future<bool?> showFlagSheet(BuildContext context, FlagDraft draft) => showModalB
 );
 
 /// "Report a problem" (like Duolingo's flag): reason chips, a comment, Submit
-/// (saved on the device, exported from Settings → Feedback & flags) and,
+/// (saved on the device, exported from Settings → Feedback & flags, and sent
+/// to the developer when signed in: `queueReport`) and,
 /// when AI is configured, "Confer with AI" for a second opinion that is shown
 /// and stored with the flag.
 class FlagSheet extends ConsumerStatefulWidget {
@@ -123,11 +127,13 @@ class _FlagSheetState extends ConsumerState<FlagSheet> {
     try {
       await ref.read(feedbackStoreProvider).saveFlag(flag);
       ref.read(flagsRevisionProvider.notifier).bump();
+      // Signed in: also to the developer (queued; offline it waits).
+      await queueReport(ref, flagReport(flag));
       if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
       if (mounted) {
         setState(() => _saving = false);
-        ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(content: Text('Could not save the flag: $e')));
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(content: Text(tryAgainMessage("The flag couldn't be saved.", e))));
       }
     }
   }
@@ -136,6 +142,8 @@ class _FlagSheetState extends ConsumerState<FlagSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final canConfer = ref.watch(flagReviewerProvider) != null;
+    final sends = ref.watch(canSendReportsProvider);
+    final canSignIn = ref.watch(canSignInProvider);
     final verdict = _verdict;
     final insets = MediaQuery.viewInsetsOf(context).bottom;
 
@@ -236,7 +244,13 @@ class _FlagSheetState extends ConsumerState<FlagSheet> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Flags stay on this device. Export them from Settings → Feedback & flags.',
+                      sends
+                          ? 'Submitted flags are sent to the developer and kept on this device.'
+                          : canSignIn
+                          ? 'Sign in to send flags to the developer automatically (Settings → Account & sync). '
+                                'Until then they stay on this device; export them from Settings → Feedback & flags.'
+                          : 'Flags stay on this device. Export them from Settings → Feedback & flags.',
+                      key: const ValueKey('flag-destination'),
                       style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                     ),
                   ],

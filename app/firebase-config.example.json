@@ -2,5 +2,6 @@
   "TOSK_FIREBASE_PROJECT_ID": "your-project-id",
   "TOSK_FIREBASE_API_KEY": "AIza-your-web-api-key",
   "TOSK_GOOGLE_WEB_CLIENT_ID": "1234567890-abcdef.apps.googleusercontent.com",
-  "TOSK_GOOGLE_IOS_CLIENT_ID": ""
+  "TOSK_GOOGLE_IOS_CLIENT_ID": "",
+  "TOSK_FEEDBACK_EMAIL": ""
 }

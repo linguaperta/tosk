@@ -158,6 +158,20 @@ Future<void> tapIt(WidgetTester tester, Finder finder) async {
   await tester.pumpAndSettle();
 }
 
+/// Settings → About: seven taps on the version turn on the developer options
+/// (where the debug link is).
+Future<void> enableDeveloperOptions(WidgetTester tester) async {
+  final version = find.byKey(const ValueKey('about-version'));
+  await scrollToFind(tester, version);
+  await tester.ensureVisible(version);
+  await tester.pumpAndSettle();
+  for (var i = 0; i < 7; i++) {
+    await tester.tap(version);
+    await tester.pump(const Duration(milliseconds: 50));
+  }
+  await tester.pumpAndSettle();
+}
+
 Future<void> tapKey(WidgetTester tester, String key) => tapIt(tester, find.byKey(ValueKey(key)));
 
 /// A tap on a map node opens the skill's sheet; Start lesson starts it.

@@ -1,19 +1,122 @@
 rules_version = '2';
 
 // tosk cloud sync (v0.7): every signed-in user owns users/{uid}/... and
-// nothing else. The app writes two kinds of documents (see
+// nothing else. The app writes these documents (see
 // app/lib/sync/firestore_backend.dart):
 //
-//   users/{uid}/batches/{batchId}  v, dev, n, events (JSON lines), up
-//   users/{uid}/settings/{key}     k, v, t, dev, up
+//   users/{uid}/batches/{batchId}   v, dev, n, events (JSON lines), up
+//   users/{uid}/settings/{key}      k, v, t, dev, up
 //
-// `up` must be the server's request time (the app sets it with the
-// REQUEST_TIME transform); sync clamps clock-skewed answers against it, so a
-// client may not forge it.
+// and, after v0.7.6, reports for the developer, only when the learner sends
+// them (app/lib/sync/report_outbox.dart, docs/feedback.md):
+//
+//   users/{uid}/feedback/{id}  v, kind ('flag' | 'general'), app, platform,
+//                              at, text, [email] (general only),
+//                              [flag] (JSON, flags only), [course], up
+//   users/{uid}/crashes/{id}   v, app, platform, device, at, report, up
+//
+// plus `seen` (a timestamp) on reports, which only the owner's tools write.
+// The project owner reads reports with admin credentials (a service account
+// or `gcloud auth print-access-token`), which bypass these rules:
+// `python -m pipeline feedback pull` (docs/firebase-setup.md, step 10). No
+// other user can read anything here. A report can't be changed once sent;
+// an identical re-send (a retry after a lost acknowledgement) is allowed and
+// changes nothing but `up`. "Delete my cloud data" deletes reports too.
+//
+// Every write needs a Google sign-in (no anonymous or other providers), and
+// every document has a fixed shape and size caps, so an account can't fill
+// the free-tier quota with junk. `up` must be the server's request time (the
+// app sets it with the REQUEST_TIME transform); sync clamps clock-skewed
+// answers against it, so a client may not forge it.
 service cloud.firestore {
   match /databases/{database}/documents {
     function owner(uid) {
       return request.auth != null && request.auth.uid == uid;
+    }
+
+    // Writes: the owner, signed in with Google.
+    function writer(uid) {
+      return owner(uid) && request.auth.token.firebase.sign_in_provider == 'google.com';
+    }
+
+    // d[k] is a string of at most max characters.
+    function str(d, k, max) {
+      return d[k] is string && d[k].size() <= max;
+    }
+
+    // d[k] is absent, or a string of at most max characters.
+    function optStr(d, k, max) {
+      return !d.keys().hasAny([k]) || str(d, k, max);
+    }
+
+    function docId(id, max) {
+      return id.size() <= max && id.matches('^[A-Za-z0-9_-]+$');
+    }
+
+    // ---------------------------------------------------------------- sync
+
+    function validBatch(d) {
+      return d.keys().hasOnly(['v', 'dev', 'n', 'events', 'up'])
+        && d.keys().hasAll(['v', 'dev', 'n', 'events', 'up'])
+        && d.v == 1
+        && str(d, 'dev', 64)
+        && d.n is int && d.n >= 1 && d.n <= 400
+        && str(d, 'events', 250000)
+        && d.up == request.time;
+    }
+
+    function validSetting(d) {
+      return d.keys().hasOnly(['k', 'v', 't', 'dev', 'up'])
+        && d.keys().hasAll(['k', 'v', 't', 'dev', 'up'])
+        && str(d, 'k', 100)
+        && (d.v == null || str(d, 'v', 10000))
+        && d.t is int
+        && str(d, 'dev', 64)
+        && d.up == request.time;
+    }
+
+    // ---------------------------------------------------------------- reports
+
+    // Fields every report has: a version, the app, the platform and when.
+    function reportBase(d) {
+      return d.v == 1
+        && str(d, 'app', 40)
+        && str(d, 'platform', 20)
+        && d.at is int
+        && d.up == request.time;
+    }
+
+    function validFeedback(d) {
+      return d.keys().hasOnly(['v', 'kind', 'app', 'platform', 'at', 'text', 'email', 'flag', 'course', 'up', 'seen'])
+        && d.keys().hasAll(['v', 'kind', 'app', 'platform', 'at', 'text', 'up'])
+        && reportBase(d)
+        && d.kind in ['flag', 'general']
+        && str(d, 'text', 4000)
+        && optStr(d, 'email', 200)
+        && optStr(d, 'flag', 60000)
+        && optStr(d, 'course', 64)
+        // A flag carries its exercise; only general feedback carries an email.
+        && (d.kind == 'flag') == d.keys().hasAny(['flag'])
+        && (d.kind == 'general' || !d.keys().hasAny(['email']));
+    }
+
+    function validCrash(d) {
+      return d.keys().hasOnly(['v', 'app', 'platform', 'device', 'at', 'report', 'up', 'seen'])
+        && d.keys().hasAll(['v', 'app', 'platform', 'device', 'at', 'report', 'up'])
+        && reportBase(d)
+        && str(d, 'device', 200)
+        && str(d, 'report', 20000)
+        && d.report.size() > 0;
+    }
+
+    // A client never sets the owner's `seen` mark.
+    function fresh() {
+      return !request.resource.data.keys().hasAny(['seen']);
+    }
+
+    // An existing report may only be written again unchanged.
+    function resent() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['up']);
     }
 
     match /users/{uid} {
@@ -21,25 +124,28 @@ service cloud.firestore {
 
       match /batches/{batchId} {
         allow read, delete: if owner(uid);
-        allow create, update: if owner(uid)
-          && request.resource.data.keys().hasOnly(['v', 'dev', 'n', 'events', 'up'])
-          && request.resource.data.v is int
-          && request.resource.data.dev is string
-          && request.resource.data.n is int
-          && request.resource.data.events is string
-          && request.resource.data.events.size() < 1000000
-          && request.resource.data.up == request.time;
+        allow create, update: if writer(uid) && docId(batchId, 64) && validBatch(request.resource.data);
       }
 
       match /settings/{key} {
         allow read, delete: if owner(uid);
-        allow create, update: if owner(uid)
-          && request.resource.data.keys().hasOnly(['k', 'v', 't', 'dev', 'up'])
-          && request.resource.data.k is string
-          && (request.resource.data.v == null || (request.resource.data.v is string && request.resource.data.v.size() < 100000))
-          && request.resource.data.t is int
-          && request.resource.data.dev is string
-          && request.resource.data.up == request.time;
+        allow create, update: if writer(uid)
+          && key.size() <= 200 && key.matches('^[A-Za-z0-9._%-]+$')
+          && validSetting(request.resource.data);
+      }
+
+      match /feedback/{id} {
+        allow read, delete: if owner(uid);
+        allow create: if writer(uid) && docId(id, 64) && id.size() >= 8
+          && validFeedback(request.resource.data) && fresh();
+        allow update: if writer(uid) && validFeedback(request.resource.data) && resent();
+      }
+
+      match /crashes/{id} {
+        allow read, delete: if owner(uid);
+        allow create: if writer(uid) && docId(id, 64) && id.size() >= 8
+          && validCrash(request.resource.data) && fresh();
+        allow update: if writer(uid) && validCrash(request.resource.data) && resent();
       }
     }
   }

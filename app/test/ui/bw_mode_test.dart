@@ -234,6 +234,7 @@ void main() {
     await tester.pageBack();
     await tester.pumpAndSettle();
     await goTab(tester, 'Settings');
+    await enableDeveloperOptions(tester);
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('open-debug')),
       300,

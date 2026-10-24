@@ -120,6 +120,8 @@ flutter:
     # PNG (colour and -mono), and the branch style the map painter follows.
     - assets/brand/png/
     - assets/brand/branch-style.json
+    # Gelasio's licence, shown on Settings → About → Open-source licences.
+    - assets/brand/fonts/OFL.txt
 
   # Gelasio (SIL Open Font License, assets/brand/fonts/OFL.txt): headings and
   # the tosk wordmark. Body text keeps the platform UI font.

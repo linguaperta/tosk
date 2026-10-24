@@ -25,6 +25,7 @@ import '../settings/app_settings.dart';
 import '../shell/course_switcher.dart' show DemoBadge, UnverifiedBadge;
 import '../theme/bw_skin.dart';
 import 'course_updates.dart';
+import '../common/error_text.dart';
 
 /// Opens the picker as a bottom sheet. On the first run ([firstRun]), closing
 /// it without adding anything adds the course shown underneath, so the app
@@ -755,7 +756,7 @@ class _Preview extends ConsumerWidget {
       padding: const EdgeInsets.fromLTRB(4, 0, 8, 10),
       child: preview.when(
         loading: () => const Padding(padding: EdgeInsets.all(12), child: LinearProgressIndicator()),
-        error: (e, _) => Text('Could not open this course: $e'),
+        error: (e, _) => Text("This course couldn't be opened. Try removing and adding it again. (${errorDetail(e)})"),
         data: (p) {
           final description = pickLang(p.meta.description, lang);
           String n(int v) => v.toString().replaceAllMapped(RegExp(r'\B(?=(\d{3})+$)'), (_) => ',');

@@ -9,6 +9,7 @@ import 'bookmarks/starred_screen.dart';
 import 'chat/chat_screen.dart';
 import 'debug/debug_route.dart';
 import 'feedback/flags_screen.dart';
+import 'feedback/send_feedback_screen.dart';
 import 'lesson/player_screen.dart';
 import 'lesson/session_request.dart';
 import 'map/map_screen.dart';
@@ -203,6 +204,11 @@ GoRouter buildRouter({String initialLocation = Routes.map}) {
         path: Routes.flags,
         parentNavigatorKey: rootNavigatorKey,
         builder: (_, _) => const FlagsScreen(),
+      ),
+      GoRoute(
+        path: Routes.feedback,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (_, _) => const SendFeedbackScreen(),
       ),
       GoRoute(path: Routes.debug, parentNavigatorKey: rootNavigatorKey, builder: (_, _) => const DebugRoute()),
     ],

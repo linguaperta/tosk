@@ -14,6 +14,7 @@ import '../data/progress/progress_connection.dart';
 import '../data/progress/progress_repo.dart';
 import 'firebase_auth.dart';
 import 'google_identity.dart';
+import 'report_outbox.dart';
 import 'sync_config.dart';
 import 'sync_engine.dart';
 import 'sync_service.dart';
@@ -67,6 +68,7 @@ Future<SyncSetup?> openSync({
     client: c,
     secrets: secrets ?? const SecureSecretStore(),
     identity: identity ?? PluginGoogleIdentity(config),
+    outbox: ReportOutbox(DriftOutboxStore(db)),
   );
   void log(Object e, StackTrace _) => debugPrint('[sync] $e');
   final unlisten = [

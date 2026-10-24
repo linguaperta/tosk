@@ -214,7 +214,7 @@ void main() {
     expect(page.items.first.changedAtMs, 5);
     expect(page.items.first.cursor, isNotNull);
     for (var i = 0; i < 7; i++) {
-      await b.pushEvents('b$i', 'd', const []);
+      await b.pushEvents('b$i', 'd', [SyncedEvent(sampleLog(count: 7)[i], 0)]);
     }
     expect(fb.docs.length, 9);
     await b.deleteAll();
@@ -224,7 +224,7 @@ void main() {
   test('an expired ID token is refreshed once on 401', () async {
     final b = await signedIn();
     fb.validTokens.clear(); // the server no longer accepts the cached token
-    await b.pushEvents('x', 'd', const []);
+    await b.pushEvents('x', 'd', [SyncedEvent(sampleLog(count: 1).single, 0)]);
     expect(fb.requests.where((r) => r.contains('securetoken') || r.contains('/v1/token')).length, 1);
     expect(fb.docs.length, 1);
   });

@@ -64,6 +64,11 @@ abstract final class SettingKeys {
   /// "Show welcome again" opens it on demand.
   static const welcomeDone = 'welcome.done';
 
+  /// Device-only: `'true'` while the hidden developer options (the debug
+  /// screen) show in Settings → About. Tapping the version seven times turns
+  /// them on; their own switch turns them off.
+  static const developerOptions = 'dev.options';
+
   static const all = [
     course,
     sourceLang,

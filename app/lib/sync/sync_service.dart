@@ -8,6 +8,11 @@
 /// web tokens join it) and at most one sync running, with at most one more
 /// queued behind it (every trigger that arrives meanwhile shares that one).
 /// The first sync after a sign-in starts only once the session is stored.
+///
+/// **Reports for the developer** (flags, feedback, crash reports; only while
+/// signed in, [sendReport]) wait in the [ReportOutbox] and are uploaded after
+/// each sync, with the outbox's own batching and backoff; their failures never
+/// show as sync errors.
 library;
 
 import 'dart:async';
@@ -20,10 +25,21 @@ import '../core/core.dart';
 import 'firebase_auth.dart';
 import 'firestore_backend.dart';
 import 'google_identity.dart';
+import 'report_outbox.dart';
 import 'sync_engine.dart';
 import 'sync_errors.dart';
 
 enum SyncPhase { signedOut, signingIn, idle, syncing, error }
+
+/// What "Delete my cloud data" achieved.
+enum CloudDeleteOutcome {
+  /// The data and the sign-in account are gone.
+  deleted,
+
+  /// The data is gone, but the sign-in account could not be removed (it
+  /// needs a recent sign-in): sign in again and delete once more.
+  accountKept,
+}
 
 @immutable
 class SyncStatus {
@@ -35,6 +51,7 @@ class SyncStatus {
     this.lastError,
     this.notice,
     this.pending = 0,
+    this.reports = 0,
     this.offline = false,
   });
 
@@ -53,6 +70,9 @@ class SyncStatus {
   /// Answers not uploaded yet.
   final int pending;
 
+  /// Reports for the developer not uploaded yet.
+  final int reports;
+
   /// The last attempt failed for lack of a connection (answers wait locally).
   final bool offline;
 
@@ -67,6 +87,7 @@ class SyncStatus {
     bool clearError = false,
     String? notice,
     int? pending,
+    int? reports,
     bool? offline,
   }) =>
       SyncStatus(
@@ -77,6 +98,7 @@ class SyncStatus {
         lastError: clearError ? null : (lastError ?? this.lastError),
         notice: notice,
         pending: pending ?? this.pending,
+        reports: reports ?? this.reports,
         offline: offline ?? this.offline,
       );
 }
@@ -93,6 +115,7 @@ class SyncService extends ChangeNotifier {
     required this.backendFor,
     this.debounce = const Duration(minutes: 1),
     this.signInRetryDelay = const Duration(milliseconds: 1500),
+    this.outbox,
     DateTime Function()? clock,
   }) : clock = clock ?? DateTime.now;
 
@@ -104,12 +127,14 @@ class SyncService extends ChangeNotifier {
     required http.Client client,
     required SecretStore secrets,
     required GoogleIdentity identity,
+    ReportOutbox? outbox,
   }) =>
       SyncService(
         engine: engine,
         auth: auth,
         secrets: secrets,
         identity: identity,
+        outbox: outbox,
         backendFor: (tokens) => FirestoreSyncBackend(projectId: projectId, client: client, tokens: tokens),
       );
 
@@ -119,6 +144,9 @@ class SyncService extends ChangeNotifier {
   final GoogleIdentity identity;
   final SyncBackendFactory backendFor;
   final Duration debounce;
+
+  /// Reports for the developer waiting to be uploaded (null: none can be sent).
+  final ReportOutbox? outbox;
 
   /// The pause before `signInWithIdp` is retried ([isRetryableSignIn]).
   final Duration signInRetryDelay;
@@ -173,7 +201,13 @@ class SyncService extends ChangeNotifier {
       final saved = FirebaseSession.decode(await secrets.read(sessionKey));
       if (saved != null) {
         _attach(saved);
-        _set(SyncStatus(phase: SyncPhase.idle, email: saved.email, name: saved.displayName, pending: await engine.pending()));
+        _set(SyncStatus(
+          phase: SyncPhase.idle,
+          email: saved.email,
+          name: saved.displayName,
+          pending: await engine.pending(),
+          reports: await _reportsPending(),
+        ));
         _schedule(firstSyncDelay);
       }
     } on Object catch (e) {
@@ -203,6 +237,44 @@ class SyncService extends ChangeNotifier {
   void localDataChanged() {
     if (_tokens == null) return;
     _schedule(localChangeDelay);
+  }
+
+  // ------------------------------------------------------------------ reports
+
+  /// Whether [sendReport] would queue a report (signed in, with an outbox).
+  bool get canSendReports => outbox != null && _tokens != null && !_disposed;
+
+  /// Queues [report] for the developer and syncs soon; false (nothing
+  /// queued) when not signed in. Offline, it waits for the next sync.
+  Future<bool> sendReport(OutgoingReport report) async {
+    final box = outbox;
+    if (box == null || !canSendReports) return false;
+    await box.add(report);
+    _set(_status.copyWith(reports: await _reportsPending()));
+    _schedule(localChangeDelay);
+    return true;
+  }
+
+  Future<int> _reportsPending() async {
+    try {
+      return await outbox?.pending() ?? 0;
+    } on Object {
+      return _status.reports;
+    }
+  }
+
+  /// Uploads due reports through the current backend. Never throws.
+  Future<void> _flushReports() async {
+    final box = outbox;
+    final backend = engine.backend;
+    if (box == null || backend is! ReportSender) return;
+    final sender = backend as ReportSender;
+    try {
+      final r = await box.flush(sender);
+      if (r.sent > 0 || r.dropped > 0 || r.failed > 0) debugPrint('[sync] reports: $r');
+    } on Object catch (e) {
+      debugPrint('[sync] reports not sent: $e');
+    }
   }
 
   void _schedule(Duration d) {
@@ -330,7 +402,9 @@ class SyncService extends ChangeNotifier {
     _set(_status.copyWith(phase: SyncPhase.syncing));
     try {
       final r = await engine.sync();
+      if (!stale()) await _flushReports();
       final pending = await _pending();
+      final reports = await _reportsPending();
       if (stale()) return null;
       _lastResult = r;
       _set(_status.copyWith(
@@ -339,20 +413,25 @@ class SyncService extends ChangeNotifier {
         clearError: true,
         offline: false,
         pending: pending,
+        reports: reports,
       ));
       if (r.changedLocal) onLocalChange?.call(r);
       return r;
     } on Object catch (e) {
       debugPrint('[sync] sync failed: $e');
-      final pending = await _pending();
-      if (stale()) return null;
       final offline = e is! SyncAuthException && looksOffline(e);
+      // Reports go their own way (a sync error needn't be theirs).
+      if (!offline && !stale()) await _flushReports();
+      final pending = await _pending();
+      final reports = await _reportsPending();
+      if (stale()) return null;
       _set(_status.copyWith(
         phase: SyncPhase.error,
         lastError: offline ? null : friendlySyncError(e),
         clearError: offline,
         offline: offline,
         pending: pending,
+        reports: reports,
       ));
     }
     return null;
@@ -392,28 +471,70 @@ class SyncService extends ChangeNotifier {
     _set(const SyncStatus(phase: SyncPhase.signedOut));
   }
 
-  /// Deletes everything stored in the account (answers, settings and the
-  /// account itself), then signs out. Progress on this device is kept.
-  Future<void> deleteCloudData() async {
+  /// Deletes everything stored in the account (answers, settings, the
+  /// reports sent to the developer, and the sign-in account itself), then
+  /// signs out. Progress on this device is kept; reports not sent yet are
+  /// dropped.
+  ///
+  /// Firebase removes a sign-in account only after a recent sign-in
+  /// (`CREDENTIAL_TOO_OLD_LOGIN_AGAIN`). Where the app can start a Google
+  /// sign-in (Android, iOS) it asks for one and retries; otherwise (the web)
+  /// or when that fails, the data is still gone but the result is
+  /// [CloudDeleteOutcome.accountKept] and the status says how to finish
+  /// (sign in again and delete once more). Never reports success when the
+  /// account remains. Throws (status: an error) when the data itself could
+  /// not be deleted.
+  Future<CloudDeleteOutcome> deleteCloudData() async {
     final tokens = _tokens;
-    if (tokens == null) return;
+    if (tokens == null) return CloudDeleteOutcome.deleted;
     // Not in the middle of a sync (a queued one then finds no session).
     await _current;
     _set(_status.copyWith(phase: SyncPhase.syncing));
     try {
       await engine.deleteRemote();
-      try {
-        await auth.deleteAccount(await tokens.idToken());
-      } on Object catch (e) {
-        // The data is gone; an account without data holds nothing.
-        debugPrint('[sync] account not deleted: $e');
-      }
+      final accountGone = await _deleteAccount(tokens);
       await _forgetSession();
+      try {
+        await outbox?.clear();
+      } on Object {
+        // Only unsent reports.
+      }
+      if (!accountGone) {
+        _set(const SyncStatus(phase: SyncPhase.signedOut, lastError: SyncMessages.accountKept));
+        return CloudDeleteOutcome.accountKept;
+      }
       _set(const SyncStatus(phase: SyncPhase.signedOut));
+      return CloudDeleteOutcome.deleted;
     } on Object catch (e) {
       debugPrint('[sync] could not delete the cloud data: $e');
       _set(_status.copyWith(phase: SyncPhase.error, lastError: 'Could not delete the cloud data. ${friendlySyncError(e, fallback: 'Please try again.')}'));
       rethrow;
+    }
+  }
+
+  /// Deletes the Firebase account; on failure, re-authenticates with a fresh
+  /// Google sign-in (where the app can start one) and tries once more.
+  Future<bool> _deleteAccount(FirebaseTokens tokens) async {
+    try {
+      await auth.deleteAccount(await tokens.idToken());
+      return true;
+    } on Object catch (e) {
+      debugPrint('[sync] account not deleted: $e');
+      if (looksOffline(e) || !identity.canCallSignIn) return false;
+    }
+    try {
+      final google = await identity.signIn();
+      if (google == null) return false; // cancelled
+      final fresh = await auth.signInWithGoogle(google);
+      if (fresh.uid != tokens.uid || fresh.idToken == null) {
+        debugPrint('[sync] re-authenticated as another account; the account stays');
+        return false;
+      }
+      await auth.deleteAccount(fresh.idToken!);
+      return true;
+    } on Object catch (e) {
+      debugPrint('[sync] account not deleted after re-authentication: $e');
+      return false;
     }
   }
 

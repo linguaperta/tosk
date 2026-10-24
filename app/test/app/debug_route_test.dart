@@ -37,6 +37,7 @@ void main() {
     expect(find.byKey(const ValueKey('course-picker')), findsOneWidget);
     await tapKey(tester, 'course-picker-done');
     expect(find.byKey(const ValueKey('course-picker')), findsNothing);
+    await enableDeveloperOptions(tester);
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('open-debug')),
       300,

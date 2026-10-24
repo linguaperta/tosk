@@ -40,6 +40,8 @@ Decisions agreed with the owner on 20 October 2026, and the checklist for making
 - [x] Owner: create the `linguaperta` GitHub org, move and rename the repos (public since 20 Oct).
 - [ ] Owner: enable GitHub Pages (Settings → Pages → Source: GitHub Actions).
 - [x] Owner: create the Firebase project ([firebase-setup.md](firebase-setup.md)), add the Pages origin as an authorized domain, add the CI secrets.
-- [ ] Privacy policy page on the website: what is synced (the answer log and settings, linked to the Google account), no analytics, crash reports stay on the device, "Delete my cloud data".
+- [x] Privacy policy page: `app/web/privacy.html`, deployed with the web app at `https://linguaperta.github.io/tosk/privacy.html` (what stays on the device, what syncs per answer and setting, reports only when sent, no analytics or ads, AI directly to the provider with the learner's key, GitHub, fonts, ML Kit and speech, Android backup, "Delete my cloud data", contact). Linked from the welcome's sign-in page, Settings → Account & sync and Settings → About.
+- [ ] Owner: publish the updated Firestore rules ([firebase-setup.md](firebase-setup.md), step 9), set up reading feedback (step 10), fill in the OAuth consent screen with the privacy URL and publish it (step 11), and check the privacy page's Firestore region.
+- [x] Ready for outside testers (after v0.7.6): flags, feedback (Settings → Send feedback) and opt-in crash reports reach the owner when the learner is signed in (`python -m pipeline feedback pull`); developer-only settings (the debug screen) are behind seven taps on the version; About has the version, licences, source and privacy links; the Unverified badge explains itself; error panels say what to do.
 - [ ] Small website (`linguaperta.github.io`): downloads, the web app, the pack docs, the privacy policy.
 - [ ] First public release: tag → CI builds the APK, Windows and web, attaches them to the GitHub Release and deploys Pages.
