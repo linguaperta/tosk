@@ -8,7 +8,7 @@
 # enter git history). Runs on main, daily (to pick up new pack releases) and by
 # hand. Skips cleanly while Pages is not enabled for the repository (Settings →
 # Pages → Source: GitHub Actions). Firebase sync is compiled in when the
-# FIREBASE_CONFIG_JSON secret exists (docs/firebase-setup.md).
+# FIREBASE_WEB_CONFIG_JSON (or FIREBASE_CONFIG_JSON) secret exists (docs/firebase-setup.md).
 #
 # Optional repository variables: PAGES_BASE_HREF (default /<repo>/, e.g. /tosk/
 # after a rename) and PACK_INDEX_URL (default: the latest tosk-data release).
@@ -72,7 +72,8 @@ jobs:
       - name: Firebase config (optional)
         working-directory: app
         env:
-          FIREBASE_CONFIG_JSON: ${{ secrets.FIREBASE_CONFIG_JSON }}
+          # FIREBASE_WEB_CONFIG_JSON: the same with the website-restricted API key (docs/firebase-setup.md).
+          FIREBASE_CONFIG_JSON: ${{ secrets.FIREBASE_WEB_CONFIG_JSON || secrets.FIREBASE_CONFIG_JSON }}
         run: |
           if [ -n "$FIREBASE_CONFIG_JSON" ]; then
             printf '%s' "$FIREBASE_CONFIG_JSON" > firebase-config.json

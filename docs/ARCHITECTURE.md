@@ -30,7 +30,7 @@ The DDL in `schema/course_db.sql` is the authoritative definition. The key point
 
 ## Identifiers (permanent)
 
-- **Course id:** the target language code (`it`, `nl`, `hns`).
+- **Course id:** the target language code (`it`, `nl`, `hns`); an expansion is `<base>.<name>` (`it.cucina`). Ids name files, so the app accepts only `isValidCourseId` ids (`core/course_id.dart`: lower-case ASCII letters, digits, `-`, `_`, at most one dot; docs/data-layer.md).
 - **Item id:** `{course}:{lemma}`. A homograph that needs separate entries (for example a different POS) gets `{course}:{lemma}.{n}` with `n = 2, 3, …`. IDs are recorded in `content/{course}/ids.tsv` (id, lemma, pos, sense-key), and the importer reuses existing IDs. An ID is never reassigned to a different word or reused after deletion.
 - **Sentence id:** `s:{tatoebaId}` for Tatoeba sentences. Other sources get their own prefix (`gen:…`, `x:…`).
 - **Facet id:**
@@ -128,6 +128,19 @@ app.dart, main.dart, providers.dart (Riverpod wiring)
 ```
 
 Dependency direction: `ui → engine, progression, data → core`. `sync`, `ai`, `feedback`, `audio`, `ink`, `speech` and `device` sit beside `data`: they use `core`, and `feedback` also uses the engine's `exercisePrompt`. `docs/feedback.md` describes AI explanations, flags and sounds. `engine` and `progression` depend only on `core`, with data access through small interfaces such as `CourseData` and `ProgressReader`. That keeps them pure Dart and testable with in-memory fixtures. `data` implements those interfaces.
+
+## Trust boundaries
+
+Course packs, course indexes and backup files may come from anyone (sharing packs is the intended direction), so they are treated as untrusted input:
+
+- **Packs:** opened read-only, with `trusted_schema` off and a schema check (tables and indexes only) before any table is read; integrity-checked when added from outside; size-capped; their course id validated before it names a file (docs/data-layer.md, "Course packs").
+- **Indexes and downloads:** `https` only (loopback excepted for development), also after redirects; sha256 and size checked; size caps on the index, packs and gzip output (docs/data-layer.md, "Downloads").
+- **Backups:** merge only, never delete; only whitelisted learner preferences are imported, never `ai.*` (docs/data-layer.md, "Progress backup").
+- **AI:** the key lives in platform secure storage and is sent only to the configured provider, over `https` (plain `http` only to this device or the local network, `core/net_policy.dart`). AI output is rendered as plain Markdown text (no HTML, links or images).
+- **Web:** a Content-Security-Policy in `web/index.html` (docs/release.md, "Web app and pack mirror").
+- **Android:** no cloud backup or device transfer of app data.
+
+Reporting a vulnerability: `SECURITY.md`.
 
 ## Testing
 
