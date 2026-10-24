@@ -162,7 +162,7 @@ The query is resolved **at build time**: the compiled pack lists each skill's it
 
 ### 3.3 Topics (1.2)
 
-A **topic** is a themed set of skills (food and cooking, travel, work, football) that is not part of the course's main line. It has its own units and skills and the app draws it as its own map; on the main tree a side branch grows off the topic's **anchor** skill with the topic's name carved into the bark and a "Go to …" button. Topics share everything with the main tree: item ids (one progress per word), grammar notes, gating, XP and level. Words the learner already knows from the main tree or another topic count as known (lessons don't introduce them again).
+A **topic** is a themed set of skills (food and cooking, travel, work, football) that is not part of the course's main line. It has its own units and skills and the app draws it as its own map; on the main tree a side branch grows off the topic's **anchor** skill with the topic's name carved into the bark; a tap on the branch opens the topic. Topics share everything with the main tree: item ids (one progress per word), grammar notes, gating, XP and level. Words the learner already knows from the main tree or another topic count as known (lessons don't introduce them again).
 
 ```yaml
 topics:

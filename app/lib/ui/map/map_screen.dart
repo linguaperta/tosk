@@ -18,7 +18,7 @@ import 'tree_selector.dart';
 /// Home: the skill map for the active course.
 ///
 /// A course with topics has several trees: the main tree (with a branch
-/// leaving the map at each topic's anchor, "Go to …") and one map per topic,
+/// leaving the map at each topic's anchor; a tap on it opens the topic) and one map per topic,
 /// whose root leads back. The app bar's title is then a menu of the trees
 /// ([TreeSelector]); each tree keeps its own scroll position.
 class MapScreen extends ConsumerStatefulWidget {

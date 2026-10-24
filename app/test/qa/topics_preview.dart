@@ -11,6 +11,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tosk/providers.dart';
+import 'package:tosk/ui/map/skill_map_view.dart' show MapPlan, SkillMapView;
+import 'package:tosk/ui/map/topic_branch.dart' show BranchPlan;
 import 'package:tosk/ui/map/skill_stats.dart';
 import 'package:tosk/ui/settings/setting_keys.dart';
 
@@ -71,12 +73,27 @@ Future<void> _pump(WidgetTester tester, Size size, Map<String, String> settings)
   ],
 );
 
-Future<void> _scrollTo(WidgetTester tester, String key, {double above = 140}) async {
-  final f = find.byKey(ValueKey(key));
-  await tester.ensureVisible(f);
+/// Topic [id]'s branch plan on the main map.
+BranchPlan topicBranchPlan(WidgetTester tester, String id) =>
+    ((tester.state(find.byType(SkillMapView)) as dynamic).plan as MapPlan).branches.firstWhere((b) => b.branch.id == id);
+
+/// Where topic [id]'s branch is tapped (the middle of its carving), on screen.
+Offset topicTapPoint(WidgetTester tester, String id) =>
+    tester.getTopLeft(find.byKey(const ValueKey('map-content'))) + topicBranchPlan(tester, id).tapPoint;
+
+/// Scrolls the main map so topic [id]'s carving sits [above] px from the top.
+Future<void> scrollToTopicBranch(WidgetTester tester, String id, {required double above}) async {
+  await tester.ensureVisible(find.byKey(ValueKey('topic-branch-$id')));
   await tester.pumpAndSettle();
-  final y = tester.getTopLeft(f).dy;
-  await tester.drag(find.byKey(const ValueKey('map-scroll')), Offset(0, -(y - above - 80)));
+  await tester.drag(find.byKey(const ValueKey('map-scroll')), Offset(0, -(topicTapPoint(tester, id).dy - above)));
+  await tester.pumpAndSettle();
+}
+
+/// Opens topic [id] with a tap on its branch.
+Future<void> openTopicByBranch(WidgetTester tester, String id) async {
+  await tester.ensureVisible(find.byKey(ValueKey('topic-branch-$id')));
+  await tester.pumpAndSettle();
+  await tester.tapAt(topicTapPoint(tester, id));
   await tester.pumpAndSettle();
 }
 
@@ -92,26 +109,26 @@ void main() {
   ]) {
     testWidgets(name, (tester) async {
       await _pump(tester, size, settings);
-      await _scrollTo(tester, 'topic-go-cucina', above: size.height < 700 ? 200 : 300);
+      await scrollToTopicBranch(tester, 'cucina', above: size.height < 700 ? 240 : 340);
       await _shot(tester, '$name-food');
-      if (find.byKey(const ValueKey('topic-carving-cucina')).evaluate().isNotEmpty) {
-        final r = tester.getRect(find.byKey(const ValueKey('topic-carving-cucina'))).inflate(40);
+      if (topicBranchPlan(tester, 'cucina').carving case final c?) {
+        final r = c.bounds.shift(tester.getTopLeft(find.byKey(const ValueKey('map-content')))).inflate(40);
         await _shot(tester, '$name-carving', crop: r.intersect(Offset.zero & size));
       }
-      await _scrollTo(tester, 'topic-go-viaggi', above: size.height < 700 ? 200 : 300);
+      await scrollToTopicBranch(tester, 'viaggi', above: size.height < 700 ? 240 : 340);
       await _shot(tester, '$name-travel');
     });
   }
 
   testWidgets('topic tree', (tester) async {
     await _pump(tester, const Size(390, 844), {});
-    await tapKey(tester, 'topic-go-cucina');
+    await openTopicByBranch(tester, 'cucina');
     await _shot(tester, 'topic-food');
   });
 
   testWidgets('topic tree bw', (tester) async {
     await _pump(tester, const Size(390, 844), {SettingKeys.display: 'bw'});
-    await tapKey(tester, 'topic-go-cucina');
+    await openTopicByBranch(tester, 'cucina');
     await _shot(tester, 'topic-food-bw');
   });
 

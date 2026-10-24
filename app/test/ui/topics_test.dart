@@ -1,9 +1,14 @@
 // Topic trees (schema minor 3; docs/extensions.md, docs/ui.md "Topic trees"):
 // the course model and loader, the branch planner, and the map: branches with
-// a carved name and "Go to …" on the main tree, a topic's own map with its
-// root, the tree selector, per-tree scroll positions, "already known" words,
-// black & white, reduce motion and phone to desktop widths.
+// a carved name on the main tree that open their topic (tap, press feedback,
+// semantics, keyboard), a topic's own map with its root, the tree selector,
+// per-tree scroll positions, "already known" words, black & white, reduce
+// motion and phone to desktop widths.
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show RenderRepaintBoundary;
+import 'package:flutter/services.dart' show LogicalKeyboardKey;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqlite3/sqlite3.dart';
 import 'package:tosk/core/core.dart';
@@ -16,6 +21,8 @@ import 'package:tosk/ui/map/skill_stats.dart';
 import 'package:tosk/ui/map/topic_branch.dart';
 import 'package:tosk/ui/map/tree_selector.dart';
 import 'package:tosk/ui/settings/setting_keys.dart';
+import 'package:tosk/ui/theme/bw_skin.dart' show kBwBlack;
+import 'package:tosk/ui/theme/skin.dart' show MapInk;
 
 import '../fixtures/course_fixture.dart';
 import '../fixtures/topic_course.dart';
@@ -35,6 +42,30 @@ Future<TestProgressStore> _pump(WidgetTester tester, {Size size = const Size(390
     );
 
 SkillMapView _mapView(WidgetTester tester) => tester.widget<SkillMapView>(find.byType(SkillMapView));
+
+MapPlan _plan(WidgetTester tester) => (tester.state(find.byType(SkillMapView)) as dynamic).plan as MapPlan;
+
+BranchPlan _branch(WidgetTester tester, String id) => _plan(tester).branches.firstWhere((b) => b.branch.id == id);
+
+/// A point of the map (map coordinates) on screen.
+Offset _onScreen(WidgetTester tester, Offset mapPoint) =>
+    tester.getTopLeft(find.byKey(const ValueKey('map-content'))) + mapPoint;
+
+/// Scrolls topic [id]'s branch into view and returns where its carving is on screen.
+Future<Offset> _showBranch(WidgetTester tester, String id) async {
+  await tester.ensureVisible(find.byKey(ValueKey('topic-branch-$id')));
+  await tester.pumpAndSettle();
+  return _onScreen(tester, _branch(tester, id).tapPoint);
+}
+
+/// Opens topic [id] with a tap on its branch.
+Future<void> _openTopic(WidgetTester tester, String id) async {
+  await tester.tapAt(await _showBranch(tester, id));
+  await tester.pumpAndSettle();
+}
+
+TopicBranchTargetState _target(WidgetTester tester, String id) =>
+    tester.state<TopicBranchTargetState>(find.byKey(ValueKey('topic-branch-$id')));
 
 void main() {
   group('course trees', () {
@@ -162,7 +193,7 @@ void main() {
   });
 
   group('map', () {
-    testWidgets('the main tree has a branch per topic with a carving and a Go to button', (tester) async {
+    testWidgets('the main tree has a branch per topic with a carving; the branch is the button', (tester) async {
       final handle = tester.ensureSemantics();
       await _pump(tester);
       final view = _mapView(tester);
@@ -170,13 +201,27 @@ void main() {
       expect(view.branches.firstWhere((b) => b.id == 'cucina').locked, isFalse);
       expect(view.branches.firstWhere((b) => b.id == 'viaggi').locked, isTrue); // city-life not started
       for (final id in ['cucina', 'viaggi']) {
-        await tester.ensureVisible(find.byKey(ValueKey('topic-go-$id')));
-        await tester.pumpAndSettle();
-        final size = tester.getSize(find.byKey(ValueKey('topic-go-$id')));
-        expect(size.height, greaterThanOrEqualTo(48));
+        await _showBranch(tester, id);
+        // The tap band along the branch is at least 48 dp thick.
+        final b = _branch(tester, id);
+        expect(b.hitHalf * 2, greaterThanOrEqualTo(48));
+        expect(b.hits(b.tapPoint), isTrue);
+        final p = b.run.points[b.run.length * 3 ~/ 4];
+        final n = b.run.normals[b.run.length * 3 ~/ 4];
+        expect(b.hits(p + n * 23.5), isTrue);
+        expect(b.hits(p - n * 23.5), isTrue);
+        expect(b.hits(p + n * (b.hitHalf + 6)), isFalse);
       }
       expect(find.bySemanticsLabel(RegExp(r'^Go to Food and cooking, topic, 1 of 4 skills started$')), findsOneWidget);
       expect(find.bySemanticsLabel(RegExp(r'^Go to Travel and holidays, topic, .*, opens after')), findsOneWidget);
+      final node = tester.getSemantics(find.byKey(const ValueKey('topic-branch-cucina')));
+      expect(node.flagsCollection.isButton, isTrue);
+      expect(node.flagsCollection.isFocused, isNot(ui.Tristate.none)); // focusable
+      // No button any more: the carving says where it goes.
+      final content = find.byKey(const ValueKey('map-content'));
+      expect(find.descendant(of: content, matching: find.byType(OutlinedButton)), findsNothing);
+      expect(find.descendant(of: content, matching: find.textContaining('Go to')), findsNothing);
+      expect(find.byKey(const ValueKey('topic-go-cucina')), findsNothing);
       // The carving is in the bough tiles, with the full title where it fits.
       final state = tester.state(find.byType(SkillMapView)) as dynamic;
       final plan = state.plan as MapPlan;
@@ -185,20 +230,25 @@ void main() {
       final carving = plan.branches.first.carving!;
       expect(carving.text, anyOf('Food and cooking', 'Food'));
       expect(carving.glyphs.length, carving.text.replaceAll(' ', '').length);
-      expect(find.byKey(const ValueKey('topic-carving-cucina')), findsOneWidget);
       handle.dispose();
     });
 
-    testWidgets('Go to opens the topic map; its root leads back; each tree keeps its scroll', (tester) async {
+    testWidgets('a tap on the branch opens the topic map; its root leads back; each tree keeps its scroll', (tester) async {
       final handle = tester.ensureSemantics();
       await _pump(tester);
       final scroll = find.byKey(const ValueKey('map-scroll'));
-      await tester.ensureVisible(find.byKey(const ValueKey('topic-go-cucina')));
-      await tester.pumpAndSettle();
+      final at = await _showBranch(tester, 'cucina');
       final mainOffset = tester.state<ScrollableState>(find.descendant(of: scroll, matching: find.byType(Scrollable))).position.pixels;
       expect(mainOffset, greaterThan(0));
 
-      await tester.tap(find.byKey(const ValueKey('topic-go-cucina')));
+      // Next to the branch (beyond its tap band) nothing opens.
+      final b = _branch(tester, 'cucina');
+      final i = b.run.length * 3 ~/ 4;
+      await tester.tapAt(_onScreen(tester, b.run.points[i] + b.run.normals[i] * (b.hitHalf + 8)));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('map-scroll')), findsOneWidget);
+
+      await tester.tapAt(at);
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('map-scroll-cucina')), findsOneWidget);
       expect(find.text('From Italian · Food basics'), findsOneWidget);
@@ -243,7 +293,7 @@ void main() {
     testWidgets('a locked topic skill says what it needs from the main tree, and goes there', (tester) async {
       final handle = tester.ensureSemantics();
       await _pump(tester);
-      await tapKey(tester, 'topic-go-cucina');
+      await _openTopic(tester, 'cucina');
       final note = find.byKey(const ValueKey('skill-needs-recipes'));
       await tester.ensureVisible(note);
       await tester.pumpAndSettle();
@@ -264,7 +314,7 @@ void main() {
 
     testWidgets('the skill sheet of a locked topic skill names the main-tree skill and goes there', (tester) async {
       await _pump(tester);
-      await tapKey(tester, 'topic-go-cucina');
+      await _openTopic(tester, 'cucina');
       await tester.ensureVisible(find.byKey(const ValueKey('skill-node-recipes')));
       await tester.pumpAndSettle();
       await tapKey(tester, 'skill-node-recipes');
@@ -296,7 +346,7 @@ void main() {
             )));
       }
       expect(course.skillItems('cooking').length, 5);
-      await tapKey(tester, 'topic-go-cucina');
+      await _openTopic(tester, 'cucina');
       await tapKey(tester, 'skill-node-cooking');
       expect(find.text('Food and cooking · 2 of 5 words already known'), findsOneWidget);
     });
@@ -308,16 +358,15 @@ void main() {
         final state = tester.state(find.byType(SkillMapView)) as dynamic;
         final plan = state.plan as MapPlan;
         for (final b in plan.branches) {
-          // The carving stays inside the map and the button fits its lane.
+          // The carving stays inside the map, the tap band fits its lane.
           if (b.carving case final c?) {
             expect(c.bounds.left, greaterThanOrEqualTo(-1));
             expect(c.bounds.right, lessThanOrEqualTo(plan.geometry.width + 1));
           }
-          await tester.ensureVisible(find.byKey(ValueKey('topic-go-${b.branch.id}')));
-          await tester.pumpAndSettle();
-          final r = tester.getRect(find.byKey(ValueKey('topic-go-${b.branch.id}')));
-          expect(r.left, greaterThanOrEqualTo(0));
-          expect(r.right, lessThanOrEqualTo(size.width + 0.5));
+          expect(b.hitHalf * 2 + 4, lessThanOrEqualTo(BranchMetrics(plan.geometry.diameter).laneHeight + 0.01));
+          final at = await _showBranch(tester, b.branch.id);
+          expect(at.dx, inInclusiveRange(0, size.width));
+          expect(at.dy, inInclusiveRange(0, size.height));
         }
         // On wide maps the branches fade out instead of running to the edge.
         if (size.width >= 1000) expect(plan.branches.any((b) => b.fade != null), isTrue);
@@ -325,20 +374,75 @@ void main() {
       });
     }
 
-    testWidgets('black & white: only black, white and gray, also on a topic map', (tester) async {
-      await _pump(tester, settings: {SettingKeys.display: 'bw'});
-      await tester.ensureVisible(find.byKey(const ValueKey('topic-go-cucina')));
+    testWidgets('pressing a branch shows the pressed look, which fades again', (tester) async {
+      await _pump(tester);
+      final at = await _showBranch(tester, 'cucina');
+      expect(_target(tester, 'cucina').pressed, 0);
+      final before = await _branchPixels(tester, 'cucina');
+      final gesture = await tester.startGesture(at);
+      await tester.pump(const Duration(milliseconds: 150)); // past the press timeout
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(_target(tester, 'cucina').pressed, 1);
+      // The overlay paints: the branch looks lighter while pressed.
+      final pressed = await _branchPixels(tester, 'cucina');
+      expect(pressed, greaterThan(before + 3));
+      await gesture.cancel(); // no tap: the look fades out
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(_target(tester, 'cucina').pressed, inExclusiveRange(0, 1));
       await tester.pumpAndSettle();
+      expect(_target(tester, 'cucina').pressed, 0);
+      expect(find.byKey(const ValueKey('map-scroll')), findsOneWidget);
+      expect(await _branchPixels(tester, 'cucina'), closeTo(before, 0.5));
+    });
+
+    testWidgets('black & white: only black, white and gray, also pressed and on a topic map', (tester) async {
+      await _pump(tester, settings: {SettingKeys.display: 'bw'});
+      final at = await _showBranch(tester, 'cucina');
       await expectGrayscale(tester, 'main tree with a topic branch');
-      await tapKey(tester, 'topic-go-cucina');
+      // Pressed: the branch turns black (inverted), at once, no grays fading.
+      final gesture = await tester.startGesture(at);
+      await tester.pump(const Duration(milliseconds: 150));
+      expect(_target(tester, 'cucina').pressed, 1);
+      await expectGrayscale(tester, 'a pressed topic branch');
+      await gesture.cancel();
+      await tester.pump();
+      expect(_target(tester, 'cucina').pressed, 0);
+      await _openTopic(tester, 'cucina');
       await expectGrayscale(tester, 'topic map');
     });
 
-    testWidgets('reduce motion: no map ticker, branches static', (tester) async {
+    testWidgets('reduce motion: no map ticker, branches static, the pressed look without a fade', (tester) async {
       await _pump(tester, settings: {SettingKeys.reduceMotion: 'true'});
       final state = tester.state(find.byType(SkillMapView)) as dynamic;
       expect(state.ticking as bool, isFalse);
       expect((state.plan as MapPlan).branches, hasLength(2));
+      final gesture = await tester.startGesture(await _showBranch(tester, 'cucina'));
+      await tester.pump(const Duration(milliseconds: 150));
+      expect(_target(tester, 'cucina').pressed, 1);
+      await gesture.cancel();
+      await tester.pump();
+      expect(_target(tester, 'cucina').pressed, 0);
+      expect(tester.binding.hasScheduledFrame, isFalse);
+    });
+
+    testWidgets('desktop: a branch takes the keyboard focus and Enter opens its topic', (tester) async {
+      await _pump(tester, size: const Size(1280, 860));
+      await _showBranch(tester, 'cucina');
+      _target(tester, 'cucina').focusNode.requestFocus();
+      await tester.pump();
+      expect(_target(tester, 'cucina').focusNode.hasFocus, isTrue);
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('map-scroll-cucina')), findsOneWidget);
+    });
+
+    testWidgets('the anchor stone next to its branch still opens its own skill', (tester) async {
+      await _pump(tester);
+      await _showBranch(tester, 'cucina');
+      await tapKey(tester, 'skill-node-food-basics');
+      expect(find.byKey(const ValueKey('map-scroll')), findsOneWidget);
+      expect(find.byKey(const ValueKey('map-scroll-cucina')), findsNothing);
     });
 
     testWidgets('a course without topics keeps the plain title and no branches', (tester) async {
@@ -349,10 +453,45 @@ void main() {
     });
   });
 
+  group('carving colours', () {
+    test('the letters are very light on the bark, with a dark edge, in both themes', () {
+      for (final ink in [MapInk.storybook, MapInk.night]) {
+        final c = carvingColours(ink, mono: false);
+        expect(c.floor.computeLuminance(), greaterThan(0.75), reason: '$ink');
+        expect(c.floor.computeLuminance(), greaterThan(ink.bark.computeLuminance() * 3));
+        expect(c.shade.computeLuminance(), lessThan(ink.bark.computeLuminance() / 2));
+      }
+      final bw = carvingColours(MapInk.storybook, mono: true);
+      expect(bw.floor, kBwBlack);
+    });
+  });
+
   test('the carving style is the storybook serif', () {
     final s = carvingTextStyle(14);
     expect(s.fontFamily, 'Gelasio');
     expect(s.fontWeight, FontWeight.w700);
 
   });
+}
+
+/// The mean brightness (0–255) of the bark round topic [id]'s carving on screen.
+Future<double> _branchPixels(WidgetTester tester, String id) async {
+  final b = _branch(tester, id);
+  final rect = Rect.fromCenter(center: _onScreen(tester, b.tapPoint), width: 40, height: 12);
+  final boundary = tester.renderObject<RenderRepaintBoundary>(find.byKey(appRootKey));
+  var sum = 0.0, n = 0;
+  await tester.runAsync(() async {
+    final image = await boundary.toImage(pixelRatio: 1);
+    final data = (await image.toByteData(format: ui.ImageByteFormat.rawRgba))!;
+    for (var y = rect.top.floor(); y < rect.bottom; y++) {
+      for (var x = rect.left.floor(); x < rect.right; x++) {
+        if (x < 0 || y < 0 || x >= image.width || y >= image.height) continue;
+        final i = (y * image.width + x) * 4;
+        sum += (data.getUint8(i) + data.getUint8(i + 1) + data.getUint8(i + 2)) / 3;
+        n++;
+      }
+    }
+    image.dispose();
+  });
+  return n == 0 ? 0 : sum / n;
 }

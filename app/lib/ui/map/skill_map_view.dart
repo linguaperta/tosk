@@ -22,7 +22,7 @@ import 'topic_branch.dart';
 
 export 'bough.dart' show BoughShape, LeafSpot, paintBough;
 export 'map_labels.dart' show MapTextMetrics;
-export 'topic_branch.dart' show TopicBranch, TopicRoot, TopicButton, TopicButtonLayout;
+export 'topic_branch.dart' show TopicBranch, TopicRoot, TopicBranchTarget;
 
 /// Which way the course grows on screen.
 ///
@@ -234,7 +234,7 @@ class SkillMapView extends StatefulWidget {
   final void Function(String skillId)? onNeeds;
 
   /// Topic branches leaving the main tree at their anchors (with a carved
-  /// name and arrow, and a "Go to …" button that calls [onTopic]).
+  /// name and arrow); a tap on a branch calls [onTopic].
   final List<TopicBranch> branches;
   final void Function(String topicId)? onTopic;
 
@@ -605,6 +605,24 @@ class _SkillMapViewState extends State<SkillMapView> with SingleTickerProviderSt
                     ),
                   ),
                 ),
+              // Topic branches: each branch is the way into its topic (a band
+              // at least 48 dp thick along the bark and its carving), a button
+              // for semantics and the keyboard. It paints only while pressed
+              // or focused; the branch itself is in the bough tiles. Under the
+              // titles and nodes, so a stone or a label it passes keeps its tap.
+              if (w.onTopic case final onTopic?)
+                for (final p in plan.branches)
+                  Positioned.fromRect(
+                    rect: p.hitBounds,
+                    child: TopicBranchTarget(
+                      key: ValueKey('topic-branch-${p.branch.id}'),
+                      plan: p,
+                      ink: p.branch.locked ? MapEdgesPainter._lockedInk(style) : style.ink,
+                      mono: style.monochrome,
+                      reduceMotion: w.reduceMotion,
+                      onTap: () => onTopic(p.branch.id),
+                    ),
+                  ),
               // Unit titles on a plaque above the branches (the band colour
               // with a hairline edge), so a bough crossing the header passes
               // behind the plaque and never through the text; no twig or leaf
@@ -697,34 +715,6 @@ class _SkillMapViewState extends State<SkillMapView> with SingleTickerProviderSt
                       ),
                     ),
                   ),
-              // Topic branches: the carving is a tap target too (the button
-              // carries the semantics), and a "Go to …" button under it.
-              for (final p in plan.branches) ...[
-                if ((p.carving, w.onTopic) case (final c?, final onTopic?))
-                  Positioned.fromRect(
-                    rect: c.bounds,
-                    child: ExcludeSemantics(
-                      child: GestureDetector(
-                        key: ValueKey('topic-carving-${p.branch.id}'),
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () => onTopic(p.branch.id),
-                      ),
-                    ),
-                  ),
-                if (w.onTopic case final onTopic?)
-                  Positioned.fromRect(
-                    rect: p.buttonSlot,
-                    child: CustomSingleChildLayout(
-                      delegate: TopicButtonLayout(p.buttonX - p.buttonSlot.left, p.side),
-                      child: TopicButton(
-                        key: ValueKey('topic-go-${p.branch.id}'),
-                        branch: p.branch,
-                        background: style.bandColor(layout.node(p.branch.anchor)?.band ?? 0),
-                        onTap: () => onTopic(p.branch.id),
-                      ),
-                    ),
-                  ),
-              ],
               // Every moving twinkle of the map, on one layer above the stones.
               if (twinkleOn)
                 Positioned.fill(
@@ -746,11 +736,9 @@ class _SkillMapViewState extends State<SkillMapView> with SingleTickerProviderSt
                   if (onUnitStories != null && (storyCounts[layout.bands[markerNode.band].unitId] ?? 0) > 0)
                     Rect.fromLTWH(g.width - 8 - _storyButtonWidth, g.bandTop[markerNode.band], _storyButtonWidth,
                         g.headerOf(markerNode.band) + 8),
-                  // a topic branch's carving and "Go to …" button just above the stone
-                  for (final p in plan.branches) ...[
-                    if (w.onTopic != null) branchButtonRoom(p),
+                  // a topic branch's carving just above the stone
+                  for (final p in plan.branches)
                     if (p.carving case final c?) c.bounds,
-                  ],
                 ]) case (final rect, final mirrored))
                   Positioned.fromRect(
                     rect: rect,
@@ -781,18 +769,9 @@ class _SkillMapViewState extends State<SkillMapView> with SingleTickerProviderSt
   }
 }
 
-/// The room a topic branch's "Go to …" button may take: its whole slot (the
-/// button starts at [BranchPlan.buttonX] but moves in when the title is too
-/// long for the rest of the row), at least 48 dp tall around the slot's middle.
-Rect branchButtonRoom(BranchPlan p) {
-  final s = p.buttonSlot;
-  final half = math.max(s.height, 48.0) / 2 + 4;
-  return Rect.fromLTRB(s.left, s.center.dy - half, s.right, s.center.dy + half);
-}
-
 /// Where Tosk sits on [node]'s stone: peeking over its top-left edge; where
 /// that would cover the unit title's plaque of the node's band or [avoid] (the
-/// band's stories button, a topic branch's carving and "Go to …" button),
+/// band's stories button, a topic branch's carving),
 /// mirrored over its top-right edge, else beside the stone (left or right, at
 /// its height, below the band's header), whichever first is clear of the
 /// plaque, of [avoid] and of the other stones in its row. The second value says

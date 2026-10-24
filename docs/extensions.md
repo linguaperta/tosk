@@ -2,7 +2,7 @@
 
 *Design agreed with the owner, 20 October 2026. Scope now: **topic expansions**. Books (a guided e-reader) and moving the stories into that model come later.*
 
-**Status (21 October 2026): built-in topics are implemented**: pack format 1.2 (`topics:` in course.yaml, compiled `topics` / `topic_units`, schema minor 3, docs/pack-format.md 3.3), the validator rules, and the app (branches with a carved name and "Go to …" on the main tree, topic maps, the tree menu, "N of M words already known"; docs/ui.md "Topic trees"). Not yet: extension packs with `extends` (separately installed topics), books. **Amended 21 October** (owner decisions): a topic's anchor is its entry point, and later skills of a topic may require later main-tree skills (late requirements; locked with a "needs …" note until started). **The real courses are restructured** (owner decisions of 21 October, packs it 1.5.0, nl 1.4.0, es 1.1.0): a slim main tree of grammar and core vocabulary plus themed topics, under the fairness rule below; see [topic-split.md](topic-split.md). (The strict split before it, it 1.4.0 and nl 1.3.0, is in that file's history.)
+**Status (21 October 2026): built-in topics are implemented**: pack format 1.2 (`topics:` in course.yaml, compiled `topics` / `topic_units`, schema minor 3, docs/pack-format.md 3.3), the validator rules, and the app (branches with a carved name on the main tree, the branch itself opening the topic, topic maps, the tree menu, "N of M words already known"; docs/ui.md "Topic trees"). Not yet: extension packs with `extends` (separately installed topics), books. **Amended 21 October** (owner decisions): a topic's anchor is its entry point, and later skills of a topic may require later main-tree skills (late requirements; locked with a "needs …" note until started). **The real courses are restructured** (owner decisions of 21 October, packs it 1.5.0, nl 1.4.0, es 1.1.0): a slim main tree of grammar and core vocabulary plus themed topics, under the fairness rule below; see [topic-split.md](topic-split.md). (The strict split before it, it 1.4.0 and nl 1.3.0, is in that file's history.)
 
 An expansion adds content to a base course (e.g. Italian) **and shares the learner's progress with it**: a word the base course already taught keeps its progress in the expansion, and a word two expansions share has one progress.
 
@@ -43,7 +43,7 @@ topics:
 
 **On the main tree**, at the anchor skill, a **side branch leaves the map**: it grows off the anchor node and runs out of the screen edge (on very wide screens it fades out instead).
 - Along the branch, an arrow and the topic's name are **carved or painted into the bark itself** (not a separate sign): an incised/painted arrow following the branch's curve towards the edge, with the name lettered along it in the storybook style. In B/W it's black incised lines; it must stay legible at phone size (fall back to a short name).
-- A clear button next to it: **Go to Food and cooking**.
+- The branch itself is the way in: a tap on it (a band at least 48 dp thick along it, with press feedback) opens the topic; for screen readers and the keyboard it is a button, **Go to Food and cooking**. (A separate "Go to" button under the branch was dropped on 24 October: the carved name is enough.)
 - Several topics on one anchor: several branches with their carved arrows, alternating sides when space allows.
 - Before the anchor is reached, the branch and its carving are shown locked (the topic can still be opened and browsed).
 

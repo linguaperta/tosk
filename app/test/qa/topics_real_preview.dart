@@ -24,6 +24,7 @@ import 'package:tosk/ui/settings/setting_keys.dart';
 import '../fixtures/topic_course.dart' show TopicCourseCatalog;
 import '../ui/helpers.dart';
 import 'brand_preview.dart' show loadQaFonts;
+import 'topics_preview.dart' show scrollToTopicBranch;
 
 final _out = Directory(Platform.environment['QA_OUT'] ?? 'build/qa-topics-real');
 final _ratio = double.tryParse(Platform.environment['QA_RATIO'] ?? '') ?? 2;
@@ -109,15 +110,9 @@ Future<void> _pump(WidgetTester tester, String courseId, Map<String, SkillStats>
       ],
     );
 
-/// Scrolls the main map so the topic's "Go to" button sits [above] px from the top.
-Future<void> _scrollTo(WidgetTester tester, String key, {double above = 330}) async {
-  final f = find.byKey(ValueKey(key));
-  await tester.ensureVisible(f);
-  await tester.pumpAndSettle();
-  final y = tester.getTopLeft(f).dy;
-  await tester.drag(find.byKey(const ValueKey('map-scroll')), Offset(0, -(y - above)));
-  await tester.pumpAndSettle();
-}
+/// Scrolls the main map so the topic's carving sits [above] px from the top.
+Future<void> _scrollTo(WidgetTester tester, String id, {double above = 290}) =>
+    scrollToTopicBranch(tester, id, above: above);
 
 void main() {
   setUpAll(loadQaFonts);
@@ -125,19 +120,19 @@ void main() {
   for (final (mode, settings) in [('colour', <String, String>{}), ('bw', {SettingKeys.display: 'bw'})]) {
     testWidgets('it main tree, branch locked, $mode', (tester) async {
       await _pump(tester, 'it', _progress(_course('it'), 'passato-remoto'), settings);
-      await _scrollTo(tester, 'topic-go-crimine');
+      await _scrollTo(tester, 'crimine');
       await _shot(tester, 'it-main-locked-$mode');
     });
 
     testWidgets('it main tree, branch open, $mode', (tester) async {
       await _pump(tester, 'it', _progress(_course('it'), 'passato-remoto', startUpTo: true), settings);
-      await _scrollTo(tester, 'topic-go-crimine');
+      await _scrollTo(tester, 'crimine');
       await _shot(tester, 'it-main-open-$mode');
     });
 
     testWidgets('nl main tree, $mode', (tester) async {
       await _pump(tester, 'nl', _progress(_course('nl'), 'city', startUpTo: true), settings);
-      await _scrollTo(tester, 'topic-go-kleding');
+      await _scrollTo(tester, 'kleding');
       await _shot(tester, 'nl-main-$mode');
     });
 

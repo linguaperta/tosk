@@ -2,9 +2,11 @@
 /// branches"): at each topic's anchor skill a side branch grows off the node
 /// and runs out of the map's edge (on very wide maps it fades out instead).
 /// Along it the topic's name and an arrow toward the edge are carved into the
-/// bark itself, following the branch's curve; a "Go to …" button sits under
-/// it. The branch and its carving are static art: they are painted into the
-/// map's bough raster tiles (`map_raster.dart`) like the boughs.
+/// bark itself, following the branch's curve. The branch and its carving are
+/// static art: they are painted into the map's bough raster tiles
+/// (`map_raster.dart`) like the boughs. The branch itself is the way into the
+/// topic ([TopicBranchTarget]): a band at least 48 dp thick along it opens the
+/// topic, with a pressed look drawn on a small overlay only while pressed.
 ///
 /// Layout: the map inserts a strip under the anchor's row (`MapGeometry.strips`)
 /// with one lane per branch on a side ([planBranchLanes]); a branch leaves the
@@ -88,14 +90,16 @@ class BranchMetrics {
   /// The carved letters' size.
   double get fontSize => (width * 0.56).clamp(11.0, 19.0);
 
-  /// Room between the branch and the button under it.
-  static const double buttonGap = 6;
+  /// The tap band along a branch is at least this thick (a touch target).
+  static const double minHit = 48;
 
-  /// Height of the button ("Go to …").
-  static const double buttonHeight = 48;
+  /// Half the thickness of the tap band along the branch: the bark (with its
+  /// knuckles) and a margin, at least [minHit] / 2.
+  double get hitHalf => math.max(minHit / 2, width * 0.6 + 6);
 
-  /// A lane: the branch, the button and a margin.
-  double get laneHeight => 4 + width + buttonGap + buttonHeight + 10;
+  /// A lane: the branch's tap band and a small margin (lanes on top of each
+  /// other never share a tap band).
+  double get laneHeight => 2 * hitHalf + 4;
 
   /// The longest run along a lane; beyond it the branch fades out (very wide maps).
   double maxRun(double cellWidth) => (cellWidth * 3.4).clamp(300.0, 480.0);
@@ -165,8 +169,27 @@ Map<(int, int), int> branchLaneCounts(List<BranchLane> lanes) {
   return out;
 }
 
-/// One carved letter: its centre on the branch and its angle.
+/// One carved letter: where its optical middle goes ([carvingOpticalCentre];
+/// on the bark's middle line) and its angle.
 typedef CarvedGlyph = ({String char, Offset center, double angle});
+
+/// Gelasio Bold's x-height and cap height, as fractions of the em (its OS/2
+/// table: 994 and 1419 of 2048 units).
+const double kCarvingXHeight = 994 / 2048;
+const double kCarvingCapHeight = 1419 / 2048;
+
+/// How far above the baseline a carved title's optical middle is: halfway
+/// between the middle of the x-height and the middle of the cap height (the
+/// letters are mostly lower case, and the capital and the ascenders reach
+/// about cap height), so the letters look centred on the bark, not sitting
+/// on its middle line.
+double carvingOpticalCentre(double fontSize) => fontSize * (kCarvingXHeight + kCarvingCapHeight) / 4;
+
+/// Where to paint the laid-out glyph [tp] (a carving letter of [fontSize]) so
+/// that its optical middle ([carvingOpticalCentre]) and horizontal middle land
+/// on the origin.
+Offset carvedGlyphOrigin(TextPainter tp, double fontSize) =>
+    Offset(-tp.width / 2, carvingOpticalCentre(fontSize) - tp.computeDistanceToActualBaseline(TextBaseline.alphabetic));
 
 /// The carving along a branch: the letters (one of [text]) and an arrow
 /// toward the map's edge, all following the branch's curve.
@@ -185,16 +208,19 @@ class Carving {
   final double fontSize;
   final List<CarvedGlyph> glyphs;
 
-  /// The arrow's shaft and head (toward the edge) and the fletching at its tail.
+  /// The arrow's shaft and head (toward the edge) and the fletching at its
+  /// tail; all empty where only the name fits ([hasArrow]).
   final Polyline shaft;
   final List<Polyline> head;
   final List<Polyline> tail;
 
   /// Everything the carving covers.
   final Rect bounds;
+
+  bool get hasArrow => shaft.points.isNotEmpty;
 }
 
-/// A planned branch: its bough, carving, button room and fade.
+/// A planned branch: its bough, carving, tap band and fade.
 class BranchPlan {
   BranchPlan({
     required this.branch,
@@ -202,14 +228,10 @@ class BranchPlan {
     required this.lane,
     required this.shape,
     required this.run,
-    required this.buttonSlot,
-    required this.buttonX,
+    required this.hitHalf,
     required this.carving,
     required this.fade,
   });
-
-  /// Where the button starts (a right branch) or ends (a left one), in map x.
-  final double buttonX;
 
   final TopicBranch branch;
   final int side;
@@ -221,8 +243,8 @@ class BranchPlan {
   /// The centre line, sampled (stone → edge).
   final Polyline run;
 
-  /// The room for the "Go to …" button: its left and right limits, top and height.
-  final Rect buttonSlot;
+  /// Half the thickness of the tap band along [run] ([hits]).
+  final double hitHalf;
   final Carving? carving;
 
   /// Where the branch fades out (x from opaque to clear), on very wide maps; null when it runs off the edge.
@@ -230,6 +252,40 @@ class BranchPlan {
 
   /// Everything the branch paints.
   late final Rect bounds = shape.bounds;
+
+  /// Everything the tap band covers (and the pressed look paints).
+  late final Rect hitBounds = () {
+    var r = bounds;
+    for (final p in run.points) {
+      r = r.expandToInclude(Rect.fromCircle(center: p, radius: hitHalf));
+    }
+    return r;
+  }();
+
+  /// Whether [p] (map coordinates) is on the branch: within [hitHalf] of its
+  /// centre line, which takes in the bark and the carving.
+  bool hits(Offset p) {
+    if (!hitBounds.contains(p)) return false;
+    final pts = run.points;
+    final h2 = hitHalf * hitHalf;
+    for (var i = 1; i < pts.length; i++) {
+      final a = pts[i - 1], ab = pts[i] - a;
+      final len2 = ab.dx * ab.dx + ab.dy * ab.dy;
+      final t = len2 == 0 ? 0.0 : (((p - a).dx * ab.dx + (p - a).dy * ab.dy) / len2).clamp(0.0, 1.0);
+      final d = p - (a + ab * t);
+      if (d.dx * d.dx + d.dy * d.dy <= h2) return true;
+    }
+    return false;
+  }
+
+  /// A point in the middle of the carving (else of the run): where a test or
+  /// a tour taps the branch.
+  Offset get tapPoint {
+    final c = carving;
+    if (c != null && c.glyphs.isNotEmpty) return c.glyphs[c.glyphs.length ~/ 2].center;
+    if (c != null && c.hasArrow) return c.shaft.points[c.shaft.length ~/ 2];
+    return run.points[(run.length * 0.6).floor().clamp(0, run.length - 1)];
+  }
 }
 
 /// The style of the carved letters (Gelasio, the storybook wordmark serif).
@@ -260,7 +316,8 @@ BranchPlan? buildBranch({
 }) {
   final side = lane.side.toDouble();
   final w = metrics.width;
-  final y = laneTop + 4 + w / 2;
+  // The branch runs along the middle of its lane (its tap band fills the lane).
+  final y = laneTop + metrics.laneHeight / 2;
   // It leaves the stone sideways and sweeps down into its lane in one S-curve.
   final start = stone + Offset(side * r * 0.45, r * 0.2);
   final knee = Offset(stone.dx + side * (r + cellWidth * 0.36), y);
@@ -304,30 +361,20 @@ BranchPlan? buildBranch({
   final carving = _planCarving(
     branch: lane.branch,
     run: run,
+    shape: shape,
     side: lane.side,
     from: knee.dx - side * w * 0.2,
     to: fades ? knee.dx + side * maxRun * 0.66 : visibleEnd - side * (metrics.fontSize + 6),
     avoid: avoid,
     fontSize: metrics.fontSize * scaler.scale(1).clamp(1.0, 1.3),
-    branchWidth: w,
   );
-  final buttonTop = y + w / 2 + BranchMetrics.buttonGap;
-  // The whole lane; the button starts under the carving (a right branch) or
-  // ends under it (a left one), shifted to fit ([TopicButtonLayout]).
-  final slot = Rect.fromLTRB(8, buttonTop, mapWidth - 8, buttonTop + BranchMetrics.buttonHeight);
-  final buttonX = carving == null
-      ? knee.dx
-      : side > 0
-      ? carving.bounds.left + carving.fontSize * 0.5
-      : carving.bounds.right - carving.fontSize * 0.5;
   return BranchPlan(
     branch: lane.branch,
     side: lane.side,
     lane: lane.lane,
     shape: shape,
     run: run,
-    buttonSlot: slot,
-    buttonX: buttonX,
+    hitHalf: metrics.hitHalf,
     carving: carving,
     fade: fades ? (knee.dx + side * maxRun * 0.62, end.dx) : null,
   );
@@ -369,19 +416,49 @@ double _arcAtX(Polyline line, List<double> arc, double x, int side) {
   return side > 0 ? (x <= line.points.first.dx ? 0 : arc.last) : (x >= line.points.first.dx ? 0 : arc.last);
 }
 
+/// The bark's cross-section at [p] across [nrm] (a unit normal): where the
+/// line through [p] along [nrm] meets each of [shape]'s two outlines (the
+/// nearest crossing on each), as the middle between them and the thickness.
+/// Null where the line misses an outline (past the branch's ends).
+({Offset centre, double thickness})? branchCrossSection(BoughShape shape, Offset p, Offset nrm) {
+  final hits = <double>[];
+  for (final o in shape.outlines) {
+    double? best;
+    final pts = o.points;
+    for (var i = 1; i < pts.length; i++) {
+      final a = pts[i - 1], b = pts[i];
+      // Solve p + nrm * t = a + (b - a) * u, 0 <= u <= 1.
+      final e = b - a;
+      final den = nrm.dx * e.dy - nrm.dy * e.dx;
+      if (den.abs() < 1e-9) continue;
+      final ap = a - p;
+      final t = (ap.dx * e.dy - ap.dy * e.dx) / den;
+      final u = (ap.dx * nrm.dy - ap.dy * nrm.dx) / den;
+      if (u < 0 || u > 1) continue;
+      if (best == null || t.abs() < best.abs()) best = t;
+    }
+    if (best == null) return null;
+    hits.add(best);
+  }
+  if (hits.length != 2) return null;
+  return (centre: p + nrm * ((hits[0] + hits[1]) / 2), thickness: (hits[0] - hits[1]).abs());
+}
+
 /// Picks the longest stretch of the run in [from]..[to] that no other bough
-/// crosses, and fits the title there (else the short title, else only the
-/// arrow); the letters read left to right whichever way the branch runs, and
-/// the arrow sits at the end toward the edge.
+/// crosses, and fits the title there with the arrow (else the short title;
+/// else the title or the short title without the arrow, since the name is the
+/// only thing that says where the branch goes; else only the arrow); the
+/// letters read left to right whichever way the branch runs, and the arrow
+/// sits at the end toward the edge.
 Carving? _planCarving({
   required TopicBranch branch,
   required Polyline run,
+  required BoughShape shape,
   required int side,
   required double from,
   required double to,
   required List<(double, double)> avoid,
   required double fontSize,
-  required double branchWidth,
 }) {
   var lo = math.min(from, to), hi = math.max(from, to);
   if (hi - lo < 24) return null;
@@ -409,21 +486,25 @@ Carving? _planCarving({
   String? text;
   TextPainter? tp;
   var size = fontSize;
-  for (final candidate in [branch.title, if (branch.shortTitle != branch.title) branch.shortTitle]) {
-    for (final s in [fontSize, math.max(12.0, fontSize * 0.86), math.max(12.0, fontSize * 0.74)]) {
-      final p = measure(candidate, s);
-      if (p.width + gap + arrowLen <= room) {
-        text = candidate;
-        tp = p;
-        size = s;
-        break;
+  var arrow = true;
+  search:
+  for (final withArrow in const [true, false]) {
+    for (final candidate in [branch.title, if (branch.shortTitle != branch.title) branch.shortTitle]) {
+      for (final s in [fontSize, math.max(12.0, fontSize * 0.86), math.max(12.0, fontSize * 0.74)]) {
+        final p = measure(candidate, s);
+        if (p.width + (withArrow ? gap + arrowLen : 0) <= room) {
+          text = candidate;
+          tp = p;
+          size = s;
+          arrow = withArrow;
+          break search;
+        }
+        p.dispose();
       }
-      p.dispose();
     }
-    if (text != null) break;
   }
   final textWidth = tp?.width ?? 0;
-  final total = textWidth + (text == null ? 0 : gap) + arrowLen;
+  final total = textWidth + (text != null && arrow ? gap : 0) + (arrow ? arrowLen : 0);
   if (total > room) return null;
 
   final arc = _arcLengths(run);
@@ -431,15 +512,14 @@ Carving? _planCarving({
   final startX = side > 0 ? lo + 2 : hi - 2 - total;
   // Left to right along x: [arrow?][text] for a left branch, [text][arrow] for a right one.
   final glyphs = <CarvedGlyph>[];
-  final lift = branchWidth * 0.06; // a little toward the lit side, off the shadow hatching
-  Offset onRun(double atX, {double up = 0}) {
+  // On the bark's own middle: halfway between its two outlines across the
+  // run (the bark tapers, swells at the knuckles and wobbles a little, so the
+  // middle is measured where each letter goes, not taken from the run).
+  Offset onRun(double atX) {
     final s = _arcAtX(run, arc, atX, side);
     final (p, a) = _at(run, arc, s);
-    // The normal pointing up (toward the light at the top right).
-    final dir = Offset(math.cos(a), math.sin(a));
-    var nrm = Offset(dir.dy, -dir.dx);
-    if (nrm.dy > 0) nrm = -nrm;
-    return p + nrm * up;
+    final nrm = Offset(-math.sin(a), math.cos(a));
+    return branchCrossSection(shape, p, nrm)?.centre ?? p;
   }
 
   double angleAt(double atX) {
@@ -450,7 +530,7 @@ Carving? _planCarving({
     return a;
   }
 
-  final textX = side > 0 ? startX : startX + arrowLen + gap;
+  final textX = side > 0 || !arrow ? startX : startX + arrowLen + gap;
   // (The fletching reaches back toward the letters; the gap keeps them apart.)
   if (text != null && tp != null) {
     var i = 0;
@@ -460,19 +540,36 @@ Carving? _planCarving({
       i += n;
       if (boxes.isEmpty || ch.trim().isEmpty) continue;
       final cx = textX + (boxes.first.left + boxes.last.right) / 2;
-      glyphs.add((char: ch, center: onRun(cx, up: lift), angle: angleAt(cx)));
+      glyphs.add((char: ch, center: onRun(cx), angle: angleAt(cx)));
     }
   }
   tp?.dispose();
 
+  var bounds = Rect.zero;
+  for (final g in glyphs) {
+    final r = Rect.fromCircle(center: g.center, radius: size * 0.75);
+    bounds = bounds == Rect.zero ? r : bounds.expandToInclude(r);
+  }
+  if (!arrow) {
+    return Carving(
+      text: text!,
+      fontSize: size,
+      glyphs: glyphs,
+      shaft: Polyline(const [], const []),
+      head: const [],
+      tail: const [],
+      bounds: bounds,
+    );
+  }
+
   // The arrow: a shaft along the branch, a head toward the edge, fletching at the tail.
-  final a0 = side > 0 ? textX + textWidth + gap : startX;
+  final a0 = side > 0 ? textX + textWidth + (text == null ? 0 : gap) : startX;
   final a1 = a0 + arrowLen;
   final shaftPts = <Offset>[];
   final shaftTans = <Offset>[];
   for (var k = 0; k <= 12; k++) {
     final ax = side > 0 ? a0 + (a1 - a0) * k / 12 : a1 - (a1 - a0) * k / 12;
-    shaftPts.add(onRun(ax, up: lift));
+    shaftPts.add(onRun(ax));
     final ang = angleAt(ax) + (side > 0 ? 0 : math.pi);
     shaftTans.add(Offset(math.cos(ang), math.sin(ang)));
   }
@@ -504,10 +601,8 @@ Carving? _planCarving({
     ];
   }
 
-  var bounds = Rect.fromPoints(shaftPts.first, shaftPts.last).inflate(size * 0.7);
-  for (final g in glyphs) {
-    bounds = bounds.expandToInclude(Rect.fromCircle(center: g.center, radius: size * 0.75));
-  }
+  final shaftBounds = Rect.fromPoints(shaftPts.first, shaftPts.last).inflate(size * 0.7);
+  bounds = bounds == Rect.zero ? shaftBounds : bounds.expandToInclude(shaftBounds);
   return Carving(
     text: text ?? '',
     fontSize: size,
@@ -519,56 +614,132 @@ Carving? _planCarving({
   );
 }
 
-/// "Go to …" (`Go to <topic>`): the clear way into a topic, under its branch (48 dp tall).
-/// Its semantics say what it is, the topic's progress and whether its
-/// anchor is still ahead.
-class TopicButton extends StatelessWidget {
-  const TopicButton({super.key, required this.branch, required this.onTap, this.background, this.side = 1});
-  final TopicBranch branch;
+/// The semantics of a topic's branch: "Go to Food and cooking, topic, 1 of 4
+/// skills started", plus that it opens after its anchor while locked.
+String topicBranchLabel(TopicBranch branch) => [
+  'Go to ${branch.title}',
+  'topic',
+  if (branch.progress.isNotEmpty) branch.progress,
+  if (branch.locked) 'opens after its first skill on this tree; you can look around already',
+].join(', ');
+
+/// The way into a topic: its branch on the main map. Laid over the branch's
+/// [BranchPlan.hitBounds] (map coordinates; [plan]), it takes taps within
+/// [BranchPlan.hitHalf] of the branch's centre line (a band at least 48 dp
+/// thick along the bark and the carving) and calls [onTap]. It is a button
+/// for semantics ([topicBranchLabel]) and for the keyboard (focusable, Enter
+/// or Space opens the topic).
+///
+/// The branch itself stays in the map's raster tiles; this only paints while
+/// pressed or focused ([paintBranchPressed]: the bark and carving lighten; in
+/// black & white the branch turns black with a white carving), fading in and
+/// out in a short moment (at once with [reduceMotion] or in black & white).
+class TopicBranchTarget extends StatefulWidget {
+  const TopicBranchTarget({
+    super.key,
+    required this.plan,
+    required this.ink,
+    required this.onTap,
+    this.mono = false,
+    this.reduceMotion = false,
+  });
+
+  final BranchPlan plan;
+
+  /// The ink the branch is painted in (the locked ink while locked).
+  final MapInk ink;
   final VoidCallback onTap;
-  final Color? background;
-  final int side;
+  final bool mono;
+  final bool reduceMotion;
+
+  @override
+  State<TopicBranchTarget> createState() => TopicBranchTargetState();
+}
+
+class TopicBranchTargetState extends State<TopicBranchTarget> with SingleTickerProviderStateMixin {
+  late final AnimationController _press = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 90),
+    reverseDuration: const Duration(milliseconds: 220),
+  );
+  final FocusNode focusNode = FocusNode(debugLabel: 'topic branch');
+  bool _down = false;
+  bool _focused = false;
+
+  /// How far the pressed look is shown (0: not at all, 1: fully).
+  @visibleForTesting
+  double get pressed => _press.value;
+
+  bool get _instant => widget.reduceMotion || widget.mono;
+
+  void _setDown(bool down) {
+    _down = down;
+    if (_instant) {
+      _press.value = down ? 1 : 0;
+    } else if (down) {
+      _press.forward();
+    } else {
+      // A quick tap still shows the pressed look for a moment.
+      _press.animateTo(1, duration: const Duration(milliseconds: 60)).whenCompleteOrCancel(() {
+        if (mounted && !_down) _press.reverse();
+      });
+    }
+  }
+
+  void _activate() {
+    if (_instant || !mounted) {
+      widget.onTap();
+      return;
+    }
+    // Keyboard: a short flash of the pressed look.
+    _setDown(true);
+    _setDown(false);
+    widget.onTap();
+  }
+
+  @override
+  void dispose() {
+    _press.dispose();
+    focusNode.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final mono = isBw(context);
-    final fg = branch.locked ? theme.colorScheme.onSurfaceVariant : theme.colorScheme.onSurface;
-    final label = 'Go to ${branch.title}';
+    final plan = widget.plan;
     return Semantics(
+      container: true,
       button: true,
-      label: [
-        label,
-        'topic',
-        if (branch.progress.isNotEmpty) branch.progress,
-        if (branch.locked) 'opens after its first skill on this tree; you can look around already',
-      ].join(', '),
-      excludeSemantics: true,
-      child: Tooltip(
-        message: label,
-        excludeFromSemantics: true,
-        child: OutlinedButton(
-          onPressed: onTap,
-          style: OutlinedButton.styleFrom(
-            minimumSize: const Size(48, BranchMetrics.buttonHeight),
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            backgroundColor: background,
-            foregroundColor: fg,
-            side: BorderSide(
-              color: mono ? kBwBlack : theme.colorScheme.outline,
-              width: mono ? kBwBorder : 1,
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (branch.locked) ...[Icon(Icons.lock_outline, size: 18, color: fg), const SizedBox(width: 6)],
-              Flexible(
-                child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.labelLarge?.copyWith(color: fg)),
+      label: topicBranchLabel(plan.branch),
+      onTap: widget.onTap,
+      child: FocusableActionDetector(
+        focusNode: focusNode,
+        onShowFocusHighlight: (v) => setState(() => _focused = v),
+        actions: {
+          ActivateIntent: CallbackAction<ActivateIntent>(onInvoke: (_) {
+            _activate();
+            return null;
+          }),
+        },
+        child: GestureDetector(
+          behavior: HitTestBehavior.deferToChild,
+          excludeFromSemantics: true,
+          onTapDown: (_) => _setDown(true),
+          onTapUp: (_) => _setDown(false),
+          onTapCancel: () => _setDown(false),
+          onTap: widget.onTap,
+          child: RepaintBoundary(
+            child: CustomPaint(
+              size: plan.hitBounds.size,
+              painter: _BranchPressPainter(
+                plan: plan,
+                ink: widget.ink,
+                mono: widget.mono,
+                press: _press,
+                focused: _focused,
+                focusColor: Theme.of(context).colorScheme.primary,
               ),
-              const SizedBox(width: 6),
-              Icon(Icons.arrow_forward, size: 18, color: fg),
-            ],
+            ),
           ),
         ),
       ),
@@ -576,26 +747,75 @@ class TopicButton extends StatelessWidget {
   }
 }
 
-/// Places the "Go to …" button in its lane: starting at [x] (a right branch,
-/// [side] > 0) or ending there (a left one), moved in to fit the lane.
-class TopicButtonLayout extends SingleChildLayoutDelegate {
-  const TopicButtonLayout(this.x, this.side);
+/// Paints the pressed (or focused) look of a branch over the raster and says
+/// which points are on the branch (the tap band).
+class _BranchPressPainter extends CustomPainter {
+  _BranchPressPainter({
+    required this.plan,
+    required this.ink,
+    required this.mono,
+    required this.press,
+    required this.focused,
+    required this.focusColor,
+  }) : super(repaint: press);
 
-  /// In the lane's coordinates.
-  final double x;
-  final int side;
+  final BranchPlan plan;
+  final MapInk ink;
+  final bool mono;
+  final Animation<double> press;
+  final bool focused;
+  final Color focusColor;
 
   @override
-  BoxConstraints getConstraintsForChild(BoxConstraints constraints) => constraints.loosen();
-
-  @override
-  Offset getPositionForChild(Size size, Size childSize) {
-    final left = side > 0 ? x : x - childSize.width;
-    return Offset(left.clamp(0.0, math.max(0.0, size.width - childSize.width)), (size.height - childSize.height) / 2);
+  void paint(Canvas canvas, Size size) {
+    final t = press.value;
+    if (t <= 0 && !focused) return;
+    canvas.translate(-plan.hitBounds.left, -plan.hitBounds.top);
+    if (t > 0) paintBranchPressed(canvas, plan, ink, mono: mono, amount: t);
+    if (focused) paintBranchFocus(canvas, plan, mono ? kBwBlack : focusColor);
   }
 
   @override
-  bool shouldRelayout(TopicButtonLayout old) => old.x != x || old.side != side;
+  bool hitTest(Offset position) => plan.hits(position + plan.hitBounds.topLeft);
+
+  @override
+  bool shouldRepaint(_BranchPressPainter old) =>
+      old.plan != plan || old.ink != ink || old.mono != mono || old.focused != focused || old.focusColor != focusColor;
+}
+
+/// The pressed look of [plan]'s branch, [amount] (0–1) of the way in: the bark
+/// and its carving lighten (a pale wash screened over the silhouette, fading out with
+/// the branch on very wide maps); in black & white ([mono]) the branch turns
+/// black with its carving white (no gray in between: shown fully from any
+/// [amount]).
+void paintBranchPressed(Canvas canvas, BranchPlan plan, MapInk ink, {required bool mono, double amount = 1}) {
+  final s = plan.shape;
+  if (mono) {
+    canvas.drawPath(s.silhouette, Paint()..color = kBwBlack);
+    if (plan.carving case final c?) _paintCarving(canvas, c, ink, mono: true, locked: false, colour: kBwWhite);
+    return;
+  }
+  // Screened, so it only ever lightens (the pale letters stay as pale).
+  final wash = ink.cream.withValues(alpha: 0.32 * amount.clamp(0.0, 1.0));
+  final paint = Paint()
+    ..color = wash
+    ..blendMode = BlendMode.screen;
+  if (plan.fade case (final x0, final x1)) {
+    paint.shader = ui.Gradient.linear(Offset(x0, 0), Offset(x1, 0), [wash, wash.withValues(alpha: 0)]);
+  }
+  canvas.drawPath(s.silhouette, paint);
+}
+
+/// The keyboard focus look of [plan]'s branch: an outline of its tap band in [colour].
+void paintBranchFocus(Canvas canvas, BranchPlan plan, Color colour) {
+  canvas.drawPath(
+    bandPath(plan.run, (_, _) => plan.hitHalf - 3),
+    Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2
+      ..strokeJoin = StrokeJoin.round
+      ..color = colour,
+  );
 }
 
 /// The x intervals where [shapes] cross the horizontal band [top]..[bottom]: an
@@ -620,9 +840,9 @@ List<(double, double)> crossings(Iterable<BoughShape> shapes, double top, double
 
 /// Paints [plan]: the bark (fading out on very wide maps), the grain and
 /// hatching (kept off the letters), the outline, and the carving: letters and
-/// an arrow cut into the bark ([carvingColours]: pale wood with a lit
-/// lower-left wall and a shaded upper-right one, the light coming from the top
-/// right; a dark groove on a light bark); in black & white it is a black incised line on the white bark.
+/// an arrow cut into the bark ([carvingColours]: very pale wood with a bright
+/// lower-left wall and a shaded upper-right edge, the light coming from the
+/// top right); in black & white it is a black incised line on the white bark.
 void paintBranch(Canvas canvas, BranchPlan plan, MapInk ink, BranchStyle style, {required bool mono, bool locked = false}) {
   final s = plan.shape;
   final fade = plan.fade;
@@ -675,7 +895,9 @@ void paintBranch(Canvas canvas, BranchPlan plan, MapInk ink, BranchStyle style, 
 /// The area round the letters and the arrow, kept clear of grain and hatching.
 Path _carvingMask(Carving c) {
   final p = Path();
-  final r = c.fontSize * 0.55;
+  // Round each letter's optical middle: wide enough for the ascenders and
+  // descenders (the letters sit in the bark's middle).
+  final r = c.fontSize * 0.68;
   for (final g in c.glyphs) {
     p.addOval(Rect.fromCircle(center: g.center, radius: r));
   }
@@ -696,32 +918,38 @@ Path _carvingMask(Carving c) {
     final c = locked ? kBwGray : kBwBlack;
     return (floor: c, lit: c, shade: c);
   }
-  // A cut shows the paler wood under the bark: a light wall on the lower left
-  // (the light comes from the top right), a dark wall on the upper right. On
-  // a light bark (the dark theme's) pale wood wouldn't stand out: there the
-  // cut is a dark groove with the same walls.
-  if (ink.bark.computeLuminance() > 0.2) {
+  // A cut shows the pale wood under the bark: the letters are very light (the
+  // cream lifted toward white), with a bright wall on the lower left (the
+  // light comes from the top right) and a dark wall on the upper right that
+  // makes them read as cut in, not stuck on. On the dark theme's lighter bark
+  // the dark wall is the full ink, so the pale letters still stand out.
+  final lightBark = ink.bark.computeLuminance() > 0.2;
+  const white = Color(0xFFFFFFFF);
+  if (locked) {
     return (
-      floor: Color.lerp(ink.barkDark, ink.ink, locked ? 0.1 : 0.45)!.withValues(alpha: locked ? 0.6 : 1),
-      lit: Color.lerp(ink.bark, ink.cream, locked ? 0.3 : 0.7)!,
-      shade: ink.ink.withValues(alpha: locked ? 0.5 : 1),
+      floor: Color.lerp(ink.bark, ink.cream, 0.75)!,
+      lit: Color.lerp(ink.bark, ink.cream, 0.9)!,
+      shade: Color.lerp(ink.barkDark, ink.ink, 0.5)!.withValues(alpha: 0.65),
     );
   }
   return (
-    floor: Color.lerp(ink.bark, ink.cream, locked ? 0.3 : 0.62)!,
-    lit: Color.lerp(ink.bark, ink.cream, locked ? 0.45 : 0.92)!,
-    shade: Color.lerp(ink.barkDark, ink.ink, 0.6)!.withValues(alpha: locked ? 0.5 : 0.95),
+    floor: Color.lerp(ink.cream, white, lightBark ? 0.55 : 0.4)!,
+    lit: Color.lerp(ink.cream, white, 0.85)!,
+    shade: lightBark ? ink.ink : Color.lerp(ink.barkDark, ink.ink, 0.7)!.withValues(alpha: 0.9),
   );
 }
 
-void _paintCarving(Canvas canvas, Carving c, MapInk ink, {required bool mono, required bool locked}) {
+/// [colour] replaces the colours of a black & white ([mono]) cut (the pressed look's white).
+void _paintCarving(Canvas canvas, Carving c, MapInk ink, {required bool mono, required bool locked, Color? colour}) {
   final colours = carvingColours(ink, mono: mono, locked: locked);
   final style = carvingTextStyle(c.fontSize);
   final bounds = c.bounds.inflate(4);
-  final k = (c.fontSize / 14).clamp(0.75, 1.3);
+  // On the dark theme's lighter bark the walls are a little wider, so the pale
+  // letters keep a clear edge.
+  final k = (c.fontSize / 14).clamp(0.75, 1.3) * (ink.bark.computeLuminance() > 0.2 ? 1.35 : 1.0);
   // Shifts in screen space; the bands they uncover are the walls of the cut.
-  final towardLight = Offset(0.55, -0.55) * k; // uncovers the lower-left (lit) wall
-  final awayFromLight = Offset(-0.85, 0.85) * k; // uncovers the upper-right (shaded) wall
+  final towardLight = Offset(0.5, -0.5) * k; // uncovers the lower-left (lit) wall
+  final awayFromLight = Offset(-0.8, 0.8) * k; // uncovers the upper-right (shaded) wall
   final lw = math.max(1.8, c.fontSize * 0.17);
 
   void glyphs(Color color, Offset shift) {
@@ -733,7 +961,7 @@ void _paintCarving(Canvas canvas, Carving c, MapInk ink, {required bool mono, re
       canvas.save();
       canvas.translate(g.center.dx + shift.dx, g.center.dy + shift.dy);
       canvas.rotate(g.angle);
-      tp.paint(canvas, Offset(-tp.width / 2, -tp.height / 2 - c.fontSize * 0.04));
+      tp.paint(canvas, carvedGlyphOrigin(tp, c.fontSize));
       canvas.restore();
       tp.dispose();
     }
@@ -763,7 +991,7 @@ void _paintCarving(Canvas canvas, Carving c, MapInk ink, {required bool mono, re
 
   if (mono) {
     // Black & white: black incised lines on the white bark.
-    cut(colours.floor, Offset.zero);
+    cut(colour ?? colours.floor, Offset.zero);
     return;
   }
   canvas.saveLayer(bounds, Paint());
