@@ -1,5 +1,5 @@
-// Tosk (the "continue here" marker) never covers a topic branch's "Go to …"
-// button on the real restructured courses (docs/topic-split.md): many topics
+// Every topic branch carries its name, and Tosk (the "continue here" marker)
+// never covers a topic branch's carving on the real restructured courses (docs/topic-split.md): many topics
 // grow from early main-tree skills, so the learner's current stone often has a
 // branch just above it. For a learner at every main-tree skill in turn (every
 // earlier one started), on a phone-wide map with real fonts.
@@ -13,6 +13,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tosk/core/core.dart';
 import 'package:tosk/data/course/course_file.dart';
 import 'package:tosk/providers.dart';
+import 'package:tosk/ui/map/skill_map_view.dart' show MapPlan, SkillMapView;
 import 'package:tosk/ui/map/skill_stats.dart';
 import 'package:tosk/ui/settings/setting_keys.dart';
 
@@ -31,12 +32,12 @@ Map<String, SkillStats> _upTo(CourseTrees trees, int stop) => {
 };
 
 void main() {
-  // real fonts (Roboto, Gelasio): the buttons as wide as on a phone
+  // real fonts (Roboto, Gelasio): the carvings as long as on a phone
   setUpAll(loadQaFonts);
 
   for (final id in bundledPackIds()) {
     final path = 'assets/courses/$id.sqlite';
-    testWidgets('real pack $id: Tosk keeps clear of the topic buttons', (tester) async {
+    testWidgets('real pack $id: every branch carries its name; Tosk keeps clear of the carvings', (tester) async {
       final course = loadCourseFile(path);
       final trees = CourseTrees.of(course);
       final problems = <String>[];
@@ -56,12 +57,19 @@ void main() {
         await tester.pumpAndSettle();
         final origin = tester.getTopLeft(find.byKey(const ValueKey('map-content')));
         final m = tester.getRect(marker).shift(-origin);
-        for (final t in trees.topics) {
-          final go = find.byKey(ValueKey('topic-go-${t.id}'));
-          if (go.evaluate().isEmpty) continue;
-          final b = tester.getRect(go).shift(-origin);
-          final overlap = m.intersect(b);
-          if (overlap.width > 2 && overlap.height > 2) problems.add('at ${s.id}: Tosk $m covers Go to ${t.id} $b');
+        final plan = (tester.state(find.byType(SkillMapView)) as dynamic).plan as MapPlan;
+        // With no button any more the carving is the branch's only name: every branch has one.
+        if (i == 0) {
+          for (final b in plan.branches) {
+            if (b.carving?.text.isNotEmpty != true) problems.add('${b.branch.id}: no name carved on its branch');
+          }
+          expect(plan.branches.length, trees.topics.length);
+        }
+        for (final b in plan.branches) {
+          final c = b.carving;
+          if (c == null) continue;
+          final overlap = m.intersect(c.bounds);
+          if (overlap.width > 2 && overlap.height > 2) problems.add('at ${s.id}: Tosk $m covers ${b.branch.id} ${c.bounds}');
         }
       }
       expect(problems, isEmpty);

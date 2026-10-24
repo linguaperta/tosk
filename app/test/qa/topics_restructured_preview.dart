@@ -3,7 +3,7 @@
 // the default run):
 //   QA_OUT=<dir> [QA_RATIO=1] flutter test test/qa/topics_restructured_preview.dart
 // Uses the bundled packs (app/assets/courses/{it,nl,es}.sqlite) at phone width,
-// in colour and black & white: each course's main tree at the stretches where
+// in colour, dark and black & white: each course's main tree at the stretches where
 // several topic branches grow (a learner partway through the course: earlier
 // branches open, later ones locked), one topic's own tree, and the tree menu.
 // The committed renders are in docs/screenshots/topics-restructured/.
@@ -23,6 +23,7 @@ import 'package:tosk/ui/settings/setting_keys.dart';
 import '../fixtures/topic_course.dart' show TopicCourseCatalog;
 import '../ui/helpers.dart';
 import 'brand_preview.dart' show loadQaFonts;
+import 'topics_preview.dart' show scrollToTopicBranch, topicTapPoint;
 
 final _out = Directory(Platform.environment['QA_OUT'] ?? 'build/qa-topics-restructured');
 final _ratio = double.tryParse(Platform.environment['QA_RATIO'] ?? '') ?? 2;
@@ -111,17 +112,11 @@ Future<void> _pump(WidgetTester tester, String courseId, Map<String, SkillStats>
       ],
     );
 
-/// Scrolls the main map so the topic's "Go to" button sits [above] px from the top.
-Future<void> _scrollTo(WidgetTester tester, String key, {double above = 330}) async {
-  final f = find.byKey(ValueKey(key));
-  await tester.ensureVisible(f);
-  await tester.pumpAndSettle();
-  final y = tester.getTopLeft(f).dy;
-  await tester.drag(find.byKey(const ValueKey('map-scroll')), Offset(0, -(y - above)));
-  await tester.pumpAndSettle();
-}
+/// Scrolls the main map so the topic's carving sits [above] px from the top.
+Future<void> _scrollTo(WidgetTester tester, String id, {double above = 290}) =>
+    scrollToTopicBranch(tester, id, above: above);
 
-/// (course, learner's current skill, [(shot name, topic whose "Go to" button to centre, offset)],
+/// (course, learner's current skill, [(shot name, topic whose carving to centre, offset)],
 /// topic tree to show)
 const _plans = [
   ('it', 'imperfetto', [('a', 'salute', 300.0), ('b', 'moda', 360.0), ('c', 'servizi', 380.0), ('d', 'crimine', 420.0)], 'natura'),
@@ -132,15 +127,28 @@ const _plans = [
 void main() {
   setUpAll(loadQaFonts);
 
-  for (final (mode, settings) in [('colour', <String, String>{}), ('bw', {SettingKeys.display: 'bw'})]) {
+  for (final (mode, settings) in [
+    ('colour', <String, String>{}),
+    ('dark', {SettingKeys.themeMode: 'dark'}),
+    ('bw', {SettingKeys.display: 'bw'}),
+  ]) {
     for (final (course, upTo, mains, topic) in _plans) {
       for (final (name, branch, above) in mains) {
         testWidgets('$course main tree $name ($branch), $mode', (tester) async {
           await _pump(tester, course, _progress(_course(course), upTo), settings);
-          await _scrollTo(tester, 'topic-go-$branch', above: above);
+          await _scrollTo(tester, branch, above: above - 40);
           await _shot(tester, '$course-main-$name-$mode');
+          if (course == 'it' && name == 'a') {
+            // The pressed look (held, past the fade-in).
+            final gesture = await tester.startGesture(topicTapPoint(tester, branch));
+            await tester.pump(const Duration(milliseconds: 300));
+            await _shot(tester, '$course-main-$name-pressed-$mode');
+            await gesture.cancel();
+          }
         });
       }
+
+      if (mode == 'dark') continue; // the main trees only
 
       testWidgets('$course topic tree $topic, $mode', (tester) async {
         await _pump(tester, course, _progress(_course(course), upTo), settings);
