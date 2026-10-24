@@ -26,8 +26,8 @@ Future<CourseRepo> loadCoursePack(PackData data) async => switch (data) {
       PackFile() => throw UnsupportedError('Pack files are not available on the web'),
     };
 
-Future<CourseMeta> readPackMeta(PackData data) async => switch (data) {
-      PackBytes(:final bytes) => readCourseMetaFromBytes(await loadWasmSqlite3(), bytes),
+Future<CourseMeta> readPackMeta(PackData data, {bool checkIntegrity = false}) async => switch (data) {
+      PackBytes(:final bytes) => readCourseMetaFromBytes(await loadWasmSqlite3(), bytes, checkIntegrity: checkIntegrity),
       PackFile() => throw UnsupportedError('Pack files are not available on the web'),
     };
 

@@ -3,7 +3,7 @@
 /// * `loadCoursePack(PackData)`: loads a pack into a [CourseRepo]. Native: files
 ///   are opened read-only on a background isolate; web: bytes go through
 ///   sqlite3 WASM (`web/sqlite3.wasm`) in an in-memory VFS.
-/// * `readPackMeta(PackData)`: validates a pack and reads only its meta.
+/// * `readPackMeta(PackData, {checkIntegrity})`: validates a pack and reads only its meta.
 /// * `defaultPackFileStore(dir)`: where installed packs live (a `courses/`
 ///   folder natively; memory on the web).
 /// * `supportsPackFiles`: whether [PackFile] data is usable.

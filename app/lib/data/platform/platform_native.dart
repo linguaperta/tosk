@@ -22,9 +22,10 @@ Future<CourseRepo> loadCoursePack(PackData data) => switch (data) {
       PackBytes(:final bytes) => Isolate.run(() => loadCourseRepoFromBytes(sqlite3, bytes)),
     };
 
-Future<CourseMeta> readPackMeta(PackData data) async => switch (data) {
-      PackFile(:final path) => readCourseMetaFile(path),
-      PackBytes(:final bytes) => readCourseMetaFromBytes(sqlite3, bytes),
+/// [checkIntegrity]: also `PRAGMA quick_check` (packs from a file or a download).
+Future<CourseMeta> readPackMeta(PackData data, {bool checkIntegrity = false}) async => switch (data) {
+      PackFile(:final path) => readCourseMetaFile(path, checkIntegrity: checkIntegrity),
+      PackBytes(:final bytes) => readCourseMetaFromBytes(sqlite3, bytes, checkIntegrity: checkIntegrity),
     };
 
 /// Installed packs live in `{baseDir}/courses/{id}.sqlite`.

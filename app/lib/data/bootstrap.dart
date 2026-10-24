@@ -98,6 +98,7 @@ Future<AppData> openAppData({AppDataOptions options = const AppDataOptions()}) a
     bundled: options.bundled ?? (options.packsFromWebMirror ? const NoBundledPacks() : AssetBundlePacks()),
     store: platform.defaultPackFileStore(base),
     readMeta: platform.readPackMeta,
+    readUntrustedMeta: (data) => platform.readPackMeta(data, checkIntegrity: true),
     onWarning: (m) => debugPrint('[packs] $m'),
   );
   final appVersion = options.appVersion;

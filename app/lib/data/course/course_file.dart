@@ -14,9 +14,11 @@ import 'course_schema.dart';
 
 /// Opens a course database file read-only.
 Database openCourseFile(String path) {
-  if (!File(path).existsSync()) {
+  final file = File(path);
+  if (!file.existsSync()) {
     throw CourseFormatException('Course file not found: $path');
   }
+  if (file.lengthSync() > kMaxPackBytes) throw CourseFormatException('The course file is too large');
   return sqlite3.open(path, mode: OpenMode.readOnly);
 }
 
@@ -33,11 +35,12 @@ CourseRepo loadCourseRepoFile(String path) {
   }
 }
 
-/// Reads and validates only the meta of the course file at [path].
-CourseMeta readCourseMetaFile(String path) {
+/// Reads and validates only the meta of the course file at [path]
+/// ([checkIntegrity]: see `guardCourseDb`).
+CourseMeta readCourseMetaFile(String path, {bool checkIntegrity = false}) {
   final db = openCourseFile(path);
   try {
-    return readCourseMeta(db);
+    return readCourseMeta(db, checkIntegrity: checkIntegrity);
   } finally {
     db.close();
   }
