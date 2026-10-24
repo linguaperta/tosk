@@ -18,6 +18,9 @@ enum SessionMode {
 
   /// "Practice starred" (v0.4): the learner's bookmarks ([SessionFactory.starred]).
   starred,
+
+  /// "My words": the learner's own words ([SessionFactory.myWords]).
+  myWords,
 }
 
 /// Lesson lengths offered on the lesson start sheet.
@@ -166,6 +169,11 @@ abstract interface class SessionFactory {
   /// itself. Empty (`plannedLength == 0`) when nothing is starred. See
   /// docs/engine.md, "Starred practice".
   Future<PracticeSession> starred(StarredPractice starred, {int length = 12});
+
+  /// "My words" (mode [SessionMode.myWords]): the learner's own words of the
+  /// course (`core/models/user_word.dart`): due facets first, then new words,
+  /// then the weakest. Empty (`plannedLength == 0`) without words.
+  Future<PracticeSession> myWords({int length = 12});
 }
 
 /// What "Practice starred" practices: bookmarked words, sentences and

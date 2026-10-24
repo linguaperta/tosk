@@ -92,6 +92,7 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
       final backup = await exportBackup(
         store,
         bookmarks: ref.read(bookmarkRepoProvider),
+        userWords: ref.read(userWordRepoProvider),
         keys: [...SettingKeys.all, ...LearnerSettingKeys.all],
         app: 'tosk',
         now: now,
@@ -175,10 +176,11 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
         store: store,
         importer: store as EventImporter,
         bookmarks: ref.read(bookmarkRepoProvider),
+        userWords: ref.read(userWordRepoProvider),
       );
       // Signed in: upload the imported answers soon (after a sync that is
       // running now, never alongside it).
-      if (report.eventsAdded > 0 || report.settingsAdded > 0) container.read(syncServiceProvider)?.localDataChanged();
+      if (report.eventsAdded > 0 || report.settingsAdded > 0 || report.userWordsChanged > 0) container.read(syncServiceProvider)?.localDataChanged();
       if (!mounted) {
         refresh();
         return;
@@ -193,7 +195,8 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
             '(${report.eventsKnown} already here), '
             '${report.mistakesAdded} mistake${report.mistakesAdded == 1 ? '' : 's'} and '
             '${report.settingsAdded} setting${report.settingsAdded == 1 ? '' : 's'} added'
-            '${report.bookmarksChanged == 0 ? '' : '; ${report.bookmarksChanged} starred item${report.bookmarksChanged == 1 ? '' : 's'} updated'}.',
+            '${report.bookmarksChanged == 0 ? '' : '; ${report.bookmarksChanged} starred item${report.bookmarksChanged == 1 ? '' : 's'} updated'}'
+            '${report.userWordsChanged == 0 ? '' : '; ${report.userWordsChanged} of my words updated'}.',
           ),
           actions: [
             FilledButton(

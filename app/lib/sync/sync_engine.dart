@@ -72,6 +72,7 @@ class SyncResult {
     this.pushed = 0,
     this.settingsApplied = const [],
     this.settingsPushed = 0,
+    this.extrasChanged = 0,
     this.skipped = false,
   });
 
@@ -90,14 +91,28 @@ class SyncResult {
   final List<String> settingsApplied;
   final int settingsPushed;
 
+  /// Entries the [SyncExtension]s changed on this device (my words).
+  final int extrasChanged;
+
   /// No account: nothing was done.
   final bool skipped;
 
-  bool get changedLocal => imported > 0 || settingsApplied.isNotEmpty;
+  bool get changedLocal => imported > 0 || settingsApplied.isNotEmpty || extrasChanged > 0;
 
   @override
   String toString() =>
       'SyncResult(pulled $pulled, imported $imported, pushed $pushed, settings +${settingsApplied.length}/^$settingsPushed)';
+}
+
+/// More synced data beside the log and the settings (my words,
+/// `user_words_sync.dart`): run after them in every [SyncEngine.sync], and
+/// [reset] when the account changes or its data is deleted.
+abstract interface class SyncExtension {
+  /// One exchange with [backend]; returns how many local entries changed.
+  Future<int> sync(SyncBackend backend, SyncStore store, {required String device, required DateTime now});
+
+  /// Forgets what was exchanged with the account (its keys in [store]).
+  Future<void> reset(SyncStore store);
 }
 
 class SyncEngine {
@@ -112,7 +127,9 @@ class SyncEngine {
     DateTime Function()? clock,
     EventOffsets? offsets,
     this.batchSize = 400,
-  })  : clock = clock ?? DateTime.now,
+    List<SyncExtension>? extensions,
+  })  : extensions = extensions ?? [],
+        clock = clock ?? DateTime.now,
         offsets = offsets ?? EventOffsets();
 
   final SyncStore store;
@@ -129,6 +146,9 @@ class SyncEngine {
   final DateTime Function() clock;
   final EventOffsets offsets;
   final int batchSize;
+
+  /// Run after the log and the settings (see [SyncExtension]).
+  final List<SyncExtension> extensions;
 
   /// Pulled events later than their batch's server time by more than this are clamped.
   static const clampTolerance = Duration(minutes: 5);
@@ -199,6 +219,9 @@ class SyncEngine {
     if (await store.get(SyncKeys.account) != account) {
       // Another account (or the first one): start over for it.
       await store.resetAccount();
+      for (final x in extensions) {
+        await x.reset(store);
+      }
       await store.set(SyncKeys.account, account);
     }
     final device = await deviceId();
@@ -207,6 +230,10 @@ class SyncEngine {
     if (imported > 0) await progress.rebuildStates();
     final pushed = await _pushEvents(b, device);
     final (:applied, :pushedSettings) = await _syncSettings(b, device);
+    var extras = 0;
+    for (final x in extensions) {
+      extras += await x.sync(b, store, device: device, now: clock().toUtc());
+    }
     await store.set(SyncKeys.lastSync, clock().toUtc().toIso8601String());
     return SyncResult(
       pulled: pulled,
@@ -214,6 +241,7 @@ class SyncEngine {
       pushed: pushed,
       settingsApplied: applied,
       settingsPushed: pushedSettings,
+      extrasChanged: extras,
     );
   }
 
@@ -406,6 +434,9 @@ class SyncEngine {
     await _running?.catchError((Object _) => SyncResult.notSignedIn);
     await backend.deleteAll();
     await store.resetAccount();
+    for (final x in extensions) {
+      await x.reset(store);
+    }
   }
 
 }

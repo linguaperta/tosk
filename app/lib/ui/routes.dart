@@ -25,6 +25,18 @@ abstract final class Routes {
   /// Stories inside the practice tab.
   static const stories = '/practice?tab=stories';
 
+  /// "Read any text" inside the practice tab.
+  static const read = '/practice?tab=read';
+
+  /// The reader for a saved text (opens over anything, full screen).
+  static String reader(String textId) => '/read/${Uri.encodeComponent(textId)}';
+
+  /// The learner's own words ("my words") of the active course.
+  static const myWords = '/my-words';
+
+  /// "Practice my words".
+  static const myWordsPlay = '/play/my-words';
+
   /// The story reader (opens over anything, full screen).
   static String story(String storyId) => '/story/${Uri.encodeComponent(storyId)}';
 

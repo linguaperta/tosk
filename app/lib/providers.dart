@@ -26,6 +26,7 @@ import 'data/progress/bookmarks.dart';
 import 'data/progress/feedback_store.dart';
 import 'data/fsrs/fsrs_scheduler.dart';
 import 'data/progress/in_memory_progress_store.dart';
+import 'data/progress/user_words.dart';
 import 'data/stats/skill_stats.dart' as data;
 import 'engine/engine.dart' show CourseIndex, EngineSessionFactory, FocusPresets, OpenMistake, openMistakes;
 import 'progression/progression.dart';
@@ -393,6 +394,7 @@ final sessionFactoryProvider = FutureProvider<SessionFactory>((ref) async {
   // Whether the device can speak the course language (listen_pick).
   await ref.watch(courseVoiceProvider.future).timeout(const Duration(seconds: 3), onTimeout: () => false);
   final presets = await ref.watch(focusPresetsProvider.future);
+  final words = ref.watch(userWordRepoProvider);
   return EngineSessionFactory(
     course: course,
     store: ref.watch(progressStoreProvider),
@@ -400,6 +402,8 @@ final sessionFactoryProvider = FutureProvider<SessionFactory>((ref) async {
     options: ref.watch(sessionOptionsProvider),
     presets: presets,
     clock: ref.watch(clockProvider),
+    // "My words": read when a lesson or a "My words" session starts.
+    userWords: () async => (await words.load(course.meta.id)).all,
   );
 });
 
@@ -614,6 +618,10 @@ class AiConfigController extends AsyncNotifier<AiConfig> {
 /// Starred words, sentences and exercises (`AppData.bookmarks`, the progress
 /// DB table), else in memory. The bookmark UI is in `ui/bookmarks/`.
 final bookmarkRepoProvider = Provider<BookmarkRepo>((ref) => ref.watch(appDataProvider)?.bookmarks ?? InMemoryBookmarkRepo());
+
+/// "My words" storage: `AppData.userWords` (the progress DB's `user_words`),
+/// else in memory.
+final userWordRepoProvider = Provider<UserWordRepo>((ref) => ref.watch(appDataProvider)?.userWords ?? InMemoryUserWordRepo());
 
 final feedbackStoreProvider = Provider<FeedbackStore>(
   (ref) => ref.watch(appDataProvider)?.feedback ?? InMemoryFeedbackStore(),

@@ -99,6 +99,24 @@ class StarredRequest extends SessionRequest {
       factory.starred(await load(), length: length);
 }
 
+/// "Practice my words": the learner's own words of the active course.
+class MyWordsRequest extends SessionRequest {
+  const MyWordsRequest({this.length});
+
+  /// Exercises; null = the user's default session length.
+  final int? length;
+
+  @override
+  String get title => 'My words';
+
+  @override
+  String get emptyMessage => 'No words of your own yet. Add some while reading (Practice → Read) or in My words.';
+
+  @override
+  Future<PracticeSession> start(SessionFactory factory, {required LessonFocus defaultFocus, int defaultLength = 12}) =>
+      factory.myWords(length: length ?? defaultLength);
+}
+
 class FadingRequest extends SessionRequest {
   const FadingRequest({this.length = 12});
   final int length;

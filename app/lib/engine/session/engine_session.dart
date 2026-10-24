@@ -15,11 +15,13 @@ import '../../core/interfaces/session.dart';
 import '../../core/models/exercise.dart';
 import '../../core/models/facet.dart';
 import '../../core/models/progress.dart';
+import '../../core/models/user_word.dart';
 import '../debug/exercise_printer.dart';
 import '../gating.dart';
 import '../gen_context.dart';
 import '../grading/rating.dart';
 import '../selector.dart';
+import 'my_words.dart';
 
 /// Dependencies shared by every session of one course.
 class SessionEnv {
@@ -33,6 +35,7 @@ class SessionEnv {
     this.stagePolicy = const StagePolicy(),
     DateTime Function()? clock,
     Random? random,
+    this.userWordsLoader,
   })  : selector = selector ?? ExerciseSelector(),
         clock = clock ?? (() => DateTime.now().toUtc()),
         random = random ?? (options.seed == null ? Random() : Random(options.seed));
@@ -46,6 +49,25 @@ class SessionEnv {
   final StagePolicy stagePolicy;
   final DateTime Function() clock;
   final Random random;
+
+  /// Loads the learner's own words of the course ("my words"); null: none.
+  final Future<Iterable<UserWord>> Function()? userWordsLoader;
+
+  /// The learner's words, once [loadUserWords] ran (the sessions that use
+  /// them load them at start: lessons and "My words").
+  UserWordPool userWords = UserWordPool.empty;
+  Future<UserWordPool>? _userWordsLoad;
+
+  /// Loads [userWords] once (an empty pool when there is no loader or it fails).
+  Future<UserWordPool> loadUserWords() => _userWordsLoad ??= () async {
+    final load = userWordsLoader;
+    if (load == null) return userWords;
+    try {
+      return userWords = UserWordPool(course.meta.id, await load());
+    } catch (_) {
+      return userWords;
+    }
+  }();
 
   DateTime now() => clock().toUtc();
 }
@@ -372,6 +394,21 @@ abstract class EngineSession implements PracticeSession, OverridableSession, Ret
       final sentence = sentenceIdOf(fixed);
       if (sentence != null) _history?.use(sentence);
       return fixed;
+    }
+    if (isUserFacetId(slot.facet.facetId)) {
+      // The learner's own words: their own small generator (docs/engine.md, "My words").
+      return env.userWords.generate(
+        slot.facet,
+        course: env.course,
+        options: env.options,
+        random: env.random,
+        state: _states[slot.facet.facetId],
+        nextId: () => '$id#${_servedTotal + 1}',
+        stagePolicy: env.stagePolicy,
+        only: slot.only,
+        retryType: slot.retryType,
+        avoid: slot.avoid ?? _lastType,
+      );
     }
     final ctx = genContext(slot.facet);
     final retry = slot.retryType;

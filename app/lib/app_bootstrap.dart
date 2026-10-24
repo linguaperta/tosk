@@ -10,6 +10,7 @@ import 'providers.dart';
 import 'sync/sync_bootstrap.dart';
 import 'sync/sync_config.dart';
 import 'sync/sync_providers.dart';
+import 'sync/user_words_sync.dart';
 import 'ui/course_catalog.dart';
 import 'ui/demo/demo_courses.dart';
 import 'ui/demo/demo_seed.dart';
@@ -84,6 +85,7 @@ Future<AppBoot> bootApp({
           syncedSettings: kSyncedSettingKeys,
           unionKeys: kUnionSettingKeys,
           directory: options.dataDirectory,
+          extensions: [UserWordsSync(app.userWords)],
         );
       } on Object catch (e) {
         // Sync is optional: without it the app works exactly as offline.

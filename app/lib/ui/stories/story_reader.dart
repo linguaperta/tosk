@@ -2,8 +2,14 @@
 /// next), every aligned word tappable, a translation toggle per sentence, then
 /// the comprehension questions and a result. Finishing records one story read
 /// event (`kStoryReadType`, see docs/ARCHITECTURE.md, "Stories").
+///
+/// **Read aloud** (with a voice for the course language): play/pause and the
+/// slow rate in the app bar read the story sentence by sentence (revealing
+/// each as it is read), the sentence being read is framed, a tap on a
+/// sentence starts there, and leaving (or the questions) stops it.
 library;
 
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -16,7 +22,9 @@ import '../../core/core.dart';
 import '../../engine/engine.dart' show tokenRefsOf;
 import '../../progression/xp.dart';
 import '../../providers.dart';
+import '../../speech/speech_providers.dart';
 import '../common/async_view.dart';
+import '../common/read_aloud.dart';
 import '../common/word_popover.dart';
 import '../lesson/exercises/common.dart';
 import '../routes.dart';
@@ -77,12 +85,38 @@ class _ReaderState extends ConsumerState<_Reader> {
   late final List<List<int>> _order; // question -> option indices in display order
   int? _xp;
   bool _saving = false;
+  final _rowKeys = <int, GlobalKey>{};
+
+  /// Reads the story aloud (the buttons only show with a voice).
+  late final ReadAloudController _aloud = ReadAloudController(
+    speaker: ref.read(speakerProvider),
+    languageCode: widget.course.meta.target,
+    count: story.sentences.length,
+    textOf: (i) => story.sentences[i].text,
+    onSentence: _readingAloud,
+  );
 
   Story get story => widget.story;
+
+  /// Sentence [i] is being read: reveal it and keep it in view.
+  void _readingAloud(int i) {
+    if (!mounted) return;
+    if (i >= _shown) setState(() => _shown = i + 1);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final c = _rowKeys[i]?.currentContext;
+      if (c == null || !c.mounted) return;
+      unawaited(Scrollable.ensureVisible(
+        c,
+        alignment: 0.5,
+        duration: ref.read(reduceMotionProvider) ? Duration.zero : const Duration(milliseconds: 250),
+      ));
+    });
+  }
 
   @override
   void initState() {
     super.initState();
+    _aloud.addListener(_onAloud);
     // Options in a stable, story-specific order (the source lists the right one first).
     _order = [
       for (var i = 0; i < story.questions.length; i++)
@@ -90,8 +124,14 @@ class _ReaderState extends ConsumerState<_Reader> {
     ];
   }
 
+  void _onAloud() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void dispose() {
+    _aloud.removeListener(_onAloud);
+    _aloud.dispose(); // stops reading on leaving
     _scroll.dispose();
     super.dispose();
   }
@@ -120,8 +160,10 @@ class _ReaderState extends ConsumerState<_Reader> {
           setState(() => _shown++);
           _toEnd();
         } else if (story.questions.isEmpty) {
+          unawaited(_aloud.stop());
           _finish();
         } else {
+          unawaited(_aloud.stop());
           setState(() => _phase = _Phase.questions);
         }
       case _Phase.questions:
@@ -221,6 +263,9 @@ class _ReaderState extends ConsumerState<_Reader> {
           onPressed: () => context.pop(),
         ),
         title: Text(story.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+        actions: [
+          if (_phase == _Phase.reading) ReadAloudButtons(controller: _aloud, keyPrefix: 'story-read-aloud'),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(4),
           child: LinearProgressIndicator(
@@ -269,6 +314,7 @@ class _ReaderState extends ConsumerState<_Reader> {
     final theme = Theme.of(context);
     final mono = isBw(context);
     final newWords = [for (final id in story.newWords) ?widget.course.item(id)];
+    final voice = ref.watch(canPronounceProvider);
     return _column(
       key: const ValueKey('story-text'),
       controller: _scroll,
@@ -291,8 +337,10 @@ class _ReaderState extends ConsumerState<_Reader> {
         const SizedBox(height: 8),
         for (var i = 0; i < _shown && i < story.sentences.length; i++)
           _SentenceRow(
-            key: ValueKey('story-sentence-$i'),
+            key: _rowKeys.putIfAbsent(i, GlobalKey.new),
             index: i,
+            speaking: _aloud.current == i,
+            onRead: voice ? () => unawaited(_aloud.play(i)) : null,
             sentence: story.sentences[i],
             translated: _translated.contains(i),
             lang: lang,
@@ -404,6 +452,8 @@ class _SentenceRow extends StatelessWidget {
   const _SentenceRow({
     super.key,
     required this.index,
+    this.speaking = false,
+    this.onRead,
     required this.sentence,
     required this.translated,
     required this.lang,
@@ -417,13 +467,17 @@ class _SentenceRow extends StatelessWidget {
   final bool latest;
   final VoidCallback onToggle;
 
+  /// Being read aloud now: framed (and announced).
+  final bool speaking;
+
+  /// Read aloud from this sentence (a tap on it); null without a voice.
+  final VoidCallback? onRead;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = sentence.translation(lang);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
+    final row = Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
@@ -461,6 +515,25 @@ class _SentenceRow extends StatelessWidget {
             selectedIcon: const Icon(Icons.subtitles_off_outlined),
           ),
         ],
+      );
+    return Padding(
+      key: ValueKey('story-sentence-$index'),
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Semantics(
+        label: speaking ? 'Reading aloud' : null,
+        onTapHint: onRead == null ? null : 'Read aloud from here',
+        child: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: onRead,
+          child: Container(
+            key: speaking ? ValueKey('story-speaking-$index') : null,
+            padding: const EdgeInsets.only(left: 6),
+            decoration: speaking
+                ? speakingDecoration(context)
+                : BoxDecoration(border: Border.all(color: Colors.transparent, width: 2), borderRadius: BorderRadius.circular(8)),
+            child: row,
+          ),
+        ),
       ),
     );
   }
