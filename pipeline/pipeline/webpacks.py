@@ -29,7 +29,7 @@ import urllib.request
 from pathlib import Path
 from typing import Callable
 
-from .restricted import RestrictedContentError, is_restricted
+from .restricted import RestrictedContentError, is_restricted, refuse_restricted_pack
 
 STABLE_INDEX_URL = "https://github.com/linguaperta/tosk-data/releases/latest/download/index.json"
 
@@ -99,6 +99,7 @@ def mirror(out: Path, index: str = STABLE_INDEX_URL,
                 fetch(src, raw)
             if _sha256(raw) != c["sha256"] or raw.stat().st_size != c["size"]:
                 raise ValueError(f"{cid}: downloaded pack does not match the index (sha256/size)")
+            refuse_restricted_pack(raw, "mirror")
             gz = gzip_pack(raw, out / f"{cid}.sqlite.gz")
             courses.append({**c, **web_fields(gz, gz.name)})
             print(f"  {cid} {c['version']}: {c['size']:>10} -> {gz.stat().st_size:>9} bytes", file=sys.stderr)

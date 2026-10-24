@@ -59,6 +59,11 @@ jobs:
           TOSK_CONTENT: ${{ runner.temp }}/no-content
           TOSK_CACHE: ${{ runner.temp }}/cache
         run: python -m pytest -q
+      - name: No restricted content tracked
+        # Fails if a tracked *.sqlite carries meta.restricted or a restricted course id, or a
+        # tracked path is named after a restricted course (pipeline/pipeline/restricted.py).
+        working-directory: pipeline
+        run: python -m pipeline.restricted
 
   firestore-rules:
     name: Firestore rules (emulator)

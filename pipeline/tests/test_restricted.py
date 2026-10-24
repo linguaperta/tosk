@@ -149,3 +149,114 @@ def test_install_desktop(tmp_path):
     assert set(m) == {"it", "hns"}
     assert m["hns"] == {"version": "0.2.0", "title": {"nl": "Sarnami"}, "origin": "local", "schemaVersion": 1,
                         "unverified": True}
+
+
+def test_install_desktop_refuses_a_path_as_course_id(tmp_path):
+    pack = _meta_pack(tmp_path / "evil.sqlite", "../progress")
+    with pytest.raises(SystemExit, match="course id"):
+        install_desktop(pack, tmp_path / "courses")
+    assert not (tmp_path / "progress.sqlite").exists()
+
+
+# --------------------------------------------------------------- meta.restricted (stamped packs)
+def _meta_pack(path, cid, **extra):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    con = sqlite3.connect(path)
+    meta = {"schema_version": "1", "course_id": cid, "version": "1.0.0", "target": cid,
+            "title": json.dumps({"en": cid}), "translations": json.dumps(["en"]), "unverified": "0", **extra}
+    con.execute("CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT)")
+    con.executemany("INSERT INTO meta VALUES (?, ?)", meta.items())
+    con.commit()
+    con.close()
+    return path
+
+
+def test_compile_stamps_restricted_courses(mini_pack_dir, tmp_path, monkeypatch):
+    from pipeline.compile import compile_pack
+    from pipeline.content import load_pack
+    pack = load_pack(mini_pack_dir)
+    compile_pack(pack, tmp_path / "open" / "it.sqlite")
+    assert restricted.read_meta(tmp_path / "open" / "it.sqlite").get("restricted") is None
+    monkeypatch.setenv("TOSK_RESTRICTED_COURSES", pack.code)
+    compile_pack(pack, tmp_path / "closed" / "it.sqlite")
+    assert restricted.read_meta(tmp_path / "closed" / "it.sqlite")["restricted"] == "1"
+
+
+def test_a_stamped_pack_is_refused_under_any_id(tmp_path):
+    import hashlib
+
+    from pipeline import publish as pub
+    from pipeline import webpacks
+    # A restricted pack rebuilt (or renamed) as an ordinary course id.
+    dist = tmp_path / "dist"
+    _meta_pack(dist / "it.sqlite", "it", restricted="1")
+    with pytest.raises(RestrictedContentError, match="meta.restricted"):
+        pub.build_index(dist, ["it"], "packs-x")
+    assert restricted.pack_restriction(_meta_pack(tmp_path / "ok" / "it.sqlite", "it")) is None
+    assert "restricted course" in restricted.pack_restriction(_meta_pack(tmp_path / "h" / "x.sqlite", "hns"))
+
+    # The mirror checks the downloaded pack itself, not just the index id.
+    rel = tmp_path / "rel"
+    _meta_pack(rel / "it.sqlite", "it", restricted="1")
+    data = (rel / "it.sqlite").read_bytes()
+    doc = {"index_version": 1, "courses": [{"id": "it", "version": "1.0.0", "url": "it.sqlite",
+                                            "sha256": hashlib.sha256(data).hexdigest(), "size": len(data)}]}
+    (rel / "index.json").write_text(json.dumps(doc), encoding="utf-8")
+    with pytest.raises(RestrictedContentError, match="mirror"):
+        webpacks.mirror(tmp_path / "site", str(rel / "index.json"))
+
+
+def test_build_install_refuses_a_stamped_pack(mini_pack_dir, tmp_path, monkeypatch):
+    # A stamped pack under an ordinary id (e.g. a restricted course's copy built as "it"):
+    # --install refuses the compiled output itself.
+    import shutil
+
+    from pipeline import build as build_mod
+    real = build_mod.compile_pack
+
+    def stamped(pack, out, built_at=None):
+        stats = real(pack, out, built_at)
+        con = sqlite3.connect(out)
+        con.execute("INSERT OR REPLACE INTO meta VALUES ('restricted', '1')")
+        con.commit()
+        con.close()
+        return stats
+
+    monkeypatch.setattr(build_mod, "compile_pack", stamped)
+    installed = tmp_path / "assets"
+    monkeypatch.setattr(build_mod, "APP_COURSES_DIR", installed)
+    content = tmp_path / "data" / "content"
+    shutil.copytree(mini_pack_dir, content / "it")
+    with pytest.raises(RestrictedContentError, match="--install"):
+        build_mod.build(["it"], content_root=str(content), install=True, quiet=True)
+    assert not installed.exists()
+
+
+def _vcs(repo, *args):
+    import subprocess
+    subprocess.run(["gi" "t", *args], cwd=repo, check=True, capture_output=True)
+
+
+def test_tracked_files_check(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _vcs(repo, "init", "-q")
+    _meta_pack(repo / "app" / "assets" / "courses" / "it.sqlite", "it")
+    (repo / "docs").mkdir()
+    (repo / "docs" / "hns_notes.md").write_text("only the name mentions it", encoding="utf-8")
+    _vcs(repo, "add", "-A")
+    assert restricted.check_tracked_packs(repo) == []
+    _meta_pack(repo / "app" / "assets" / "courses" / "es.sqlite", "es", restricted="1")
+    _meta_pack(repo / "x" / "nl.sqlite", "hns")
+    (repo / "content" / "hns").mkdir(parents=True)
+    (repo / "content" / "hns" / "course.yaml").write_text("id: hns\n", encoding="utf-8")
+    _vcs(repo, "add", "-A")
+    problems = restricted.check_tracked_packs(repo)
+    assert any("es.sqlite" in p and "meta.restricted" in p for p in problems)
+    assert any("nl.sqlite" in p and "restricted course" in p for p in problems)
+    assert any("content/hns/course.yaml" in p for p in problems)
+    assert len(problems) == 3
+
+
+def test_this_repository_tracks_no_restricted_content():
+    assert restricted.check_tracked_packs() == []
