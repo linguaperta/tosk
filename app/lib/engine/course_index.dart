@@ -837,6 +837,41 @@ class CourseIndex {
     return out;
   }();
 
+  /// Words that elide before a vowel, read from the course's own sentences:
+  /// the lemmas of aligned tokens written with a final apostrophe (French
+  /// `j'` -> `je`, `n'` -> `ne`, `qu'` -> `que`; Italian `l'` -> `lo`/`la`,
+  /// `c'` -> `ci`). Folded keys.
+  late final Set<String> elidingWords = () {
+    final out = <String>{};
+    for (final s in allSentences) {
+      for (final t in s.tokens) {
+        if (!t.isWord || t.lex == null || !normalizeApostrophes(t.t).endsWith("'")) continue;
+        final lemma = course.item(t.lex!)?.lemma;
+        if (lemma != null && !normalizeApostrophes(lemma).contains("'") && !lemma.contains(' ')) {
+          out.add(foldAnswer(lemma));
+        }
+      }
+    }
+    return out;
+  }();
+
+  /// Whether putting [newWord] at token [pos] of [s] breaks the elision of
+  /// the word before it: an elided word (`j'`, `n'`, `l'`) must stay before
+  /// a vowel (`Ce n'est` -> *`Ce n'suis`), and a word that elides must not
+  /// stay whole before one (`Je vais` -> *`Je allais`, `je me lève` -> *`je
+  /// me habille`). A word starting with h counts as a vowel (mute h:
+  /// `j'habite`), so such changes are left out either way.
+  bool breaksElision(Sentence s, int pos, String newWord) {
+    if (pos <= 0 || pos >= s.tokens.length) return false;
+    final prev = s.tokens[pos - 1];
+    if (!prev.isWord) return false;
+    final next = foldDiacritics(newWord.toLowerCase());
+    if (next.isEmpty) return false;
+    final vowel = 'aeiouyh'.contains(next[0]);
+    if (normalizeApostrophes(prev.t).endsWith("'")) return !vowel;
+    return vowel && s.tokens[pos].pre.isNotEmpty && elidingWords.contains(foldAnswer(prev.t));
+  }
+
   /// [CourseMeta.timeAdverbs] with folded keys.
   late final Map<String, Set<String>> _timeAdverbs = {
     for (final e in meta.timeAdverbs.entries)

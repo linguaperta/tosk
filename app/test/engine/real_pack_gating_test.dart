@@ -86,8 +86,8 @@ Future<List<Exercise>> _play(
 }
 
 void main() {
-  for (final id in bundledPackIds()) {
-    final path = 'assets/courses/$id.sqlite';
+  for (final id in realPackIds()) {
+    final path = realPackPath(id);
     group('real pack $id gating', () {
       late CourseData course;
       setUpAll(() => course = loadCourseFile(path));
@@ -113,9 +113,17 @@ void main() {
         expect(report.failures.take(8).join('\n\n'), isEmpty, reason: '${report.failures.length} failures');
         // Not vacuous: sentence exercises are generated for later units, and every
         // sentence-based template shows up somewhere.
+        // A skill whose form facets are all in a tense with its own person list
+        // (`tense_persons`: the imperative) gets cloze but no spot_error or
+        // transform, so about five sentence exercises instead of ten.
+        bool ownPersonsOnly(String skill) {
+          final forms = [for (final f in course.skillFacets(skill)) if (f.kind == FacetKind.form) f];
+          return forms.isNotEmpty && forms.every((f) => course.meta.tensePersons.containsKey(f.tense));
+        }
+
         for (var k = 2; k < units; k++) {
           // about ten per skill (a unit may have a single grammar skill since the topic restructure)
-          final want = min(40, 10 * _unitSkills(course, k).length);
+          final want = min(40, [for (final s in _unitSkills(course, k)) ownPersonsOnly(s) ? 5 : 10].fold(0, (a, b) => a + b));
           expect(report.sentenceExercises['u1-$k lesson'] ?? 0, greaterThan(want), reason: 'units 1-$k');
         }
         for (final label in ['cloze', 'spot_error', 'transform', 'sentence_builder', 'multiple_choice/sentence']) {

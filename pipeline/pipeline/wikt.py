@@ -180,12 +180,16 @@ def parse_entry(e: dict, lang: Lang) -> Lexeme | None:
             if "table-tags" in tags:
                 lx.table_tags = lx.table_tags or form
                 continue
+            named = lang.auxiliary_of(form, tags)        # French 'être + past participle'
+            if named is not None:
+                lx.aux += [a for a in named if a not in lx.aux]
+                continue
             sp = lang.spelling(form, f.get("link"))
             if "auxiliary" in tags:
                 if sp not in lx.aux:
                     lx.aux.append(sp)
                 continue
-            for mood in MOODS & set(tags):
+            for mood in lang.form_moods(tags):
                 if sp and sp != "-" and " " not in sp and "/" not in sp:
                     lx.mood_forms.setdefault(mood, set()).add(sp.lower())
             slot = lang.slot(tags)

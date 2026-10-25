@@ -136,6 +136,8 @@ class FeatureTagger:
                 spec["_clitics"] = set(pron) | {_norm(w) for w in spec.get("clitics") or []}
                 spec["_any"] = {_norm(w) for w in spec.get("enclitic_any") or []}
                 spec["_verbs"] = set(spec.get("verbs") or [])     # only these verbs (lemmas)
+                # pronouns that are also subject pronouns (French nous, vous): reflexive only twice
+                spec["_subject"] = {_norm(w) for w in spec.get("subject_pronouns") or []}
             self.detectors.append((name, kind, spec))
 
     # -- helpers ----------------------------------------------------------------------------------
@@ -193,13 +195,15 @@ class FeatureTagger:
         """Index of the auxiliary token of the participle at i: the nearest auxiliary-verb token
         in a present form (preceding first)."""
         best = None
+        # the auxiliary's tense: present for the perfect, French imparfait for the plus-que-parfait, ...
+        want = self.compound.get((toks[i].get("form") or "").split(".", 1)[0]) or self.present
         for j, t in enumerate(toks):
             if j == i or t.get("lex") not in self.aux_ids:
                 continue
             f = t.get("form") or ""
-            if f and not f.startswith(self.present + "."):
+            if f and not f.startswith(want + "."):
                 continue
-            if not f and self.present not in self._spellings(t["lex"]).get(_norm(t["t"]), set()):
+            if not f and want not in self._spellings(t["lex"]).get(_norm(t["t"]), set()):
                 continue
             d = (0 if j < i else 1, abs(i - j))
             if best is None or d < best[0]:
@@ -282,10 +286,16 @@ class FeatureTagger:
             if person != "_":
                 persons_seen.add(person)
                 j = i - 1
+                cluster = []
                 while j >= 0 and _is_word(toks[j]) and _norm(toks[j]["t"]) in clitics:
-                    if person in pron.get(_norm(toks[j]["t"]), ()) and not (unbound and toks[j].get("lex") in self.verbs):
-                        return True
+                    cluster.append(j)
                     j -= 1
+                for j in cluster:
+                    w = _norm(toks[j]["t"])
+                    if person in pron.get(w, ()) and not (unbound and toks[j].get("lex") in self.verbs):
+                        if w in spec["_subject"] and sum(1 for x in cluster if _norm(toks[x]["t"]) == w) < 2:
+                            continue         # French 'Vous avez': the subject, not 'Vous vous levez'
+                        return True
                 continue
             w = _norm(t["t"])
             if w in self._spellings(t["lex"]):
@@ -318,7 +328,8 @@ class FeatureTagger:
                 continue
             ts = self.token_tenses(t)
             if i in aux_pos:
-                ts = ts - {self.present}
+                # the auxiliary of a compound form ('ho', French 'avais' of the plus-que-parfait)
+                ts = ts - {self.present, (t.get("form") or "").split(".", 1)[0]}
             tenses_at[i] = ts
             feats |= {f"tense:{x}" for x in ts}
         for name, kind, spec in self.detectors:

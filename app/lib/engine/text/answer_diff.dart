@@ -20,6 +20,11 @@ final RegExp _space = RegExp(r'\s+', unicode: true);
 /// `l'acqua` -> `l'` + `acqua` (letters, an apostrophe, then a letter).
 final RegExp _elided = RegExp("^(\\p{L}+['’‘ʼ])(\\p{L}.*)\$", unicode: true);
 
+/// Words with an apostrophe inside that are one word, not an elision (French
+/// `aujourd'hui`, `quelqu'un`, `prud'homme`, `presqu'île`; the pipeline
+/// tokenizer keeps them whole too).
+final RegExp _wholeWord = RegExp("^(aujourd|quelqu|prud|presqu)['’‘ʼ]", caseSensitive: false, unicode: true);
+
 /// Splits [text] into display tokens: words and punctuation, with the
 /// whitespace before each, elisions split off. `renderTokenRefs` of the
 /// result gives [text] back (leading and trailing whitespace trimmed).
@@ -31,7 +36,7 @@ List<TokenRef> textTokens(String text) {
     var pre = s.substring(i, m.start).replaceAll(_space, ' ');
     i = m.end;
     var word = m[0]!;
-    while (true) {
+    while (!_wholeWord.hasMatch(word)) {
       final e = _elided.firstMatch(word);
       // A single consonant after the apostrophe is no elision but one Dutch word: plurals
       // and genitives (foto's, baby's), contractions (m'n, z'n, zo'n). Italian c'è splits.

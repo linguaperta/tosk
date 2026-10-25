@@ -11,12 +11,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'real_packs.dart';
 
 void main() {
-  for (final id in bundledPackIds()) {
+  for (final id in realPackIds()) {
     group('real pack $id reference', () {
       late CourseData course;
       late CourseReference ref;
       setUpAll(() {
-        course = loadCourseFile('assets/courses/$id.sqlite');
+        course = loadCourseFile(realPackPath(id));
         ref = CourseReference.of(course);
       });
 

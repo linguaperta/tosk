@@ -1,3 +1,5 @@
+import 'dart:math' show max;
+
 import '../../core/models/course.dart';
 import '../../core/models/exercise.dart';
 import '../../core/models/facet.dart';
@@ -226,13 +228,27 @@ class TransformTemplate extends ExerciseTemplate {
         if (a[k] != w[k]) return false;
       }
       final x = a.last, y = w.last;
-      return x != y && x.length == y.length && x.substring(0, x.length - 1) == y.substring(0, y.length - 1);
+      if (x == y) return false;
+      // Italian `andato`/`andata` (the last letter), French `arrivés`/
+      // `arrivées` (an added e): the words differ only in their last two letters.
+      var p = 0;
+      while (p < x.length && p < y.length && x[p] == y[p]) {
+        p++;
+      }
+      return (x.length - y.length).abs() <= 1 && p >= max(x.length, y.length) - 2 && p >= 3;
     }
 
     if (!target.alts.any(gendered)) return false;
     final meta = ctx.course.meta;
     if (!(meta.persons.length == 6 && {2, 5}.contains(meta.persons.indexOf(target.person)))) return false;
     final s = o.sentence;
+    // A person that names both genders (French `ils/elles`): its feminine
+    // pronoun needs the feminine participle (`Elles arrivent` -> `elles
+    // seront arrivées`), and so may a name (`Marie part`).
+    final parts = target.person.split('/');
+    final words = {for (final t in s.tokens) if (t.isWord) foldAnswer(t.t)};
+    if (parts.skip(1).any((p) => words.contains(foldAnswer(p)))) return true;
+    if (s.tokens.any((t) => t.isWord && t.lex == null && ctx.index.properNames.contains(t.t))) return true;
     return s.tr.values.any(_itWords.hasMatch) ||
         s.tokens.any((t) => t.isWord && t.lex != null && ctx.course.item(t.lex!)?.isNoun == true);
   }
@@ -372,12 +388,11 @@ class TransformTemplate extends ExerciseTemplate {
       return null;
     }
     // An elided word before a changed word must still be followed by a
-    // vowel (`l'ha fatto` -> `l'faceva` would need `lo faceva`).
+    // vowel (`l'ha fatto` -> `l'faceva` would need `lo faceva`), and a word
+    // that elides must not stay whole before one (`Je vais` -> `j'allais`,
+    // not *`je allais`).
     for (final e in replace.entries) {
-      final p = e.key;
-      if (p == 0 || !tokens[p - 1].isWord || !normalizeApostrophes(tokens[p - 1].t).endsWith("'")) continue;
-      final next = foldDiacritics(e.value.toLowerCase());
-      if (next.isEmpty || !'aeiouh'.contains(next[0])) return null;
+      if (ix.breaksElision(s, e.key, e.value)) return null;
     }
     final out = <(String, String, bool)>[];
     for (var i = 0; i < tokens.length; i++) {

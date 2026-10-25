@@ -25,7 +25,8 @@ ITEM_TARGET = 3
 SKILL_TARGET = 40
 UNIT1_TARGET = 150
 # Verbs used only in the third person ('it happens'): their other person slots are not gaps.
-IMPERSONAL = {"it": {"succedere"}, "nl": {"gebeuren"}, "es": {"ocurrir", "suceder", "llover", "nevar"}}
+IMPERSONAL = {"it": {"succedere"}, "nl": {"gebeuren"}, "es": {"ocurrir", "suceder", "llover", "nevar"},
+              "fr": {"falloir", "pleuvoir", "neiger"}}
 
 
 class Material:

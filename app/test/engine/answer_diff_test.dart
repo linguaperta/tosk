@@ -27,6 +27,9 @@ void main() {
     test("a Dutch plural or contraction with an apostrophe is one word, not an elision", () {
       expect([for (final t in textTokens("Oma liet ons oude foto's zien")) t.text],
           ['Oma', 'liet', 'ons', 'oude', "foto's", 'zien']);
+      // French words with an apostrophe inside stay whole; elisions split
+      expect([for (final t in textTokens("Aujourd'hui quelqu'un l'attend")) t.text],
+          ["Aujourd'hui", "quelqu'un", "l'", 'attend']);
       expect([for (final t in textTokens("Ik heb m'n sleutel")) t.text], ['Ik', 'heb', "m'n", 'sleutel']);
       // Italian c'è is still an elision
       expect([for (final t in textTokens("C'è il sole")) t.text], ["C'", 'è', 'il', 'sole']);

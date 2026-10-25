@@ -303,6 +303,10 @@ re-renders the text exactly. Italian elision: an apostrophe between two letters 
 token (`l'|acqua`, `dell'|uomo`, `c'|è`, `un'|amica`); a final apostrophe is kept only for known
 truncations (`po'`, `mo'`, `be'`, `di'`, `fa'`, `va'`, `da'`, `sta'`, `to'`). Dutch keeps internal
 apostrophes (`auto's`, `zo'n`) and treats `'s`, `'t`, `'k`, `'n` as words. Hyphenated words are one token.
+French: the elided words are a closed list (`l'`, `d'`, `j'`, `qu'`, `n'`, `s'`, `c'`, `m'`, `t'`,
+`jusqu'`, `lorsqu'`, `puisqu'`, `quoiqu'`) split off as their own token (`l'|eau`, `qu'|il`);
+other apostrophes stay inside the word (`aujourd'hui`, `quelqu'un`, `prud'homme`); hyphenated inversions and
+imperatives stay one token (`a-t-il`, `dis-moi`), and the aligner links their host verb.
 
 ### Alignment (`pipeline/align.py`)
 
@@ -375,6 +379,23 @@ conjugation tables. Rules:
   *sé*, *di*, *sal*, *ten*) link to their own verb without a form when clause-initial and the sentence
   has `!` or its English translation starts with that verb (*Ven enseguida* = Come right away);
   `verb_needs_pronoun` words (*como*, *caso*) are verbs after an object clitic too (*lo como*).
+* French (`lang_fr.py`, all fields default-off in `lang.py`): compound tenses use the auxiliary's
+  own tense (`Lang.compound_tenses`, now used for every compound tense, not only one in the present: passé composé = present of avoir/être, plus-que-parfait =
+  imparfait, futur antérieur = futur, conditionnel passé = conditionnel, subjonctif passé =
+  subjonctif); an être verb's participle agrees (`agreeing_aux`), an avoir verb's after a preceding
+  object clitic or *que* (`object_clitics`, `agreement_lookback`); a reflexive clitic before être
+  makes an avoir verb's compound (`reflexive_clitics`, `reflexive_aux`: *elle s'est levée*);
+  hyphenated inversions and imperatives link their host verb (`hyphen_subjects`/`hyphen_objects`:
+  *a-t-il*, *dis-le-moi*); *le/la/les/l'/leur/en* before a verb are the pronoun item, elsewhere the
+  article (`clitic_relink`, `lookup_pos`); the subjunctive needs a strong trigger, an indicative
+  trigger (`ind_triggers`: *je sais que*, *il est sûr que*) or a relative *que* (*le livre que tu
+  lis*) gives the indicative, any other *que* is `unsure`; the passé simple yields to a common
+  homograph (`rare_tense_homographs`: *il fit* stays, *finis* is présent); *-ant* is a gerund only
+  after *en* (`gerund_marker`: *pendant*, *étudiant* stay what they are); an infinitive follows a
+  preposition (`infinitive_preps`: *sans dire*), a noun follows an adjective (`noun_after_adjective`:
+  *un bon élève*), a capitalized word inside a sentence is a name (`capitalized_names`: *Marie*), and
+  forms only in an adjective's table (*meilleures*) are looked up there (`table_forms_lookup`). Mood
+  homographs whose translation has the gloss of one reading take it (*il a plu* = it rained).
 * A participle right after a determiner that is no pronoun (*su pedido*, *por supuesto*) is a noun the
   lexicon lacks: it stays unlinked instead of tagging the perfect.
 * A form that several items of one part of speech list as an inflection goes to the item whose own
@@ -495,6 +516,52 @@ Adjectives and Italian possessives add `#infl:agreement`; plurals and diminutive
 carries the skill), and the Dutch `comparison` table is imported but no skill trains it yet. Split
 separable verbs are aligned (*sta … op*), but the separable skill still trains only `#rec`/`#prod`.
 Italian reflexive (pronominal) verbs are still excluded from the pool.
+
+**French 1.0.0** (pack format 1.3, catalog download only: not bundled in the app) — B1–B2, 19 main
+units + 12 themed topics (19 topic units), 100 skills (47 grammar skills, each with an English note),
+2039 taught words, 44 559 sentences (1530 generated, 3.4 %), 46 stories (2 per main unit, 0–2 per
+topic); English only (`required_translations: [en]`). Metropolitan standard: Québec spellings and
+slang are kept out (`exclude_words`), the imperfect subjunctive is not imported (`exclude_moods`),
+the passé simple is recognition-only.
+
+| Unit | Skills (items; `*` = grammar) | Introduces |
+|---|---|---|
+| u1 Basics | greetings (29), little-words (50), people (34), etre-avoir* (2) | |
+| u2 The present tense | present-er* (18), food (45), articles* (50), numbers (36), present-ir-re* (14), negation* (10) | `negation` |
+| u3 Everyday life | time (49), home (32), family (27), everyday-verbs (41), irregular-present* (15), modal-verbs* (4), questions* (12) | `modal`, `inversion` |
+| u4 Describing things | adjectives* (40, + `#infl:agreement`), colours (16, + `#infl:agreement`), adverbs (35), possessives* (9, + `#infl:agreement`), demonstratives* (10), plurals* (34, `#infl:number`) | |
+| u5 Around town | city (40), travel (39), prepositions* (28), near-future* (8) | `futur_proche`, `venir_de` |
+| u6 Pronouns | work (41), pronouns* (8), y-en* (3), combined-pronouns* (9) | `pronoun:y`, `pronoun:en`, `pronoun:combined` |
+| u7 The past | passe-compose* (18), participles-irregular* (18), passe-compose-etre* (16) | `tense:passe_compose`, `irregular:passe_compose`, `aux:etre`, `agreement` |
+| u8 Memories | imparfait* (18), narration* (12), more-verbs (34), people-2 (34) | `tense:imparfait` |
+| u9 Daily routine | reflexive* (12), reflexive-past* (12), little-words-2 (28) | `reflexive` |
+| u10 Plans for the future | futur* (18), futur-irregular* (12), ideas (39) | `tense:futur`, `irregular:futur` |
+| u11 Do it! | imperatif* (16), imperatif-irregular* (10), imperatif-pronouns* (12) | `tense:imperatif`, `imperative:negative`, `irregular:imperatif`, `imperative:pronoun` |
+| u12 More or less | comparatives* (12), relatives* (7), abstract (36) | `comparative`, `relative:dont` |
+| u13 I would like... | conditionnel* (16), conditionnel-irregular* (12), opinions (36), verbs-3 (41) | `tense:conditionnel`, `irregular:conditionnel` |
+| u14 Before and after | plus-que-parfait* (16), futur-anterieur* (12), time-connectors (16) | `tense:plus_que_parfait`, `tense:futur_anterieur` |
+| u15 Wishes and doubts | subjonctif* (18), subjonctif-irregular* (7), subjonctif-triggers* (12) | `tense:subjonctif`, `irregular:subjonctif` |
+| u16 What if... | conditionnel-passe* (16), si-clauses* (8), subjonctif-passe* (12), adjectives-2 (51, + `#infl:agreement`) | `tense:conditionnel_passe`, `si_clause`, `tense:subjonctif_passe` |
+| u17 Reporting | passive* (12), indirect-speech* (11), gerondif* (5), verbs-4 (46) | `passive`, `gerund` |
+| u18 Reading French | passe-simple* (15, recognition), passe-simple-irregular* (18, recognition), relatives-lequel* (7) | `tense:passe_simple`, `irregular:passe_simple`, `relative:lequel` |
+| u19 Nuance and argument | connectors (33), abstract-2 (57), expressions (36) | |
+
+Topics (one or two units each, anchored in the main tree): santé (body, health), cuisine (kitchen,
+cooking), mode (clothes, shopping), émotions (feelings, character), nature (weather, animals,
+landscape), loisirs (leisure, culture, media), services (directions, services), travail (careers,
+money), société (society, environment), sciences (technology, science), maison (household,
+housework), lecture (reading, history).
+
+French curation (seed.yaml): `exclude` drops homographs that would steal a common word (the noun
+*être*, the adjective *est*, ...), `exclude_sentences` lists what the native review
+(`docs/samples/fr_exercises.txt`) rejected (*quoiqu'il arrive* for *quoi qu'il arrive*, mismatched
+translations), and Claude-written sentences fill the slots the fairness floor needs (the vous forms of
+irregular verbs, the later compound tenses). Cost of the course: the kaikki download (30 MB after
+filtering) and Tatoeba are fetched once; one import round takes 4–5 minutes, validate about 1
+minute, build 1–2 minutes; the course took 14 import rounds and 11 batches of generated sentences.
+The generic pipeline gained the French `Lang` fields above (all default-off), compound tenses for
+every auxiliary tense, cell-specific wrong inflection forms, and the engine an elision check for
+changed words (`CourseIndex.breaksElision`, data-driven from the course's own elided tokens).
 
 **Sarnami (`hns`, local only, unverified)**: 9 units, 35 skills, built grammar first by a private
 course plugin (see "Private course plugins" above); its structure and sources are documented in

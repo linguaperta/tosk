@@ -80,7 +80,7 @@ void main() {
   setUpAll(loadQaFonts);
 
   final courses = <String, CourseData Function()>{
-    for (final id in bundledPackIds()) id: () => loadCourseFile('assets/courses/$id.sqlite'),
+    for (final id in realPackIds()) id: () => loadCourseFile(realPackPath(id)),
     'big fixture': bigMapCourse,
   };
 

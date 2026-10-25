@@ -36,8 +36,8 @@ double _pct(List<int> us, double p) {
 }
 
 void main() {
-  for (final id in bundledPackIds()) {
-    final path = 'assets/courses/$id.sqlite';
+  for (final id in realPackIds()) {
+    final path = realPackPath(id);
     group('real pack $id performance', () {
       late CourseData course;
       late int warmupMs;

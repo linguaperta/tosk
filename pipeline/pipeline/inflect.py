@@ -368,9 +368,101 @@ def es_agreement(lx: Lexeme, known: set[str]) -> dict | None:
     return t
 
 
+# ------------------------------------------------------------------------------------------ French
+def _fr_plural_cands(lemma: str) -> list[str]:
+    """Plausible plural mistakes, the regular rule where the word is irregular and the other way
+    round: chevals, travails, gâteaus, bijous, œils; festivaux, troux, pneux. Only forms that are no
+    word and no form of the table are kept (_add_wrong)."""
+    if lemma.endswith(("s", "x", "z")):
+        return []
+    cands = [lemma + "s"]
+    if lemma.endswith("al"):
+        cands.append(lemma[:-2] + "aux")
+    if lemma.endswith("ail"):
+        cands.append(lemma[:-3] + "aux")
+    if lemma.endswith(("eau", "au", "eu", "ou")):
+        cands.append(lemma + "x")
+    return cands
+
+
+def fr_number(lx: Lexeme, known: set[str]) -> dict | None:
+    """sg/pl of French nouns (maison/maisons, cheval/chevaux, œil/yeux); nouns whose plural equals
+    the singular (le prix / les prix) are left out like Italian città."""
+    if lx.pos != "noun" or lx.uncountable or lx.plural_only or " " in lx.lemma:
+        return None
+    lemma = lx.lemma
+    plurals = _forms(lx, lambda t: "plural" in t and "diminutive" not in t)
+    plurals = [p for p in plurals if p != lemma] or ([lx.plural] if lx.plural and lx.plural != lemma else [])
+    if not plurals:
+        return None
+    t = {"sg": _cell(lemma), "pl": _cell(plurals[0], plurals[1:])}
+    split_table(t, lemma)
+    _add_wrong(t, "pl", _fr_plural_cands(lemma), known)
+    return t
+
+
+def _fr_feminine(lemma: str) -> str:
+    """The regular feminine of an adjective (petit -> petite, heureux -> heureuse, actif -> active,
+    cruel -> cruelle, ancien -> ancienne, bon -> bonne, cher -> chère, rapide -> rapide)."""
+    if lemma.endswith(("ieur", "meilleur", "majeur", "mineur")):
+        return lemma + "e"                  # meilleur -> meilleure, supérieur -> supérieure
+    for a, b in (("eux", "euse"), ("eur", "euse"), ("if", "ive"), ("el", "elle"), ("eil", "eille"), ("ien", "ienne"),
+                 ("on", "onne"), ("er", "ère"), ("et", "ète"), ("c", "che")):
+        if lemma.endswith(a):
+            return lemma[: -len(a)] + b
+    return lemma if lemma.endswith("e") else lemma + "e"
+
+
+def _fr_plural(word: str) -> str:
+    if word.endswith(("s", "x", "z")):
+        return word
+    if word.endswith("al"):
+        return word[:-2] + "aux"
+    if word.endswith(("eau", "eu")):
+        return word + "x"
+    return word + "s"
+
+
+def fr_agreement(lx: Lexeme, known: set[str]) -> dict | None:
+    """m.sg / f.sg / m.pl / f.pl of adjectives and determiners (petit/petite/petits/petites,
+    heureux/heureuse/heureux/heureuses, mon/ma/mes/mes, ce/cette/ces/ces). Forms from Wiktionary,
+    the regular patterns as a fallback for adjectives."""
+    if lx.pos not in ("adj", "det") or " " in lx.lemma:
+        return None
+    lemma = lx.lemma
+    ok = {"error-unrecognized-form"}
+    fsg = _forms(lx, lambda t: "feminine" in t and "plural" not in t and t <= {"feminine", "singular"} | ok)
+    mpl = _forms(lx, lambda t: "plural" in t and "feminine" not in t and t <= {"masculine", "plural"} | ok)
+    fpl = _forms(lx, lambda t: "plural" in t and "masculine" not in t and t <= {"feminine", "plural"} | ok)
+    common_pl = _forms(lx, lambda t: "plural" in t and (t <= {"plural"} | ok
+                                                        or t <= {"masculine", "feminine", "plural"} | ok))
+    if common_pl:
+        mpl, fpl = mpl or common_pl, fpl or common_pl
+    if lx.pos == "adj":
+        if lx.invariable:
+            fsg, mpl, fpl = [lemma], [lemma], [lemma]
+        fsg = fsg or [_fr_feminine(lemma)]
+        mpl = mpl or [_fr_plural(lemma)]
+        fpl = fpl or [fsg[0] + "s"]
+    if not (fsg and mpl and fpl):
+        return None
+    forms = {"m.sg": [lemma], "f.sg": fsg, "m.pl": mpl, "f.pl": fpl}
+    t = {c: _cell(v[0], v[1:]) for c, v in forms.items()}
+    split_table(t, lemma)
+    # the regular endings where the adjective is irregular: heureuxe, blance, bone, actife, beaus,
+    # nouveaus, normals (no ending on the m.sg, the form the learner starts from)
+    if not lemma.endswith(("s", "x")):
+        _add_wrong(t, "m.pl", [lemma + "s"], known)
+    if not lemma.endswith("e"):
+        _add_wrong(t, "f.sg", [lemma + "e"], known)
+        _add_wrong(t, "f.pl", [lemma + "es"], known)
+    return t
+
+
 BUILDERS: dict[str, dict[str, Callable[[Lexeme, set[str]], dict | None]]] = {
     "it": {"number": it_number, "agreement": it_agreement},
     "es": {"number": es_number, "agreement": es_agreement},
+    "fr": {"number": fr_number, "agreement": fr_agreement},
     "nl": {"number": nl_number, "agreement": nl_agreement, "comparison": nl_comparison,
            "diminutive": nl_diminutive},
 }
@@ -612,4 +704,20 @@ def _agreement_by_noun(al: InflectionAligner, toks: list[dict], i: int, cells: l
     return hits[0] if len(hits) == 1 and len(found) == 1 else None
 
 
-AGREEMENT: dict[str, Callable[..., str | None]] = {"it": _it_agreement, "nl": _nl_agreement, "es": _es_agreement}
+FR_DEGREE = {"très", "si", "trop", "assez", "plus", "moins", "aussi", "vraiment", "tellement", "bien", "peu",
+             "vraiment", "plutôt", "fort", "super", "extrêmement", "particulièrement"}
+FR_COPULA = {"est", "sont", "es", "suis", "sommes", "êtes", "était", "étaient", "étais", "étions", "étiez", "sera",
+             "seront", "serai", "seras", "serons", "serez", "semble", "semblent", "devient", "deviennent", "reste",
+             "restent", "paraît", "paraissent", "été", "être"}
+
+
+def _fr_agreement(al: InflectionAligner, toks: list[dict], i: int, cells: list[str], item: dict) -> str | None:
+    """As Spanish: the noun right after the word (determiners, 'un petit chat') or before it over
+    degree words and a copula ('une maison très ancienne', 'la soupe est froide') decides the cell."""
+    if _norm(toks[i]["t"]) in FR_DEGREE:
+        return None
+    return _agreement_by_noun(al, toks, i, cells, FR_DEGREE, FR_COPULA)
+
+
+AGREEMENT: dict[str, Callable[..., str | None]] = {"it": _it_agreement, "nl": _nl_agreement, "es": _es_agreement,
+                                                   "fr": _fr_agreement}

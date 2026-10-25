@@ -20,8 +20,8 @@ const _templates = [
 ];
 
 void main() {
-  for (final id in bundledPackIds()) {
-    final path = 'assets/courses/$id.sqlite';
+  for (final id in realPackIds()) {
+    final path = realPackPath(id);
     group('real pack $id', () {
       late CourseData course;
       late ValidityReport report;
@@ -60,7 +60,17 @@ void main() {
             'adjectives': ['conj_pick', 'cloze', 'spot_error'],
             'diminutives': ['conj_pick', 'cloze'],
           },
-        }[id]!;
+          'fr': {
+            'plurals': ['conj_pick', 'cloze', 'spot_error'],
+            'adjectives': ['conj_pick', 'conj_grid', 'cloze', 'spot_error'],
+            'colours': ['conj_pick', 'cloze', 'spot_error'],
+            'possessives': ['cloze', 'spot_error'],
+          },
+        }[id];
+        if (expected == null) {
+          markTestSkipped('no expected inflection skills for $id');
+          return;
+        }
         final tpls = validityTemplates();
         final missing = <String>[];
         for (final e in expected.entries) {

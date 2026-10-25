@@ -14,9 +14,9 @@ import 'fakes/fakes.dart';
 import 'real_packs.dart';
 
 void main() {
-  for (final id in bundledPackIds()) {
+  for (final id in realPackIds()) {
     test('real pack $id: one swapped tile is a partial answer', () async {
-      final course = loadCourseFile('assets/courses/$id.sqlite');
+      final course = loadCourseFile(realPackPath(id));
       final factory = EngineSessionFactory(
         course: course,
         store: InMemoryProgressStore(),
