@@ -58,7 +58,12 @@ void main() {
 
   test('a word added on one device arrives on the other; edits and deletions follow', () async {
     final a = Device(server), b = Device(server);
-    final w = await a.edits.add('it', word: 'questura', translation: 'police headquarters', example: 'Andò in questura.');
+    final w = await a.edits.add(
+      'it',
+      word: 'questura',
+      translation: 'police headquarters',
+      example: 'Andò in questura.',
+    );
     await a.edits.add('es', word: 'comisario', translation: 'inspector');
     tick();
     final r1 = await a.sync();
@@ -148,16 +153,18 @@ void main() {
   test('the words travel with their review events', () async {
     final a = Device(server), b = Device(server);
     final w = await a.edits.add('it', word: 'questura', translation: 'police headquarters');
-    await a.progress.record(ReviewEvent(
-      id: 'e1',
-      facetId: w.recFacet('it'),
-      at: now,
-      rating: Rating.good,
-      exerciseType: 'flashcard',
-      inputMode: InputMode.self,
-      responseMs: 900,
-      correct: true,
-    ));
+    await a.progress.record(
+      ReviewEvent(
+        id: 'e1',
+        facetId: w.recFacet('it'),
+        at: now,
+        rating: Rating.good,
+        exerciseType: 'flashcard',
+        inputMode: InputMode.self,
+        responseMs: 900,
+        correct: true,
+      ),
+    );
     await Future<void>.delayed(Duration.zero);
     await a.sync();
     await b.sync();

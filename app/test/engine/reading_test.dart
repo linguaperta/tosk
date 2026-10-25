@@ -14,7 +14,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'fixtures/course_builder.dart';
 
 /// The token [word] (case-sensitive) of [t].
-ReadingToken tok(ReadingText t, String word) => t.words.firstWhere((x) => x.text == word, orElse: () => throw StateError('no "$word"'));
+ReadingToken tok(ReadingText t, String word) =>
+    t.words.firstWhere((x) => x.text == word, orElse: () => throw StateError('no "$word"'));
 
 /// The phrase [word] belongs to.
 ReadingPhrase? phraseOf(ReadingText t, String word) {
@@ -127,7 +128,10 @@ void main() {
     });
 
     test('a long text is quick', () {
-      final text = List.filled(2000, "Ieri Marco andò al mercato e comprò dell'acqua, poi ha mangiato una mela.").join('\n');
+      final text = List.filled(
+        2000,
+        "Ieri Marco andò al mercato e comprò dell'acqua, poi ha mangiato una mela.",
+      ).join('\n');
       final sw = Stopwatch()..start();
       final t = ReadingText.analyze(text, it);
       expect(t.wordCount, greaterThan(20000));
@@ -140,7 +144,10 @@ void main() {
     setUpAll(() => nl = loadCourseFile('assets/courses/nl.sqlite'));
 
     test("strong past, participles, and words with an apostrophe (foto's) stay whole", () {
-      final t = ReadingText.analyze("Gisteren liep ik naar de markt. Hij heeft een appel gegeten. De foto's zijn mooi.", nl);
+      final t = ReadingText.analyze(
+        "Gisteren liep ik naar de markt. Hij heeft een appel gegeten. De foto's zijn mooi.",
+        nl,
+      );
       expect(tok(t, 'liep').analyses.first.itemId, 'nl:lopen');
       expect(tok(t, 'liep').analyses.map((a) => a.form), everyElement(startsWith('verleden_tijd.')));
       expect(tok(t, 'gegeten').analyses.first.itemId, 'nl:eten');
@@ -167,16 +174,20 @@ void main() {
   });
 
   test("French elision with a fixture: l'eau and qu'il", () {
-    final b = CourseBuilder(const CourseMeta(
-      id: 'fr',
-      version: '0.1.0',
-      title: {'en': 'French'},
-      target: 'fr',
-      translations: ['en'],
-      persons: ['je', 'tu', 'il', 'nous', 'vous', 'ils'],
-      tenses: ['present'],
-      tenseLabels: {'present': {'en': 'present'}},
-    ));
+    final b = CourseBuilder(
+      const CourseMeta(
+        id: 'fr',
+        version: '0.1.0',
+        title: {'en': 'French'},
+        target: 'fr',
+        translations: ['en'],
+        persons: ['je', 'tu', 'il', 'nous', 'vous', 'ils'],
+        tenses: ['present'],
+        tenseLabels: {
+          'present': {'en': 'present'},
+        },
+      ),
+    );
     b.unit('u1', 0, 'Basics', 'Basis');
     b.word('le', 'det', en: ['the']);
     b.word('que', 'conj', en: ['that']);
@@ -192,16 +203,20 @@ void main() {
   });
 
   test('any script: Cyrillic and Greek words are split and looked up', () {
-    final b = CourseBuilder(const CourseMeta(
-      id: 'ru',
-      version: '0.1.0',
-      title: {'en': 'Russian'},
-      target: 'ru',
-      translations: ['en'],
-      persons: ['я'],
-      tenses: ['present'],
-      tenseLabels: {'present': {'en': 'present'}},
-    ));
+    final b = CourseBuilder(
+      const CourseMeta(
+        id: 'ru',
+        version: '0.1.0',
+        title: {'en': 'Russian'},
+        target: 'ru',
+        translations: ['en'],
+        persons: ['я'],
+        tenses: ['present'],
+        tenseLabels: {
+          'present': {'en': 'present'},
+        },
+      ),
+    );
     b.unit('u1', 0, 'Basics', 'Basis');
     b.word('кошка', 'noun', en: ['cat']);
     final ru = b.build();

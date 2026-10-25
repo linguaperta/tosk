@@ -22,15 +22,17 @@ import 'reading_providers.dart';
 
 /// Picks a `.txt` file and returns its text (null when cancelled). Tests
 /// override it.
-final readingFilePickerProvider = Provider<Future<String?> Function()>((ref) => () async {
-  final f = await FilePicker.pickFile(
-    dialogTitle: 'Choose a text file (.txt)',
-    type: FileType.custom,
-    allowedExtensions: const ['txt'],
-  );
-  if (f == null) return null;
-  return utf8.decode(await f.readAsBytes(), allowMalformed: true);
-});
+final readingFilePickerProvider = Provider<Future<String?> Function()>(
+  (ref) => () async {
+    final f = await FilePicker.pickFile(
+      dialogTitle: 'Choose a text file (.txt)',
+      type: FileType.custom,
+      allowedExtensions: const ['txt'],
+    );
+    if (f == null) return null;
+    return utf8.decode(await f.readAsBytes(), allowMalformed: true);
+  },
+);
 
 class ReadingHomeView extends ConsumerStatefulWidget {
   const ReadingHomeView({super.key});
@@ -86,7 +88,10 @@ class _ReadingHomeViewState extends ConsumerState<ReadingHomeView> {
       final entry = await ref.read(savedTextsProvider.notifier).save(text);
       if (!mounted) return;
       if (text.length > kMaxTextChars) {
-        _snack('Long text: only the first ${kMaxTextChars ~/ 1000}k characters are kept', key: const ValueKey('reading-cut'));
+        _snack(
+          'Long text: only the first ${kMaxTextChars ~/ 1000}k characters are kept',
+          key: const ValueKey('reading-cut'),
+        );
       }
       _input.clear();
       unawaited(context.push(Routes.reader(entry.id)));
@@ -143,8 +148,8 @@ class _ReadingHomeViewState extends ConsumerState<ReadingHomeView> {
                   TextField(
                     key: const ValueKey('reading-input'),
                     controller: _input,
-                    minLines: 5,
-                    maxLines: 10,
+                    minLines: 4,
+                    maxLines: 8,
                     keyboardType: TextInputType.multiline,
                     decoration: InputDecoration(
                       hintText: 'Paste or type a text in $language',

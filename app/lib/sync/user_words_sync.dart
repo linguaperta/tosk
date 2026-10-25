@@ -57,7 +57,7 @@ class UserWordsSync implements SyncExtension {
     var after = cursor == null ? null : SyncCursor(cursor.time.subtract(SyncEngine.pullOverlap).toIso8601String(), '');
     final incoming = <String, List<UserWord>>{};
     // The newest version of each word in the account, as read now.
-    final remote = <String, UserWord>{};
+    final remote = <String, (UserWord, UserWord)>{}; // (as stored, clamped)
     while (true) {
       final page = await backend.pullSettings(after: after);
       for (final r in page.items) {
@@ -74,15 +74,17 @@ class UserWordsSync implements SyncExtension {
           if (w == null || w.id != key.$2) continue;
           // An edit can't have happened after the server received it.
           final serverMs = c?.time.millisecondsSinceEpoch;
-          final clamped = serverMs != null && w.at.millisecondsSinceEpoch > serverMs + SyncEngine.clampTolerance.inMilliseconds
+          final clamped =
+              serverMs != null && w.at.millisecondsSinceEpoch > serverMs + SyncEngine.clampTolerance.inMilliseconds
               ? w.copyWith(at: DateTime.fromMillisecondsSinceEpoch(serverMs, isUtc: true))
               : w;
           (incoming[key.$1] ??= []).add(clamped);
           final k = keyOf(key.$1, w.id);
-          // What the account stores (unclamped): the device that wrote it
-          // must not send it again.
+          // Both what the account stores and its clamped reading count as
+          // exchanged: neither the device that wrote it nor one that took the
+          // clamped copy sends it again.
           final prev = remote[k];
-          if (prev == null || UserWordSet.wins(w, prev)) remote[k] = w;
+          if (prev == null || UserWordSet.wins(w, prev.$1)) remote[k] = (w, clamped);
         } on Object {
           continue; // a value this version can't read
         }
@@ -96,7 +98,7 @@ class UserWordsSync implements SyncExtension {
       changed += await merger.mergeIn(e.key, UserWordSet(e.value));
     }
     for (final e in remote.entries) {
-      seen[e.key] = fingerprint(e.value);
+      seen[e.key] = {fingerprint(e.value.$1), fingerprint(e.value.$2)}.join(',');
     }
 
     // Push every word whose version here isn't the one last exchanged.
@@ -105,8 +107,15 @@ class UserWordsSync implements SyncExtension {
       for (final w in e.value.all) {
         final k = keyOf(e.key, w.id);
         final f = fingerprint(w);
-        if (seen[k] == f) continue;
-        push.add(SyncedSetting(key: k, value: jsonEncode(w.toJson()), changedAtMs: w.at.millisecondsSinceEpoch, device: device));
+        if (seen[k]?.split(',').contains(f) ?? false) continue;
+        push.add(
+          SyncedSetting(
+            key: k,
+            value: jsonEncode(w.toJson()),
+            changedAtMs: w.at.millisecondsSinceEpoch,
+            device: device,
+          ),
+        );
         seen[k] = f;
       }
     }
@@ -125,7 +134,8 @@ class UserWordsSync implements SyncExtension {
   }
 
   /// A short fingerprint of a word's version.
-  static String fingerprint(UserWord w) => sha1.convert(utf8.encode(jsonEncode(w.toJson()))).toString().substring(0, 16);
+  static String fingerprint(UserWord w) =>
+      sha1.convert(utf8.encode(jsonEncode(w.toJson()))).toString().substring(0, 16);
 
   static int _compare(SyncCursor a, SyncCursor b) {
     final t = a.time.compareTo(b.time);

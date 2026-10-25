@@ -119,12 +119,14 @@ class _ReaderState extends ConsumerState<_Reader> {
     void ensure() {
       final c = _keys[p]?.currentContext;
       if (c != null && c.mounted) {
-        unawaited(Scrollable.ensureVisible(
-          c,
-          alignment: 0.3,
-          alignmentPolicy: ScrollPositionAlignmentPolicy.explicit,
-          duration: ref.read(reduceMotionProvider) ? Duration.zero : const Duration(milliseconds: 250),
-        ));
+        unawaited(
+          Scrollable.ensureVisible(
+            c,
+            alignment: 0.3,
+            alignmentPolicy: ScrollPositionAlignmentPolicy.explicit,
+            duration: ref.read(reduceMotionProvider) ? Duration.zero : const Duration(milliseconds: 250),
+          ),
+        );
       }
     }
 
@@ -138,7 +140,13 @@ class _ReaderState extends ConsumerState<_Reader> {
 
   /// The learner knows [t]: a reading of it (or its phrase) is a practised
   /// item, or it is one of their practised own words.
-  bool _known(ReadingToken t, ReadingParagraph p, Set<String> items, Map<String, UserWord> mine, Set<String> practised) {
+  bool _known(
+    ReadingToken t,
+    ReadingParagraph p,
+    Set<String> items,
+    Map<String, UserWord> mine,
+    Set<String> practised,
+  ) {
     final analyses = t.phrase != null ? p.phrases[t.phrase!].analyses : t.analyses;
     if (analyses.any((a) => items.contains(a.itemId))) return true;
     final w = mine[readingKey(t.phrase != null ? p.phrases[t.phrase!].text : t.text)];
@@ -187,7 +195,9 @@ class _ReaderState extends ConsumerState<_Reader> {
     final sentence = p.sentenceText(p.sentenceAt(tok.start));
     final mine = ref.read(myWordsByFormProvider)[readingKey(word)];
     final voice = ref.read(canPronounceProvider);
-    final sentenceIndex = _sentences.indexWhere((s) => s.paragraph == paragraphIndex && s.sentence == p.sentenceAt(tok.start));
+    final sentenceIndex = _sentences.indexWhere(
+      (s) => s.paragraph == paragraphIndex && s.sentence == p.sentenceAt(tok.start),
+    );
 
     final actions = <WordPopoverAction>[
       if (mine == null)
@@ -259,13 +269,15 @@ class _ReaderState extends ConsumerState<_Reader> {
 
   static String _genderLabel(String g) => g
       .split('|')
-      .map((x) => switch (x) {
-            'm' => 'masculine',
-            'f' => 'feminine',
-            'n' => 'neuter',
-            'c' => 'common',
-            _ => x,
-          })
+      .map(
+        (x) => switch (x) {
+          'm' => 'masculine',
+          'f' => 'feminine',
+          'n' => 'neuter',
+          'c' => 'common',
+          _ => x,
+        },
+      )
       .join(' / ');
 
   /// The other readings, the same item's persons of one tense joined
@@ -281,14 +293,20 @@ class _ReaderState extends ConsumerState<_Reader> {
         (byTense['${g.label} · ${g.tenseLabel}'] ??= []).add(g.personLabel!);
         continue;
       }
-      final s = '${g.label}${[?g.personLabel, ?g.tenseLabel].map((x) => ' · $x').join()}: ${g.glosses.take(2).join(', ')}';
+      final s =
+          '${g.label}${[?g.personLabel, ?g.tenseLabel].map((x) => ' · $x').join()}: ${g.glosses.take(2).join(', ')}';
       if (!out.contains(s)) out.add(s);
     }
     final firstGloss = glossForToken(course, itemId: first.itemId, form: first.form, word: word, lang: lang);
     for (final e in byTense.entries) {
       final parts = e.key.split(' · ');
       final firstLabel = firstGloss == null ? null : '${firstGloss.label} · ${firstGloss.tenseLabel}';
-      out.insert(0, e.key == firstLabel ? 'also ${e.value.join(' / ')}' : '${parts.first} · ${e.value.join(' / ')} · ${parts.skip(1).join(' · ')}');
+      out.insert(
+        0,
+        e.key == firstLabel
+            ? 'also ${e.value.join(' / ')}'
+            : '${parts.first} · ${e.value.join(' / ')} · ${parts.skip(1).join(' · ')}',
+      );
     }
     return out.take(4).toList();
   }
@@ -297,7 +315,9 @@ class _ReaderState extends ConsumerState<_Reader> {
     final course = widget.course;
     final first = analyses.firstOrNull;
     final item = first == null ? null : course.item(first.itemId);
-    final gloss = first == null ? null : glossForToken(course, itemId: first.itemId, form: first.form, word: word, lang: lang);
+    final gloss = first == null
+        ? null
+        : glossForToken(course, itemId: first.itemId, form: first.form, word: word, lang: lang);
     final formNote = gloss == null || (gloss.personLabel == null && gloss.tenseLabel == null) ? null : gloss.headline;
     final saved = await showMyWordSheet(
       context,
@@ -314,7 +334,9 @@ class _ReaderState extends ConsumerState<_Reader> {
     if (saved == null || !mounted) return;
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(key: const ValueKey('reading-word-added'), content: Text('Added "${saved.word}" to my words')));
+      ..showSnackBar(
+        SnackBar(key: const ValueKey('reading-word-added'), content: Text('Added "${saved.word}" to my words')),
+      );
   }
 
   @override
@@ -369,7 +391,9 @@ class _ReaderState extends ConsumerState<_Reader> {
                               paragraph: para,
                               known: known[p],
                               highlightKnown: highlight,
-                              speaking: current != null && current.paragraph == p ? para.sentences[current.sentence] : null,
+                              speaking: current != null && current.paragraph == p
+                                  ? para.sentences[current.sentence]
+                                  : null,
                               style: theme.textTheme.titleMedium?.copyWith(height: 1.55, fontWeight: FontWeight.w400),
                               onTap: (i, rect) => unawaited(_tap(para, p, i, rect)),
                             ),
@@ -399,34 +423,43 @@ class _Header extends StatelessWidget {
       width: double.infinity,
       decoration: BoxDecoration(
         color: mono ? kBwWhite : theme.colorScheme.surfaceContainerLow,
-        border: Border(bottom: BorderSide(color: mono ? kBwBlack : theme.colorScheme.outlineVariant, width: mono ? 2 : 1)),
+        border: Border(
+          bottom: BorderSide(color: mono ? kBwBlack : theme.colorScheme.outlineVariant, width: mono ? 2 : 1),
+        ),
       ),
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 688),
-          child: Wrap(
-            spacing: 12,
-            runSpacing: 2,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              Text(
-                '${c.percent}% of words known',
-                key: const ValueKey('reading-known'),
-                style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
-              ),
-              Text('${c.known} of ${c.words} words', key: const ValueKey('reading-counts'), style: theme.textTheme.bodySmall),
-              Text.rich(
-                TextSpan(
-                  children: [
-                    TextSpan(text: 'new to you', style: _unknownStyle(context, theme.textTheme.bodySmall)),
-                    const TextSpan(text: ' · tap any word'),
-                  ],
+          child: SizedBox(
+            width: double.infinity,
+            child: Wrap(
+              spacing: 12,
+              runSpacing: 2,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text(
+                  '${c.percent}% of words known',
+                  key: const ValueKey('reading-known'),
+                  style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
                 ),
-                key: const ValueKey('reading-legend'),
-                style: theme.textTheme.bodySmall,
-              ),
-            ],
+                Text(
+                  '${c.known} of ${c.words} words',
+                  key: const ValueKey('reading-counts'),
+                  style: theme.textTheme.bodySmall,
+                ),
+                Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(text: 'new to you', style: _unknownStyle(context, theme.textTheme.bodySmall)),
+                      const TextSpan(text: ' · tap any word'),
+                    ],
+                  ),
+                  key: const ValueKey('reading-legend'),
+                  style: theme.textTheme.bodySmall,
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -534,7 +567,11 @@ class _ParagraphViewState extends State<_ParagraphView> {
     }
     if (pos < p.text.length) spans.add(TextSpan(text: p.text.substring(pos)));
     final speaking = widget.speaking;
-    Widget text = Text.rich(TextSpan(children: spans), key: _text, style: base);
+    Widget text = Text.rich(
+      TextSpan(children: spans),
+      key: _text,
+      style: base,
+    );
     if (speaking != null) {
       text = CustomPaint(
         key: const ValueKey('reading-speaking'),

@@ -88,7 +88,10 @@ class ReadingLookup {
       final seen = <String>{};
       for (final a in list) {
         if (!seen.add(a.itemId)) continue;
-        final mine = [for (final x in list) if (x.itemId == a.itemId) x];
+        final mine = [
+          for (final x in list)
+            if (x.itemId == a.itemId) x,
+        ];
         final item = course.item(a.itemId);
         final isLemma = item != null && item.spellings.any((s) => readingKey(s) == e.key);
         if (isLemma || mine.length == 1) {
@@ -202,7 +205,13 @@ class ReadingPhrase {
 
 /// One line of the text (long lines are cut into pieces at sentence ends).
 class ReadingParagraph {
-  ReadingParagraph({required this.text, required this.tokens, required this.phrases, required this.sentences, this.continued = false});
+  ReadingParagraph({
+    required this.text,
+    required this.tokens,
+    required this.phrases,
+    required this.sentences,
+    this.continued = false,
+  });
 
   final String text;
   final List<ReadingToken> tokens;
@@ -253,7 +262,12 @@ typedef ReadingSentenceRef = ({int paragraph, int sentence});
 /// How much of a text the learner knows: words counted (not numbers or
 /// names), known words, and the distinct words.
 class ReadingCoverage {
-  const ReadingCoverage({required this.words, required this.known, required this.distinct, required this.distinctKnown});
+  const ReadingCoverage({
+    required this.words,
+    required this.known,
+    required this.distinct,
+    required this.distinctKnown,
+  });
   final int words;
   final int known;
   final int distinct;
@@ -368,13 +382,15 @@ class ReadingText {
 
     void word(int start, String w) {
       final digits = RegExp(r'^\p{N}+$', unicode: true).hasMatch(w);
-      tokens.add(ReadingToken(
-        start: start,
-        end: start + w.length,
-        text: w,
-        isNumber: digits,
-        analyses: digits ? const [] : lookup.lookup(w),
-      ));
+      tokens.add(
+        ReadingToken(
+          start: start,
+          end: start + w.length,
+          text: w,
+          isNumber: digits,
+          analyses: digits ? const [] : lookup.lookup(w),
+        ),
+      );
     }
 
     for (final m in kReadingWord.allMatches(text)) {
@@ -467,12 +483,14 @@ class ReadingText {
           final hit = lookup.phrase([for (final k in idx) tokens[k].text]);
           if (hit == null) continue;
           final p = phrases.length;
-          phrases.add(ReadingPhrase(
-            from: idx.first,
-            to: idx.last,
-            text: text.substring(tokens[idx.first].start, tokens[idx.last].end),
-            analyses: hit,
-          ));
+          phrases.add(
+            ReadingPhrase(
+              from: idx.first,
+              to: idx.last,
+              text: text.substring(tokens[idx.first].start, tokens[idx.last].end),
+              analyses: hit,
+            ),
+          );
           for (final k in idx) {
             final t = tokens[k];
             tokens[k] = ReadingToken(start: t.start, end: t.end, text: t.text, analyses: t.analyses, phrase: p);

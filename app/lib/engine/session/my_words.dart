@@ -54,13 +54,14 @@ const Map<FacetKind, Map<ExerciseType, Map<FacetStage, double>>> _weights = {
 /// The words of one course, ready for sessions (deleted and empty ones left out).
 class UserWordPool {
   UserWordPool(this.courseId, Iterable<UserWord> words)
-    : words = [
-        for (final w in words)
-          if (!w.removed && w.word.trim().isNotEmpty && w.translation.trim().isNotEmpty) w,
-      ]..sort((a, b) {
-        final c = a.created.compareTo(b.created);
-        return c != 0 ? c : a.id.compareTo(b.id);
-      }) {
+    : words =
+          [
+            for (final w in words)
+              if (!w.removed && w.word.trim().isNotEmpty && w.translation.trim().isNotEmpty) w,
+          ]..sort((a, b) {
+            final c = a.created.compareTo(b.created);
+            return c != 0 ? c : a.id.compareTo(b.id);
+          }) {
     _byItem = {for (final w in this.words) w.itemId(courseId): w};
   }
 
@@ -84,8 +85,20 @@ class UserWordPool {
 
   /// [w]'s two facets: recognise, then produce.
   List<SkillFacet> facetsOf(UserWord w) => [
-    SkillFacet(skillId: kMyWordsSkillId, facetId: w.recFacet(courseId), itemId: w.itemId(courseId), kind: FacetKind.rec, ord: 0),
-    SkillFacet(skillId: kMyWordsSkillId, facetId: w.prodFacet(courseId), itemId: w.itemId(courseId), kind: FacetKind.prod, ord: 1),
+    SkillFacet(
+      skillId: kMyWordsSkillId,
+      facetId: w.recFacet(courseId),
+      itemId: w.itemId(courseId),
+      kind: FacetKind.rec,
+      ord: 0,
+    ),
+    SkillFacet(
+      skillId: kMyWordsSkillId,
+      facetId: w.prodFacet(courseId),
+      itemId: w.itemId(courseId),
+      kind: FacetKind.prod,
+      ord: 1,
+    ),
   ];
 
   /// Every facet, oldest word first.
@@ -140,7 +153,10 @@ class UserWordPool {
     // A retry asks the missed type again first.
     final order = <ExerciseType>[if (retryType != null && allowed.contains(retryType)) retryType];
     // Then a weighted draw without replacement; zero-weight types last.
-    final rest = [for (final t in allowed) if (!order.contains(t)) t];
+    final rest = [
+      for (final t in allowed)
+        if (!order.contains(t)) t,
+    ];
     double weightOf(ExerciseType t) => (weights[t]![stage] ?? 0) * (t == avoid ? 0.5 : 1);
     while (rest.any((t) => weightOf(t) > 0)) {
       final total = rest.fold<double>(0, (s, t) => s + weightOf(t));
@@ -194,7 +210,10 @@ class _Ctx {
     final pos = _pos;
     final freq = _lemma?.freq ?? (200 + random.nextInt(2000));
     final out = <Item>[];
-    for (final p in [?pos, if (pos == null) ...['noun', 'verb', 'adj']]) {
+    for (final p in [
+      ?pos,
+      if (pos == null) ...['noun', 'verb', 'adj'],
+    ]) {
       out.addAll(course.itemsNearFreq(p, freq, limit: 40));
     }
     out.removeWhere((i) => i.id == w.lemmaId);
@@ -297,17 +316,29 @@ class MyWordsBuilder {
   final int length;
   final int maxNew;
 
-  List<SkillFacet> plan(UserWordPool pool, Map<String, FacetState> states, {required Scheduler scheduler, required DateTime now}) {
+  List<SkillFacet> plan(
+    UserWordPool pool,
+    Map<String, FacetState> states, {
+    required Scheduler scheduler,
+    required DateTime now,
+  }) {
     final due = pool.due(states, now);
     final fresh = [
       for (final f in pool.facets)
         if (states[f.facetId] == null) f,
     ].take(maxNew);
-    final used = {for (final f in [...due, ...fresh]) f.facetId};
-    final rest = [
-      for (final f in pool.facets)
-        if (!used.contains(f.facetId) && states[f.facetId] != null) f,
-    ]..sort((a, b) => scheduler.retrievability(states[a.facetId], now).compareTo(scheduler.retrievability(states[b.facetId], now)));
+    final used = {
+      for (final f in [...due, ...fresh]) f.facetId,
+    };
+    final rest =
+        [
+          for (final f in pool.facets)
+            if (!used.contains(f.facetId) && states[f.facetId] != null) f,
+        ]..sort(
+          (a, b) => scheduler
+              .retrievability(states[a.facetId], now)
+              .compareTo(scheduler.retrievability(states[b.facetId], now)),
+        );
     return [...due, ...fresh, ...rest].take(length).toList();
   }
 

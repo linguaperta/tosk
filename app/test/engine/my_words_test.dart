@@ -18,8 +18,13 @@ import 'helpers.dart';
 
 final _now = DateTime.utc(2026, 10, 25, 12);
 
-UserWord _word(String id, String word, String tr, {String? pos, int day = 0}) =>
-    UserWord(id: 'user~$id', word: word, translation: tr, pos: pos, at: _now.add(Duration(minutes: day)));
+UserWord _word(String id, String word, String tr, {String? pos, int day = 0}) => UserWord(
+  id: 'user~$id',
+  word: word,
+  translation: tr,
+  pos: pos,
+  at: _now.add(Duration(minutes: day)),
+);
 
 void main() {
   final it = italianCourse();
@@ -53,7 +58,11 @@ void main() {
     for (var i = 0; i < max; i++) {
       final e = await s.next();
       if (e == null) break;
-      final r = await s.submit(e, (wrong?.call(e) ?? false) ? wrongAnswer(e) : correctAnswer(e), elapsed: const Duration(seconds: 4));
+      final r = await s.submit(
+        e,
+        (wrong?.call(e) ?? false) ? wrongAnswer(e) : correctAnswer(e),
+        elapsed: const Duration(seconds: 4),
+      );
       out.add((e, r));
       clock = clock.add(const Duration(seconds: 10));
     }
@@ -64,27 +73,25 @@ void main() {
   Future<void> makeDue(UserWord w) async {
     for (final f in [w.recFacet('it'), w.prodFacet('it')]) {
       for (final (i, r) in [Rating.good, Rating.good, Rating.good].indexed) {
-        await store.record(ReviewEvent(
-          id: '$f-$i',
-          facetId: f,
-          at: _now.subtract(Duration(days: 60 - i * 3)),
-          rating: r,
-          exerciseType: 'flashcard',
-          inputMode: InputMode.self,
-          responseMs: 1000,
-          correct: true,
-        ));
+        await store.record(
+          ReviewEvent(
+            id: '$f-$i',
+            facetId: f,
+            at: _now.subtract(Duration(days: 60 - i * 3)),
+            rating: r,
+            exerciseType: 'flashcard',
+            inputMode: InputMode.self,
+            responseMs: 1000,
+            correct: true,
+          ),
+        );
       }
     }
   }
 
   group('pool and exercises', () {
     test('two facets per word, under the pseudo skill, deleted and empty words left out', () {
-      final pool = UserWordPool('it', [
-        ...words,
-        _word('x', 'gone', 'gone').tombstone(_now),
-        _word('y', '', 'empty'),
-      ]);
+      final pool = UserWordPool('it', [...words, _word('x', 'gone', 'gone').tombstone(_now), _word('y', '', 'empty')]);
       expect(pool.words.map((w) => w.word), ['questura', 'commissario', 'sbirro', 'indagare']);
       expect(pool.facets.map((f) => f.facetId).take(2), ['it:user~1#rec', 'it:user~1#prod']);
       expect(pool.facets.every((f) => f.skillId == kMyWordsSkillId), isTrue);
@@ -99,13 +106,29 @@ void main() {
       var n = 0;
       String id() => 'e${n++}';
       for (var seed = 0; seed < 20; seed++) {
-        final e = pool.generate(f[0], course: it, options: const SessionOptions(sourceLang: 'en'), random: Random(seed), state: null, nextId: id);
+        final e = pool.generate(
+          f[0],
+          course: it,
+          options: const SessionOptions(sourceLang: 'en'),
+          random: Random(seed),
+          state: null,
+          nextId: id,
+        );
         // Fresh: mostly flashcards (a choice now and then).
         expect(e, isA<Exercise>());
       }
       final fresh = [
         for (var seed = 0; seed < 40; seed++)
-          pool.generate(f[0], course: it, options: const SessionOptions(sourceLang: 'en'), random: Random(seed), state: null, nextId: id)!.type,
+          pool
+              .generate(
+                f[0],
+                course: it,
+                options: const SessionOptions(sourceLang: 'en'),
+                random: Random(seed),
+                state: null,
+                nextId: id,
+              )!
+              .type,
       ];
       expect(fresh.where((t) => t == ExerciseType.flashcard).length, greaterThan(25));
       final learning = FacetState(
@@ -120,62 +143,144 @@ void main() {
       );
       final types = {
         for (var seed = 0; seed < 60; seed++)
-          pool.generate(f[1], course: it, options: const SessionOptions(sourceLang: 'en'), random: Random(seed), state: learning, nextId: id)!.type,
+          pool
+              .generate(
+                f[1],
+                course: it,
+                options: const SessionOptions(sourceLang: 'en'),
+                random: Random(seed),
+                state: learning,
+                nextId: id,
+              )!
+              .type,
       };
       expect(types, containsAll([ExerciseType.flashcard, ExerciseType.multipleChoice, ExerciseType.cloze]));
     });
 
-    test('multiple choice: the word once, wrong options from my other words, then the lexicon of the same part of speech', () {
-      final pool = UserWordPool('it', words);
-      final rec = pool.facetsOf(words.first)[0];
-      final prod = pool.facetsOf(words.first)[1];
-      final nouns = {for (final i in it.allItems) if (i.pos == 'noun') i.gloss('en')};
-      final nounLemmas = {for (final i in it.allItems) if (i.pos == 'noun') i.lemma};
-      for (var seed = 0; seed < 30; seed++) {
-        final r = pool.generate(rec, course: it, options: const SessionOptions(sourceLang: 'en'), random: Random(seed), state: null, nextId: () => 'r', only: {ExerciseType.multipleChoice}) as MultipleChoiceExercise;
-        expect(r.prompt, 'questura');
-        expect(r.options[r.correctIndex], 'police headquarters');
-        expect(r.options.where((o) => o == 'police headquarters'), hasLength(1));
-        expect(r.options.toSet(), hasLength(r.options.length));
-        for (final o in r.options) {
-          if (o == 'police headquarters') continue;
-          expect(['inspector', 'cop', 'to investigate', ...nouns].contains(o), isTrue, reason: o);
+    test(
+      'multiple choice: the word once, wrong options from my other words, then the lexicon of the same part of speech',
+      () {
+        final pool = UserWordPool('it', words);
+        final rec = pool.facetsOf(words.first)[0];
+        final prod = pool.facetsOf(words.first)[1];
+        final nouns = {
+          for (final i in it.allItems)
+            if (i.pos == 'noun') i.gloss('en'),
+        };
+        final nounLemmas = {
+          for (final i in it.allItems)
+            if (i.pos == 'noun') i.lemma,
+        };
+        for (var seed = 0; seed < 30; seed++) {
+          final r = pool.generate(
+            rec,
+            course: it,
+            options: const SessionOptions(sourceLang: 'en'),
+            random: Random(seed),
+            state: null,
+            nextId: () => 'r',
+            only: {ExerciseType.multipleChoice},
+          ) as MultipleChoiceExercise;
+          expect(r.prompt, 'questura');
+          expect(r.options[r.correctIndex], 'police headquarters');
+          expect(r.options.where((o) => o == 'police headquarters'), hasLength(1));
+          expect(r.options.toSet(), hasLength(r.options.length));
+          for (final o in r.options) {
+            if (o == 'police headquarters') continue;
+            expect(['inspector', 'cop', 'to investigate', ...nouns].contains(o), isTrue, reason: o);
+          }
+          expect(
+            r.options.any((o) => ['inspector', 'cop', 'to investigate'].contains(o)),
+            isTrue,
+            reason: 'my other words first',
+          );
+          final p = pool.generate(
+            prod,
+            course: it,
+            options: const SessionOptions(sourceLang: 'en'),
+            random: Random(seed),
+            state: null,
+            nextId: () => 'p',
+            only: {ExerciseType.multipleChoice},
+          ) as MultipleChoiceExercise;
+          expect(p.prompt, 'police headquarters');
+          expect(p.options[p.correctIndex], 'questura');
+          for (final o in p.options) {
+            expect(['questura', 'commissario', 'sbirro', 'indagare', ...nounLemmas].contains(o), isTrue, reason: o);
+          }
         }
-        expect(r.options.any((o) => ['inspector', 'cop', 'to investigate'].contains(o)), isTrue, reason: 'my other words first');
-        final p = pool.generate(prod, course: it, options: const SessionOptions(sourceLang: 'en'), random: Random(seed), state: null, nextId: () => 'p', only: {ExerciseType.multipleChoice}) as MultipleChoiceExercise;
-        expect(p.prompt, 'police headquarters');
-        expect(p.options[p.correctIndex], 'questura');
-        for (final o in p.options) {
-          expect(['questura', 'commissario', 'sbirro', 'indagare', ...nounLemmas].contains(o), isTrue, reason: o);
-        }
-      }
-    });
+      },
+    );
 
     test('a lone word still gets wrong options from the course lexicon', () {
       final pool = UserWordPool('it', [_word('solo', 'questura', 'police headquarters', pos: 'noun')]);
       final rec = pool.facetsOf(pool.words.single)[0];
-      final e = pool.generate(rec, course: it, options: const SessionOptions(sourceLang: 'en'), random: Random(1), state: null, nextId: () => 'x', only: {ExerciseType.multipleChoice});
+      final e = pool.generate(
+        rec,
+        course: it,
+        options: const SessionOptions(sourceLang: 'en'),
+        random: Random(1),
+        state: null,
+        nextId: () => 'x',
+        only: {ExerciseType.multipleChoice},
+      );
       expect(e, isA<MultipleChoiceExercise>());
       expect((e! as MultipleChoiceExercise).options.length, greaterThanOrEqualTo(3));
     });
 
-    test('"write the word": typed for keyboard and ink learners, a choice for tap learners; graded by the cloze template', () {
-      final pool = UserWordPool('it', words);
-      final prod = pool.facetsOf(words[1])[1];
-      final typed = pool.generate(prod, course: it, options: const SessionOptions(sourceLang: 'en', preferredInput: InputMode.keyboard), random: Random(2), state: null, nextId: () => 'c', only: {ExerciseType.cloze}) as ClozeExercise;
-      expect(typed.options, isNull);
-      expect(typed.expected, 'commissario');
-      expect(typed.hint, 'inspector');
-      expect(typed.before + typed.expected + typed.after, 'commissario');
-      final tap = pool.generate(prod, course: it, options: const SessionOptions(sourceLang: 'en'), random: Random(2), state: null, nextId: () => 'c', only: {ExerciseType.cloze}) as ClozeExercise;
-      expect(tap.options![tap.correctIndex!], 'commissario');
-      final template = ExerciseSelector().template(ExerciseType.cloze)!;
-      expect(template.grade(typed, const TextAnswer('Commissario'), elapsed: const Duration(seconds: 3)).correct, isTrue);
-      expect(template.grade(typed, const TextAnswer('commisario'), elapsed: const Duration(seconds: 3)).correct, isFalse);
-      // Recognition never writes.
-      final rec = pool.facetsOf(words[1])[0];
-      expect(pool.generate(rec, course: it, options: const SessionOptions(sourceLang: 'en'), random: Random(2), state: null, nextId: () => 'c', only: {ExerciseType.cloze}), isNull);
-    });
+    test(
+      '"write the word": typed for keyboard and ink learners, a choice for tap learners; graded by the cloze template',
+      () {
+        final pool = UserWordPool('it', words);
+        final prod = pool.facetsOf(words[1])[1];
+        final typed = pool.generate(
+          prod,
+          course: it,
+          options: const SessionOptions(sourceLang: 'en', preferredInput: InputMode.keyboard),
+          random: Random(2),
+          state: null,
+          nextId: () => 'c',
+          only: {ExerciseType.cloze},
+        ) as ClozeExercise;
+        expect(typed.options, isNull);
+        expect(typed.expected, 'commissario');
+        expect(typed.hint, 'inspector');
+        expect(typed.before + typed.expected + typed.after, 'commissario');
+        final tap = pool.generate(
+          prod,
+          course: it,
+          options: const SessionOptions(sourceLang: 'en'),
+          random: Random(2),
+          state: null,
+          nextId: () => 'c',
+          only: {ExerciseType.cloze},
+        ) as ClozeExercise;
+        expect(tap.options![tap.correctIndex!], 'commissario');
+        final template = ExerciseSelector().template(ExerciseType.cloze)!;
+        expect(
+          template.grade(typed, const TextAnswer('Commissario'), elapsed: const Duration(seconds: 3)).correct,
+          isTrue,
+        );
+        expect(
+          template.grade(typed, const TextAnswer('commisario'), elapsed: const Duration(seconds: 3)).correct,
+          isFalse,
+        );
+        // Recognition never writes.
+        final rec = pool.facetsOf(words[1])[0];
+        expect(
+          pool.generate(
+            rec,
+            course: it,
+            options: const SessionOptions(sourceLang: 'en'),
+            random: Random(2),
+            state: null,
+            nextId: () => 'c',
+            only: {ExerciseType.cloze},
+          ),
+          isNull,
+        );
+      },
+    );
   });
 
   group('the "My words" session', () {
@@ -212,7 +317,10 @@ void main() {
       await makeDue(words[3]);
       await makeDue(words[2]);
       final s = await factory().myWords(length: 6);
-      final served = await drive(s, wrong: (e) => e.facetId == 'it:user~4#prod' && !(s as MyWordsSession).isRetry(e.id));
+      final served = await drive(
+        s,
+        wrong: (e) => e.facetId == 'it:user~4#prod' && !s.isRetry(e.id),
+      );
       final facets = served.map((x) => x.$1.facetId).toList();
       expect(facets.take(4).toSet(), {'it:user~3#rec', 'it:user~3#prod', 'it:user~4#rec', 'it:user~4#prod'});
       expect(facets.last, 'it:user~4#prod', reason: 'the missed one comes back at the end');
@@ -240,12 +348,15 @@ void main() {
       for (final w in words) {
         await makeDue(w);
       }
-      final s = await factory().lesson('saluti', length: 12) as LessonSession;
+      final s = await factory().lesson('saluti', length: 12);
       expect(s.lessonPlan.myWords, hasLength(2));
       expect(s.lessonPlan.all, hasLength(12));
       expect(s.currentSkillIds, isNot(contains(kMyWordsSkillId)));
       final all = s.lessonPlan.all;
-      final positions = [for (var i = 0; i < all.length; i++) if (isUserFacetId(all[i].facetId)) i];
+      final positions = [
+        for (var i = 0; i < all.length; i++)
+          if (isUserFacetId(all[i].facetId)) i,
+      ];
       expect(positions.first, greaterThan(0));
       expect(positions.last, lessThan(all.length - 1));
       final served = await drive(s);
@@ -255,9 +366,9 @@ void main() {
         expect(kUserWordTypes, contains(e.type));
         expect(r.correct, isTrue);
       }
-      final quick = await factory().lesson('saluti', length: 5) as LessonSession;
+      final quick = await factory().lesson('saluti', length: 5);
       expect(quick.lessonPlan.myWords, hasLength(1));
-      final long = await factory().lesson('saluti', length: 20) as LessonSession;
+      final long = await factory().lesson('saluti', length: 20);
       expect(long.lessonPlan.myWords, hasLength(3));
     });
 
@@ -286,7 +397,18 @@ void main() {
       ];
       for (final w in own) {
         for (final f in [w.recFacet(id), w.prodFacet(id)]) {
-          await s2.record(ReviewEvent(id: f, facetId: f, at: _now.subtract(const Duration(days: 30)), rating: Rating.good, exerciseType: 'flashcard', inputMode: InputMode.self, responseMs: 1, correct: true));
+          await s2.record(
+            ReviewEvent(
+              id: f,
+              facetId: f,
+              at: _now.subtract(const Duration(days: 30)),
+              rating: Rating.good,
+              exerciseType: 'flashcard',
+              inputMode: InputMode.self,
+              responseMs: 1,
+              correct: true,
+            ),
+          );
         }
       }
       final f = EngineSessionFactory(
@@ -297,7 +419,7 @@ void main() {
         clock: () => _now,
         userWords: () async => own,
       );
-      final lesson = await f.lesson(course.skills.first.id) as LessonSession;
+      final lesson = await f.lesson(course.skills.first.id);
       expect(lesson.lessonPlan.myWords, hasLength(2), reason: id);
       var mine = 0;
       for (var i = 0; i < 30; i++) {

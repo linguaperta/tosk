@@ -17,7 +17,12 @@ import 'package:flutter_test/flutter_test.dart';
 final _t = DateTime.utc(2026, 10, 25, 9);
 
 UserWord _w(String id, String word, {int at = 0, bool removed = false, String tr = 'meaning'}) {
-  final w = UserWord(id: 'user~$id', word: word, translation: tr, at: _t.add(Duration(seconds: at)));
+  final w = UserWord(
+    id: 'user~$id',
+    word: word,
+    translation: tr,
+    at: _t.add(Duration(seconds: at)),
+  );
   return removed ? w.tombstone(w.at) : w;
 }
 
@@ -103,7 +108,13 @@ void main() {
       });
 
       test('add, edit, delete (a tombstone) and undo', () async {
-        final a = await store.add('it', word: ' questura ', translation: 'police station', note: '  ', example: 'In questura.');
+        final a = await store.add(
+          'it',
+          word: ' questura ',
+          translation: 'police station',
+          note: '  ',
+          example: 'In questura.',
+        );
         expect(a.id, startsWith(kUserWordPrefix));
         expect(a.word, 'questura');
         expect(a.note, isNull, reason: 'blank notes are dropped');
@@ -112,7 +123,7 @@ void main() {
         var set = await store.load('it');
         expect(set.live.map((w) => w.word), ['sbirro', 'questura']);
 
-        set = await store.edit('it', set['${a.id}']!.copyWith(translation: 'police headquarters'));
+        set = await store.edit('it', set[a.id]!.copyWith(translation: 'police headquarters'));
         expect(set[a.id]!.translation, 'police headquarters');
         expect(set[a.id]!.created, a.created, reason: 'editing keeps when it was added');
 
@@ -159,7 +170,10 @@ void main() {
     });
 
     Future<(ProgressRepo, DriftUserWordRepo)> open(String name) async {
-      final repo = ProgressRepo(ProgressDb(NativeDatabase(File('${dir.path}/$name.sqlite'))), scheduler: FsrsScheduler());
+      final repo = ProgressRepo(
+        ProgressDb(NativeDatabase(File('${dir.path}/$name.sqlite'))),
+        scheduler: FsrsScheduler(),
+      );
       addTearDown(repo.close);
       return (repo, DriftUserWordRepo(repo.db));
     }
@@ -167,20 +181,27 @@ void main() {
     test('round trip with the review events; a deletion survives; a second import changes nothing', () async {
       final (a, wordsA) = await open('a');
       final storeA = UserWordStore(wordsA, clock: () => _t);
-      final w1 = await storeA.add('it', word: 'questura', translation: 'police headquarters', example: 'Andò in questura.');
+      final w1 = await storeA.add(
+        'it',
+        word: 'questura',
+        translation: 'police headquarters',
+        example: 'Andò in questura.',
+      );
       final w2 = await storeA.add('it', word: 'sbirro', translation: 'cop');
       await storeA.remove('it', w2.id);
       await storeA.add('es', word: 'comisario', translation: 'inspector');
-      await a.record(ReviewEvent(
-        id: 'ev1',
-        facetId: w1.recFacet('it'),
-        at: _t,
-        rating: Rating.good,
-        exerciseType: 'flashcard',
-        inputMode: InputMode.self,
-        responseMs: 1000,
-        correct: true,
-      ));
+      await a.record(
+        ReviewEvent(
+          id: 'ev1',
+          facetId: w1.recFacet('it'),
+          at: _t,
+          rating: Rating.good,
+          exerciseType: 'flashcard',
+          inputMode: InputMode.self,
+          responseMs: 1000,
+          correct: true,
+        ),
+      );
       await a.setSetting('reading.texts.it', '[]');
 
       final exported = await exportBackup(a, userWords: wordsA, now: _t);
@@ -212,7 +233,8 @@ void main() {
 
     test('a file from an older app (no user_word lines) imports; unknown words are skipped', () async {
       final (b, wordsB) = await open('c');
-      final old = '{"format":"tosk-backup/1","exported_at":"2026-10-01T00:00:00Z","counts":{"events":0}}\n'
+      final old =
+          '{"format":"tosk-backup/1","exported_at":"2026-10-01T00:00:00Z","counts":{"events":0}}\n'
           '{"kind":"user_word","course":"it","id":"not-a-user-id","at":1,"word":"a","tr":"b"}\n';
       final report = await importBackup(decodeBackup(old), store: b, importer: b, userWords: wordsB);
       expect(report.userWordsChanged, 0);

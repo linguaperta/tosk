@@ -120,24 +120,28 @@ class UserWordStore {
     final key = (repo, courseId);
     final done = Completer<UserWordSet>();
     final previous = _writing[key] ?? Future<void>.value();
-    final next = previous.then((_) async {
-      var current = await repo.load(courseId);
-      final changes = edit(current);
-      if (changes.isNotEmpty) {
-        await repo.put(courseId, changes);
-        for (final w in changes) {
-          current = current.put(w);
-        }
-      }
-      done.complete(current);
-      if (changes.isNotEmpty && local) onChanged?.call();
-    }).catchError((Object e, StackTrace st) {
-      if (!done.isCompleted) done.completeError(e, st);
-    });
+    final next = previous
+        .then((_) async {
+          var current = await repo.load(courseId);
+          final changes = edit(current);
+          if (changes.isNotEmpty) {
+            await repo.put(courseId, changes);
+            for (final w in changes) {
+              current = current.put(w);
+            }
+          }
+          done.complete(current);
+          if (changes.isNotEmpty && local) onChanged?.call();
+        })
+        .catchError((Object e, StackTrace st) {
+          if (!done.isCompleted) done.completeError(e, st);
+        });
     _writing[key] = next;
-    unawaited(next.whenComplete(() {
-      if (identical(_writing[key], next)) _writing.remove(key);
-    }));
+    unawaited(
+      next.whenComplete(() {
+        if (identical(_writing[key], next)) _writing.remove(key);
+      }),
+    );
     return done.future;
   }
 

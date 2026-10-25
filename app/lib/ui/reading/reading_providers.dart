@@ -155,8 +155,7 @@ class SavedTextStore {
   /// Puts back a deleted text (Undo).
   Future<void> restore(String course, SavedText entry, String body) async {
     await store.setSetting(textKey(course, entry.id), body);
-    final texts = [entry, ...(await list(course)).where((t) => t.id != entry.id)]
-      ..sort((a, b) => b.at.compareTo(a.at));
+    final texts = [entry, ...(await list(course)).where((t) => t.id != entry.id)]..sort((a, b) => b.at.compareTo(a.at));
     await _write(course, texts.take(kMaxSavedTexts).toList());
   }
 }

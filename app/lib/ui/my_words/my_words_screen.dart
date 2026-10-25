@@ -122,11 +122,7 @@ class MyWordsScreen extends ConsumerWidget {
     final n = live.length;
     final due = status.values.where((s) => s == MyWordStatus.due).length;
     final fresh = status.values.where((s) => s == MyWordStatus.fresh).length;
-    return [
-      '$n word${n == 1 ? '' : 's'}',
-      if (fresh > 0) '$fresh new',
-      if (due > 0) '$due due',
-    ].join(' · ');
+    return ['$n word${n == 1 ? '' : 's'}', if (fresh > 0) '$fresh new', if (due > 0) '$due due'].join(' · ');
   }
 }
 
@@ -255,7 +251,6 @@ Future<UserWord?> showMyWordSheet(BuildContext context, WidgetRef ref, {UserWord
   );
 }
 
-
 class _MyWordSheet extends ConsumerStatefulWidget {
   const _MyWordSheet({this.existing, this.draft, required this.targetName, required this.sourceName});
   final UserWord? existing;
@@ -306,14 +301,16 @@ class _MyWordSheetState extends ConsumerState<_MyWordSheet> {
       await notifier.edit(saved);
     } else {
       final d = widget.draft;
-      saved = await notifier.add(MyWordDraft(
-        word: _word.text,
-        translation: _tr.text,
-        note: _note.text,
-        example: _example.text,
-        lemmaId: d?.lemmaId,
-        pos: d?.pos,
-      ));
+      saved = await notifier.add(
+        MyWordDraft(
+          word: _word.text,
+          translation: _tr.text,
+          note: _note.text,
+          example: _example.text,
+          lemmaId: d?.lemmaId,
+          pos: d?.pos,
+        ),
+      );
     }
     if (mounted) Navigator.of(context).pop(saved);
   }
@@ -322,11 +319,8 @@ class _MyWordSheetState extends ConsumerState<_MyWordSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final editing = widget.existing != null;
-    InputDecoration deco(String label, {String? hint}) => InputDecoration(
-      labelText: label,
-      hintText: hint,
-      border: const OutlineInputBorder(),
-    );
+    InputDecoration deco(String label, {String? hint}) =>
+        InputDecoration(labelText: label, hintText: hint, border: const OutlineInputBorder());
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: Center(
@@ -356,7 +350,10 @@ class _MyWordSheetState extends ConsumerState<_MyWordSheet> {
                   TextField(
                     key: const ValueKey('my-word-translation'),
                     controller: _tr,
-                    autofocus: !editing && (widget.draft?.word.isNotEmpty ?? false) && (widget.draft?.translation.isEmpty ?? false),
+                    autofocus:
+                        !editing &&
+                        (widget.draft?.word.isNotEmpty ?? false) &&
+                        (widget.draft?.translation.isEmpty ?? false),
                     textInputAction: TextInputAction.next,
                     decoration: deco('Meaning (${widget.sourceName})', hint: 'Several? Separate them with commas'),
                     onChanged: (_) => setState(() {}),
