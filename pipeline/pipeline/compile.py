@@ -189,6 +189,8 @@ def compile_pack(pack: Pack, out: Path, built_at: str | None = None) -> dict:
         meta.update(credits_meta(c))
         if not c.get("attribution") and has_credits(c):
             meta["attribution"] = generic_attribution(c)
+        if c.get("tts") is False:
+            meta["tts"] = "0"           # no voice for the target language: apps skip listening
         if c.get("person_labels"):
             meta["person_labels"] = _j(c["person_labels"])
         if c.get("description"):

@@ -17,6 +17,7 @@
     "required_translations": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-z]{2,3}$"},
                               "description": "the translations every taught item, sentence and story needs (default: all of translations); the others are optional and the app falls back to English where one is missing"},
     "unverified": {"type": "boolean"},
+    "tts": {"type": "boolean", "description": "false: no text-to-speech voice exists for the target language, so apps never try one (no listening exercises, no voice hints); default true (meta.tts)"},
     "note_langs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-z]{2,3}$"},
                    "description": "languages every grammar skill needs a note in (default [en, nl])"},
     "attribution": {"type": "string", "minLength": 1, "description": "meta.attribution text; default: generated from the sources used"},

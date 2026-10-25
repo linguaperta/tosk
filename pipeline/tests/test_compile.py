@@ -149,3 +149,14 @@ def test_ddl_is_executed_verbatim():
     src = open(comp.__file__, encoding="utf-8").read()
     assert "CREATE TABLE" not in src
     assert re.search(r"DDL_PATH", src)
+
+
+def test_meta_tts_flag(mini_pack_dir, tmp_path):
+    """course.yaml `tts: false` (no voice for the target language) -> meta.tts '0'; absent by default."""
+    out, _ = build(mini_pack_dir, tmp_path)
+    assert "tts" not in dict(sqlite3.connect(out).execute("SELECT key, value FROM meta"))
+    pack = load_pack(mini_pack_dir)
+    pack.course["tts"] = False
+    out2 = tmp_path / "it2.sqlite"
+    compile_pack(pack, out2, built_at="2026-01-01T00:00:00Z")
+    assert dict(sqlite3.connect(out2).execute("SELECT key, value FROM meta"))["tts"] == "0"

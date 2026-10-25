@@ -304,6 +304,7 @@ CourseMeta parseCourseMeta(Map<String, String> raw) {
       personLabels: _i18nMap(raw['person_labels']),
       articles: _stringList(raw['articles']),
       unverified: raw['unverified'] == '1' || raw['unverified'] == 'true',
+      tts: raw['tts'] != '0' && raw['tts'] != 'false',
       attribution: raw['attribution'] ?? '',
       schemaVersion: major,
       baseFeatures: _stringList(raw['base_features']),

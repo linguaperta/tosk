@@ -31,6 +31,9 @@ final Provider<Speaker> speakerProvider = Provider<Speaker>((ref) {
 /// Whether the active course's target language can be spoken here.
 final FutureProvider<VoiceStatus> courseVoiceStatusProvider = FutureProvider<VoiceStatus>((ref) async {
   final course = await ref.watch(courseDataProvider.future);
+  // The pack says no voice exists for its language (meta.tts = '0'): don't
+  // look for one (no listening exercises, no voice notice).
+  if (!course.meta.tts) return VoiceStatus.unavailable;
   final speaker = ref.watch(speakerProvider);
   try {
     return await speaker.voiceStatus(course.meta.target).timeout(const Duration(seconds: 5));
