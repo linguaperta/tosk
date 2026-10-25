@@ -77,6 +77,8 @@ List<FormSwap> formSwaps(CourseIndex ix, FormOccurrence o) {
     if (diff.length != 1) continue;
     final k = diff.single;
     final newWord = matchCase(w[k], surface[k]);
+    // `Ce n'est` -> *`Ce n'suis`, `Je suis` -> *`Je êtes`: two errors at once.
+    if (ix.breaksElision(o.sentence, o.positions[k], newWord)) continue;
     if (!seen.add('$k:${foldAnswer(newWord)}')) continue;
     out.add(FormSwap(o, f, k, newWord));
   }
@@ -87,9 +89,17 @@ List<FormSwap> formSwaps(CourseIndex ix, FormOccurrence o) {
 List<String> wrongArticles(CourseIndex ix, Item noun) {
   final valid = {for (final a in ix.articlesOf(noun)) foldAnswer(a)};
   final seen = <String>{};
+  // An elided article before a consonant (*`l'monde`) is an elision error,
+  // not a gender one.
+  final first = foldDiacritics(noun.lemma.toLowerCase());
+  final consonant = first.isNotEmpty && !'aeiouyh'.contains(first[0]);
   return [
     for (final a in ix.meta.articles)
-      if (!valid.contains(foldAnswer(a)) && foldAnswer(a).isNotEmpty && seen.add(foldAnswer(a))) a,
+      if (!valid.contains(foldAnswer(a)) &&
+          foldAnswer(a).isNotEmpty &&
+          !(consonant && normalizeApostrophes(a).endsWith("'")) &&
+          seen.add(foldAnswer(a)))
+        a,
   ];
 }
 

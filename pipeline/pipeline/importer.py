@@ -29,7 +29,7 @@ from .paths import cache_dir, content_dir
 from .tokens import tokenize
 from .wikt import Lexeme, load_lexemes
 
-POOL_SIZE = {"it": 3000, "nl": 3000}       # default 3000
+POOL_SIZE = {"it": 3000, "nl": 3000, "fr": 5000}       # default 3000
 POS_PRIORITY = ["verb", "pron", "det", "prep", "conj", "num", "adv", "adj", "noun", "intj", "phrase", "particle"]
 FUNCTION_POS = {"pron", "det", "prep", "conj"}
 SINGLE_LETTER_OK ={"prep", "conj", "pron", "det", "intj", "adv", "verb"}
@@ -215,10 +215,13 @@ def build_verb(lang: Lang, lx: Lexeme, aux_tables: dict[str, dict[str, str]], au
         if all(t.get(p) for p in lang.persons_of(tense)):
             complete[tense] = {p: t[p] for p in lang.persons_of(tense)}
     impersonal = None
-    if lang.present not in complete and lang.pronominal(lx.lemma):
+    if lang.present not in complete and (lang.pronominal(lx.lemma) or lang.impersonal_third):
         # an impersonal pronominal verb ('volerci': only 'ci vuole', 'ci vogliono'): keep its
         # third-person cells, so sentences align; no grammar skill selects it (incomplete tables)
         third = [lang.third_sg, lang.third_pl]
+        if lang.impersonal_third and (table.get(lang.present) or {}).get(lang.third_sg):
+            # French 'falloir' has only 'il faut': the third persons it has
+            third = [p for p in third if (table.get(lang.present) or {}).get(p)]
         if all((table.get(lang.present) or {}).get(p) for p in third):
             impersonal = third
             for tense in lang.simple_tenses:
@@ -265,17 +268,23 @@ def build_verb(lang: Lang, lx: Lexeme, aux_tables: dict[str, dict[str, str]], au
         for ctense in (lang.compound_tenses if aux else ()):
             tab = {}
             for p in (impersonal or lang.persons):
-                form, alts = lang.pronominal_compound(aux_tables[aux[0]], lang.base_participle(part), p, pron[1],
-                                                      aux[0])
+                form, alts = lang.pronominal_compound(aux_tables[aux[0]][lang.present], lang.base_participle(part), p,
+                                                      pron[1], aux[0])
                 tab[p] = {"form": form, **({"alts": alts} if alts else {})}
             forms[ctense] = tab
     elif aux:
-        for ctense in lang.compound_tenses:
+        for ctense, atense in lang.compound_tenses.items():
+            # the auxiliary's table of the tense the compound tense takes it in (French
+            # plus-que-parfait: imparfait 'avais parlé'); impersonal verbs: third persons only
+            persons = [p for p in (impersonal or lang.persons)
+                       if all((aux_tables[a].get(atense) or {}).get(p) for a in aux)]
+            if not persons or (not impersonal and len(persons) < len(lang.persons)):
+                continue
             tab = {}
-            for p in lang.persons:
-                form, alts = lang.compound(aux_tables[aux[0]], part, p, aux[0])
+            for p in persons:
+                form, alts = lang.compound(aux_tables[aux[0]][atense], part, p, aux[0])
                 for other in aux[1:]:
-                    f2, a2 = lang.compound(aux_tables[other], part, p, other)
+                    f2, a2 = lang.compound(aux_tables[other][atense], part, p, other)
                     alts += [f2, *a2]
                 rec = {"form": form}
                 if alts:
@@ -340,7 +349,7 @@ def load_tatoeba(code: str, cache: Path) -> tuple[dict[int, str], dict[int, dict
     return target, trs
 
 
-MOOD_TRIGGERS = {"que", "si", "ojalá"}
+MOOD_TRIGGERS = {"que", "si", "ojalá", "qu'"}
 
 
 def mood_spellings(lexemes: dict, moods: set[str], items: list[dict], verbs: dict[str, dict])         -> tuple[set[str], set[str]]:
@@ -473,11 +482,11 @@ def run_import(code: str, content_root: str | None = None) -> None:
             e = json.loads(line)
             aux_of[e["word"]] = e["aux"]
         aux_of.update(NL_AUX_OVERRIDES)
-    aux_tables = {}
+    aux_tables = {}     # auxiliary -> its tables (tense -> person -> form)
     for a in lang.auxiliaries:
         lx = lexemes.get((a, "verb"))
         if lx and lx.table.get(lang.present):
-            aux_tables[a] = lx.table[lang.present]
+            aux_tables[a] = lx.table
 
     glosser = NlGlosser(cache, code) if code != "nl" else None
 
@@ -558,6 +567,10 @@ def run_import(code: str, content_root: str | None = None) -> None:
                 aux = aux_of.get(lx.lemma, [])
             else:   # Italian tables name the auxiliary; a language with one auxiliary uses it for all verbs
                 aux = lx.aux or (list(lang.auxiliaries) if len(lang.auxiliaries) == 1 else [])
+            if s.get("aux"):
+                # seed override, primary first: French verbs taught as reflexives also take être
+                # ('se lever': avoir|être), verbs of motion with an object also avoir ('sortir')
+                aux = s["aux"].split("|") if isinstance(s["aux"], str) else list(s["aux"])
             v = build_verb(lang, lx, aux_tables, aux)
             if v:
                 verbs[iid] = {"id": iid, **v}

@@ -181,6 +181,85 @@ class Lang:
     homograph_tenses: set[str] = field(default_factory=set)
     # absolute superlative endings ('bellissimo'): such a word links to its adjective (aligner)
     elative: tuple[str, ...] = ()
+    # --- (French, 1.4) fields below default to "off"; see lang_fr.py for how French uses them
+    # elided words and the full words they stand for ("l'": [le, la], "j'": [je]), for lookups
+    elisions: dict[str, list[str]] = field(default_factory=dict)
+    # elided complementizer ("qu'") next to subj_complementizer
+    subj_complementizer_elided: str = ""
+    # trigger lemmas/words after which the complementizer takes the indicative ('je pense que'): a
+    # mood homograph there is the indicative, not unsure
+    ind_triggers: set[str] = field(default_factory=set)
+    # subject pronouns that are also object clitics before the verb ('Il nous parle'): the leftmost
+    # pronoun of the clitic cluster is the subject
+    clitic_pronouns: set[str] = field(default_factory=set)
+    # articles that are also object clitics ('je la porte'): after a subject pronoun (or 'ne', another
+    # clitic) the next word is a verb, not a noun after a determiner
+    article_clitics: set[str] = field(default_factory=set)
+    # rare tenses whose forms are also forms of a common tense or participles ('finis', 'vit', 'mis'):
+    # such spellings are read as the common form (the rare tense only where its spelling is unique)
+    rare_tense_homographs: set[str] = field(default_factory=set)
+    # participle agreement with a preceding direct object ('je les ai vues', 'la lettre que j'ai
+    # écrite'): an agreeing participle of an auxiliary outside `agreeing_aux` needs one of
+    # `object_clitics` within `agreement_lookback` words before the auxiliary
+    object_clitics: set[str] = field(default_factory=set)
+    agreeing_aux: set[str] = field(default_factory=set)
+    agreement_lookback: int = 1
+    # a reflexive pronoun right before `reflexive_aux` makes any verb's participle a compound form
+    # ('je me suis levé' with lever, which takes avoir otherwise): pronoun -> persons (comma-joined)
+    reflexive_clitics: dict[str, str] = field(default_factory=dict)
+    reflexive_aux: str = ""
+    # hyphenated verb words: suffix subject pronouns (inversion 'parlez-vous', 'a-t-il') and object
+    # pronouns (imperatives 'donne-moi', 'lève-toi'); the host verb is linked with that cell
+    hyphen_subjects: dict[str, list[str]] = field(default_factory=dict)
+    hyphen_objects: set[str] = field(default_factory=set)
+    # after a finite copula a participle homograph of a finite form is the participle ('la lettre est
+    # écrite', 'le livre est écrit par ...'), not the copula-only adjective reading
+    participle_after_copula: bool = False
+    # a verb without a complete present table keeps its third-person cells (impersonal 'falloir':
+    # il faut, il fallait), like Italian impersonal pronominal verbs
+    impersonal_third: bool = False
+    # a finite spelling of two verbs goes to the far more frequent one (French 'suis': être, not
+    # suivre) instead of being left without a form
+    homograph_verbs_by_rank: bool = False
+    # a gerund / present participle that is also another word ('étudiant', 'pendant', 'maintenant',
+    # 'important') is the gerund only right after this word ('en étudiant')
+    gerund_marker: str = ""
+    # spellings of several items: the part of speech to link by default ('la', 'les': the article;
+    # an object clitic before a verb is relinked by clitic_relink)
+    lookup_pos: dict[str, str] = field(default_factory=dict)
+    # prepositions after which an infinitive that is also a noun is the infinitive ('sans dire',
+    # 'pour aller'), unlike after an article ('le dîner')
+    infinitive_preps: set[str] = field(default_factory=set)
+    # a word that is a noun and a verb form, after determiner + adjective, is the noun ('une bonne
+    # élève', not 'élever')
+    noun_after_adjective: bool = False
+    # the forms of an item's own inflection tables are lookup keys too (French 'meilleures', which
+    # Wiktionary does not list as a form of 'meilleur')
+    table_forms_lookup: bool = False
+    # a capitalized word inside a sentence is a name, not a word of the lexicon ('Marie', 'Pierre',
+    # 'Claire' are no forms of marier, pierre, clair)
+    capitalized_names: bool = False
+    # parts of speech of multi-word items that link every word of the phrase (aligner, pass 4)
+    phrase_pos: tuple[str, ...] = ("intj", "phrase", "adv")
+    # words that are articles (or prepositions) and object clitics ('le', 'les', 'en'): right before a
+    # verb they link to the item of that part of speech ('Je le vois': the pronoun 'le')
+    clitic_relink: dict[str, str] = field(default_factory=dict)
+    # the language never drops the subject: a clause-initial verb with an imperative reading and no
+    # subject pronoun is the imperative, whatever its English translation ('Ne cherche pas les
+    # problèmes.' = Don't go looking for trouble), unless the translation has a subject
+    subject_required: bool = False
+    # determiners that also stand as predicates before the copula ('Quel est ...?', 'Quelles sont
+    # ...'): a copula form after them is the verb, not a noun homograph ('est': east)
+    predicate_determiners: set[str] = field(default_factory=set)
+
+    def auxiliary_of(self, form: str, tags) -> list[str] | None:
+        """Perfect auxiliaries named by a conjugation-table row (French 'avoir + past participle'), or
+        None when the row names none. Languages whose tables tag an 'auxiliary' row leave it None."""
+        return None
+
+    def form_moods(self, tags) -> set[str]:
+        """The moods (seed.yaml exclude_moods keys) of a conjugation-table form with these tags."""
+        return {m for m in ("subjunctive", "conditional", "imperative") if m in set(tags)}
 
     @property
     def tenses(self) -> list[str]:
@@ -819,8 +898,9 @@ class Dutch(Lang):
 
 
 from .lang_es import Spanish  # noqa: E402  (imports Lang from this module)
+from .lang_fr import French  # noqa: E402
 
-LANGS: dict[str, Lang] = {"it": Italian(), "nl": Dutch(), "es": Spanish()}
+LANGS: dict[str, Lang] = {"it": Italian(), "nl": Dutch(), "es": Spanish(), "fr": French()}
 
 
 def get_lang(code: str) -> Lang:

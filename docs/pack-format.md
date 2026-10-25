@@ -481,7 +481,7 @@ The rule: a learner never meets a grammar construct in exercises before starting
   | `compound_aux` | `aux: lemma` | a compound form whose auxiliary is that verb (language rules) |
   | `modal_infinitive` | `verbs: [...]`, `infinitive_pattern: regex` | a finite form of one of the verbs plus a later infinitive |
   | `separable` | `particles: [...]` | a separable verb (Dutch `sta op`, `komt … terug`) |
-  | `reflexive` | `pronouns: {pron: person(s)}`, `clitics`, `enclitic_any`, `unbound`, `verbs` | a pronoun of the verb's own person in the clitic cluster before a finite verb (`me levanto`, `mi alzo`); `unbound: true` (1.1): only pronouns that are no part of the verb's own pronominal form (impersonal `si dice`); `verbs` (1.1): only these verbs (lemmas) |
+  | `reflexive` | `pronouns: {pron: person(s)}`, `clitics`, `enclitic_any`, `unbound`, `verbs` | a pronoun of the verb's own person in the clitic cluster before a finite verb (`me levanto`, `mi alzo`); `unbound: true` (1.1): only pronouns that are no part of the verb's own pronominal form (impersonal `si dice`); `verbs` (1.1): only these verbs (lemmas); `subject_pronouns` (1.2): pronouns that are also subject pronouns (French *nous*, *vous*) count only when the cluster has them twice (*nous nous levons*, not *vous avez*) |
   | `nonfinite` | `form`, `pattern` | a verb token in that non-finite form (`gerund`: `sto mangiando`), or a word matching the pattern |
   | `pattern` | `pattern: regex` | (1.1) the regex is found in the sentence text (lower case, apostrophes normalized): comparatives `più \w+ (di\|che)`, superlatives `\w+issimo` |
   | `enclitic` | `tense: T` | (1.1) a verb token aligned to a cell of tense T whose text is no spelling of the cell: a form with attached pronouns (`dimmi`, `fallo`) |
@@ -677,7 +677,7 @@ The older `python -m pipeline {fetch,import,build,validate,gen,stories,publish,f
 
 | Generic (any language, driven by the pack's data) | Language-specific (pipeline code per language) |
 | --- | --- |
-| the source format, schemas, ids, queries and facets | tokenizer (`tokens.py`: Italian elision, Dutch clitics; other languages use the Dutch rules) |
+| the source format, schemas, ids, queries and facets | tokenizer (`tokens.py`: Italian and French elision, Dutch clitics; other languages use the Dutch rules) |
 | the compiler and the compiled pack | aligner (`align.py`: compound tenses, person disambiguation, elision; a private course plugin may bring its own) |
 | the validator's generic rules (section 16) | compound tenses and auxiliaries for feature tagging (`lang.py`, keyed by course id) |
 | grammar gating: the skill graph, home-skill rule, `words` and `irregular_tense` detectors (`modal_infinitive` and `separable` work from the tables too, but were only tried on Italian and Dutch) | detector `compound_aux` and compound-tense tagging (need the language's compound tenses and auxiliaries) |

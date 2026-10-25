@@ -63,6 +63,24 @@ NUMBERS["es"].update({"veintiséis": 26, "veintisiete": 27, "veintiocho": 28, "v
                       "novecientos": 900})
 NUMBERS["es"].update({w[:-2] + "as": v for w, v in list(NUMBERS["es"].items()) if w.endswith("ientos")})
 NUMBERS["es"]["quinientas"] = 500
+# French: hyphenated compounds are one token ('vingt-deux', 'soixante-dix', 'quatre-vingt-dix-neuf')
+_FR_UNITS = ["", "un", "deux", "trois", "quatre", "cinq", "six", "sept", "huit", "neuf", "dix", "onze", "douze",
+             "treize", "quatorze", "quinze", "seize", "dix-sept", "dix-huit", "dix-neuf"]
+NUMBERS["fr"] = {"zéro": 0, **{w: i for i, w in enumerate(_FR_UNITS) if i >= 2},
+                 "vingt": 20, "trente": 30, "quarante": 40, "cinquante": 50, "soixante": 60, "quatre-vingts": 80,
+                 "quatre-vingt": 80, "cent": 100, "cents": 100, "mille": 1000, "million": 10**6, "millions": 10**6,
+                 "milliard": 10**9, "milliards": 10**9}
+for _tens, _v in (("vingt", 20), ("trente", 30), ("quarante", 40), ("cinquante", 50), ("soixante", 60)):
+    for _u in range(1, 10 if _v < 60 else 20):
+        _w = _FR_UNITS[_u]
+        if _u in (1, 11):
+            NUMBERS["fr"][f"{_tens}-et-{_w}"] = _v + _u              # vingt-et-un (1990 spelling)
+        else:
+            NUMBERS["fr"][f"{_tens}-{_w}"] = _v + _u
+for _u in range(1, 20):
+    NUMBERS["fr"][f"quatre-vingt-{_FR_UNITS[_u]}"] = 80 + _u
+NUMBERS["fr"].update({"troisième": 3, "quatrième": 4, "cinquième": 5, "sixième": 6, "septième": 7, "huitième": 8,
+                      "neuvième": 9, "dixième": 10})
 
 # Compound numbers. Several words make one number ('two hundred' = 200 = 'doscientos', 'twenty
 # five' = 25 = 'veinticinco', 'treinta y dos' = 32, 'dos mil' = 2000), and Dutch and Italian write
@@ -70,7 +88,7 @@ NUMBERS["es"]["quinientas"] = 500
 # are read as whole numbers before they are compared.
 MULTIPLIERS = {100, 1000, 10**6, 10**9}
 # a word between two parts of one number: 'two hundred and fifty', 'treinta y dos'
-CONNECTORS = {"en": {"and"}, "es": {"y"}}
+CONNECTORS = {"en": {"and"}, "es": {"y"}, "fr": {"et"}}
 # extra parts that occur only inside one-word compounds ('one' alone is ignored, see _num); a part
 # with value 0 joins a unit and a ten ('vijfentwintig', 'tweeëntwintig')
 COMPOUND_PARTS = {
@@ -187,7 +205,8 @@ IDIOMS = {"it": {("grazie", "mille")}}
 # number words that are mostly something else (Italian 'sei' = you are, Dutch 'vier' = celebrate,
 # 'acht' = attention, 'elf' = elf, 'zeven' = to sieve): their value is not compared when the
 # sentence has one
-AMBIGUOUS = {"it": {"sei"}, "nl": {"vier", "acht", "elf", "zeven"}, "es": {"cuarto", "cuarta"}}
+AMBIGUOUS = {"it": {"sei"}, "nl": {"vier", "acht", "elf", "zeven"}, "es": {"cuarto", "cuarta"},
+             "fr": {"neuf", "cent"}}
 # words that imply or rewrite numbers (times, pairs): no number comparison at all
 NUMBER_WORDS_VAGUE = {
     "en": {"half", "quarter", "fortnight", "fortnights", "dozen", "dozens", "couple", "both", "pair", "twice",
@@ -197,6 +216,8 @@ NUMBER_WORDS_VAGUE = {
     "nl": {"half", "kwart", "kwartier", "beide", "beiden", "paar", "dubbel", "middag", "middernacht"},
     "es": {"medio", "media", "cuarto", "ambos", "ambas", "par", "pareja", "doble", "mediodía", "medianoche",
            "docena", "quincena"},
+    "fr": {"demi", "demie", "quart", "moitié", "paire", "couple", "double", "midi", "minuit", "douzaine",
+           "dizaine", "vingtaine", "trentaine", "quarantaine", "cinquantaine", "centaine", "quinzaine", "huitaine"},
 }
 VAGUE_EN = re.compile(r"\b(you|we|they|us|them) two\b|\btwo of (you|us|them)\b", re.I)
 # weekdays then months, in the same order per language
@@ -209,6 +230,8 @@ CALENDAR = {
           "juli augustus september oktober november december",
     "es": "lunes martes miércoles jueves viernes sábado domingo enero febrero marzo abril mayo junio "
           "julio agosto septiembre octubre noviembre diciembre",
+    "fr": "lundi mardi mercredi jeudi vendredi samedi dimanche janvier février mars avril mai juin "
+          "juillet août septembre octobre novembre décembre",
 }
 CALENDAR_IDX = {lang: {w: i for i, w in enumerate(words.split())} for lang, words in CALENDAR.items()}
 CALENDAR_IDX["en"].update({w + "s": i for w, i in list(CALENDAR_IDX["en"].items()) if i < 7})   # 'on Mondays'

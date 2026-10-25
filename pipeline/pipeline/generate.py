@@ -56,10 +56,12 @@ NAMES = {
            "Amsterdam", "Utrecht", "Rotterdam", "Nederland"},
     "es": {"Juan", "María", "Carlos", "Ana", "Pedro", "Pablo", "Carmen", "Luis", "Sofía", "Javier",
            "Elena", "Tom", "Madrid", "Barcelona", "Sevilla", "Valencia", "España", "México"},
+    "fr": {"Paul", "Marie", "Julie", "Pierre", "Sophie", "Lucas", "Claire", "Thomas", "Camille", "Hugo", "Léa",
+           "Nicolas", "Tom", "Paris", "Lyon", "Marseille", "Bordeaux", "Nice", "Lille", "France", "Bretagne"},
 }
 # Place names that English writes differently (not compared by the translation check).
 PLACES = {"Roma", "Milano", "Napoli", "Firenze", "Venezia", "Italia", "Nederland", "Sevilla", "España",
-          "México"}
+          "México", "Marseille", "Bretagne"}
 
 
 def is_generated(s: dict) -> bool:
@@ -182,7 +184,7 @@ class Generator:
         for i, t in enumerate(words):
             if t["lex"] or t["t"].isdigit():
                 continue
-            if i > 0 and t["t"] in self.names:
+            if (i > 0 or self.aligner.lang.capitalized_names) and t["t"] in self.names:
                 continue
             problems.append(f"unaligned word {t['t']!r}")
         p = self._target_ok(al, skill, d.get("target"))

@@ -18,10 +18,10 @@ import 'real_packs.dart';
 const _maxTopicWords = 3;
 
 void main() {
-  for (final id in bundledPackIds()) {
+  for (final id in realPackIds()) {
     group('real pack $id stories', () {
       late CourseData course;
-      setUpAll(() => course = loadCourseFile('assets/courses/$id.sqlite'));
+      setUpAll(() => course = loadCourseFile(realPackPath(id)));
 
       test('2-3 stories per main-tree unit, 5-10 sentences and 3-5 questions each', () {
         final trees = CourseTrees.of(course);

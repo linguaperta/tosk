@@ -71,7 +71,9 @@
           "form": {"type": "string", "description": "nonfinite: the verb form key (gerund, participle, infinitive)"},
           "pattern": {"type": "string", "description": "nonfinite: regex for that form with attached clitics; pattern: regex searched in the lower-cased sentence text"},
           "annotate": {"type": "boolean", "description": "pattern: match the text with every word followed by its aligned form in braces ('non{} parlare{infinitive._}')"},
-          "unbound": {"type": "boolean", "description": "reflexive: only pronouns that are no part of the verb's own (pronominal) form, e.g. impersonal 'si dice'"}
+          "unbound": {"type": "boolean", "description": "reflexive: only pronouns that are no part of the verb's own (pronominal) form, e.g. impersonal 'si dice'"},
+          "subject_pronouns": {"type": "array", "items": {"type": "string"},
+                               "description": "reflexive: pronouns that are also subject pronouns (French nous, vous): reflexive only when the cluster has them twice ('nous nous levons', not 'vous avez')"}
         }
       }
     },

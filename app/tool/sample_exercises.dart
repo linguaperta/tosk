@@ -13,7 +13,8 @@
 //   dart run tool/sample_exercises.dart nl --per 8 --started-units 4 > ../docs/samples/nl_exercises.txt
 //   dart run tool/sample_exercises.dart it --per 8 --started-units 5 > ../docs/samples/it_exercises.txt
 //   dart run tool/sample_exercises.dart es --per 8 --started-units 5 > ../docs/samples/es_exercises.txt
-//     (es, it: keep the review header at the top of the committed file)
+//   dart run tool/sample_exercises.dart ../../tosk-data/dist/fr.sqlite --per 6 --started-units 19 > ../docs/samples/fr_exercises.txt
+//     (es, it, fr: keep the review header at the top of the committed file)
 // ignore_for_file: avoid_print
 import 'package:tosk/core/core.dart';
 import 'package:tosk/data/course/course_file.dart';

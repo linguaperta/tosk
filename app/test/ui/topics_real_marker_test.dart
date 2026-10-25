@@ -35,8 +35,8 @@ void main() {
   // real fonts (Roboto, Gelasio): the carvings as long as on a phone
   setUpAll(loadQaFonts);
 
-  for (final id in bundledPackIds()) {
-    final path = 'assets/courses/$id.sqlite';
+  for (final id in realPackIds()) {
+    final path = realPackPath(id);
     testWidgets('real pack $id: every branch carries its name; Tosk keeps clear of the carvings', (tester) async {
       final course = loadCourseFile(path);
       final trees = CourseTrees.of(course);

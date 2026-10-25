@@ -51,7 +51,18 @@ PLAIN_RE = re.compile(
     rf"|(?P<punct>[^\w\s])"
     rf")"
 )
-REGEX = {"it": IT_RE, "nl": NL_RE, "es": PLAIN_RE}
+# French: elided words are tokens of their own when they are one of the elidable words (l'|homme,
+# j'|ai, qu'|il, jusqu'|à, n'|est); other apostrophes inside a word keep it whole (aujourd'hui,
+# quelqu'un, prud'homme). Hyphenated words stay one token (peut-être, parlez-vous, est-ce, a-t-il).
+FR_RE = re.compile(
+    rf"(?P<ws>\s*)(?:"
+    rf"(?P<elided>(?<!\w)(?i:jusqu|lorsqu|puisqu|quoiqu|qu|[cdjlmnst])[{APOS}](?={_L}))"
+    rf"|(?P<word>{_W}+(?:[-‐]{_W}+)*(?:[{APOS}]{_L}+(?:[-‐]{_W}+)*)*)"
+    rf"|(?P<dots>\.\.+|…)"
+    rf"|(?P<punct>[^\w\s])"
+    rf")"
+)
+REGEX = {"it": IT_RE, "nl": NL_RE, "es": PLAIN_RE, "fr": FR_RE}
 
 
 def tokenize(text: str, lang: str) -> list[dict]:
