@@ -2,4 +2,4 @@
 /// in pubspec.yaml (`test/app/app_version_test.dart` checks).
 library;
 
-const String kAppVersion = '0.7.6+19';
+const String kAppVersion = '0.8.0+20';
