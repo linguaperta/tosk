@@ -29,6 +29,7 @@ void main() {
       expect(c.meta.personLabel('lui/lei', 'en'), 'he/she');
       expect(c.meta.articles, contains("l'"));
       expect(c.meta.unverified, isFalse);
+      expect(c.meta.tts, isTrue);
       expect(c.meta.schemaVersion, kCourseDbSchemaVersion);
       expect(repo.builtAt, '2026-10-13T00:00:00Z');
     });

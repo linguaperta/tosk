@@ -23,7 +23,7 @@ from .paths import APP_COURSES_DIR, DEFAULT_DATA_REPO, REPO_ROOT
 
 # Course codes (languages) whose packs are built from all-rights-reserved sources. No source
 # content lives in the public code; the importers are private plugins.
-BUILTIN_RESTRICTED = frozenset({"hns"})
+BUILTIN_RESTRICTED = frozenset({"hns", "rw"})
 # Kept for callers that read the constant; prefer restricted_courses(), which adds the plugins.
 RESTRICTED_COURSES = BUILTIN_RESTRICTED
 

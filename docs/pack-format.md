@@ -88,6 +88,7 @@ Schema: `schema/course.schema.json` (unknown keys are errors). Top level:
 | `translations` | yes | list of codes | source languages, in order of preference; at least one |
 | `required_translations` | no | list of codes | (1.1) the `translations` every taught item, sentence, story and grammar check needs; the others are optional: used and checked where present, and the app falls back to English where one is missing. Default: all of `translations` |
 | `unverified` | no | bool | true while no speaker has checked the content (the app says so); default false |
+| `tts` | no | bool | false when no text-to-speech voice exists for the target language: apps then never look for one (no listening exercises, no "install a voice" hint); default true |
 | `note_langs` | no | list of codes | languages every grammar skill needs a note in; default: see section 19 (intended: `translations`) |
 | `min_app_version` | no | semver | oldest app that can use the pack (section 15.4) |
 | `license` | no | string | licence of the content: an SPDX id (`CC-BY-SA-4.0`, `CC0-1.0`) or `LicenseRef-…` (section 11.3) |
@@ -535,6 +536,7 @@ One SQLite 3 file per course. The DDL in `schema/course_db.sql` is normative; a 
 | `tense_labels` | yes | | JSON `{tense: i18n}` (may be `{}`) |
 | `articles` | yes | | JSON array (may be `[]`) |
 | `unverified` | yes | | `'0'` or `'1'` |
+| `tts` | no | | `'0'`: no voice for the target language (course.yaml `tts: false`); absent = a voice may exist. Informational: older apps ignore it and simply find no voice |
 | `built_at` | yes | | ISO-8601 UTC |
 | `attribution` | yes | | text |
 | `base_features` | no | | JSON array; present = gated |

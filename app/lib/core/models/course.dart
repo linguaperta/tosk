@@ -24,6 +24,7 @@ class CourseMeta {
     this.personLabels = const {},
     this.articles = const [],
     this.unverified = false,
+    this.tts = true,
     this.attribution = '',
     this.schemaVersion = 1,
     this.baseFeatures = const [],
@@ -48,6 +49,12 @@ class CourseMeta {
   final Map<String, I18n> personLabels;
   final List<String> articles; // options for article exercises, e.g. ['de','het']
   final bool unverified;
+
+  /// False when no text-to-speech voice exists for the target language
+  /// (`meta.tts` = '0', course.yaml `tts: false`): the app then never looks
+  /// for one, so there are no listening exercises and no "install a voice"
+  /// hints. Absent (older packs): true.
+  final bool tts;
   final String attribution;
   final int schemaVersion;
 

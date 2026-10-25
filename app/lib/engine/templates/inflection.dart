@@ -78,7 +78,8 @@ List<String> inflSentenceWrongs(CourseData course, InflOccurrence o) {
   final out = <String>[];
   final seen = <String>{...accepted};
   void add(String f) {
-    if (f.contains(' ')) return;
+    // a citation stem (Bantu adjectives '-iza', possessives '-anjye') is no word of a sentence
+    if (f.contains(' ') || f.startsWith('-')) return;
     if (seen.add(foldAnswer(f))) out.add(matchCase(f, o.text));
   }
 
