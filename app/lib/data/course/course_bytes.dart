@@ -13,11 +13,13 @@ import 'package:typed_data/typed_buffers.dart';
 import '../../core/core.dart';
 import 'course_loader.dart';
 import 'course_repo.dart';
+import 'course_schema.dart';
 
 int _vfsCounter = 0;
 
 /// Runs [body] with [bytes] opened read-only as a database, then closes and unregisters everything.
 T withCourseBytes<T>(CommonSqlite3 sqlite, Uint8List bytes, T Function(CommonDatabase db) body) {
+  if (bytes.length > kMaxPackBytes) throw CourseFormatException('The course file is too large');
   final vfs = InMemoryFileSystem(name: 'course-bytes-${_vfsCounter++}');
   const path = '/course.sqlite';
   vfs.fileData[path] = Uint8Buffer()..addAll(bytes);
@@ -36,6 +38,6 @@ T withCourseBytes<T>(CommonSqlite3 sqlite, Uint8List bytes, T Function(CommonDat
 CourseRepo loadCourseRepoFromBytes(CommonSqlite3 sqlite, Uint8List bytes) =>
     withCourseBytes(sqlite, bytes, loadCourseRepoFromSqlite);
 
-/// Reads only the course meta from database [bytes].
-CourseMeta readCourseMetaFromBytes(CommonSqlite3 sqlite, Uint8List bytes) =>
-    withCourseBytes(sqlite, bytes, readCourseMeta);
+/// Reads only the course meta from database [bytes] ([checkIntegrity]: see `guardCourseDb`).
+CourseMeta readCourseMetaFromBytes(CommonSqlite3 sqlite, Uint8List bytes, {bool checkIntegrity = false}) =>
+    withCourseBytes(sqlite, bytes, (db) => readCourseMeta(db, checkIntegrity: checkIntegrity));

@@ -47,7 +47,7 @@ class BlobPackFileStore implements PackFileStore {
 
   @override
   Future<PackData> data(String courseId) async {
-    final b = await blobs.get(courseId);
+    final b = await blobs.get(checkCourseId(courseId));
     if (b == null) throw StateError('Pack $courseId is not installed');
     return PackBytes(b, name: '$courseId.sqlite');
   }
@@ -56,7 +56,7 @@ class BlobPackFileStore implements PackFileStore {
   Future<int?> size(String courseId) async => (await blobs.get(courseId))?.length;
 
   @override
-  Future<void> writeBytes(String courseId, Uint8List bytes) => blobs.put(courseId, bytes);
+  Future<void> writeBytes(String courseId, Uint8List bytes) async => blobs.put(checkCourseId(courseId), bytes);
 
   @override
   Future<void> copyFile(String courseId, String sourcePath) =>
@@ -64,7 +64,7 @@ class BlobPackFileStore implements PackFileStore {
 
   @override
   Future<bool> delete(String courseId) async {
-    final had = await blobs.get(courseId) != null;
+    final had = await blobs.get(checkCourseId(courseId)) != null;
     await blobs.delete(courseId);
     return had;
   }
@@ -82,7 +82,7 @@ class BlobPackFileStore implements PackFileStore {
   String location(String courseId) => '$name:$courseId.sqlite';
 
   @override
-  Future<PackStaging> stage(String courseId) async => _BlobStaging(this, courseId);
+  Future<PackStaging> stage(String courseId) async => _BlobStaging(this, checkCourseId(courseId));
 }
 
 class _BlobStaging implements PackStaging {

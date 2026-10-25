@@ -10,7 +10,7 @@ const bool supportsPackFiles = false;
 Future<CourseRepo> loadCoursePack(PackData data) =>
     throw UnsupportedError('No sqlite3 implementation on this platform');
 
-Future<CourseMeta> readPackMeta(PackData data) =>
+Future<CourseMeta> readPackMeta(PackData data, {bool checkIntegrity = false}) =>
     throw UnsupportedError('No sqlite3 implementation on this platform');
 
 PackFileStore defaultPackFileStore(String? baseDir) => MemoryPackFileStore();

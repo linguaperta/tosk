@@ -10,10 +10,14 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import sqlite3
 import sys
 from pathlib import Path
+
+SAFE_COURSE_ID = re.compile(r"\A[a-z][a-z0-9_-]{0,39}(\.[a-z0-9][a-z0-9_-]{0,39})?\Z")
+WINDOWS_DEVICE_NAMES = {"con", "prn", "aux", "nul", *(f"com{i}" for i in range(10)), *(f"lpt{i}" for i in range(10))}
 
 
 def desktop_courses_dir() -> Path | None:
@@ -37,6 +41,9 @@ def install_desktop(pack: Path, dest: Path | None = None) -> Path:
     finally:
         con.close()
     cid = meta["course_id"]
+    # The id names the file: the app's rule (app/lib/core/course_id.dart), never a path.
+    if not SAFE_COURSE_ID.match(cid) or cid.split(".")[0] in WINDOWS_DEVICE_NAMES:
+        raise SystemExit(f"{pack}: meta.course_id {cid!r} is not a valid course id")
     target = dest / f"{cid}.sqlite"
     shutil.copyfile(pack, target)
     mp = dest / "packs.json"

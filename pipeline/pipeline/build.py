@@ -128,6 +128,8 @@ def build(langs, content_root=None, install: bool = False, quiet: bool = False, 
             "url": f"{code}.sqlite",
         }
         if install:
+            from .restricted import refuse_restricted_pack
+            refuse_restricted_pack(out, "bundle (--install)")
             APP_COURSES_DIR.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(out, APP_COURSES_DIR / f"{code}.sqlite")
             print(f"[{code}] installed -> {APP_COURSES_DIR / f'{code}.sqlite'}", file=sys.stderr)

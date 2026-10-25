@@ -184,6 +184,11 @@ def compile_pack(pack: Pack, out: Path, built_at: str | None = None) -> dict:
             "built_at": built_at,
             "attribution": c.get("attribution") or attribution_text(pack),
         }
+        # Restricted courses (restricted.py: built-in, $TOSK_RESTRICTED_COURSES, private plugins)
+        # are stamped, so publish/mirror/--install refuse the pack whatever its id or file name.
+        from .restricted import RESTRICTED_META_KEY, is_restricted
+        if is_restricted(c["id"]):
+            meta[RESTRICTED_META_KEY] = "1"
         # credits (pack format 1.0: license, authors, data_sources; credits.py)
         from .credits import credits_meta, generic_attribution, has_credits
         meta.update(credits_meta(c))

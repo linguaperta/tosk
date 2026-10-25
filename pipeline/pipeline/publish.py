@@ -78,6 +78,8 @@ def index_entry(path: Path, tag: str, repo: str = DATA_REPO_SLUG,
     if cid != path.stem:
         raise ValueError(f"{path.name} holds course {cid!r}; the file must be named {cid}.sqlite")
     _refuse_restricted([cid])
+    from .restricted import refuse_restricted_pack
+    refuse_restricted_pack(path, "publish")
     for key in ("version", "title", "schema_version", "target"):
         if not meta.get(key):
             raise ValueError(f"{path.name}: meta.{key} is missing")

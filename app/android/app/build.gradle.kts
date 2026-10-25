@@ -105,4 +105,18 @@ dependencies {
     implementation("com.onyx.android.sdk:onyxsdk-device:1.3.6")
     // The SDK calls Onyx framework APIs that Android 9+ hides from apps.
     implementation("org.lsposed.hiddenapibypass:hiddenapibypass:6.1")
+
+    // onyxsdk-base pulls in old networking libraries with published advisories
+    // (retrofit 2.1.0, okhttp 4.10.0, okio 3.0.0). tosk never uses them, but
+    // the APK ships the fixed, API-compatible releases instead. Check with
+    // `gradlew :app:dependencies --configuration releaseRuntimeClasspath`.
+    constraints {
+        implementation("com.squareup.retrofit2:retrofit:2.11.0") {
+            because("GHSA-8p8g-f9vg-r7xr, GHSA-j379-9jr9-w5cq (retrofit < 2.5.0)")
+        }
+        implementation("com.squareup.okhttp3:okhttp:4.12.0") { because("okhttp 4.10.0 bundles a vulnerable okio") }
+        implementation("com.squareup.okhttp3:logging-interceptor:4.12.0") { because("matches okhttp") }
+        implementation("com.squareup.okio:okio:3.9.1") { because("GHSA-w33c-445m-f8w7 (okio < 3.4.0)") }
+        implementation("com.google.code.gson:gson:2.13.2") { because("GHSA-4jrv-ppp4-jm57 (gson < 2.8.9)") }
+    }
 }

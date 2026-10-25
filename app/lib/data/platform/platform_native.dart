@@ -22,9 +22,10 @@ Future<CourseRepo> loadCoursePack(PackData data) => switch (data) {
       PackBytes(:final bytes) => Isolate.run(() => loadCourseRepoFromBytes(sqlite3, bytes)),
     };
 
-Future<CourseMeta> readPackMeta(PackData data) async => switch (data) {
-      PackFile(:final path) => readCourseMetaFile(path),
-      PackBytes(:final bytes) => readCourseMetaFromBytes(sqlite3, bytes),
+/// [checkIntegrity]: also `PRAGMA quick_check` (packs from a file or a download).
+Future<CourseMeta> readPackMeta(PackData data, {bool checkIntegrity = false}) async => switch (data) {
+      PackFile(:final path) => readCourseMetaFile(path, checkIntegrity: checkIntegrity),
+      PackBytes(:final bytes) => readCourseMetaFromBytes(sqlite3, bytes, checkIntegrity: checkIntegrity),
     };
 
 /// Installed packs live in `{baseDir}/courses/{id}.sqlite`.
@@ -37,7 +38,18 @@ class NativePackFileStore implements PackFileStore {
   NativePackFileStore(this.dir);
   final Directory dir;
 
-  File _file(String id) => File(p.join(dir.path, '$id.sqlite'));
+  /// The pack file of course [id]. The id comes from outside (a pack's meta,
+  /// a course index, settings), so it must be a valid course id, and the
+  /// resulting path must stay inside [dir] whatever the platform's path rules.
+  File _file(String id) {
+    if (!isValidCourseId(id)) throw ArgumentError.value(id, 'courseId', 'Not a valid course id');
+    final path = p.join(dir.path, '$id.sqlite');
+    if (!p.isWithin(dir.path, path) || !p.equals(p.dirname(path), dir.path)) {
+      throw ArgumentError.value(id, 'courseId', 'Pack path outside the courses folder');
+    }
+    return File(path);
+  }
+
   File get _manifest => File(p.join(dir.path, 'packs.json'));
 
   @override
@@ -55,18 +67,20 @@ class NativePackFileStore implements PackFileStore {
 
   @override
   Future<void> writeBytes(String courseId, Uint8List bytes) async {
+    final target = _file(courseId);
     await dir.create(recursive: true);
-    final tmp = File('${_file(courseId).path}.tmp');
+    final tmp = File('${target.path}.tmp');
     await tmp.writeAsBytes(bytes, flush: true);
-    await _replace(tmp, _file(courseId));
+    await _replace(tmp, target);
   }
 
   @override
   Future<void> copyFile(String courseId, String sourcePath) async {
+    final target = _file(courseId);
     await dir.create(recursive: true);
-    final tmp = File('${_file(courseId).path}.tmp');
+    final tmp = File('${target.path}.tmp');
     await File(sourcePath).copy(tmp.path);
-    await _replace(tmp, _file(courseId));
+    await _replace(tmp, target);
   }
 
   /// Atomic where the OS allows (rename over an existing file fails on Windows,
@@ -115,10 +129,11 @@ class NativePackFileStore implements PackFileStore {
 
   @override
   Future<PackStaging> stage(String courseId) async {
+    final target = _file(courseId);
     await dir.create(recursive: true);
-    final download = File('${_file(courseId).path}.download');
+    final download = File('${target.path}.download');
     _recovered = true; // never clean up under a running download
-    return _NativeStaging(_file(courseId), download, download.openWrite());
+    return _NativeStaging(target, download, download.openWrite());
   }
 
   bool _recovered = false;

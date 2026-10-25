@@ -1,6 +1,6 @@
 # Turning on accounts and sync (Firebase), the web app and CI
 
-Everything here is free: Firebase's Spark plan (no billing account, so nothing can ever be charged), GitHub Pages and GitHub Actions. Until you do these steps the app works exactly as before: no account UI, fully offline. Nothing about your Firebase project is committed to git; the app gets it at build time from a small JSON file (locally) or a secret (CI).
+Everything here is free: Firebase's Spark plan (no billing account, so nothing can ever be charged), GitHub Pages and GitHub Actions. Until you do these steps the app works exactly as before: no account UI, fully offline. The project id, Web API key and web client id are not committed to git; the app gets them at build time from a small JSON file (locally) or a secret (CI). One value is committed: the reversed **iOS OAuth client id** in `app/ios/Runner/Info.plist` (the `com.googleusercontent.apps.…` URL scheme, step 5), which also reveals the Google Cloud project number. OAuth client ids are public by design (they ship in every app build), so this is not a secret, but a fork that sets up its own project must replace it. Everything compiled into a build (API key, client ids, project id) can be read from the APK or the web app; access is controlled by the security rules and the key restrictions below.
 
 How it works (details in `docs/data-layer.md`, "Cloud sync"):
 
@@ -45,7 +45,7 @@ Values you will collect (keep them in a note while you go):
 2. Tab **Sign-in method → Add new provider → Google**. Switch **Enable** on, pick your **Project support email**, click **Save**.
 3. Click the **Google** row again and expand **Web SDK configuration**: copy the **Web client ID**. That is `TOSK_GOOGLE_WEB_CLIENT_ID`.
 4. Tab **Settings → Authorized domains → Add domain**: add `<owner>.github.io` (e.g. `linguaperta.github.io`). `localhost` is there already.
-5. Get the **Web API key**: click the gear icon (top left) → **Project settings → General**. Copy **Web API key**. That is `TOSK_FIREBASE_API_KEY`. (It identifies the project; it is not a secret. Access is controlled by the security rules.)
+5. Get the **Web API key**: click the gear icon (top left) → **Project settings → General**. Copy **Web API key**. That is `TOSK_FIREBASE_API_KEY`. (It identifies the project; it is not a secret. Access is controlled by the security rules, and what the key can call by its restrictions: restricting it is a required step, below.)
 
 ### Allow the web app's address (Google Cloud console)
 
@@ -56,7 +56,21 @@ Google's sign-in button only works on origins you list:
 3. Under **Authorized JavaScript origins**, click **Add URI** and add `https://<owner>.github.io`. For local testing also add `http://localhost:8080` (and run `flutter run -d chrome --web-port 8080 --dart-define-from-file=firebase-config.json`).
 4. Click **Save**. It can take a few minutes to apply.
 
-Optional hardening: on the same page, under **API keys**, open the **Browser key** and set **API restrictions → Restrict key** to *Identity Toolkit API*, *Token Service API* and *Cloud Firestore API*. Don't add an *application* restriction (HTTP referrers), because the Android app uses the same key.
+### Restrict the API key (required)
+
+The Web API key ships in every build, so anyone can use it. Restrict it to the APIs tosk calls, so that an API enabled on the project later (for example the Gemini / Generative Language API) can never be used with it, on your quota or bill:
+
+1. <https://console.cloud.google.com/apis/credentials>, same project. Under **API keys**, click the key whose value is your `TOSK_FIREBASE_API_KEY` (usually **Browser key (auto created by Firebase)**).
+2. **API restrictions → Restrict key**, then tick exactly these three and nothing else:
+   - **Identity Toolkit API** (sign-in, account deletion),
+   - **Token Service API** (refreshing the sign-in),
+   - **Cloud Firestore API** (sync).
+3. **Application restrictions**: the app calls Firebase over plain REST, and an Android-app restriction only accepts requests that carry the `X-Android-Package` / `X-Android-Cert` headers, which the app does not send yet. So:
+   - **Android (and iOS) builds:** leave this key at **None** for now (the API restriction above is what protects it).
+   - **Web app:** create a second key for the web build only: **Create credentials → API key**, then **Application restrictions → Websites** with `https://<owner>.github.io/<repo>/*` (e.g. `https://linguaperta.github.io/tosk/*`) and, for local testing, `http://localhost:8080/*`; **API restrictions** as in step 2. Put a copy of `firebase-config.json` with this key as `TOSK_FIREBASE_API_KEY` in the secret `FIREBASE_WEB_CONFIG_JSON` (step 7); the Pages workflow prefers it over `FIREBASE_CONFIG_JSON`, which keeps the first key for the APK builds.
+4. Click **Save**. Then open **APIs & Services → Enabled APIs & services** and check that nothing else key-callable is enabled that you don't use (in particular no *Generative Language API*).
+
+Requests from a build with a restricted key keep working; a request to any other API with the key now fails with `API_KEY_SERVICE_BLOCKED`.
 
 ## 4. Android app (needed for sign-in on the phone)
 
@@ -129,6 +143,7 @@ Repository → **Settings → Secrets and variables → Actions → New reposito
 | Secret | Value |
 | --- | --- |
 | `FIREBASE_CONFIG_JSON` | the whole contents of `app/firebase-config.json` |
+| `FIREBASE_WEB_CONFIG_JSON` (optional) | the same, with the website-restricted web key (step 3, "Restrict the API key"); used by the Pages workflow instead of `FIREBASE_CONFIG_JSON` |
 | `ANDROID_KEYSTORE_BASE64` | the upload keystore as base64: `[Convert]::ToBase64String([IO.File]::ReadAllBytes("C:\Users\timo\dev\keys\tosk-upload.jks")) \| Set-Clipboard` |
 | `ANDROID_STORE_PASSWORD` | `storePassword` from `app/android/key.properties` |
 | `ANDROID_KEY_PASSWORD` | `keyPassword` from `app/android/key.properties` |

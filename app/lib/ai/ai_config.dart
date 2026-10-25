@@ -90,7 +90,21 @@ class AiConfig {
     if (provider.needsKey && apiKey.trim().isEmpty) return false;
     if (effectiveModel.isEmpty) return false;
     final uri = Uri.tryParse(effectiveBaseUrl);
-    return uri != null && (uri.scheme == 'https' || uri.scheme == 'http') && uri.host.isNotEmpty;
+    // https, or plain http only to this machine or the local network (a
+    // self-hosted server): the key is never sent in the clear over the internet.
+    return uri != null && isAllowedAiUrl(uri);
+  }
+
+  /// Why [baseUrl] can't be used, for the settings field; null when it can (or is empty).
+  static String? baseUrlProblem(String baseUrl) {
+    final b = baseUrl.trim();
+    if (b.isEmpty) return null;
+    final uri = Uri.tryParse(b);
+    if (uri == null || uri.host.isEmpty || (uri.scheme != 'https' && uri.scheme != 'http')) {
+      return 'Not a web address (https://host/v1)';
+    }
+    if (!isAllowedAiUrl(uri)) return 'Use https (plain http only for this device or your local network)';
+    return null;
   }
 
   /// The language replies are written in: the setting, or [sourceLang] for `auto`.

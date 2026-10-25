@@ -8,7 +8,7 @@
 # enter git history). Runs on main, daily (to pick up new pack releases) and by
 # hand. Skips cleanly while Pages is not enabled for the repository (Settings →
 # Pages → Source: GitHub Actions). Firebase sync is compiled in when the
-# FIREBASE_CONFIG_JSON secret exists (docs/firebase-setup.md).
+# FIREBASE_WEB_CONFIG_JSON (or FIREBASE_CONFIG_JSON) secret exists (docs/firebase-setup.md).
 #
 # Optional repository variables: PAGES_BASE_HREF (default /<repo>/, e.g. /tosk/
 # after a rename) and PACK_INDEX_URL (default: the latest tosk-data release).
@@ -35,6 +35,9 @@ jobs:
   check:
     name: Pages enabled?
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: read
     outputs:
       enabled: ${{ steps.pages.outputs.enabled }}
     steps:
@@ -57,19 +60,20 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.13'
       - name: Firebase config (optional)
         working-directory: app
         env:
-          FIREBASE_CONFIG_JSON: ${{ secrets.FIREBASE_CONFIG_JSON }}
+          # FIREBASE_WEB_CONFIG_JSON: the same with the website-restricted API key (docs/firebase-setup.md).
+          FIREBASE_CONFIG_JSON: ${{ secrets.FIREBASE_WEB_CONFIG_JSON || secrets.FIREBASE_CONFIG_JSON }}
         run: |
           if [ -n "$FIREBASE_CONFIG_JSON" ]; then
             printf '%s' "$FIREBASE_CONFIG_JSON" > firebase-config.json
@@ -115,7 +119,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: bash .github/scripts/whats-new.sh app/pubspec.yaml "$BUILD" "${{ github.repository }}" app/build/web/whats_new.json
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
         with:
           path: app/build/web
 
@@ -131,4 +135,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5

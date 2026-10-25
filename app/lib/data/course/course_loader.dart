@@ -22,6 +22,7 @@ InMemoryCourseData loadCourseFromSqlite(CommonDatabase db) => loadCourseRepoFrom
 /// Like [loadCourseFromSqlite], but returns a [CourseRepo] with raw meta and counts.
 CourseRepo loadCourseRepoFromSqlite(CommonDatabase db) {
   final sw = Stopwatch()..start();
+  guardCourseDb(db);
   final raw = readRawMeta(db);
   final meta = parseCourseMeta(raw);
 
@@ -261,6 +262,33 @@ CourseRepo loadCourseRepoFromSqlite(CommonDatabase db) {
   );
 }
 
+/// Hardens [db] (a pack that may come from anyone) before anything is read:
+/// `trusted_schema` off (schema-defined code can't call functions with side
+/// effects), and only plain tables and indexes are accepted, so no view
+/// (e.g. a never-ending recursive query posing as `skills`), trigger or
+/// virtual table can run when the app reads its tables. With [checkIntegrity]
+/// (packs added from a file or downloaded, not the bundled ones), also
+/// `PRAGMA quick_check`. Throws [CourseFormatException].
+void guardCourseDb(CommonDatabase db, {bool checkIntegrity = false}) {
+  try {
+    db.execute('PRAGMA trusted_schema = OFF');
+    for (final r in db.select('SELECT type, name, sql FROM sqlite_master').rows) {
+      final type = r[0] as String?;
+      final sql = (r[2] as String?)?.trimLeft().toUpperCase() ?? '';
+      final ok = type == 'index' || (type == 'table' && !sql.startsWith('CREATE VIRTUAL'));
+      if (!ok) throw CourseFormatException('Not a course pack: it contains a $type (${jsonEncode(r[1])})');
+    }
+    if (checkIntegrity) {
+      final rows = db.select('PRAGMA quick_check').rows;
+      if (rows.length != 1 || rows.single.first != 'ok') {
+        throw CourseFormatException('The course file is damaged (${rows.take(3).map((r) => r.first).join('; ')})');
+      }
+    }
+  } on SqliteException catch (e) {
+    throw CourseFormatException('Not a course database: ${e.message}');
+  }
+}
+
 /// All `meta` rows. Throws [CourseFormatException] if the table is missing.
 Map<String, String> readRawMeta(CommonDatabase db) {
   try {
@@ -273,13 +301,20 @@ Map<String, String> readRawMeta(CommonDatabase db) {
 }
 
 /// Reads and validates just the meta (cheap; used to list packs without loading them).
-CourseMeta readCourseMeta(CommonDatabase db) => parseCourseMeta(readRawMeta(db));
+CourseMeta readCourseMeta(CommonDatabase db, {bool checkIntegrity = false}) {
+  guardCourseDb(db, checkIntegrity: checkIntegrity);
+  return parseCourseMeta(readRawMeta(db));
+}
 
 /// Validates the meta rows and builds a [CourseMeta]. Throws [CourseFormatException].
 CourseMeta parseCourseMeta(Map<String, String> raw) {
   final missing = [for (final k in kRequiredCourseMetaKeys) if (!raw.containsKey(k)) k];
   if (missing.isNotEmpty) {
     throw CourseFormatException('Missing meta keys: ${missing.join(', ')}');
+  }
+  // The id names the pack's file (`courses/{id}.sqlite`): never a path.
+  if (!isValidCourseId(raw['course_id']!)) {
+    throw CourseFormatException('Bad course_id: ${jsonEncode(raw['course_id'])}');
   }
   final major = parseSchemaMajor(raw['schema_version']);
   if (major == null) {

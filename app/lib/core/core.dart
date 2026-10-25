@@ -1,6 +1,7 @@
 /// Shared domain models and interfaces. No Flutter, no drift.
 library;
 
+export 'course_id.dart';
 export 'interfaces/bookmarks.dart';
 export 'interfaces/course_data.dart';
 export 'interfaces/feedback.dart';
@@ -16,4 +17,5 @@ export 'models/exercise.dart';
 export 'models/facet.dart';
 export 'models/progress.dart';
 export 'models/story.dart';
+export 'net_policy.dart';
 export 'trees.dart';

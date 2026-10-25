@@ -45,12 +45,17 @@ class LocalPackSource implements PackSource {
     required this.bundled,
     required this.store,
     required this.readMeta,
+    PackMetaReader? readUntrustedMeta,
     this.onWarning,
-  });
+  }) : readUntrustedMeta = readUntrustedMeta ?? readMeta;
 
   final BundledPacks bundled;
   final PackFileStore store;
   final PackMetaReader readMeta;
+
+  /// Validates packs from outside the app (added from a file, copied into the
+  /// folder, downloaded) more thoroughly (an integrity check); defaults to [readMeta].
+  final PackMetaReader readUntrustedMeta;
 
   /// Called for bundled packs that fail validation (they are skipped).
   final void Function(String message)? onWarning;
@@ -95,11 +100,18 @@ class LocalPackSource implements PackSource {
     var changed = false;
     final present = (await store.installedIds()).toSet();
     for (final id in present) {
+      if (!isValidCourseId(id)) {
+        onWarning?.call(
+          'Skipping pack file $id.sqlite: the file name must be its course id '
+          '(lower-case letters, digits, "-" and "_", e.g. it.sqlite)',
+        );
+        continue;
+      }
       final known = manifest[id];
       if (known != null && known.origin != PackOrigin.local) continue;
       final CourseMeta meta;
       try {
-        meta = await readMeta(await store.data(id));
+        meta = await readUntrustedMeta(await store.data(id));
       } on Object catch (e) {
         if (known == null) onWarning?.call('Skipping pack file $id.sqlite: $e');
         continue;
@@ -140,7 +152,7 @@ class LocalPackSource implements PackSource {
 
   @override
   Future<PackInfo> install(PackData data) async {
-    final meta = await readMeta(data); // throws CourseFormatException if invalid
+    final meta = await readUntrustedMeta(data); // throws CourseFormatException if invalid
     final m = await _sync();
     switch (data) {
       case PackFile(:final path):
@@ -170,7 +182,7 @@ class LocalPackSource implements PackSource {
   }) async {
     final CourseMeta meta;
     try {
-      meta = await readMeta(data); // throws CourseFormatException if invalid
+      meta = await readUntrustedMeta(data); // throws CourseFormatException if invalid
       if (meta.id != courseId) {
         throw CourseFormatException('The file holds course "${meta.id}", not "$courseId"');
       }
@@ -225,7 +237,8 @@ class LocalPackSource implements PackSource {
       final j = jsonDecode(text) as Map<String, dynamic>;
       return {
         for (final e in (j['packs'] as Map<String, dynamic>).entries)
-          e.key: _Entry.fromJson(e.key, e.value as Map<String, dynamic>),
+          // A key that isn't a course id (a hand-edited or planted manifest) is dropped.
+          if (isValidCourseId(e.key)) e.key: _Entry.fromJson(e.key, e.value as Map<String, dynamic>),
       };
     } on Object catch (e) {
       onWarning?.call('Ignoring corrupt pack manifest: $e');

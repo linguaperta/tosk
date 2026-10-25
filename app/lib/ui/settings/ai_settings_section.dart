@@ -143,11 +143,12 @@ class _AiSettingsSectionState extends ConsumerState<AiSettingsSection> {
                 controller: _baseUrl,
                 keyboardType: TextInputType.url,
                 autocorrect: false,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Base URL',
                   hintText: 'https://host/v1',
                   helperText: 'The server\'s OpenAI-style API root (…/v1)',
-                  border: OutlineInputBorder(),
+                  errorText: AiConfig.baseUrlProblem(_baseUrl.text),
+                  border: const OutlineInputBorder(),
                 ),
                 onEditingComplete: () => unawaited(_commit()),
                 onTapOutside: (_) => unawaited(_commit()),
