@@ -123,6 +123,20 @@
     // Offline app shell (web/sw.js). Installed from Safari's "Add to Home
     // Screen" on iOS, or the install prompt on Android/desktop.
     if ('serviceWorker' in navigator) {
+      // A new deploy: its worker (sw.js changes with every deploy) takes over
+      // a page that already had one. Tell the app, which offers a reload
+      // (lib/updates/web_update.dart); the flag covers an app that starts
+      // listening later. The first visit's own worker taking control is not
+      // an update.
+      var hadController = !!navigator.serviceWorker.controller;
+      navigator.serviceWorker.addEventListener('controllerchange', function () {
+        if (!hadController) {
+          hadController = true;
+          return;
+        }
+        window.toskUpdateReady = true;
+        window.dispatchEvent(new Event('tosk-update'));
+      });
       window.addEventListener('load', function () {
         navigator.serviceWorker.register('sw.js').then(function () {
           return navigator.serviceWorker.ready;
@@ -137,6 +151,17 @@
           }
           send();
           setTimeout(send, 15000);
+          // Look for a new deploy while the app stays open: hourly, and when
+          // the tab comes back after ten minutes or more.
+          var lastCheck = Date.now();
+          function checkForUpdate() {
+            lastCheck = Date.now();
+            reg.update().catch(function () {});
+          }
+          setInterval(checkForUpdate, 60 * 60 * 1000);
+          document.addEventListener('visibilitychange', function () {
+            if (document.visibilityState === 'visible' && Date.now() - lastCheck > 10 * 60 * 1000) checkForUpdate();
+          });
         }).catch(function (e) { console.warn('[sw]', e); });
       });
     }

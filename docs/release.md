@@ -49,6 +49,37 @@ adb install -r build/app/outputs/flutter-apk/app-release.apk
 
 `adb` is in `C:\Users\timo\dev\android\platform-tools`. On the Boox, enable USB debugging in developer options, or copy the APK over and open it.
 
+## Update notice (after v0.7.6)
+
+Sideloaded builds (Android, Windows, macOS, Linux) tell the learner about a new version; the web app tells them a new deploy is live. The app never downloads or installs anything itself. UI and tests: `docs/ui.md`, "Release features".
+
+**Sideloaded: GitHub Releases of `linguaperta/tosk`.** At most once a day on start (and from Settings → About → Check for updates) the app asks `https://api.github.com/repos/linguaperta/tosk/releases?per_page=15` (unauthenticated, 60 requests an hour per address, 10 s timeout; offline it fails silently and the cached answer stays). It offers the newest release that is not a draft and whose version is newer than `kAppVersion`. Pre-releases count, so every preview reaches testers. What a release needs for that:
+
+- **Tag** `preview-X.Y.Z` (previews, published as pre-releases) or `vX.Y.Z` (the release workflow's tags); a semver pre-release suffix sorts before its release (`v0.8.0-rc.1` < `v0.8.0`). Other tags (`packs-…`) are ignored. Bump the version (`pubspec.yaml` and `app_version.dart`) before tagging, or nobody is offered it.
+- **Title and notes**: the notice shows the release title ("Preview 7.7 (0.7.7)") and the first three lines of the notes, so lead with what matters.
+- **Assets**: Download opens the APK whose name carries the device's ABI as a separate word (`-arm64.`, `arm64-v8a`, `armeabi-v7a`/`armv7`, `x86_64`; the preview name `tosk-preview-7.7-arm64.apk` and Flutter's `app-arm64-v8a-release.apk` both work), else an APK without an ABI in its name (a universal APK), else the release page. Windows takes a `.zip`/`.msix`/`.exe` with `windows`/`win64` in the name, macOS a `.dmg`/`.zip` with `macos`, Linux a `.tar.gz`/`.AppImage`/`.deb` with `linux`. Only https links on github.com are opened.
+- "Later" hides a version for a week; "Don't show again for this version" until a newer one appears. A release is also offered to installs it can't update in place: a preview signed with another key than the installed app fails to install over it (Android says the package conflicts), so keep signing previews with the upload key.
+
+**Web: a new service worker.** The Pages workflow computes a build id from what goes into the bundle (the git trees of `app/lib`, `app/web`, `app/assets` and `app/pubspec.lock`, so docs- or test-only commits and the daily rebuild keep it), compiles it in (`--dart-define=TOSK_BUILD=…`) and stamps it into `sw.js` (`const BUILD = '__TOSK_BUILD__'`), so every deploy that changes the app changes the worker. The browser checks `sw.js` on every navigation, and `index.html` also calls `registration.update()` hourly and when the tab comes back after ten minutes or more. The new worker installs and takes over (`skipWaiting`, `clients.claim`), `index.html` dispatches `tosk-update`, and the app compares `whats_new.json` with its own build: different → "tosk was updated" with Reload. `.github/scripts/whats-new.sh` writes `whats_new.json` next to `index.html`: `version` (from `pubspec.yaml`), `build`, and `title`, `notes`, `url` of the release tagged `preview-X.Y.Z` or `vX.Y.Z` (empty while there is none; the daily run fills them in). After the reload, a one-time "What's new in X.Y.Z" sheet shows those notes. Local builds keep the placeholder and no `whats_new.json`, so they never offer a reload.
+
+Checked end to end on 25 October 2026: a release web build (`--dart-define=TOSK_BUILD=b1`, `sw.js` stamped, a `whats_new.json`) served at `/tosk/` like Pages, in headless Edge driven over the DevTools protocol. An update check with an unchanged `sw.js` changed nothing; after rewriting `sw.js` and `whats_new.json` with a new build, `registration.update()` installed the new worker, `tosk-update` fired, the app logged `[update] build b2 (0.7.6) is live: offering a reload` and showed the notice (`docs/screenshots/release-features/10-web-edge-reload-dark.png`).
+
+## Reminders on Android 13+ (audit, after v0.7.6)
+
+How the daily reminder (`reminders/reminder_backend.dart`, flutter_local_notifications 22.3.2) behaves on current Android, checked against the plugin's source:
+
+| Area | Behaviour |
+| --- | --- |
+| `POST_NOTIFICATIONS` (Android 13+) | Declared in the manifest; requested only when the reminder is switched on (or its time set while notifications are off), after a one-line explanation in the app. Refused: the reminder stays on with "Notifications are off for tosk — Open settings" (the app's notification settings, `Settings.ACTION_APP_NOTIFICATION_SETTINGS`, through the `tosk/device` channel). Checked again on every resume (`areNotificationsEnabled`), so a change in the system settings shows at once. After two refusals Android no longer shows its dialog; the request then returns false at once and the settings link is the way. Android 12 and older: allowed unless turned off in the settings, which the same check sees. |
+| Exact alarms (`SCHEDULE_EXACT_ALARM`, `USE_EXACT_ALARM`) | Not used and not declared. Reminders are inexact (`AndroidScheduleMode.inexactAllowWhileIdle` = `AlarmManager.setAndAllowWhileIdle`): no permission on Android 12–14 (where `SCHEDULE_EXACT_ALARM` is denied by default from 14, and `USE_EXACT_ALARM` is for alarm-clock and calendar apps under Play policy). The delivery window is the system's (usually minutes, longer on some vendors' battery savers), which suits "practice today". |
+| Doze | `setAndAllowWhileIdle` fires during Doze (at most about once per 9 minutes per app, which one daily reminder never hits). App standby buckets can delay it further for an app not opened for days; the plan only covers 7 days anyway. |
+| Channel | `daily_reminder` ("Daily reminder", default importance), created at plugin init, so it is listed in the system settings before the first reminder. Category `reminder`. The small icon is the monochrome launcher drawable (`@drawable/ic_launcher_monochrome`, kept from resource shrinking by `res/raw/keep.xml`); the colour launcher icon used before showed as a filled blob. |
+| Reboot and app update | The plugin's `ScheduledNotificationBootReceiver` (manifest; `RECEIVE_BOOT_COMPLETED`) re-schedules the stored reminders on `BOOT_COMPLETED`, `MY_PACKAGE_REPLACED` and the quick-boot actions. |
+| Time zone and clock changes | Reminders are absolute UTC instants computed from the local wall clock, so after a time-zone change they still fire at the old instant until the app is opened: every resume re-plans (`reminderResumeProvider`), and a changed plan replaces the scheduled ones. The plugin does not listen for `TIMEZONE_CHANGED`. |
+| Web, iOS home-screen app | Not offered (a browser can't reliably wake a page at a set time); Settings shows a short note on the web. Windows and Linux: no notifications plugin, nothing shown, as before. |
+
+Device check: no Android device was connected when this was written (2026-10-25), so the flow is covered by the widget tests with a fake backend and a debug build was only compiled. To try it on a phone that has the release app installed, don't install a debug build over it (other signing key: the install fails, and uninstalling would lose the release app's data); use a second device or an emulator, or a release-signed build.
+
 ## Publishing course packs
 
 Course packs ship to the app without an app update: they are GitHub Release assets of the public content repo [`linguaperta/tosk-data`](https://github.com/linguaperta/tosk-data) (CC BY-SA 4.0). The app reads the release index from a **stable URL**:
@@ -139,5 +170,5 @@ How the web app was checked on 20 October 2026 (build 0.7.2+15 plus these fixes)
 
 Secrets (all optional; `docs/firebase-setup.md`, step 7): `FIREBASE_CONFIG_JSON` (builds with sync), `ANDROID_KEYSTORE_BASE64`, `ANDROID_STORE_PASSWORD`, `ANDROID_KEY_PASSWORD`, `ANDROID_KEY_ALIAS` (APKs signed with the upload key; without them the debug key, as locally without `key.properties`). The keystore is decoded into the runner's temp folder and `key.properties` is deleted after the build.
 
-To release: bump the version in `app/pubspec.yaml` and `app/lib/app_version.dart`, commit, `git tag v0.7.0 && git push --tags`, then download the artifacts from the workflow run. AltStore/SideStore re-sign the IPA with a free Apple ID (7 days, then refresh).
+To release: bump the version in `app/pubspec.yaml` and `app/lib/app_version.dart`, commit, `git tag v0.7.0 && git push --tags`, then download the artifacts from the workflow run. Installed apps learn about a release from its GitHub Release (tag, title, notes, assets; see "Update notice"), so attach the APKs to a release named after the version. AltStore/SideStore re-sign the IPA with a free Apple ID (7 days, then refresh).
 

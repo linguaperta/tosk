@@ -3,6 +3,7 @@
 library;
 
 import 'package:collection/collection.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../progression/progression.dart';
@@ -16,6 +17,52 @@ final reminderBackendProvider = Provider<ReminderBackend>((ref) => defaultRemind
 
 /// Whether Settings offers the reminder on this device.
 final remindersSupportedProvider = Provider<bool>((ref) => ref.watch(reminderBackendProvider).supported);
+
+/// Why the reminder isn't offered here, for Settings (the web: browsers
+/// can't reliably wake an app at a set time); null shows nothing.
+final remindersUnavailableNoteProvider = Provider<String?>(
+  (ref) => kIsWeb
+      ? "Daily reminders need the Android app: a browser can't reliably send a notification at a set time."
+      : null,
+);
+
+/// Bumped when the app comes back to the foreground: the permission is
+/// checked again and the reminders re-planned (a new day, another time zone).
+final reminderResumeProvider = NotifierProvider<ProgressRevision, int>(ProgressRevision.new);
+
+/// Whether tosk may notify, checked without asking (again on every resume
+/// and after a request).
+final notificationAccessProvider = FutureProvider<NotificationAccess>((ref) async {
+  ref.watch(reminderResumeProvider);
+  final backend = ref.watch(reminderBackendProvider);
+  if (!backend.supported) return NotificationAccess.unknown;
+  return backend.checkPermission();
+});
+
+/// How asking for the notification permission ended.
+enum ReminderPermissionOutcome {
+  /// Allowed (already, or just now).
+  granted,
+
+  /// Refused (or the system no longer asks): Settings offers "Open settings".
+  denied,
+
+  /// The user said "Not now" to the explanation; nothing was asked.
+  cancelled,
+}
+
+/// Asks for the notification permission at the moment it is needed (the
+/// reminder is switched on, or its time is set): nothing when it is already
+/// allowed; otherwise a one-line explanation first ([explain], true to go
+/// on), then the system's request.
+Future<ReminderPermissionOutcome> ensureReminderPermission(
+  ReminderBackend backend, {
+  required Future<bool> Function() explain,
+}) async {
+  if (await backend.checkPermission() == NotificationAccess.granted) return ReminderPermissionOutcome.granted;
+  if (!await explain()) return ReminderPermissionOutcome.cancelled;
+  return await backend.requestPermission() ? ReminderPermissionOutcome.granted : ReminderPermissionOutcome.denied;
+}
 
 /// Today's progress toward the daily goal (null while loading).
 final dailyGoalStatusProvider = Provider<DailyGoalStatus?>((ref) {
@@ -48,6 +95,7 @@ final reminderPlanProvider = Provider<List<ReminderSlot>?>((ref) {
   if (!settings.reminderEnabled || !settings.hasGoal) return const [];
   final profile = ref.watch(progressProfileProvider).value;
   if (profile == null) return null;
+  ref.watch(reminderResumeProvider);
   final now = ref.watch(clockProvider)();
   return planReminders(
     enabled: true,

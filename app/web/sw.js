@@ -6,6 +6,11 @@
 // loaded is served, including the bundled course packs. Downloaded packs
 // (packs/) are not cached here: the app keeps them in IndexedDB.
 const CACHE = 'tosk-shell-v2';
+// The deployed commit: the Pages workflow stamps it in, so every deploy that
+// changes the app changes this file. The browser then installs this worker
+// anew, and index.html tells the running app ("tosk was updated, reload";
+// lib/updates/web_update.dart). Local builds keep the placeholder.
+const BUILD = '__TOSK_BUILD__';
 const SHELL = [
   './',
   'index.html',

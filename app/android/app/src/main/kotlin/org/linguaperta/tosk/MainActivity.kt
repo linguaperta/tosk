@@ -4,6 +4,7 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.media.AudioManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -15,9 +16,12 @@ import io.flutter.plugin.common.MethodChannel
 /**
  * Platform channels of the app itself (v0.5):
  *
- * - `tosk/device`: `info` -> manufacturer, brand, model, sdk. Dart uses it
- *   to detect ONYX (Boox) e-readers; no plugin needed. `openTtsSettings`
- *   opens the text-to-speech settings (the "install a voice" notice).
+ * - `tosk/device`: `info` -> manufacturer, brand, model, sdk, abis. Dart uses
+ *   it to detect ONYX (Boox) e-readers and to pick the APK of an app update
+ *   (`Build.SUPPORTED_ABIS`); no plugin needed. `openTtsSettings` opens the
+ *   text-to-speech settings (the "install a voice" notice);
+ *   `openNotificationSettings` the app's notification settings (the daily
+ *   reminder when notifications are off for tosk).
  *
  * All app audio (speech and sound effects) plays on the media stream, so the
  * volume keys adjust the media volume in the app, even when nothing plays.
@@ -85,8 +89,30 @@ class MainActivity : FlutterActivity() {
                         "brand" to (Build.BRAND ?: ""),
                         "model" to (Build.MODEL ?: ""),
                         "sdk" to Build.VERSION.SDK_INT,
+                        "abis" to Build.SUPPORTED_ABIS.toList(),
                     )
                 )
+                // The app's notification settings (Android 8+), else its
+                // app info page; false when neither opens.
+                "openNotificationSettings" -> {
+                    val intents = buildList {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            add(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName))
+                        }
+                        add(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null)))
+                    }
+                    var opened = false
+                    for (intent in intents) {
+                        try {
+                            startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                            opened = true
+                            break
+                        } catch (e: ActivityNotFoundException) {
+                            Log.w(TAG, "no ${intent.action}")
+                        }
+                    }
+                    result.success(opened)
+                }
                 // Android's text-to-speech settings (install a voice), else
                 // the general settings; false when neither opens.
                 "openTtsSettings" -> {

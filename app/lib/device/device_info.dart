@@ -8,7 +8,7 @@ import 'package:flutter/services.dart';
 
 @immutable
 class DeviceInfo {
-  const DeviceInfo({this.manufacturer = '', this.brand = '', this.model = ''});
+  const DeviceInfo({this.manufacturer = '', this.brand = '', this.model = '', this.abis = const []});
 
   /// Not Android, or the channel isn't there (tests, other platforms).
   static const unknown = DeviceInfo();
@@ -16,6 +16,10 @@ class DeviceInfo {
   final String manufacturer;
   final String brand;
   final String model;
+
+  /// `Build.SUPPORTED_ABIS`, preferred first (`arm64-v8a`, ...): which APK of
+  /// a release fits (the update notice).
+  final List<String> abis;
 
   /// An ONYX (Boox) e-reader: `Build.MANUFACTURER` or `Build.BRAND` is ONYX.
   bool get isOnyx => manufacturer.toLowerCase().contains('onyx') || brand.toLowerCase().contains('onyx');
@@ -36,10 +40,23 @@ Future<DeviceInfo> loadDeviceInfo() async {
       manufacturer: '${m['manufacturer'] ?? ''}',
       brand: '${m['brand'] ?? ''}',
       model: '${m['model'] ?? ''}',
+      abis: [for (final a in (m['abis'] as List?) ?? const []) '$a'],
     );
   } catch (e) {
     debugPrint('[device] no device info: $e');
     return DeviceInfo.unknown;
+  }
+}
+
+/// Opens this app's notification settings (Android: the app's page in the
+/// system settings, to allow notifications again); false when it can't.
+Future<bool> openNotificationSettings() async {
+  if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return false;
+  try {
+    return await _deviceChannel.invokeMethod<bool>('openNotificationSettings') ?? false;
+  } catch (e) {
+    debugPrint('[device] no notification settings: $e');
+    return false;
   }
 }
 

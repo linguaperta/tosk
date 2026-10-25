@@ -18,6 +18,7 @@ import '../brand/tosk.dart';
 import '../common/external_link.dart';
 import '../common/links.dart';
 import '../routes.dart';
+import '../updates/update_notice.dart';
 import 'setting_keys.dart';
 import 'settings_parts.dart';
 
@@ -117,6 +118,8 @@ class _AboutSectionState extends ConsumerState<AboutSection> {
             ),
           ),
         ),
+        // Sideloaded builds: GitHub Releases (the web updates itself).
+        const UpdateCheckTile(),
         if (widget.attribution case final a? when a.isNotEmpty)
           ListTile(
             leading: const Icon(Icons.info_outline),
