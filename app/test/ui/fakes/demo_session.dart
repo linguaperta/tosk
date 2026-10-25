@@ -1,4 +1,6 @@
 import 'package:tosk/core/core.dart';
+import 'package:tosk/data/fsrs/fsrs_scheduler.dart';
+import 'package:tosk/engine/engine.dart' show EngineSessionFactory;
 import 'package:tosk/ui/settings/app_settings.dart';
 import 'package:uuid/uuid.dart';
 
@@ -96,7 +98,7 @@ class DemoSessionFactory implements SessionFactory {
 
   /// Every assessable pool exercise, unit by unit.
   @override
-  Future<AssessmentSession> placement({int perSkill = 2, double passMark = 0.8}) async {
+  Future<AssessmentSession> placement({int maxExercises = 40, int perSkill = 2, double passMark = 0.8}) async {
     final units = [
       for (final u in course.units)
         [
@@ -108,8 +110,18 @@ class DemoSessionFactory implements SessionFactory {
       for (final u in units)
         for (final s in u) ...pool.where((e) => e.skillId == s && _assessable.contains(e.type)).take(perSkill),
     ];
-    return _assess(SessionMode.placement, source, units, passMark);
+    return _assess(SessionMode.placement, source.take(maxExercises).toList(), units, passMark);
   }
+
+  /// Self-declared credits through the real engine's rules.
+  @override
+  Future<AssessmentOutcome> skipAhead(List<String> unitIds) => EngineSessionFactory(
+        course: course,
+        store: store,
+        scheduler: FsrsScheduler(),
+        options: const SessionOptions(sourceLang: 'en'),
+        clock: clock,
+      ).skipAhead(unitIds);
 
   /// Pool exercises on facets with at least [minLapses] lapses.
   @override
@@ -430,6 +442,7 @@ class DemoAssessmentSession extends DemoPracticeSession implements AssessmentSes
       creditedSkills: credited,
       passedUnits: passedUnits,
       failedUnit: failed,
+      placedUnit: mode == SessionMode.placement ? failed : null,
     );
   }
 }

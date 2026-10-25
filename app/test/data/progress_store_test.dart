@@ -35,7 +35,7 @@ void main() {
 
       test('record appends and updates state; idempotent per event id', () async {
         final e = sampleLog(count: 1).single;
-        final s1 = await store.record(e);
+        final s1 = (await store.record(e))!;
         expect(s1.reps, 1);
         expect(await store.state(e.facetId), s1);
         final again = await store.record(e);
@@ -72,7 +72,7 @@ void main() {
         final log = sampleLog(seed: 3, count: 300)..sort(compareEvents);
         final returned = <String, FacetState>{};
         for (final e in log) {
-          returned[e.facetId] = await store.record(e);
+          returned[e.facetId] = (await store.record(e))!;
         }
         expect(returned, replayLog(FsrsScheduler(), log));
       });
@@ -108,7 +108,7 @@ void main() {
           responseMs: 1000,
           correct: true,
         );
-        final s = await store.record(e);
+        final s = (await store.record(e))!;
         expect(s.lastReview, DateTime.utc(2026, 1, 1, 12, 0, 0, 5));
         expect((await store.log()).single.at, DateTime.utc(2026, 1, 1, 12, 0, 0, 5));
         await store.rebuildStates();

@@ -259,11 +259,19 @@ abstract class EngineSession implements PracticeSession, OverridableSession, Ret
     } catch (_) {
       // Without the full log, the session's own states still say something.
     }
-    _gate = SentenceGate(
-      course,
-      started: SentenceGate.startedSkills(course, reviewed),
-      current: currentSkillIds,
-    );
+    _gateStarted = SentenceGate.startedSkills(course, reviewed);
+    _gate = SentenceGate(course, started: _gateStarted, current: currentSkillIds);
+  }
+
+  Set<String> _gateStarted = const {};
+
+  /// Replaces the gate's current skills (placement moves unit by unit, and
+  /// each unit is asked as to a learner who knows it and every unit before):
+  /// a new gate over the skills started before the session and [current].
+  /// No effect without gating or before [prepare].
+  void setCurrentSkills(Iterable<String> current) {
+    if (_gate == null) return;
+    _gate = SentenceGate(env.course, started: _gateStarted, current: current);
   }
 
   /// Writes this session's sentences to the stored history (variety).
@@ -483,7 +491,8 @@ abstract class EngineSession implements PracticeSession, OverridableSession, Ret
         );
         eventId = ev.id;
         events.add(ev);
-        final st = await env.store.record(ev);
+        // An answer always gives a state (only a skill reset clears one).
+        final st = (await env.store.record(ev))!;
         _states[o.facetId] = st;
         newStates[o.facetId] = st;
       }
@@ -637,7 +646,7 @@ abstract class EngineSession implements PracticeSession, OverridableSession, Ret
         mode: mode.name,
       );
       written.add(ev);
-      _states[e.facetId] = await env.store.record(ev);
+      _states[e.facetId] = (await env.store.record(ev))!;
       // The facet's mistake is void: no re-asks, and later answers in this
       // session record as usual.
       _mistaken.remove(e.facetId);
@@ -663,9 +672,13 @@ abstract class EngineSession implements PracticeSession, OverridableSession, Ret
   }
 
   /// Records [event] outside of [submit] (test-out credits) and updates [states].
-  Future<FacetState> recordExtra(ReviewEvent event) async {
+  Future<FacetState?> recordExtra(ReviewEvent event) async {
     final st = await env.store.record(event);
-    _states[event.facetId] = st;
+    if (st == null) {
+      _states.remove(event.facetId);
+    } else {
+      _states[event.facetId] = st;
+    }
     return st;
   }
 

@@ -14,6 +14,7 @@ import 'lesson/player_screen.dart';
 import 'lesson/session_request.dart';
 import 'map/map_screen.dart';
 import 'map/skill_sheet.dart';
+import 'placement/placement_ui.dart';
 import 'mistakes/mistakes_screen.dart';
 import 'practice/practice_screen.dart';
 import 'progress/progress_screen.dart';
@@ -130,6 +131,11 @@ GoRouter buildRouter({String initialLocation = Routes.map}) {
         path: Routes.placement,
         parentNavigatorKey: rootNavigatorKey,
         builder: (_, _) => const PlayerScreen(request: PlacementRequest()),
+      ),
+      GoRoute(
+        path: Routes.skipAhead,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (_, _) => const SkipAheadScreen(),
       ),
       GoRoute(
         path: Routes.tough,

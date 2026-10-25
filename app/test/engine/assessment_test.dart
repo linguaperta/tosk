@@ -121,18 +121,23 @@ void main() {
   });
 
   group('placement', () {
-    test('passes units in order and stops at the first failed unit', () async {
+    Set<String> unitOf(String unitId) => {for (final sk in it.skills) if (sk.unitId == unitId) sk.id};
+
+    test('adaptive by unit: passes in order, stops after two failed units', () async {
       final s = await factory().placement();
       expect(s.mode, SessionMode.placement);
+      expect(s, isA<PlacementControl>());
       // Everything right in unit 1, everything wrong afterwards.
       final served = await drive(s, wrong: (i, e) => !_unit1.contains(e.skillId));
       final o = s.outcome!;
       expect(o.passedUnits, ['u1']);
       expect(o.failedUnit, 'u2');
+      expect(o.placedUnit, 'u2');
+      expect(o.gapUnits, isEmpty);
       expect(o.creditedSkills, ['saluti', 'persone', 'cibo']);
-      // Stopped as soon as unit 2 could no longer pass (2 per skill, 80 %).
-      final u2 = served.where((e) => !_unit1.contains(e.skillId)).length;
-      expect(u2, lessThanOrEqualTo(3));
+      // Unit 1: a clean probe of 2; units 2 and 3: a failed probe of 2 each.
+      expect(served.length, 6);
+      expect(s.verdicts, {'u1': UnitVerdict.passed, 'u2': UnitVerdict.failed, 'u3': UnitVerdict.failed});
       final t = await tiers();
       for (final skill in ['saluti', 'persone', 'cibo']) {
         expect(t[skill]!.tier, SkillTier.bronze, reason: skill);
@@ -141,23 +146,135 @@ void main() {
       expect(t['presente-are']!.tier, isNot(SkillTier.locked));
     });
 
-    test('a few exercises per skill, every unit when all is known', () async {
-      final s = await factory().placement(perSkill: 1);
-      final served = await drive(s);
-      final skills = {for (final e in served) e.skillId};
-      expect(skills.length, greaterThanOrEqualTo(it.skills.length - 1));
-      expect(s.outcome!.failedUnit, isNull);
-      expect(s.outcome!.passedUnits, ['u1', 'u2', 'u3']);
-      final t = await tiers();
-      expect(t.values.every((p) => p.tier.index >= SkillTier.bronze.index), isTrue);
+    test('one grammar and one vocabulary exercise first; a mixed probe gets two more', () async {
+      final s = await factory().placement();
+      // Unit 1 clean; in unit 2 the first answer is wrong, the rest right: 3 of 4 passes.
+      var u2 = 0;
+      final served = await drive(s, wrong: (i, e) => unitOf('u2').contains(e.skillId) && u2++ == 0);
+      final unit2 = [for (final e in served) if (unitOf('u2').contains(e.skillId)) e];
+      expect(unit2.length, 4);
+      final kinds = [for (final e in unit2.take(2)) it.skill(e.skillId!)!.kind];
+      expect(kinds, containsAll([SkillKind.grammar, SkillKind.vocab]));
+      expect(s.outcome!.passedUnits, containsAll(['u1', 'u2']));
     });
 
-    test('failing the first unit credits nothing', () async {
+    test('every unit when all is known; credits come back for a light review in about 4 days', () async {
       final s = await factory().placement();
-      await drive(s, wrong: (_, _) => true);
+      final served = await drive(s);
+      expect(served.length, lessThanOrEqualTo(2 * 3));
+      final o = s.outcome!;
+      expect(o.failedUnit, isNull);
+      expect(o.placedUnit, isNull);
+      expect(o.passedUnits, ['u1', 'u2', 'u3']);
+      final t = await tiers();
+      // Learned (bronze), not mastered: no silver straight from a placement.
+      expect(t.values.every((p) => p.tier == SkillTier.bronze), isTrue, reason: '${t.map((k, v) => MapEntry(k, v.tier))}');
+      final log = await store.log();
+      final credits = log.where((e) => e.isCredit).toList();
+      expect(credits, isNotEmpty);
+      expect(credits.every((e) => e.mode == 'placement' && !e.isSelfDeclared), isTrue);
+      // Two per facet: Good, then Easy 1 ms later.
+      final byFacet = <String, List<ReviewEvent>>{};
+      for (final e in credits) {
+        (byFacet[e.facetId] ??= []).add(e);
+      }
+      for (final list in byFacet.values) {
+        expect(list.map((e) => e.rating), [Rating.good, Rating.easy]);
+        final st = (await store.state(list.first.facetId))!;
+        expect(st.phase, CardPhase.review);
+        final days = st.due.difference(clock).inHours / 24;
+        expect(days, inInclusiveRange(1, 5), reason: list.first.facetId);
+      }
+      // rebuildStates() reproduces the states from the log.
+      final before = {for (final st in await store.allStates()) st.facetId: st};
+      await store.rebuildStates();
+      expect({for (final st in await store.allStates()) st.facetId: st}, before);
+    });
+
+    test('failing the first units credits nothing', () async {
+      final s = await factory().placement();
+      final served = await drive(s, wrong: (_, _) => true);
+      expect(served.length, 4); // two failed probes
       expect(s.outcome!.passed, isFalse);
       expect(s.outcome!.failedUnit, 'u1');
+      expect(s.outcome!.placedUnit, 'u1');
       expect((await store.log()).where((e) => e.isCredit), isEmpty);
+    });
+
+    test('one pass after a failure is not enough to place further', () async {
+      final s = await factory().placement();
+      await drive(s, wrong: (i, e) => unitOf('u2').contains(e.skillId));
+      final o = s.outcome!;
+      expect(s.verdicts, {'u1': UnitVerdict.passed, 'u2': UnitVerdict.failed, 'u3': UnitVerdict.passed});
+      expect(o.passedUnits, ['u1']);
+      expect(o.placedUnit, 'u2');
+      expect(o.gapUnits, isEmpty);
+    });
+
+    test('creditedUnits: two passes in a row after a failure make it a gap', () {
+      const p = UnitVerdict.passed, f = UnitVerdict.failed, i = UnitVerdict.inferred;
+      expect(creditedUnits([('a', p), ('b', f), ('c', p), ('d', p), ('e', f)]), ['a', 'c', 'd']);
+      expect(creditedUnits([('a', p), ('b', f), ('c', p), ('d', f)]), ['a']);
+      expect(creditedUnits([('a', p), ('b', i), ('c', p), ('d', null)]), ['a', 'b', 'c']);
+      expect(creditedUnits([('a', f), ('b', i), ('c', p), ('d', p)]), ['b', 'c', 'd']);
+      final place = placementOf(it, credited: {'u1', 'u3'});
+      expect(place.placed, isNull);
+      expect(place.gaps, ['u2']);
+    });
+
+    test('"place me now" ends the test with what is known', () async {
+      final s = await factory().placement();
+      final control = s as PlacementControl;
+      for (var i = 0; i < 3; i++) {
+        final e = (await s.next())!;
+        await s.submit(e, correctAnswer(e), elapsed: _elapsed);
+      }
+      final o = (await control.placeNow())!;
+      expect(o.passedUnits, ['u1']); // unit 2 was under way (1 of 1 so far): not counted
+      expect(o.placedUnit, 'u2');
+      expect(await s.next(), isNull);
+      expect(s.outcome, same(o));
+      expect((await store.log()).where((e) => e.isCredit), isNotEmpty);
+    });
+
+    test('the length cap holds', () async {
+      final s = await factory().placement(maxExercises: 3);
+      final served = await drive(s);
+      expect(served.length, lessThanOrEqualTo(3));
+      expect(s.outcome!.passedUnits, ['u1']);
+    });
+
+    test('a re-run skips units already learned and keeps earlier credits', () async {
+      final first = await factory().placement();
+      await drive(first, wrong: (i, e) => !_unit1.contains(e.skillId));
+      final again = await factory(seed: 2).placement();
+      final served = await drive(again);
+      expect(again.knownUnits, ['u1']);
+      expect(served.every((e) => !_unit1.contains(e.skillId)), isTrue);
+      expect(again.outcome!.passedUnits, ['u2', 'u3']);
+      expect(again.outcome!.placedUnit, isNull);
+    });
+
+    test('skip ahead without a test: self-declared credits, back for review in about 2 days', () async {
+      final o = await factory().skipAhead(['u1', 'u2']);
+      expect(o.selfDeclared, isTrue);
+      expect(o.passedUnits, ['u1', 'u2']);
+      expect(o.placedUnit, 'u3');
+      final credits = (await store.log()).where((e) => e.isCredit).toList();
+      expect(credits, isNotEmpty);
+      expect(credits.every((e) => e.isSelfDeclared && e.mode == 'placement' && e.answer == kSelfDeclaredCredit), isTrue);
+      final f = credits.first.facetId;
+      expect(credits.where((e) => e.facetId == f).map((e) => e.rating), [Rating.good, Rating.good]);
+      final st = (await store.state(f))!;
+      expect(st.phase, CardPhase.review);
+      expect(st.due.difference(clock).inHours / 24, inInclusiveRange(1, 3));
+      final t = await tiers();
+      expect(t['presente-are']!.tier, SkillTier.bronze);
+      expect(t['passato-prossimo']!.tier, isNot(SkillTier.bronze));
+      // Replays agree.
+      final before = {for (final st in await store.allStates()) st.facetId: st};
+      await store.rebuildStates();
+      expect({for (final st in await store.allStates()) st.facetId: st}, before);
     });
   });
 

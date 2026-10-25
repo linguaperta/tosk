@@ -40,22 +40,28 @@ int compareEvents(ReviewEvent a, ReviewEvent b) =>
     compareEventKeys(a.at.millisecondsSinceEpoch, a.id, b.at.millisecondsSinceEpoch, b.id);
 
 /// Folds [events] of ONE facet (already in `(at, id)` order) into its state.
-/// Answer overrides are applied first ([applyOverrides]).
+/// Answer overrides and reset undos are applied first ([replayable]); a
+/// skill reset clears the state ([replayStep]).
 FacetState? foldFacet(Scheduler scheduler, String facetId, Iterable<ReviewEvent> events) {
   FacetState? s;
-  for (final e in applyOverrides(events.toList())) {
-    s = scheduler.review(facetId, s, e.rating, toStoredTime(e.at));
+  for (final e in replayable(events.toList())) {
+    s = replayStep(scheduler, s, normalizeEvent(e));
   }
   return s;
 }
 
-/// Replays a whole log (any order) into states keyed by facet id.
-/// Answer overrides are applied first ([applyOverrides]).
+/// Replays a whole log (any order) into states keyed by facet id (facets
+/// whose last word was a skill reset have none). See [foldFacet].
 Map<String, FacetState> replayLog(Scheduler scheduler, Iterable<ReviewEvent> events) {
   final sorted = events.toList()..sort(compareEvents);
   final out = <String, FacetState>{};
-  for (final e in applyOverrides(sorted)) {
-    out[e.facetId] = scheduler.review(e.facetId, out[e.facetId], e.rating, toStoredTime(e.at));
+  for (final e in replayable(sorted)) {
+    final s = replayStep(scheduler, out[e.facetId], normalizeEvent(e));
+    if (s == null) {
+      out.remove(e.facetId);
+    } else {
+      out[e.facetId] = s;
+    }
   }
   return out;
 }

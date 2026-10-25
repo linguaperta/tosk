@@ -90,6 +90,9 @@ abstract final class Routes {
   /// "Find my level" for the active course.
   static const placement = '/play/placement';
 
+  /// "Skip ahead without a test" for the active course.
+  static const skipAhead = '/placement/skip';
+
   /// Test out of a skill.
   static String testOut(String skillId) => '/play/testout/${Uri.encodeComponent(skillId)}';
 

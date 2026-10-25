@@ -9,6 +9,7 @@ import '../../sync/sync_providers.dart';
 import '../common/async_view.dart';
 import '../courses/course_picker.dart';
 import '../courses/course_updates.dart';
+import '../placement/placement_ui.dart';
 import '../routes.dart';
 import '../shell/course_switcher.dart';
 import 'about_section.dart';
@@ -89,6 +90,19 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                     onTap: () => showCoursePicker(context),
                   ),
+                  // Placement again for the active course (docs/ui.md, "Placement").
+                  if (meta != null)
+                    ListTile(
+                      key: const ValueKey('find-level-again'),
+                      leading: const Icon(Icons.route_outlined),
+                      title: const Text('Find my level again'),
+                      subtitle: Text('${pickLang(meta.title, lang)}: a placement test, or skip ahead without one'),
+                      onTap: () async {
+                        final router = GoRouter.maybeOf(context);
+                        final choice = await showPlacementChoice(context, language: pickLang(meta.title, lang), rerun: true);
+                        startPlacement(router, choice);
+                      },
+                    ),
                   SwitchListTile(
                     key: const ValueKey('auto-check-course-updates'),
                     title: const Text('Check for course updates automatically'),

@@ -16,6 +16,7 @@ export 'session/engine_session.dart';
 export 'session/engine_session_factory.dart';
 export 'session/mistake_review.dart';
 export 'session/starred.dart';
+export 'skill_reset.dart';
 export 'special_letters.dart';
 export 'strings.dart';
 export 'template.dart';
