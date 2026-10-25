@@ -216,6 +216,19 @@ Each one at the expanded it/nl scale: 8–10 units, ~30 skills, ~1000 taught wor
 - [ ] Check the twinkle/leaf feel and frame cost on a real phone; gold laurel and hairline cracks may be too subtle at map size (tunable in `branch-style.json`); leaves only react to vertical scrolling
 - [ ] Retry edge cases: a wrong article maps to the article item's facet (not the noun's `#article`); sentence-builder answers closest to an alternative sentence get whole-answer grading
 
+## Tester release 0.8.0 (24–25 October)
+
+- [x] First-run welcome (Tosk story, how it works, sign-in, Claude key with a link to the keys page); course picker without demo stand-ins
+- [x] Flags, feedback and crash reports reach the owner when signed in (`pipeline feedback pull`); privacy policy page; settings polish (About, hidden developer options)
+- [x] Update notice (GitHub releases; web: reload + what's new); Android 13+ reminder permission flow
+- [x] Placement when adding a course (adaptive, ≤40 exercises), skip ahead, find my level again; reset this skill/unit with undo
+- [x] Reading mode (paste any text), My words (own items, synced), stories/texts read aloud
+- [x] Security audit and fixes (course-id validation, backup whitelist, HTTPS/size caps, untrusted-pack hardening, restricted-pack stamp, Android backup off, pinned CI, web CSP, SECURITY.md, Firestore caps)
+- [x] French 1.0.0 (B1–B2, from English): 19 units, 12 topics, 100 skills, 2,039 words; published in packs-20261025
+- [ ] Owner: deploy the Firestore rules; publish the OAuth consent screen with the privacy URL; restrict the API key; web sync secret; GitHub rulesets/secret scanning
+- [ ] fr: native-speaker check; reflexive transform accepts the avoir form; weak possessive/ending distractors
+- [ ] Android share-to-app into reading mode; sqlite3 + drift upgrade together; Onyx libraries check on the Boox
+
 ## Italian 1.3.0 (21 October)
 
 - [x] it 1.3.0: 15 units, 78 skills, 1,507 taught words, 45k sentences (18% generated, validated), 30 stories; reflexives, imperative (+ pronouns), ci/ne, combined pronouns, condizionale, comparatives, stare + gerund, impersonal si, congiuntivo presente/imperfetto, passato remoto as a recognition-only skill, relatives. Pack format 1.1 (`recognition`, `required_translations`, `tense_persons`/`tense_groups`), min app 0.7.3. Published as packs-20261021 with nl 1.2.1 and es 1.0.1
