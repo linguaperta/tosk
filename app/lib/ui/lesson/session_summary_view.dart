@@ -6,10 +6,12 @@ import '../brand/tosk.dart';
 import '../../core/core.dart';
 import '../../providers.dart';
 import '../map/skill_sheet.dart' show itemLabel;
+import '../my_words/my_words_providers.dart' show userWordsProvider;
 import '../slots/progression_slots.dart';
 
 /// Human-readable label for a facet id: "il pane · produce", "mangiare · presente".
-String facetLabel(String facetId, CourseData? course, String lang) {
+/// [names] labels items the course doesn't have (the learner's own words).
+String facetLabel(String facetId, CourseData? course, String lang, {Map<String, String> names = const {}}) {
   FacetId f;
   try {
     f = FacetId.parse(facetId);
@@ -17,7 +19,7 @@ String facetLabel(String facetId, CourseData? course, String lang) {
     return facetId;
   }
   final item = course?.item(f.itemId);
-  final name = item == null ? f.itemId.substring(f.itemId.indexOf(':') + 1) : itemLabel(item);
+  final name = item == null ? (names[f.itemId] ?? f.itemId.substring(f.itemId.indexOf(':') + 1)) : itemLabel(item);
   final what = switch (f.kind) {
     FacetKind.rec => 'meaning',
     FacetKind.prod => 'produce',
@@ -51,6 +53,10 @@ class SessionSummaryView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final course = ref.watch(courseDataProvider).value;
+    final ownWords = {
+      if (course != null)
+        for (final w in ref.watch(userWordsProvider).value?.all ?? const <UserWord>[]) w.itemId(course.meta.id): w.word,
+    };
     final lang = ref.watch(sourceLangProvider);
     final pct = (summary.accuracy * 100).round();
     final dur = summary.endedAt.difference(summary.startedAt);
@@ -108,7 +114,7 @@ class SessionSummaryView extends ConsumerWidget {
                           dense: true,
                           contentPadding: EdgeInsets.zero,
                           leading: Icon(Icons.replay, color: theme.colorScheme.error),
-                          title: Text(facetLabel(m, course, lang)),
+                          title: Text(facetLabel(m, course, lang, names: ownWords)),
                         ),
                     ] else if (summary.answered > 0) ...[
                       const SizedBox(height: 16),

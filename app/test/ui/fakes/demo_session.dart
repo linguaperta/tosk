@@ -154,6 +154,10 @@ class DemoSessionFactory implements SessionFactory {
     ];
     return _make(SessionMode.starred, source, source.isEmpty ? 0 : length.clamp(1, source.length));
   }
+
+  /// No own words in the demo pool: an empty session.
+  @override
+  Future<PracticeSession> myWords({int length = 12}) async => _make(SessionMode.myWords, const [], 0);
 }
 
 /// Re-queues a wrong exercise once, at the end (as itself), and reports it

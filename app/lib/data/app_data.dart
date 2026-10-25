@@ -14,6 +14,7 @@ import '../core/core.dart';
 import 'course/course_repo.dart';
 import 'fsrs/fsrs_scheduler.dart';
 import 'progress/bookmarks.dart';
+import 'progress/user_words.dart';
 import 'progress/feedback_store.dart';
 import 'progress/progress_repo.dart';
 import 'stats/skill_stats.dart';
@@ -43,6 +44,9 @@ class AppData {
 
   /// Starred words, sentences and exercises (table `bookmarks`, schema v3).
   late final BookmarkRepo bookmarks = DriftBookmarkRepo(progress.db);
+
+  /// The learner's own words ("my words", table `user_words`, schema v4).
+  late final UserWordRepo userWords = DriftUserWordRepo(progress.db);
 
   final Map<String, Future<CourseRepo>> _courses = {};
 

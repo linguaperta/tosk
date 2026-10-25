@@ -7,6 +7,7 @@ import '../../core/interfaces/course_data.dart';
 import '../../core/interfaces/progress_store.dart';
 import '../../core/interfaces/session.dart';
 import '../../core/models/progress.dart';
+import '../../core/models/user_word.dart';
 import '../focus_presets.dart';
 import '../gen_context.dart';
 import '../grading/rating.dart';
@@ -16,6 +17,7 @@ import 'assessment.dart';
 import 'builders.dart';
 import 'engine_session.dart';
 import 'mistake_review.dart';
+import 'my_words.dart';
 import 'starred.dart';
 
 /// Creates sessions for one course.
@@ -45,6 +47,7 @@ class EngineSessionFactory implements SessionFactory {
     this.stagePolicy = const StagePolicy(),
     DateTime Function()? clock,
     Random? random,
+    this.userWords,
   })  : selector = ExerciseSelector(templates: templates, presets: presets),
         _clock = clock, // ignore: prefer_initializing_formals
         _random = random; // ignore: prefer_initializing_formals
@@ -59,6 +62,10 @@ class EngineSessionFactory implements SessionFactory {
   final DateTime Function()? _clock;
   final Random? _random;
 
+  /// Loads the learner's own words of this course ("my words"), read when a
+  /// lesson or a "My words" session starts; null: none.
+  final Future<Iterable<UserWord>> Function()? userWords;
+
   SessionEnv _env() => SessionEnv(
         course: course,
         store: store,
@@ -69,6 +76,7 @@ class EngineSessionFactory implements SessionFactory {
         stagePolicy: stagePolicy,
         clock: _clock,
         random: _random,
+        userWordsLoader: userWords,
       );
 
   @override
@@ -116,4 +124,7 @@ class EngineSessionFactory implements SessionFactory {
   @override
   Future<StarredSession> starred(StarredPractice starred, {int length = 12}) =>
       StarredBuilder(starred, length: length).start(_env());
+
+  @override
+  Future<MyWordsSession> myWords({int length = 12}) => MyWordsBuilder(length: length).start(_env());
 }

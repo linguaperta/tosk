@@ -16,10 +16,12 @@ import 'map/map_screen.dart';
 import 'map/skill_sheet.dart';
 import 'placement/placement_ui.dart';
 import 'mistakes/mistakes_screen.dart';
+import 'my_words/my_words_screen.dart';
 import 'practice/practice_screen.dart';
 import 'progress/progress_screen.dart';
 import 'progress/stats_view.dart';
 import 'progress/verb_collection_screen.dart';
+import 'reading/reading_screen.dart';
 import 'reference/reference_screen.dart';
 import 'reference/word_screen.dart';
 import 'routes.dart';
@@ -217,6 +219,17 @@ GoRouter buildRouter({String initialLocation = Routes.map}) {
         builder: (_, _) => const SendFeedbackScreen(),
       ),
       GoRoute(path: Routes.debug, parentNavigatorKey: rootNavigatorKey, builder: (_, _) => const DebugRoute()),
+      GoRoute(path: Routes.myWords, parentNavigatorKey: rootNavigatorKey, builder: (_, _) => const MyWordsScreen()),
+      GoRoute(
+        path: Routes.myWordsPlay,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (_, _) => const PlayerScreen(request: MyWordsRequest()),
+      ),
+      GoRoute(
+        path: '/read/:textId',
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (_, state) => ReadingScreen(textId: state.pathParameters['textId']!),
+      ),
     ],
   );
 }

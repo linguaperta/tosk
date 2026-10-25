@@ -4080,6 +4080,698 @@ class BookmarksCompanion extends UpdateCompanion<BookmarkRow> {
   }
 }
 
+class $UserWordsTable extends UserWords
+    with TableInfo<$UserWordsTable, UserWordRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $UserWordsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _courseIdMeta = const VerificationMeta(
+    'courseId',
+  );
+  @override
+  late final GeneratedColumn<String> courseId = GeneratedColumn<String>(
+    'course_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _wordMeta = const VerificationMeta('word');
+  @override
+  late final GeneratedColumn<String> word = GeneratedColumn<String>(
+    'word',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _translationMeta = const VerificationMeta(
+    'translation',
+  );
+  @override
+  late final GeneratedColumn<String> translation = GeneratedColumn<String>(
+    'translation',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+    'note',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _exampleMeta = const VerificationMeta(
+    'example',
+  );
+  @override
+  late final GeneratedColumn<String> example = GeneratedColumn<String>(
+    'example',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _lemmaIdMeta = const VerificationMeta(
+    'lemmaId',
+  );
+  @override
+  late final GeneratedColumn<String> lemmaId = GeneratedColumn<String>(
+    'lemma_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _posMeta = const VerificationMeta('pos');
+  @override
+  late final GeneratedColumn<String> pos = GeneratedColumn<String>(
+    'pos',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _langMeta = const VerificationMeta('lang');
+  @override
+  late final GeneratedColumn<String> lang = GeneratedColumn<String>(
+    'lang',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _atMeta = const VerificationMeta('at');
+  @override
+  late final GeneratedColumn<int> at = GeneratedColumn<int>(
+    'at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _removedMeta = const VerificationMeta(
+    'removed',
+  );
+  @override
+  late final GeneratedColumn<bool> removed = GeneratedColumn<bool>(
+    'removed',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("removed" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    courseId,
+    id,
+    word,
+    translation,
+    note,
+    example,
+    lemmaId,
+    pos,
+    lang,
+    createdAt,
+    at,
+    removed,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'user_words';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<UserWordRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('course_id')) {
+      context.handle(
+        _courseIdMeta,
+        courseId.isAcceptableOrUnknown(data['course_id']!, _courseIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_courseIdMeta);
+    }
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('word')) {
+      context.handle(
+        _wordMeta,
+        word.isAcceptableOrUnknown(data['word']!, _wordMeta),
+      );
+    }
+    if (data.containsKey('translation')) {
+      context.handle(
+        _translationMeta,
+        translation.isAcceptableOrUnknown(
+          data['translation']!,
+          _translationMeta,
+        ),
+      );
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+        _noteMeta,
+        note.isAcceptableOrUnknown(data['note']!, _noteMeta),
+      );
+    }
+    if (data.containsKey('example')) {
+      context.handle(
+        _exampleMeta,
+        example.isAcceptableOrUnknown(data['example']!, _exampleMeta),
+      );
+    }
+    if (data.containsKey('lemma_id')) {
+      context.handle(
+        _lemmaIdMeta,
+        lemmaId.isAcceptableOrUnknown(data['lemma_id']!, _lemmaIdMeta),
+      );
+    }
+    if (data.containsKey('pos')) {
+      context.handle(
+        _posMeta,
+        pos.isAcceptableOrUnknown(data['pos']!, _posMeta),
+      );
+    }
+    if (data.containsKey('lang')) {
+      context.handle(
+        _langMeta,
+        lang.isAcceptableOrUnknown(data['lang']!, _langMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('at')) {
+      context.handle(_atMeta, at.isAcceptableOrUnknown(data['at']!, _atMeta));
+    } else if (isInserting) {
+      context.missing(_atMeta);
+    }
+    if (data.containsKey('removed')) {
+      context.handle(
+        _removedMeta,
+        removed.isAcceptableOrUnknown(data['removed']!, _removedMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {courseId, id};
+  @override
+  UserWordRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return UserWordRow(
+      courseId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}course_id'],
+      )!,
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      word: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}word'],
+      )!,
+      translation: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}translation'],
+      )!,
+      note: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}note'],
+      ),
+      example: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}example'],
+      ),
+      lemmaId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}lemma_id'],
+      ),
+      pos: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}pos'],
+      ),
+      lang: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}lang'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+      at: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}at'],
+      )!,
+      removed: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}removed'],
+      )!,
+    );
+  }
+
+  @override
+  $UserWordsTable createAlias(String alias) {
+    return $UserWordsTable(attachedDatabase, alias);
+  }
+}
+
+class UserWordRow extends DataClass implements Insertable<UserWordRow> {
+  final String courseId;
+  final String id;
+  final String word;
+  final String translation;
+  final String? note;
+  final String? example;
+  final String? lemmaId;
+  final String? pos;
+  final String? lang;
+  final int createdAt;
+  final int at;
+  final bool removed;
+  const UserWordRow({
+    required this.courseId,
+    required this.id,
+    required this.word,
+    required this.translation,
+    this.note,
+    this.example,
+    this.lemmaId,
+    this.pos,
+    this.lang,
+    required this.createdAt,
+    required this.at,
+    required this.removed,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['course_id'] = Variable<String>(courseId);
+    map['id'] = Variable<String>(id);
+    map['word'] = Variable<String>(word);
+    map['translation'] = Variable<String>(translation);
+    if (!nullToAbsent || note != null) {
+      map['note'] = Variable<String>(note);
+    }
+    if (!nullToAbsent || example != null) {
+      map['example'] = Variable<String>(example);
+    }
+    if (!nullToAbsent || lemmaId != null) {
+      map['lemma_id'] = Variable<String>(lemmaId);
+    }
+    if (!nullToAbsent || pos != null) {
+      map['pos'] = Variable<String>(pos);
+    }
+    if (!nullToAbsent || lang != null) {
+      map['lang'] = Variable<String>(lang);
+    }
+    map['created_at'] = Variable<int>(createdAt);
+    map['at'] = Variable<int>(at);
+    map['removed'] = Variable<bool>(removed);
+    return map;
+  }
+
+  UserWordsCompanion toCompanion(bool nullToAbsent) {
+    return UserWordsCompanion(
+      courseId: Value(courseId),
+      id: Value(id),
+      word: Value(word),
+      translation: Value(translation),
+      note: note == null && nullToAbsent ? const Value.absent() : Value(note),
+      example: example == null && nullToAbsent
+          ? const Value.absent()
+          : Value(example),
+      lemmaId: lemmaId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lemmaId),
+      pos: pos == null && nullToAbsent ? const Value.absent() : Value(pos),
+      lang: lang == null && nullToAbsent ? const Value.absent() : Value(lang),
+      createdAt: Value(createdAt),
+      at: Value(at),
+      removed: Value(removed),
+    );
+  }
+
+  factory UserWordRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return UserWordRow(
+      courseId: serializer.fromJson<String>(json['courseId']),
+      id: serializer.fromJson<String>(json['id']),
+      word: serializer.fromJson<String>(json['word']),
+      translation: serializer.fromJson<String>(json['translation']),
+      note: serializer.fromJson<String?>(json['note']),
+      example: serializer.fromJson<String?>(json['example']),
+      lemmaId: serializer.fromJson<String?>(json['lemmaId']),
+      pos: serializer.fromJson<String?>(json['pos']),
+      lang: serializer.fromJson<String?>(json['lang']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+      at: serializer.fromJson<int>(json['at']),
+      removed: serializer.fromJson<bool>(json['removed']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'courseId': serializer.toJson<String>(courseId),
+      'id': serializer.toJson<String>(id),
+      'word': serializer.toJson<String>(word),
+      'translation': serializer.toJson<String>(translation),
+      'note': serializer.toJson<String?>(note),
+      'example': serializer.toJson<String?>(example),
+      'lemmaId': serializer.toJson<String?>(lemmaId),
+      'pos': serializer.toJson<String?>(pos),
+      'lang': serializer.toJson<String?>(lang),
+      'createdAt': serializer.toJson<int>(createdAt),
+      'at': serializer.toJson<int>(at),
+      'removed': serializer.toJson<bool>(removed),
+    };
+  }
+
+  UserWordRow copyWith({
+    String? courseId,
+    String? id,
+    String? word,
+    String? translation,
+    Value<String?> note = const Value.absent(),
+    Value<String?> example = const Value.absent(),
+    Value<String?> lemmaId = const Value.absent(),
+    Value<String?> pos = const Value.absent(),
+    Value<String?> lang = const Value.absent(),
+    int? createdAt,
+    int? at,
+    bool? removed,
+  }) => UserWordRow(
+    courseId: courseId ?? this.courseId,
+    id: id ?? this.id,
+    word: word ?? this.word,
+    translation: translation ?? this.translation,
+    note: note.present ? note.value : this.note,
+    example: example.present ? example.value : this.example,
+    lemmaId: lemmaId.present ? lemmaId.value : this.lemmaId,
+    pos: pos.present ? pos.value : this.pos,
+    lang: lang.present ? lang.value : this.lang,
+    createdAt: createdAt ?? this.createdAt,
+    at: at ?? this.at,
+    removed: removed ?? this.removed,
+  );
+  UserWordRow copyWithCompanion(UserWordsCompanion data) {
+    return UserWordRow(
+      courseId: data.courseId.present ? data.courseId.value : this.courseId,
+      id: data.id.present ? data.id.value : this.id,
+      word: data.word.present ? data.word.value : this.word,
+      translation: data.translation.present
+          ? data.translation.value
+          : this.translation,
+      note: data.note.present ? data.note.value : this.note,
+      example: data.example.present ? data.example.value : this.example,
+      lemmaId: data.lemmaId.present ? data.lemmaId.value : this.lemmaId,
+      pos: data.pos.present ? data.pos.value : this.pos,
+      lang: data.lang.present ? data.lang.value : this.lang,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      at: data.at.present ? data.at.value : this.at,
+      removed: data.removed.present ? data.removed.value : this.removed,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('UserWordRow(')
+          ..write('courseId: $courseId, ')
+          ..write('id: $id, ')
+          ..write('word: $word, ')
+          ..write('translation: $translation, ')
+          ..write('note: $note, ')
+          ..write('example: $example, ')
+          ..write('lemmaId: $lemmaId, ')
+          ..write('pos: $pos, ')
+          ..write('lang: $lang, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('at: $at, ')
+          ..write('removed: $removed')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    courseId,
+    id,
+    word,
+    translation,
+    note,
+    example,
+    lemmaId,
+    pos,
+    lang,
+    createdAt,
+    at,
+    removed,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is UserWordRow &&
+          other.courseId == this.courseId &&
+          other.id == this.id &&
+          other.word == this.word &&
+          other.translation == this.translation &&
+          other.note == this.note &&
+          other.example == this.example &&
+          other.lemmaId == this.lemmaId &&
+          other.pos == this.pos &&
+          other.lang == this.lang &&
+          other.createdAt == this.createdAt &&
+          other.at == this.at &&
+          other.removed == this.removed);
+}
+
+class UserWordsCompanion extends UpdateCompanion<UserWordRow> {
+  final Value<String> courseId;
+  final Value<String> id;
+  final Value<String> word;
+  final Value<String> translation;
+  final Value<String?> note;
+  final Value<String?> example;
+  final Value<String?> lemmaId;
+  final Value<String?> pos;
+  final Value<String?> lang;
+  final Value<int> createdAt;
+  final Value<int> at;
+  final Value<bool> removed;
+  final Value<int> rowid;
+  const UserWordsCompanion({
+    this.courseId = const Value.absent(),
+    this.id = const Value.absent(),
+    this.word = const Value.absent(),
+    this.translation = const Value.absent(),
+    this.note = const Value.absent(),
+    this.example = const Value.absent(),
+    this.lemmaId = const Value.absent(),
+    this.pos = const Value.absent(),
+    this.lang = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.at = const Value.absent(),
+    this.removed = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  UserWordsCompanion.insert({
+    required String courseId,
+    required String id,
+    this.word = const Value.absent(),
+    this.translation = const Value.absent(),
+    this.note = const Value.absent(),
+    this.example = const Value.absent(),
+    this.lemmaId = const Value.absent(),
+    this.pos = const Value.absent(),
+    this.lang = const Value.absent(),
+    required int createdAt,
+    required int at,
+    this.removed = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : courseId = Value(courseId),
+       id = Value(id),
+       createdAt = Value(createdAt),
+       at = Value(at);
+  static Insertable<UserWordRow> custom({
+    Expression<String>? courseId,
+    Expression<String>? id,
+    Expression<String>? word,
+    Expression<String>? translation,
+    Expression<String>? note,
+    Expression<String>? example,
+    Expression<String>? lemmaId,
+    Expression<String>? pos,
+    Expression<String>? lang,
+    Expression<int>? createdAt,
+    Expression<int>? at,
+    Expression<bool>? removed,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (courseId != null) 'course_id': courseId,
+      if (id != null) 'id': id,
+      if (word != null) 'word': word,
+      if (translation != null) 'translation': translation,
+      if (note != null) 'note': note,
+      if (example != null) 'example': example,
+      if (lemmaId != null) 'lemma_id': lemmaId,
+      if (pos != null) 'pos': pos,
+      if (lang != null) 'lang': lang,
+      if (createdAt != null) 'created_at': createdAt,
+      if (at != null) 'at': at,
+      if (removed != null) 'removed': removed,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  UserWordsCompanion copyWith({
+    Value<String>? courseId,
+    Value<String>? id,
+    Value<String>? word,
+    Value<String>? translation,
+    Value<String?>? note,
+    Value<String?>? example,
+    Value<String?>? lemmaId,
+    Value<String?>? pos,
+    Value<String?>? lang,
+    Value<int>? createdAt,
+    Value<int>? at,
+    Value<bool>? removed,
+    Value<int>? rowid,
+  }) {
+    return UserWordsCompanion(
+      courseId: courseId ?? this.courseId,
+      id: id ?? this.id,
+      word: word ?? this.word,
+      translation: translation ?? this.translation,
+      note: note ?? this.note,
+      example: example ?? this.example,
+      lemmaId: lemmaId ?? this.lemmaId,
+      pos: pos ?? this.pos,
+      lang: lang ?? this.lang,
+      createdAt: createdAt ?? this.createdAt,
+      at: at ?? this.at,
+      removed: removed ?? this.removed,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (courseId.present) {
+      map['course_id'] = Variable<String>(courseId.value);
+    }
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (word.present) {
+      map['word'] = Variable<String>(word.value);
+    }
+    if (translation.present) {
+      map['translation'] = Variable<String>(translation.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
+    if (example.present) {
+      map['example'] = Variable<String>(example.value);
+    }
+    if (lemmaId.present) {
+      map['lemma_id'] = Variable<String>(lemmaId.value);
+    }
+    if (pos.present) {
+      map['pos'] = Variable<String>(pos.value);
+    }
+    if (lang.present) {
+      map['lang'] = Variable<String>(lang.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (at.present) {
+      map['at'] = Variable<int>(at.value);
+    }
+    if (removed.present) {
+      map['removed'] = Variable<bool>(removed.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('UserWordsCompanion(')
+          ..write('courseId: $courseId, ')
+          ..write('id: $id, ')
+          ..write('word: $word, ')
+          ..write('translation: $translation, ')
+          ..write('note: $note, ')
+          ..write('example: $example, ')
+          ..write('lemmaId: $lemmaId, ')
+          ..write('pos: $pos, ')
+          ..write('lang: $lang, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('at: $at, ')
+          ..write('removed: $removed, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$ProgressDb extends GeneratedDatabase {
   _$ProgressDb(QueryExecutor e) : super(e);
   $ProgressDbManager get managers => $ProgressDbManager(this);
@@ -4092,6 +4784,7 @@ abstract class _$ProgressDb extends GeneratedDatabase {
   late final $AiExplanationsTable aiExplanations = $AiExplanationsTable(this);
   late final $FlagsTable flags = $FlagsTable(this);
   late final $BookmarksTable bookmarks = $BookmarksTable(this);
+  late final $UserWordsTable userWords = $UserWordsTable(this);
   late final Index reviewLogFacetAt = Index(
     'review_log_facet_at',
     'CREATE INDEX review_log_facet_at ON review_log (facet_id, at)',
@@ -4120,6 +4813,10 @@ abstract class _$ProgressDb extends GeneratedDatabase {
     'bookmarks_course_at',
     'CREATE INDEX bookmarks_course_at ON bookmarks (course_id, at)',
   );
+  late final Index userWordsCourseAt = Index(
+    'user_words_course_at',
+    'CREATE INDEX user_words_course_at ON user_words (course_id, at)',
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -4132,6 +4829,7 @@ abstract class _$ProgressDb extends GeneratedDatabase {
     aiExplanations,
     flags,
     bookmarks,
+    userWords,
     reviewLogFacetAt,
     reviewLogAt,
     facetStateDue,
@@ -4139,6 +4837,7 @@ abstract class _$ProgressDb extends GeneratedDatabase {
     mistakesFacet,
     flagsCreated,
     bookmarksCourseAt,
+    userWordsCourseAt,
   ];
 }
 
@@ -6193,6 +6892,345 @@ typedef $$BookmarksTableProcessedTableManager =
       BookmarkRow,
       PrefetchHooks Function()
     >;
+typedef $$UserWordsTableCreateCompanionBuilder = UserWordsCompanion Function({
+  required String courseId,
+  required String id,
+  Value<String> word,
+  Value<String> translation,
+  Value<String?> note,
+  Value<String?> example,
+  Value<String?> lemmaId,
+  Value<String?> pos,
+  Value<String?> lang,
+  required int createdAt,
+  required int at,
+  Value<bool> removed,
+  Value<int> rowid,
+});
+typedef $$UserWordsTableUpdateCompanionBuilder = UserWordsCompanion Function({
+  Value<String> courseId,
+  Value<String> id,
+  Value<String> word,
+  Value<String> translation,
+  Value<String?> note,
+  Value<String?> example,
+  Value<String?> lemmaId,
+  Value<String?> pos,
+  Value<String?> lang,
+  Value<int> createdAt,
+  Value<int> at,
+  Value<bool> removed,
+  Value<int> rowid,
+});
+
+class $$UserWordsTableFilterComposer
+    extends Composer<_$ProgressDb, $UserWordsTable> {
+  $$UserWordsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get courseId => $composableBuilder(
+    column: $table.courseId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get word => $composableBuilder(
+    column: $table.word,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get translation => $composableBuilder(
+    column: $table.translation,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get example => $composableBuilder(
+    column: $table.example,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lemmaId => $composableBuilder(
+    column: $table.lemmaId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get pos => $composableBuilder(
+    column: $table.pos,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lang => $composableBuilder(
+    column: $table.lang,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get at => $composableBuilder(
+    column: $table.at,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get removed => $composableBuilder(
+    column: $table.removed,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$UserWordsTableOrderingComposer
+    extends Composer<_$ProgressDb, $UserWordsTable> {
+  $$UserWordsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get courseId => $composableBuilder(
+    column: $table.courseId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get word => $composableBuilder(
+    column: $table.word,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get translation => $composableBuilder(
+    column: $table.translation,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get example => $composableBuilder(
+    column: $table.example,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lemmaId => $composableBuilder(
+    column: $table.lemmaId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get pos => $composableBuilder(
+    column: $table.pos,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lang => $composableBuilder(
+    column: $table.lang,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get at => $composableBuilder(
+    column: $table.at,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get removed => $composableBuilder(
+    column: $table.removed,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$UserWordsTableAnnotationComposer
+    extends Composer<_$ProgressDb, $UserWordsTable> {
+  $$UserWordsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get courseId =>
+      $composableBuilder(column: $table.courseId, builder: (column) => column);
+
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get word =>
+      $composableBuilder(column: $table.word, builder: (column) => column);
+
+  GeneratedColumn<String> get translation => $composableBuilder(
+    column: $table.translation,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumn<String> get example =>
+      $composableBuilder(column: $table.example, builder: (column) => column);
+
+  GeneratedColumn<String> get lemmaId =>
+      $composableBuilder(column: $table.lemmaId, builder: (column) => column);
+
+  GeneratedColumn<String> get pos =>
+      $composableBuilder(column: $table.pos, builder: (column) => column);
+
+  GeneratedColumn<String> get lang =>
+      $composableBuilder(column: $table.lang, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<int> get at =>
+      $composableBuilder(column: $table.at, builder: (column) => column);
+
+  GeneratedColumn<bool> get removed =>
+      $composableBuilder(column: $table.removed, builder: (column) => column);
+}
+
+class $$UserWordsTableTableManager
+    extends
+        RootTableManager<
+          _$ProgressDb,
+          $UserWordsTable,
+          UserWordRow,
+          $$UserWordsTableFilterComposer,
+          $$UserWordsTableOrderingComposer,
+          $$UserWordsTableAnnotationComposer,
+          $$UserWordsTableCreateCompanionBuilder,
+          $$UserWordsTableUpdateCompanionBuilder,
+          (
+            UserWordRow,
+            BaseReferences<_$ProgressDb, $UserWordsTable, UserWordRow>,
+          ),
+          UserWordRow,
+          PrefetchHooks Function()
+        > {
+  $$UserWordsTableTableManager(_$ProgressDb db, $UserWordsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$UserWordsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$UserWordsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$UserWordsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> courseId = const Value.absent(),
+                Value<String> id = const Value.absent(),
+                Value<String> word = const Value.absent(),
+                Value<String> translation = const Value.absent(),
+                Value<String?> note = const Value.absent(),
+                Value<String?> example = const Value.absent(),
+                Value<String?> lemmaId = const Value.absent(),
+                Value<String?> pos = const Value.absent(),
+                Value<String?> lang = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<int> at = const Value.absent(),
+                Value<bool> removed = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => UserWordsCompanion(
+                courseId: courseId,
+                id: id,
+                word: word,
+                translation: translation,
+                note: note,
+                example: example,
+                lemmaId: lemmaId,
+                pos: pos,
+                lang: lang,
+                createdAt: createdAt,
+                at: at,
+                removed: removed,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String courseId,
+                required String id,
+                Value<String> word = const Value.absent(),
+                Value<String> translation = const Value.absent(),
+                Value<String?> note = const Value.absent(),
+                Value<String?> example = const Value.absent(),
+                Value<String?> lemmaId = const Value.absent(),
+                Value<String?> pos = const Value.absent(),
+                Value<String?> lang = const Value.absent(),
+                required int createdAt,
+                required int at,
+                Value<bool> removed = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => UserWordsCompanion.insert(
+                courseId: courseId,
+                id: id,
+                word: word,
+                translation: translation,
+                note: note,
+                example: example,
+                lemmaId: lemmaId,
+                pos: pos,
+                lang: lang,
+                createdAt: createdAt,
+                at: at,
+                removed: removed,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$UserWordsTable, UserWordRow>(table),
+                  BaseReferences<_$ProgressDb, $UserWordsTable, UserWordRow>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$UserWordsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$ProgressDb,
+      $UserWordsTable,
+      UserWordRow,
+      $$UserWordsTableFilterComposer,
+      $$UserWordsTableOrderingComposer,
+      $$UserWordsTableAnnotationComposer,
+      $$UserWordsTableCreateCompanionBuilder,
+      $$UserWordsTableUpdateCompanionBuilder,
+      (UserWordRow, BaseReferences<_$ProgressDb, $UserWordsTable, UserWordRow>),
+      UserWordRow,
+      PrefetchHooks Function()
+    >;
 
 class $ProgressDbManager {
   final _$ProgressDb _db;
@@ -6211,4 +7249,6 @@ class $ProgressDbManager {
       $$FlagsTableTableManager(_db, _db.flags);
   $$BookmarksTableTableManager get bookmarks =>
       $$BookmarksTableTableManager(_db, _db.bookmarks);
+  $$UserWordsTableTableManager get userWords =>
+      $$UserWordsTableTableManager(_db, _db.userWords);
 }

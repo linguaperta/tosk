@@ -10,6 +10,7 @@ import '../common/async_view.dart';
 import '../courses/course_picker.dart';
 import '../courses/course_updates.dart';
 import '../placement/placement_ui.dart';
+import '../my_words/my_words_screen.dart' show MyWordsTile;
 import '../routes.dart';
 import '../shell/course_switcher.dart';
 import 'about_section.dart';
@@ -140,6 +141,7 @@ class SettingsScreen extends ConsumerWidget {
                     onChanged: (v) => ctl.change((s) => s.copyWith(accents: v)),
                   ),
                   const _Section('Practice'),
+                  const MyWordsTile(),
                   _Choice<SessionLength>(
                     keyName: 'length',
                     title: 'Default lesson length',

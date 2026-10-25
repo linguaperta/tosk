@@ -8,6 +8,7 @@ import '../../core/models/course.dart';
 import '../../core/models/facet.dart';
 import '../../core/models/progress.dart';
 import 'engine_session.dart';
+import 'my_words.dart';
 
 /// Weakest first: lowest predicted recall, then least recently reviewed.
 List<SkillFacet> _byWeakness(
@@ -64,7 +65,7 @@ void _fill(List<SkillFacet> out, List<SkillFacet> pool, int length) {
 
 /// The facets of a lesson, in serving order.
 class LessonPlan {
-  const LessonPlan({required this.due, required this.fresh, required this.filler});
+  const LessonPlan({required this.due, required this.fresh, required this.filler, this.myWords = const []});
 
   /// 1) Due facets of the skill, most overdue first.
   final List<SkillFacet> due;
@@ -76,7 +77,23 @@ class LessonPlan {
   ///    lesson's new and due facets.
   final List<SkillFacet> filler;
 
-  List<SkillFacet> get all => [...due, ...fresh, ...filler];
+  /// 4) Due facets of the learner's own words ("my words"), as reviews: only
+  ///    due ones, never new words, about one in six exercises
+  ///    ([myWordsPerLesson]); spread evenly through the lesson.
+  final List<SkillFacet> myWords;
+
+  /// The lesson's own facets, in serving order.
+  List<SkillFacet> get skillPart => [...due, ...fresh, ...filler];
+
+  /// Everything in serving order: [skillPart] with [myWords] spread through it.
+  List<SkillFacet> get all {
+    final out = skillPart;
+    final n = myWords.length;
+    for (var i = n - 1; i >= 0; i--) {
+      out.insert(((i + 1) * out.length / (n + 1)).round().clamp(0, out.length), myWords[i]);
+    }
+    return out;
+  }
 }
 
 /// About 12 exercises from one skill: due facets, then up to 5 new facets,
@@ -89,7 +106,15 @@ class LessonBuilder {
   final int length;
   final int maxNew;
 
-  LessonPlan plan(CourseData course, Map<String, FacetState> states, {required Scheduler scheduler, required DateTime now}) {
+  LessonPlan plan(
+    CourseData course,
+    Map<String, FacetState> states, {
+    required Scheduler scheduler,
+    required DateTime now,
+    List<SkillFacet> myWordsDue = const [],
+  }) {
+    final mine = myWordsDue.take(myWordsPerLesson(this.length)).toList();
+    final length = this.length - mine.length;
     final facets = course.skillFacets(skill.id);
     final due = _dueSorted(facets, states, now).take(length).toList();
     final fresh = [
@@ -118,18 +143,21 @@ class LessonBuilder {
         ..clear()
         ..addAll(all.skip(ordered.length));
     }
-    return LessonPlan(due: due, fresh: fresh, filler: filler);
+    return LessonPlan(due: due, fresh: fresh, filler: filler, myWords: mine);
   }
 
-  /// Loads the skill's facet states once and builds the session.
+  /// Loads the skill's facet states (and the learner's own words with
+  /// theirs) once and builds the session.
   Future<LessonSession> start(SessionEnv env) async {
-    final ids = [for (final f in env.course.skillFacets(skill.id)) f.facetId];
+    final pool = await env.loadUserWords();
+    final ids = [for (final f in env.course.skillFacets(skill.id)) f.facetId, for (final f in pool.facets) f.facetId];
     final states = await env.store.states(ids);
     return build(env, states);
   }
 
   LessonSession build(SessionEnv env, Map<String, FacetState> states) {
-    final p = plan(env.course, states, scheduler: env.scheduler, now: env.now());
+    final now = env.now();
+    final p = plan(env.course, states, scheduler: env.scheduler, now: now, myWordsDue: env.userWords.due(states, now));
     return LessonSession._(env, states, p, focus, length);
   }
 }
@@ -150,7 +178,7 @@ class LessonSession extends EngineSession {
   int? get targetLength => _queue.isEmpty && lessonPlan.all.isEmpty ? 0 : _length;
 
   @override
-  Iterable<String> get currentSkillIds => {for (final f in lessonPlan.all) f.skillId};
+  Iterable<String> get currentSkillIds => {for (final f in lessonPlan.skillPart) f.skillId};
 
   @override
   SessionSlot? nextSlot() {

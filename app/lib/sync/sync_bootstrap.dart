@@ -46,6 +46,7 @@ Future<SyncSetup?> openSync({
   http.Client? client,
   SecretStore? secrets,
   GoogleIdentity? identity,
+  List<SyncExtension> extensions = const [],
 }) async {
   if (!syncSupported(config)) return null;
   final db = await openDriftDatabase(SyncDb.new, name: kIsWeb ? 'tosk-sync' : 'sync', directory: directory);
@@ -58,6 +59,7 @@ Future<SyncSetup?> openSync({
     backend: const NullSyncBackend(),
     syncedSettings: syncedSettings,
     unionKeys: unionKeys,
+    extensions: [...extensions],
   );
   await engine.loadOffsets();
   final http.Client c = client ?? http.Client();

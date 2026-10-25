@@ -27,6 +27,7 @@ const Map<String, Map<String, String>> _strings = {
     'listen_pick.word': 'Which word do you hear?',
     'mc.form.equivalent': 'Which form means the same?',
     'mc.form.person': 'Who is it?',
+    'cloze.word': 'Write the word',
   },
   'nl': {
     'flashcard.rec': 'Wat betekent dit?',
@@ -52,6 +53,7 @@ const Map<String, Map<String, String>> _strings = {
     'listen_pick.word': 'Welk woord hoor je?',
     'mc.form.equivalent': 'Welke vorm betekent hetzelfde?',
     'mc.form.person': 'Wie is het?',
+    'cloze.word': 'Schrijf het woord',
   },
 };
 

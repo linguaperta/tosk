@@ -168,12 +168,38 @@ class Bookmarks extends Table {
   Set<Column> get primaryKey => {courseId, kind, refId};
 }
 
-@DriftDatabase(tables: [ReviewLogEntries, FacetStates, Mistakes, Settings, AiExplanations, Flags, Bookmarks])
+/// The learner's own words per course (schema v4, "my words"), with
+/// tombstones for deleted ones (last-writer-wins merges; see
+/// `core/models/user_word.dart` and `progress/user_words.dart`).
+@DataClassName('UserWordRow')
+@TableIndex(name: 'user_words_course_at', columns: {#courseId, #at})
+class UserWords extends Table {
+  @override
+  String get tableName => 'user_words';
+
+  TextColumn get courseId => text()();
+  TextColumn get id => text()(); // user~<uuid>
+  TextColumn get word => text().withDefault(const Constant(''))();
+  TextColumn get translation => text().withDefault(const Constant(''))();
+  TextColumn get note => text().nullable()();
+  TextColumn get example => text().nullable()();
+  TextColumn get lemmaId => text().nullable()(); // the pack item it was looked up as
+  TextColumn get pos => text().nullable()();
+  TextColumn get lang => text().nullable()(); // language of the translation
+  IntColumn get createdAt => integer()(); // UTC epoch ms
+  IntColumn get at => integer()(); // UTC epoch ms of the last change
+  BoolColumn get removed => boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column> get primaryKey => {courseId, id};
+}
+
+@DriftDatabase(tables: [ReviewLogEntries, FacetStates, Mistakes, Settings, AiExplanations, Flags, Bookmarks, UserWords])
 class ProgressDb extends _$ProgressDb {
   ProgressDb(super.executor);
 
   /// Bump on every schema change and add a migration step below.
-  static const int currentSchemaVersion = 3;
+  static const int currentSchemaVersion = 4;
 
   @override
   int get schemaVersion => currentSchemaVersion;
@@ -200,6 +226,11 @@ class ProgressDb extends _$ProgressDb {
             // v3: bookmarks (one self-contained step: a new table and its index).
             await m.createTable(bookmarks);
             await m.createIndex(bookmarksCourseAt);
+          }
+          if (from < 4) {
+            // v4: my words (one self-contained step: a new table and its index).
+            await m.createTable(userWords);
+            await m.createIndex(userWordsCourseAt);
           }
           // facet_state is derived data: a step may also drop and recreate it
           // and the repo's rebuildStates() refills it from review_log.

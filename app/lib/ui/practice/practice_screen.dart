@@ -6,11 +6,12 @@ import '../chat/chat_home_view.dart';
 import '../chat/chat_providers.dart';
 import '../lab/lab_screen.dart';
 import '../nonstop/nonstop_screen.dart';
+import '../reading/reading_home.dart';
 import '../stories/stories_view.dart';
 
-/// The Practice tab: non-stop, the exercise lab, the graded stories and (v0.4,
-/// only with AI configured) AI conversation, as tabs. [tab] is `nonstop`
-/// (default), `lab`, `stories` or `chat`.
+/// The Practice tab: non-stop, the exercise lab, the graded stories, reading
+/// any text and (v0.4, only with AI configured) AI conversation, as tabs.
+/// [tab] is `nonstop` (default), `lab`, `stories`, `read` or `chat`.
 class PracticeScreen extends ConsumerWidget {
   const PracticeScreen({super.key, this.tab});
   final String? tab;
@@ -24,7 +25,7 @@ class PracticeScreen extends ConsumerWidget {
   }
 }
 
-const _baseTabs = ['nonstop', 'lab', 'stories'];
+const _baseTabs = ['nonstop', 'lab', 'stories', 'read'];
 
 class _PracticeTabs extends ConsumerStatefulWidget {
   const _PracticeTabs({super.key, required this.ids, this.tab});
@@ -59,7 +60,7 @@ class _PracticeTabsState extends ConsumerState<_PracticeTabs> with SingleTickerP
 
   @override
   Widget build(BuildContext context) {
-    const labels = {'nonstop': 'Non-stop', 'lab': 'Lab', 'stories': 'Stories', 'chat': 'Chat'};
+    const labels = {'nonstop': 'Non-stop', 'lab': 'Lab', 'stories': 'Stories', 'read': 'Read', 'chat': 'Chat'};
     final scroll = widget.ids.length > 3 && MediaQuery.sizeOf(context).width < 520;
     return Scaffold(
       appBar: AppBar(
@@ -85,6 +86,7 @@ class _PracticeTabsState extends ConsumerState<_PracticeTabs> with SingleTickerP
                 'nonstop' => const NonStopScreen(embedded: true),
                 'lab' => const LabScreen(embedded: true),
                 'stories' => const StoriesView(),
+                'read' => const ReadingHomeView(),
                 _ => const ChatHomeView(),
               },
           ],
