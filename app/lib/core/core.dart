@@ -20,4 +20,5 @@ export 'models/progress.dart';
 export 'models/story.dart';
 export 'net_policy.dart';
 export 'models/user_word.dart';
+export 'models/word_check.dart';
 export 'trees.dart';

@@ -80,7 +80,7 @@ class PlacementChoiceDialog extends StatelessWidget {
               key: const ValueKey('placement-find'),
               icon: Icons.route_outlined,
               title: rerun ? 'Take the placement test' : 'I already know some — find my level',
-              line: 'Up to 40 questions, unit by unit; stop any time.',
+              line: 'Up to 40 questions; stop any time. Then a quick check of the words you know.',
               filled: true,
               onPressed: () => pick(PlacementChoice.findLevel),
             ),
@@ -89,7 +89,7 @@ class PlacementChoiceDialog extends StatelessWidget {
               key: const ValueKey('placement-skip'),
               icon: Icons.fast_forward_outlined,
               title: 'Skip ahead without a test',
-              line: 'Tick the units you know. They come back for review soon.',
+              line: 'Tick the units you know. They come back for review tomorrow.',
               onPressed: () => pick(PlacementChoice.skipAhead),
             ),
           ],
@@ -268,12 +268,22 @@ class _PlacementResultCardState extends ConsumerState<PlacementResultCard> {
         if (credited.contains(t.anchor)) t.titleIn(lang),
     ];
     final skillCount = credited.length;
+    final tested = !o.selfDeclared;
     final lines = <(IconData, String, String)>[
       if (o.passedUnits.isNotEmpty)
         (
           Icons.check_circle_outline,
           'placement-learned',
-          'Marked as learned: ${unitRanges(course, o.passedUnits)} ($skillCount skill${skillCount == 1 ? '' : 's'}).',
+          tested
+              ? 'Grammar of ${unitRanges(course, o.passedUnits)} marked as known.'
+              : 'Marked as learned: ${unitRanges(course, o.passedUnits)} ($skillCount skill${skillCount == 1 ? '' : 's'}).',
+        ),
+      if (tested && o.wordsTotal > 0)
+        (
+          Icons.style_outlined,
+          'placement-words',
+          '${o.wordsKnown} of ${o.wordsTotal} word${o.wordsTotal == 1 ? '' : 's'} checked as known; '
+              'the rest will be introduced as new.',
         ),
       if (placed != null && o.passed)
         (Icons.lock_open, 'placement-unlocked', 'Open now: ${placementUnitLabel(course, placed, lang)}.'),
@@ -284,12 +294,11 @@ class _PlacementResultCardState extends ConsumerState<PlacementResultCard> {
           'placement-topics',
           '${topics.length == 1 ? 'Topic' : 'Topics'} open from their branches: ${topics.join(', ')}.',
         ),
-      if (o.inferredUnits.isNotEmpty)
+      if (tested && o.inferredUnits.isNotEmpty && o.askedUnits.isNotEmpty)
         (
           Icons.fast_forward_outlined,
           'placement-inferred',
-          '${unitRanges(course, o.inferredUnits)} ${o.inferredUnits.length == 1 ? 'was' : 'were'} skipped: '
-              'the unit after went well, so ${o.inferredUnits.length == 1 ? 'it counts' : 'they count'} too.',
+          'Asked: ${unitRanges(course, o.askedUnits)}. The units before a unit you passed count too.',
         ),
       for (final g in o.gapUnits)
         (
@@ -302,9 +311,10 @@ class _PlacementResultCardState extends ConsumerState<PlacementResultCard> {
           Icons.event_repeat,
           'placement-review',
           o.selfDeclared
-              ? 'You marked these yourself, so their words come back for review in about 2 days. '
+              ? 'You marked these yourself, so they come back for review tomorrow. '
                     'If a skill turns out to be new, reset it from its sheet on the map.'
-              : 'Their words come back for a light review in a few days: nothing counts as mastered yet.',
+              : 'What was marked as known comes back tomorrow for a quick check; anything you miss is '
+                    'learned again.',
         ),
       if (!o.selfDeclared && o.total > 0)
         (Icons.quiz_outlined, 'placement-score', '${o.correct} of ${o.total} answers right.'),
@@ -473,8 +483,8 @@ class _SkipAheadScreenState extends ConsumerState<SkipAheadScreen> {
                 Expanded(
                   child: Text(
                     'Without a test, Tosk takes your word for it. The units you tick count as learned and '
-                    'unlock what follows, but their words come back for review in about 2 days. If a skill '
-                    'turns out to be new, reset it from its sheet on the map. Not sure? Take the test instead.',
+                    'unlock what follows, but they come back for review tomorrow. If a skill turns out to be '
+                    'new, reset it from its sheet on the map. Not sure? Take the test instead.',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: mono ? kBwBlack : theme.colorScheme.onTertiaryContainer,
                     ),

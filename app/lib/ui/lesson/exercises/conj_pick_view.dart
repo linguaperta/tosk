@@ -14,6 +14,8 @@ bool isNoEnding(String ending) => ending.isEmpty || ending == kNoEnding;
 String endingLabel(String ending) => isNoEnding(ending) ? kNoEnding : '-$ending';
 
 /// The stem is shown (`mang___`); pick the ending for a person and tense.
+/// With an empty stem (placement) the whole form is asked: the options are
+/// whole forms and a typed or written answer is the whole form.
 class ConjPickView extends ExerciseWidget<ConjPickExercise> {
   const ConjPickView({
     super.key,
@@ -74,6 +76,8 @@ class _ConjPickViewState extends State<ConjPickView> with ExerciseKeysMixin<Conj
     final theme = Theme.of(context);
     final fb = FeedbackColors.of(context);
     final sel = _selected;
+    // Placement: no stem, the whole form.
+    final whole = e.stem.isEmpty;
     var typedEnding = _typed.replaceFirst(RegExp(r'^[-–]\s*'), '');
     // The whole form written or typed: show just its ending after the stem.
     if (e.stem.isNotEmpty && typedEnding.toLowerCase().startsWith(e.stem.toLowerCase())) {
@@ -146,7 +150,11 @@ class _ConjPickViewState extends State<ConjPickView> with ExerciseKeysMixin<Conj
               key: const ValueKey('conj-pick-ink'),
               enabled: !widget.locked,
               preContext: e.stem,
-              hintText: e.endings.any(isNoEnding) ? 'Write the ending (none? write -)' : 'Write the ending',
+              hintText: whole
+                  ? 'Write the whole form'
+                  : e.endings.any(isNoEnding)
+                  ? 'Write the ending (none? write -)'
+                  : 'Write the ending',
               onChanged: _write,
             )
           else if (widget.typed)
@@ -155,8 +163,8 @@ class _ConjPickViewState extends State<ConjPickView> with ExerciseKeysMixin<Conj
               enabled: !widget.locked,
               autofocus: true,
               prefixText: e.stem,
-              hintText: 'ending',
-              helperText: e.endings.any(isNoEnding) ? 'No ending? Type -' : null,
+              hintText: whole ? 'the whole form' : 'ending',
+              helperText: !whole && e.endings.any(isNoEnding) ? 'No ending? Type -' : null,
               onChanged: _type,
               onSubmitted: widget.onCheck,
             )
@@ -167,7 +175,7 @@ class _ConjPickViewState extends State<ConjPickView> with ExerciseKeysMixin<Conj
                   ChoiceOption(
                     key: ValueKey('ending-$i'),
                     number: i + 1,
-                    label: endingLabel(e.endings[i]),
+                    label: whole ? e.endings[i] : endingLabel(e.endings[i]),
                     state: choiceState(index: i, selected: sel, correctIndex: e.correctIndex, result: widget.result),
                     onTap: widget.locked ? null : () => _select(i),
                   ),

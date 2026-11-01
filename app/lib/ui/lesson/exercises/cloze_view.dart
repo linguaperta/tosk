@@ -10,6 +10,10 @@ import 'common.dart';
 
 /// Fill the gap in a sentence: choice chips when the engine gives options, else
 /// free input through the pluggable [AnswerInputWidget] (keyboard now, ink later).
+///
+/// A bare cloze (no text around the gap; placement's "How do you say this?")
+/// shows the meaning ([ClozeExercise.translation]) as the prompt and the gap
+/// below it.
 class ClozeView extends ExerciseWidget<ClozeExercise> {
   const ClozeView({
     super.key,
@@ -36,6 +40,11 @@ class _ClozeViewState extends State<ClozeView> with ExerciseKeysMixin<ClozeView>
   int? _selected;
   String _typed = '';
 
+  bool get _bare {
+    final e = widget.exercise;
+    return e.before.isEmpty && e.after.isEmpty && e.tokens == null && (e.translation?.isNotEmpty ?? false);
+  }
+
   void _select(int i) {
     if (widget.locked) return;
     setState(() => _selected = i);
@@ -59,7 +68,7 @@ class _ClozeViewState extends State<ClozeView> with ExerciseKeysMixin<ClozeView>
     final style = Theme.of(context).textTheme.headlineSmall;
     Widget gap = Container(
       key: const ValueKey('cloze-gap'),
-      constraints: const BoxConstraints(minWidth: 56),
+      constraints: BoxConstraints(minWidth: _bare ? 120 : 56),
       padding: const EdgeInsets.symmetric(horizontal: 4),
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: gapColor, width: 2)),
@@ -158,11 +167,23 @@ class _ClozeViewState extends State<ClozeView> with ExerciseKeysMixin<ClozeView>
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           InstructionText(e.instruction),
-          Consumer(builder: (context, ref, _) => _sentence(context, ref, gapText, gapColor)),
-          if (e.hint != null) ...[const SizedBox(height: 12), SubtleText(e.hint!, icon: Icons.lightbulb_outline)],
-          if (e.translation != null) ...[
-            const SizedBox(height: 8),
-            SubtleText(e.translation!, italic: true, icon: Icons.translate),
+          if (_bare) ...[
+            // The meaning is the prompt; the gap takes the word.
+            Text(
+              e.translation!,
+              key: const ValueKey('cloze-meaning'),
+              style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            if (e.hint != null) ...[const SizedBox(height: 8), SubtleText(e.hint!, icon: Icons.lightbulb_outline)],
+            const SizedBox(height: 20),
+            Center(child: Consumer(builder: (context, ref, _) => _sentence(context, ref, gapText, gapColor))),
+          ] else ...[
+            Consumer(builder: (context, ref, _) => _sentence(context, ref, gapText, gapColor)),
+            if (e.hint != null) ...[const SizedBox(height: 12), SubtleText(e.hint!, icon: Icons.lightbulb_outline)],
+            if (e.translation != null) ...[
+              const SizedBox(height: 8),
+              SubtleText(e.translation!, italic: true, icon: Icons.translate),
+            ],
           ],
         ],
       ),
@@ -190,7 +211,7 @@ class _ClozeViewState extends State<ClozeView> with ExerciseKeysMixin<ClozeView>
           else
             widget.inputBuilder(
               enabled: !widget.locked,
-              hintText: 'Type the missing word',
+              hintText: _bare ? 'Type the word' : 'Type the missing word',
               preContext: e.before,
               onChanged: (answer) {
                 setState(() => _typed = answer?.text.trim() ?? '');

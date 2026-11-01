@@ -4,6 +4,7 @@ import 'package:tosk/providers.dart';
 import 'package:tosk/data/progress/in_memory_progress_store.dart';
 import 'package:tosk/progression/calendar.dart';
 import 'package:tosk/ui/lesson/exercises/exercise_view.dart';
+import 'package:tosk/ui/placement/word_check.dart';
 import 'package:tosk/ui/router.dart';
 import 'package:tosk/ui/settings/setting_keys.dart';
 import 'package:flutter/material.dart';
@@ -297,12 +298,54 @@ Future<void> typeInto(WidgetTester tester, Finder finder, String text) async {
   await tester.pumpAndSettle();
 }
 
-/// Answers until the summary shows (with a safety cap).
+/// Answers until the summary shows (with a safety cap). A placement's word
+/// check is skipped ("learn all these words as new").
 Future<int> playToSummary(WidgetTester tester, {int cap = 60}) async {
   var n = 0;
   while (find.byKey(const ValueKey('session-summary')).evaluate().isEmpty) {
     if (n++ > cap) fail('Session did not end after $cap exercises');
+    if (inWordCheck()) {
+      await doWordCheck(tester);
+      continue;
+    }
     await answerCurrent(tester);
   }
   return n;
+}
+
+/// Whether the player shows a placement's word check.
+bool inWordCheck() => find.byKey(const ValueKey('word-check-actions')).evaluate().isNotEmpty;
+
+/// Goes through a placement's word check: [knew] says whether the learner
+/// knew a word (by its prompt); null skips the whole check. A good sample's
+/// offer is accepted ("mark the rest as known") unless [markRest] is false.
+/// In typing mode the answer (or a wrong one) is typed.
+Future<void> doWordCheck(WidgetTester tester, {bool Function(String prompt)? knew, bool markRest = true}) async {
+  Finder k(String s) => find.byKey(ValueKey(s));
+  if (k('word-check-skip-all').evaluate().isNotEmpty) {
+    if (knew == null) {
+      await tapKey(tester, 'word-check-skip-all');
+      return;
+    }
+    await tapKey(tester, 'word-check-start');
+  }
+  for (var i = 0; i < 2000 && inWordCheck(); i++) {
+    if (k('word-check-offer').evaluate().isNotEmpty) {
+      await tapKey(tester, markRest ? 'word-check-mark-rest' : 'word-check-check-all');
+      continue;
+    }
+    final prompt = tester.widget<Text>(k('word-check-prompt')).data!;
+    final yes = knew!(prompt);
+    if (k('word-check-input').evaluate().isNotEmpty) {
+      // Typing mode: the word itself (the learner knows it) or a wrong one.
+      final word = tester.widget<WordCheckView>(find.byType(WordCheckView)).run.word!;
+      await tester.enterText(k('word-check-input'), yes ? word.answer : 'xyzzy');
+      await tester.pumpAndSettle();
+      await tapKey(tester, 'word-check-check');
+      await tapKey(tester, 'word-check-next');
+      continue;
+    }
+    await tapKey(tester, 'word-check-reveal');
+    await tapKey(tester, yes ? 'word-check-knew' : 'word-check-didnt');
+  }
 }

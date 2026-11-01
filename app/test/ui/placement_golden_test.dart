@@ -1,6 +1,7 @@
 // Golden images of placement: "New to Italian?", the test's progress line,
-// the result card, "Skip ahead" and the reset dialog, in black & white, and
-// the choice and result in colour. Test font (Ahem), like bw_golden_test.dart.
+// the word check (its start and a revealed word), the result card, "Skip
+// ahead" and the reset dialog, in black & white, and the choice, the word
+// check and the result in colour. Test font (Ahem), like bw_golden_test.dart.
 // Update with:
 //   flutter test --update-goldens test/ui/placement_golden_test.dart
 // Rendered on Windows; CI (Linux) skips them with --exclude-tags golden.
@@ -9,11 +10,22 @@ library;
 
 import 'package:flutter/widgets.dart' show Size, ValueKey;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:tosk/core/core.dart' show SessionOptions;
 import 'package:tosk/engine/engine.dart' show FocusPresets;
 import 'package:tosk/providers.dart';
 import 'package:tosk/ui/settings/setting_keys.dart';
 
 import 'helpers.dart';
+
+/// Answers right until unit 3 (after the middle unit, 2, passed), then
+/// "place me now": the word check of units 1-2 follows.
+Future<void> _placeAfterUnit2(WidgetTester tester) async {
+  for (var i = 0; i < 20 && !{'passato', 'time'}.contains(currentExercise(tester).skillId); i++) {
+    await answerCurrent(tester);
+  }
+  await tapKey(tester, 'placement-place-now');
+  await tapKey(tester, 'place-now-confirm');
+}
 
 Future<void> _golden(WidgetTester tester, String name) async {
   // Tosk's PNGs load on real futures.
@@ -27,7 +39,11 @@ Future<void> _pump(WidgetTester tester, Map<String, String> settings) => pumpApp
   size: const Size(390, 844),
   engine: true,
   store: TestProgressStore(fresh: true, settings: settings),
-  overrides: [focusPresetsProvider.overrideWith((ref) async => FocusPresets.defaults)],
+  overrides: [
+    focusPresetsProvider.overrideWith((ref) async => FocusPresets.defaults),
+    // A seeded engine: the same items and words every run.
+    sessionOptionsProvider.overrideWithValue(const SessionOptions(sourceLang: 'en', seed: 7)),
+  ],
 );
 
 void main() {
@@ -37,16 +53,21 @@ void main() {
     await _golden(tester, 'bw_choice');
     await tapKey(tester, 'placement-find');
     expect(find.byKey(const ValueKey('placement-progress')), findsOneWidget);
-    await answerCurrent(tester);
-    await answerCurrent(tester);
-    await tapKey(tester, 'placement-place-now');
-    await tapKey(tester, 'place-now-confirm');
+    await _golden(tester, 'bw_item');
+    await _placeAfterUnit2(tester);
+    await _golden(tester, 'bw_word_check');
+    await tapKey(tester, 'word-check-start');
+    await tapKey(tester, 'word-check-reveal');
+    await _golden(tester, 'bw_word_check_card');
+    await tapKey(tester, 'word-check-knew');
+    await tapKey(tester, 'player-close');
+    await tapKey(tester, 'word-check-stop');
     await _golden(tester, 'bw_result');
     await tapKey(tester, 'summary-done');
     await goTab(tester, 'Settings');
     await tapKey(tester, 'find-level-again');
     await tapKey(tester, 'placement-skip');
-    await tapKey(tester, 'skip-unit-u2');
+    await tapKey(tester, 'skip-unit-u3');
     await _golden(tester, 'bw_skip_ahead');
     await tapKey(tester, 'skip-ahead-confirm');
     await tapKey(tester, 'skip-ahead-done');
@@ -62,10 +83,13 @@ void main() {
     await tapKey(tester, 'course-add-it');
     await _golden(tester, 'choice');
     await tapKey(tester, 'placement-find');
-    await answerCurrent(tester);
-    await answerCurrent(tester);
-    await tapKey(tester, 'placement-place-now');
-    await tapKey(tester, 'place-now-confirm');
+    await _placeAfterUnit2(tester);
+    await tapKey(tester, 'word-check-start');
+    await _golden(tester, 'word_check_card');
+    await tapKey(tester, 'word-check-reveal');
+    await tapKey(tester, 'word-check-knew');
+    await tapKey(tester, 'player-close');
+    await tapKey(tester, 'word-check-stop');
     await _golden(tester, 'result');
   });
 }

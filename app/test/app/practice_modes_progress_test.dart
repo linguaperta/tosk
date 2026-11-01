@@ -241,6 +241,9 @@ void main() {
       final s = await w.factory.placement();
       await w.play(s);
       expect(s.outcome!.passedUnits, isNotEmpty);
+      // Grammar per unit; the words once the word check confirms them (all known here).
+      final plan = s.wordCheck!;
+      await s.confirmWords([for (final u in plan.units) for (final k in u.skills) for (final x in k.words) x.itemId]);
       final tiers = await w.tiers();
       for (final skill in w.course.skills.where((k) => k.unitId == 'u1')) {
         expect(tiers[skill.id]!.tier.index, greaterThanOrEqualTo(SkillTier.bronze.index), reason: skill.id);
