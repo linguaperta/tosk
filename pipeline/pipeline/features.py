@@ -39,13 +39,24 @@ the features it introduces:
   ``enclitic``         ``{tense: T}``  a verb token aligned to a form of tense T (any tense when
                        absent) whose text is no spelling of that cell: the form carries attached
                        pronouns (``dimmi``, ``fallo``; ``alzati`` is a table form and does not count)
+  ``inflection``       ``{tables: [...]}``  a word aligned to an item that has one of these inflection
+                       tables (agreement concords: Kinyarwanda possessives ``byanyu``, ``wacu``)
 
   ``words`` entries with spaces match consecutive words (``me lo``); ``reflexive`` with
   ``unbound: true`` only counts pronouns that are no part of the verb's own form (a pronominal verb
   aligns its pronoun to itself: ``mi alzo``), e.g. impersonal ``si dice``.
 
+* ``unanalysed`` (UNANALYSED) when an unaligned word that is no name or number matches the language
+  rules' ``unanalysed_pattern`` (lang.py): probably an inflected form the rules cannot analyse. No
+  skill introduces it; the validator accepts it and the app shows such a sentence only late.
+* ``unit:{U}`` for a sentence record with ``min_unit: U`` (tag_sentence; a textbook exercise placed
+  by its lesson number; U a main-tree unit): allowed from the level of unit U on (skill_levels: the
+  deepest main-tree unit of a skill and its prerequisites), like the app does; its home skill is
+  the first skill of U. No skill feature is written for it.
+
 Skills introduce ``introduces: [...]`` from course.yaml, plus ``tense:{T}`` for a grammar skill
 with ``verbs: {tense: T}``. ``base_features`` (course.yaml) are allowed from the start.
+``SkillGraph.allows(skill)`` is ``allowed`` plus the earliest-unit features of the skill's level.
 
 A sentence's *home* skill is the last skill, in course order, among the skills it touches (the
 skill introducing each aligned item; a verb skill whose tense the sentence shows for one of its
@@ -65,7 +76,15 @@ from . import query
 from .lang import get_lang
 
 DETECTOR_TYPES = {"compound_aux", "modal_infinitive", "words", "irregular_tense", "separable", "reflexive",
-                  "nonfinite", "pattern", "enclitic"}
+                  "nonfinite", "pattern", "enclitic", "inflection"}
+# A word the aligner could not link to an item, no name or number, that the language rules flag as an
+# inflected form they cannot analyse (Lang.unanalysed: an unaligned passato remoto 'inondò'). No skill
+# introduces it: the validator accepts it, the gaps report never counts such a sentence as easy, and
+# the app allows it only once every feature the course teaches is known (docs/engine.md).
+UNANALYSED = "unanalysed"
+# The earliest-unit feature of a sentence record with `min_unit: <main-tree unit id>` (a textbook
+# exercise from a late lesson): known from the learner's level of that unit on (pack-format 12.4).
+UNIT_PREFIX = "unit:"
 _APOS = str.maketrans({"’": "'", "‘": "'"})
 _CLAUSE_PUNCT = {",", ".", "?", "!", ";", ":", "...", "…", "—", "–", "(", ")", '"', "«", "»", "“", "”", "¿", "¡"}
 
@@ -128,6 +147,10 @@ class FeatureTagger:
             if kind == "nonfinite":
                 pat = spec.get("pattern")
                 spec["_re"] = re.compile(pat) if pat else None
+            if kind == "inflection":
+                tables = spec.get("tables") or spec.get("table") or []
+                spec["_tables"] = set([tables] if isinstance(tables, str) else tables)
+                spec["_ids"] = {iid for iid, it in self.items.items() if spec["_tables"] & set(it.get("infl") or {})}
             if kind == "reflexive":
                 pron = {}
                 for w, ps in (spec.get("pronouns") or {}).items():
@@ -335,7 +358,34 @@ class FeatureTagger:
         for name, kind, spec in self.detectors:
             if self._detect(kind, spec, toks, parts, part_aux, aux_pos, tenses_at, ipp):
                 feats.add(name)
+        if self.unanalysed_words(toks):
+            feats.add(UNANALYSED)
         return feats
+
+    def tag_sentence(self, s: dict) -> set[str]:
+        """The features of a sentence record: its tokens' (tag) plus its earliest-unit feature
+        (`min_unit`)."""
+        feats = self.tag(s["tokens"])
+        if s.get("min_unit"):
+            feats.add(UNIT_PREFIX + s["min_unit"])
+        return feats
+
+    def unanalysed_words(self, toks: list[dict]) -> list[str]:
+        """Unaligned words that the language rules flag as inflected forms they cannot analyse (no
+        names: a capitalized word after the first; no numbers)."""
+        check = getattr(self.lang, "unanalysed", None)
+        if check is None:
+            return []
+        out = []
+        first = True
+        for t in toks:
+            if not _is_word(t):
+                continue
+            w = t["t"]
+            if not t.get("lex") and w and not w[:1].isdigit() and (first or not w[:1].isupper()) and check(w):
+                out.append(w)
+            first = False
+        return out
 
     def _detect(self, kind, spec, toks, parts, part_aux, aux_pos, tenses_at, ipp=None) -> bool:
         if kind == "words":
@@ -407,6 +457,10 @@ class FeatureTagger:
             return False
         if kind == "reflexive":
             return self._reflexive(toks, spec)
+        if kind == "inflection":
+            # any word aligned to an item with one of these inflection tables (Kinyarwanda possessive
+            # concords: byanyu, wacu)
+            return any(_is_word(t) and t.get("lex") in spec["_ids"] for t in toks)
         if kind == "nonfinite":
             # a verb in that non-finite form ('estoy comiendo'), also with attached clitics ('haciéndolo')
             want, rx = spec.get("form"), spec.get("_re")
@@ -450,6 +504,29 @@ class FeatureTagger:
 
 
 # ------------------------------------------------------------------------------------------ skills
+def skill_levels(course: dict) -> dict[str, int]:
+    """Skill id -> its level: the deepest main-tree unit (1-based) among the skill and its
+    prerequisites (transitively), as the app computes it for a learner in that skill (the
+    sentence-length curve and the earliest-unit features use it)."""
+    unit_no = {}
+    for n, u in enumerate(course.get("units") or [], 1):
+        for s in u.get("skills") or []:
+            unit_no[s["id"]] = n
+    req = {s["id"]: list(s.get("requires") or []) for u in all_units(course) for s in u.get("skills") or []}
+    out: dict[str, int] = {}
+    for sid in req:
+        seen, stack, best = set(), [sid], 1
+        while stack:
+            x = stack.pop()
+            if x in seen:
+                continue
+            seen.add(x)
+            best = max(best, unit_no.get(x, 1))
+            stack.extend(req.get(x, []))
+        out[sid] = best
+    return out
+
+
 class SkillGraph:
     """Course order, introduced/allowed features per skill, and the home-skill rule."""
 
@@ -482,6 +559,19 @@ class SkillGraph:
         self.allowed: dict[str, set[str]] = {}
         for sid in self.order:
             self.allowed[sid] = self.base | set().union(*(self.introduces[x] for x in self.closure(sid)))
+        # earliest-unit features (sentence records with min_unit, main-tree units only): `unit:U` is
+        # allowed once the learner's level (skill_levels) reaches unit U, as in the app; its home
+        # skill is the unit's first skill
+        self.level = skill_levels(course)
+        self.unit_number: dict[str, int] = {}
+        self.unit_skill: dict[str, str] = {}
+        for n, unit in enumerate(course.get("units") or [], 1):
+            self.unit_number[UNIT_PREFIX + unit["id"]] = n
+            if unit.get("skills"):
+                self.unit_skill[UNIT_PREFIX + unit["id"]] = unit["skills"][0]["id"]
+                self.feature_skill.setdefault(UNIT_PREFIX + unit["id"], unit["skills"][0]["id"])
+        self.allowed_units: dict[str, set[str]] = {
+            sid: {f for f, n in self.unit_number.items() if n <= self.level.get(sid, 1)} for sid in self.order}
         self.item_skill: dict[str, str] = {}
         for sid in self.order:
             for iid in resolved.get(sid, []):
@@ -542,11 +632,17 @@ class SkillGraph:
         t = self.touched(toks, feats)
         return max(t, key=self.pos.__getitem__) if t else None
 
+    def allows(self, sid: str) -> set[str]:
+        """Every feature allowed at skill `sid`: `allowed` plus the earliest-unit features of the
+        units it has reached."""
+        return self.allowed[sid] | self.allowed_units[sid]
+
     def problems(self, toks: list[dict], feats: set[str]) -> list[str]:
         """Why a sentence with these features is not valid (empty = valid)."""
         out = []
         if not self.enforced:
             return out
+        feats = feats - {UNANALYSED}     # allowed late by the app, introduced by no skill
         unknown = sorted(f for f in feats - self.base if f not in self.feature_skill)
         if unknown:
             out.append(f"features {unknown} are introduced by no skill")
@@ -562,7 +658,7 @@ class SkillGraph:
             t = self.tree.get(s)
             if t not in homes or self.pos[s] > self.pos[homes[t]]:
                 homes[t] = s
-        allowed = set().union(*(self.allowed[h] for h in homes.values()))
+        allowed = set().union(*(self.allows(h) for h in homes.values()))
         missing = sorted(feats - allowed - set(unknown))
         if missing:
             names = " + ".join(homes[t] for t in sorted(homes, key=lambda t: (t is not None, t or "")))

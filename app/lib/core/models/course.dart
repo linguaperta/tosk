@@ -28,6 +28,8 @@ class CourseMeta {
     this.attribution = '',
     this.schemaVersion = 1,
     this.baseFeatures = const [],
+    bool? gated,
+    this.sentenceLength = SentenceLengthCurve.none,
     this.timeAdverbs = const {},
     this.description = const {},
     this.inflectionTables = const {},
@@ -36,7 +38,7 @@ class CourseMeta {
     this.tensePersonLabels = const {},
     this.tenseGroups = const {},
     this.recognitionSkills = const {},
-  });
+  }) : _gated = gated; // ignore: prefer_initializing_formals
 
   final String id; // 'it'
   final String version; // '1.0.0'
@@ -61,6 +63,22 @@ class CourseMeta {
   /// Grammar features allowed from the start (`meta.base_features`, e.g. `tense:presente`).
   /// See [CourseData.sentenceFeatures] and docs/ARCHITECTURE.md, "Grammar gating".
   final List<String> baseFeatures;
+
+  final bool? _gated;
+
+  /// Whether the course is grammar-gated: the pack declares `meta.base_features`,
+  /// even as an empty list (pack-format 12.4: "an empty list gates everything";
+  /// the Kinyarwanda and Sarnami packs teach every tense in its own skill).
+  /// Packs built before grammar gating have no such key and are not gated. A
+  /// course built in memory without [gated] counts as gated when it has base
+  /// features.
+  bool get gated => _gated ?? baseFeatures.isNotEmpty;
+
+  /// How long a sentence may be at each stage of the course (`meta.sentence_length`,
+  /// docs/engine.md "Sentence length"). The pack loader applies
+  /// [SentenceLengthCurve.standard] when the pack has no such key; a course
+  /// built in memory (tests, demo courses) has no limit unless it sets one.
+  final SentenceLengthCurve sentenceLength;
 
   /// Time adverbs that tie a sentence to some tenses (`meta.time_adverbs`):
   /// adverb (one or more words, e.g. `ieri`, `l'anno scorso`) -> the tenses it
@@ -110,6 +128,43 @@ class CourseMeta {
 
   /// The transform group of [tense] (`''` for unlisted tenses).
   String tenseGroup(String tense) => tenseGroups[tense] ?? '';
+}
+
+/// Sentence length grows with the learner's progress (docs/engine.md,
+/// "Sentence length"): at course level `n` (1 = the first unit of the main
+/// tree) a sentence may have at most `start + step × (n − 1)` words; once that
+/// reaches [uncapped], there is no limit. Packs may override the curve with
+/// `meta.sentence_length` (course.yaml `sentence_length`, pack-format 12.6).
+@immutable
+class SentenceLengthCurve {
+  const SentenceLengthCurve({this.start = 6, this.step = 2, this.uncapped = 16});
+
+  /// The default curve: 6 words in unit 1, 8 in unit 2, ... 14 in unit 5,
+  /// no limit from unit 6 on.
+  static const standard = SentenceLengthCurve();
+
+  /// No length limit at any level.
+  static const none = SentenceLengthCurve(start: 0, step: 0, uncapped: 0);
+
+  final int start;
+  final int step;
+
+  /// A cap at or above this many words means no cap (0: never capped).
+  final int uncapped;
+
+  /// The most words a sentence may have at [level] (1-based), or null for no limit.
+  int? maxWords(int level) {
+    if (uncapped <= 0) return null;
+    final cap = start + step * (level < 1 ? 0 : level - 1);
+    return cap >= uncapped ? null : cap;
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      other is SentenceLengthCurve && other.start == start && other.step == step && other.uncapped == uncapped;
+
+  @override
+  int get hashCode => Object.hash(start, step, uncapped);
 }
 
 /// A non-verb inflection table of a course (`meta.inflection_tables`).

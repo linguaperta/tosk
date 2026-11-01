@@ -6,8 +6,15 @@ the stem/ending split for the ending-picker, articles, subject pronouns and toke
 """
 from __future__ import annotations
 
+import re
 import unicodedata
 from dataclasses import dataclass, field
+from functools import lru_cache
+
+
+@lru_cache(maxsize=None)
+def _compiled(pattern: str) -> re.Pattern:
+    return re.compile(pattern)
 
 # Tags that disqualify a conjugation-table form (dialectal, archaic, formal 'u', ...).
 BAD_FORM_TAGS = {
@@ -251,6 +258,16 @@ class Lang:
     # determiners that also stand as predicates before the copula ('Quel est ...?', 'Quelles sont
     # ...'): a copula form after them is the verb, not a noun homograph ('est': east)
     predicate_determiners: set[str] = field(default_factory=set)
+    # endings of inflected forms (lower case, full-match regex): a word the aligner could not link to
+    # any item that matches is probably a verb form or other inflection the rules cannot analyse
+    # (an unaligned passato remoto 'inondò'), so its sentence gets the feature 'unanalysed'
+    # (features.UNANALYSED) and is only shown late (docs/engine.md, "Unanalysed words")
+    unanalysed_pattern: str = ""
+
+    def unanalysed(self, word: str) -> bool:
+        """Whether an unaligned word (no name, no number) looks like an inflected form these rules
+        cannot analyse."""
+        return bool(self.unanalysed_pattern) and bool(_compiled(self.unanalysed_pattern).fullmatch(word.lower()))
 
     def auxiliary_of(self, form: str, tags) -> list[str] | None:
         """Perfect auxiliaries named by a conjugation-table row (French 'avoir + past participle'), or
@@ -493,6 +510,13 @@ class Italian(Lang):
             adverbial_nouns={"cosa", "sera", "mattina", "notte", "pomeriggio", "giorno", "settimana",
                              "mese", "anno", "volta", "estate", "inverno", "primavera", "autunno"},
             elative=("issimo", "issima", "issimi", "issime"),
+            # passato remoto and congiuntivo imperfetto (inondò, misurò, partirono, fossero), imperfetto,
+            # condizionale and futuro endings, gerunds, participles, and infinitives with attached
+            # pronouns (appoggiarti, connettermi)
+            unanalysed_pattern=r"\w+(?:ò|ì|ammo|emmo|immo|aste|este|iste|arono|erono|irono|ssero|ssimo)"
+                               r"|\w+(?:avano|evano|ivano|avamo|evamo|ivamo|rebbe|rebbero|remmo|eranno|iranno)"
+                               r"|\w+(?:ando|endo)|\w{2,}(?:at|it|ut)[oaie]"
+                               r"|\w{2,}(?:[aei]r|ndo)(?:mi|ti|si|ci|vi|lo|la|li|le|ne|gli)",
         )
 
     def pronominal(self, lemma):
@@ -797,6 +821,8 @@ class Dutch(Lang):
             copulas={"ben", "bent", "is", "was", "waren", "zijn", "geweest", "word", "wordt", "worden", "werd",
                      "werden", "geworden", "blijf", "blijft", "blijven", "bleef", "bleven", "gebleven"},
             double_infinitive_perfect=True,
+            # weak past forms and participles (barstte, riekte, verzonden, geverfd, opgericht, verloofd)
+            unanalysed_pattern=r"\w{3,}(?:de|te|den|ten)|\w*ge\w{3,}[dt]|(?:be|ver|ont|her)\w{3,}[dt]",
         )
 
     def slot(self, tags):

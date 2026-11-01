@@ -227,6 +227,10 @@ class French(Lang):
                           "peu", "plutôt"},
             phrase_pos=("intj", "phrase", "adv", "conj", "prep", "pron", "particle"),
             clitic_relink={"le": "pron", "la": "pron", "les": "pron", "l'": "pron", "leur": "pron", "en": "pron"},
+            # passé simple (fronça excepted), imparfait and conditionnel endings (séjournais), past
+            # participles (tricoté, ravagé; not the nouns in -ité: complexité)
+            unanalysed_pattern=r"\w+(?:èrent|irent|urent|âmes|îmes|ûmes|âtes|îtes|ûtes|ât|ît|ût)"
+                               r"|\w{2,}(?:ais|ait|aient)|\w{3,}(?<!it)(?:é|és)|\w{3,}(?:ée|ées)",
         )
 
     # -- conjugation-table reading ------------------------------------------------------------

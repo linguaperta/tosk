@@ -174,6 +174,25 @@ void main() {
     expect(c.skillFeatures('food'), isEmpty);
   });
 
+  test('grammar gating: an empty base_features list still gates; no key does not', () {
+    final empty = openFixtureCourseDb(overrideMeta: {'base_features': '[]'});
+    addTearDown(empty.close);
+    final c = loadCourseFromSqlite(empty);
+    expect(c.meta.baseFeatures, isEmpty);
+    expect(c.meta.gated, isTrue);
+    expect(parseCourseMeta(readRawMeta(empty)..remove('base_features')).gated, isFalse);
+  });
+
+  test('sentence length: the standard curve by default, meta.sentence_length overrides it', () {
+    final db = openFixtureCourseDb();
+    addTearDown(db.close);
+    final raw = readRawMeta(db)..remove('sentence_length');
+    expect(parseCourseMeta(raw).sentenceLength, SentenceLengthCurve.standard);
+    expect(parseCourseMeta({...raw, 'sentence_length': '{"start": 4, "step": 3}'}).sentenceLength,
+        const SentenceLengthCurve(start: 4, step: 3, uncapped: 16));
+    expect(parseCourseMeta({...raw, 'sentence_length': 'false'}).sentenceLength.maxWords(1), isNull);
+  });
+
   test('grammar gating: packs without the feature tables load with empty sets', () {
     final db = openFixtureCourseDb();
     addTearDown(db.close);

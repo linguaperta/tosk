@@ -12,6 +12,8 @@
 /// * its main sentence has at most the cap of unknown words (aligned to items
 ///   outside the started and current skills = 1, unaligned words that are no
 ///   name or number = 2);
+/// * its main sentence is no longer than the length curve allows at the
+///   learner's level (the deepest main-tree unit started or current);
 /// * a transform's target tense is known;
 /// * the exercise is valid ([validateExercise]).
 library;
@@ -37,12 +39,31 @@ class Knowledge {
 
     anchors.forEach(visit);
     features = {...course.meta.baseFeatures, for (final s in closure) ...course.skillFeatures(s)};
+    // An unanalysed word is fine only once every taught feature is known.
+    final taught = {for (final s in course.skills) ...course.skillFeatures(s.id)};
+    if (features.containsAll(taught)) features.add(kUnanalysedFeature);
     items = {for (final s in anchors) for (final i in course.skillItems(s)) i.id};
+    // Sentence length: the deepest main-tree unit of the closure.
+    final topicIds = {for (final t in course.topics) t.id};
+    final mainUnits = [for (final u in course.units) if (u.topic == null || !topicIds.contains(u.topic)) u.id];
+    var level = 1;
+    for (final s in closure) {
+      final i = mainUnits.indexOf(course.skill(s)?.unitId ?? '');
+      if (i + 1 > level) level = i + 1;
+    }
+    maxWords = course.meta.sentenceLength.maxWords(level);
+    // Earliest-unit features: every main-tree unit up to the level.
+    for (var i = 0; i < level && i < mainUnits.length; i++) {
+      features.add('unit:${mainUnits[i]}');
+    }
   }
 
   final CourseData course;
   late final Set<String> features;
   late final Set<String> items;
+
+  /// The most words a sentence may have (null: any length).
+  late final int? maxWords;
 
   static final Expando<Set<String>> _names = Expando();
 
@@ -107,6 +128,9 @@ List<String> gatingProblems(Exercise e, CourseData c, Knowledge known, int cap, 
     if (f.isNotEmpty) out.add('sentence ${main.id} "${main.text}" uses unknown features $f');
     final u = known.unknownWords(main);
     if (u > cap) out.add('sentence ${main.id} "${main.text}" has $u unknown words (cap $cap)');
+    final words = main.tokens.where((t) => t.isWord).length;
+    final max = known.maxWords;
+    if (max != null && words > max) out.add('sentence ${main.id} "${main.text}" has $words words (at most $max)');
   }
   for (final s in others) {
     final f = known.unknownFeatures(s.id);
@@ -134,6 +158,9 @@ class GatedReport {
 
   /// Sentence-based exercises per scenario.
   final Map<String, int> sentenceExercises = {};
+
+  /// Texts of every target-language sentence shown (main sentences and sentence options).
+  final Set<String> shownTexts = {};
 
   int get totalSentenceExercises => sentenceExercises.values.fold(0, (a, b) => a + b);
 }
@@ -196,6 +223,8 @@ void runGatedValidity(
           if (isSentenceExercise(e)) {
             report.sentenceExercises[scenario] = (report.sentenceExercises[scenario] ?? 0) + 1;
           }
+          final (main, others) = shownSentences(e, course);
+          report.shownTexts.addAll([?main?.text, for (final s in others) s.text]);
           final where = '[$scenario $l $skillId $label cap=$cap ${f.facetId} i=$i]';
           for (final p in gatingProblems(e, course, known, cap, facet: f)) {
             report.failures.add('$where $p\n${formatExercise(e)}');

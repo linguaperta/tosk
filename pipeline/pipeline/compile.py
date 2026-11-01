@@ -200,7 +200,11 @@ def compile_pack(pack: Pack, out: Path, built_at: str | None = None) -> dict:
             meta["person_labels"] = _j(c["person_labels"])
         if c.get("description"):
             meta["description"] = _j(c["description"])
-        meta["base_features"] = _j(sorted(c.get("base_features") or []))
+        if "base_features" in c:
+            # the key turns gating on in the app, also as an empty list (pack-format 12.4)
+            meta["base_features"] = _j(sorted(c.get("base_features") or []))
+        if c.get("sentence_length") is not None:
+            meta["sentence_length"] = _j(c["sentence_length"])
         if c.get("inflection_tables"):
             meta["inflection_tables"] = _j(inflection_tables_meta(c["inflection_tables"]))
         if c.get("time_adverbs"):
@@ -303,7 +307,8 @@ def compile_pack(pack: Pack, out: Path, built_at: str | None = None) -> dict:
         graph = features.SkillGraph(c, resolved, tagger)
         n_features = 0
         for s in sorted(pack.sentences, key=lambda r: r["id"]):
-            for f in sorted(tagger.tag(s["tokens"])):
+            # (an earliest-unit feature `unit:U` is known by the app from the learner's level on)
+            for f in sorted(tagger.tag_sentence(s)):
                 con.execute("INSERT INTO sentence_features(sentence_id, feature) VALUES (?, ?)", (s["id"], f))
                 n_features += 1
         for _, _, _, skill in pack.skills():

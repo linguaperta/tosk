@@ -106,6 +106,7 @@ Schema: `schema/course.schema.json` (unknown keys are errors). Top level:
 | `inflection_tables` | no | {table: spec} | non-verb inflection tables (section 6) |
 | `base_features` | no | list of features | grammar features allowed from the start; **declaring the key turns grammar gating on** (section 12.4) |
 | `feature_detectors` | no | {feature: detector} | how the pipeline finds construct features in sentences (section 12.4) |
+| `sentence_length` | no | `{start, step, uncapped}` or `false` | the app's sentence-length curve (section 12.6): at most `start + step × (unit − 1)` words in main-tree unit *n*, no limit once that reaches `uncapped`; default `{start: 6, step: 2, uncapped: 16}`; `false`: never limited |
 | `time_adverbs` | no | {adverb: [tense, …]} | adverbs (one or more words) and the tenses they fit; the transform exercise never moves a sentence containing one into another tense |
 | `units` | yes | list of units | the course (its main tree), in order |
 | `topics` | no | list of topics | (1.2) built-in topic trees (section 3.3) |
@@ -296,13 +297,14 @@ One sentence per line. Schema: `schema/sentences.schema.json`.
 | `tr_src` | no | no | provenance per translation (`tatoeba:1234`, `claude-gen`, `manual`) |
 | `src` | no | `sentences.src` | provenance of the sentence (`tatoeba:4821`, `claude-gen (present-are: parlare)`) |
 | `unit` | no | `sentences.unit_id` | the latest unit of the taught items it touches (informational) |
+| `min_unit` | no | feature `unit:{id}` | the earliest main-tree unit the sentence may appear in (a textbook exercise placed by its lesson number); the app shows it only from that unit's level on (section 12.4) |
 | `tokens` | yes | `tokens` | the tokenisation, below |
 
 **Tokens.** A list of `{t, pre?, is_word?, lex?, form?}`:
 
 - `t`: the surface text of the token. Words and punctuation are separate tokens. `pre`: the whitespace before it (default `''`). Concatenating `pre + t` over all tokens MUST give `text` exactly.
 - `is_word`: false for punctuation (default true).
-- `lex`: the item id the word belongs to (*alignment*). Optional, but unaligned words are treated as unknown vocabulary (two unknown words) unless they look like a name or a number, so a sentence with unaligned words is rarely shown.
+- `lex`: the item id the word belongs to (*alignment*). Optional, but unaligned words are treated as unknown vocabulary (two unknown words) unless they look like a name or a number, so a sentence with unaligned words is rarely shown; one the language rules flag as an inflected form (feature `unanalysed`, section 12.4) is shown only at the end of the course.
 - `form` (requires `lex`): which cell of the item the token is:
   - `'{tense}.{person}'` for a verb form, e.g. `presente.noi`, `participle._`. The cell MUST exist in the verb's table.
   - `'infl:{table}.{cell}'` for an inflected non-verb, e.g. `infl:number.pl`, `infl:agreement.f.sg` (the cell is everything after the first dot). The cell MUST exist and the token text MUST be one of its accepted forms (case-insensitive).
@@ -486,11 +488,16 @@ The rule: a learner never meets a grammar construct in exercises before starting
   | `nonfinite` | `form`, `pattern` | a verb token in that non-finite form (`gerund`: `sto mangiando`), or a word matching the pattern |
   | `pattern` | `pattern: regex` | (1.1) the regex is found in the sentence text (lower case, apostrophes normalized): comparatives `più \w+ (di\|che)`, superlatives `\w+issimo` |
   | `enclitic` | `tense: T` | (1.1) a verb token aligned to a cell of tense T whose text is no spelling of the cell: a form with attached pronouns (`dimmi`, `fallo`) |
+  | `inflection` | `tables: [...]` | a word aligned to an item with one of these inflection tables (agreement concords: Kinyarwanda possessives `byanyu`, `wacu`) |
 
   `words` entries with spaces (1.1) match consecutive words (`me lo`, `ce l'`); a word aligned to a verb form never counts.
 
+  Two features need no skill (November 2026; older apps never know them, so they hide such sentences):
+  - `unanalysed`: a word the aligner could not link to an item, no name or number, that the pipeline's language rules flag as an inflected form they cannot analyse (an unaligned passato remoto `inondò`, Dutch `barstte`). The sentence may show grammar nobody tagged, so the app allows it only once every feature the course's skills introduce is known. The validator accepts it; the gaps and fairness reports never count such a sentence.
+  - `unit:{U}`: the sentence's `min_unit` (section 7). Known from the learner's level of main-tree unit U on (section 12.6: the deepest main-tree unit among the started and current skills and their prerequisites). Its home skill is the first skill of U.
+
 - **Home-skill rule** (validator and importers): a sentence's *home skill* is the last skill, in course order, among the skills that introduce one of its aligned items (the first skill selecting the item), the verb skills whose tense it shows for one of their verbs, and the first skill introducing each of its non-base features. The sentence is valid when every feature is introduced by the home skill, one of its prerequisites (transitively), or the base set; and every non-base feature MUST be introduced by some skill. (1.2) With topics, the main tree and each topic are not ordered against each other: a sentence touching skills of several trees has one home skill per tree, and it is valid when every feature is allowed by one of them (the app shows it only once all are started).
-- **In the app**, at session start: known features = base ∪ the features of every started skill and of the current skill(s) ∪ those of their prerequisites (transitively). Sentence exercises only use sentences whose features are known, and at most 2 unknown words (1 for a grammar skill or grammar focus); wrong options never show a form of a tense the learner has not met.
+- **In the app**, at session start: known features = base ∪ the features of every started skill and of the current skill(s) ∪ those of their prerequisites (transitively). Sentence exercises only use sentences whose features are known, with at most 2 unknown words (1 for a grammar skill or grammar focus) and no longer than the length curve allows (section 12.6); wrong options never show a form of a tense the learner has not met. A pack is gated when `meta.base_features` is present, also as an empty list (apps up to 0.8.0 gated only a non-empty list).
 
 The compiled pack stores the result in `sentence_features`, `skill_features` and `meta.base_features`, so the app needs no language knowledge for gating.
 
@@ -509,6 +516,10 @@ Some grammar is only needed for reading: the Italian passato remoto of novels, a
 - The tense T is gated like any other (`tense:T`), so its sentences appear only after the skill.
 
 Compiled: `meta.recognition_skills` (schema minor 2) maps each recognition skill to `{"equivalent_tense": T}` or `{}`. Apps before minor 2 ignore the key and would ask the forms as production, so such packs carry `meta.min_app_version` 0.7.3.
+
+### 12.6 Sentence length (November 2026)
+
+Sentences grow with the learner. The learner's **level** is the deepest main-tree unit (1-based) among their started and current skills and those skills' prerequisites (transitively; a topic skill counts as the deepest main-tree unit it requires). At level *n* a sentence exercise uses only sentences of at most `start + step × (n − 1)` words (word tokens, names and numbers included); once that number reaches `uncapped`, any length is fine. The default curve is `start: 6, step: 2, uncapped: 16`: 6 words in unit 1, 8 in unit 2, … 14 in unit 5, no limit from unit 6 on. A course may set its own with course.yaml `sentence_length` (compiled to `meta.sentence_length`), or `false` for none. Exercises that test one word (a `#rec` or `#prod` facet) prefer the shortest suitable sentences. Older apps ignore the key and the curve. The gaps and fairness reports apply the same curve (a sentence longer than the skill's level allows is not *easy* there).
 
 ## 13. The compiled pack (course.sqlite)
 
@@ -539,7 +550,8 @@ One SQLite 3 file per course. The DDL in `schema/course_db.sql` is normative; a 
 | `tts` | no | | `'0'`: no voice for the target language (course.yaml `tts: false`); absent = a voice may exist. Informational: older apps ignore it and simply find no voice |
 | `built_at` | yes | | ISO-8601 UTC |
 | `attribution` | yes | | text |
-| `base_features` | no | | JSON array; present = gated |
+| `base_features` | no | | JSON array; present = gated (also `[]`); written only when course.yaml declares the key |
+| `sentence_length` | no | | JSON `{start, step, uncapped}` or `false` (section 12.6); absent = the default curve |
 | `person_labels`, `description`, `inflection_tables`, `time_adverbs` | no | | JSON (section 3) |
 | `tense_persons`, `tense_person_labels`, `tense_groups` | no | | JSON (section 3; schema minor 2) |
 | `recognition_skills` | no | | JSON `{skill: {equivalent_tense?}}` (section 12.5; schema minor 2) |
@@ -650,8 +662,8 @@ Generic:
 13. Tokens re-render the text; every `lex` exists; a verb `form` exists in the verb's table; an `infl:` form exists for the item and the token text is an accepted form of the cell.
 14b. (1.2) Topics: topic ids are unique; unit and skill ids are unique over every tree; the anchor (given or default) exists and is a main-tree skill, and every main-tree skill the topic's first skill requires is the anchor, one of its prerequisites or a sibling no deeper than it (later skills of the topic may require later main-tree skills: late requirements); a topic whose first skill requires no main-tree skill names its anchor; main-tree skills require no topic skill, topic skills no other topic's skill; no prerequisite cycle across trees; a main-tree skill selects no item introduced in a topic unit.
 14a. (1.1) `tense_persons`, `tense_person_labels` and `tense_groups` name declared tenses (and persons); `recognition` is not combined with `facet`; `equivalent_tense` belongs to a recognition verbs skill and names another declared tense.
-14. Grammar gating: detector types are known; every base feature and `introduces` entry is a tense feature or has a detector; every sentence feature is introduced by some skill or the base set, and allowed at the sentence's home skill (only when `base_features` is declared).
-14c. (the fairness rule, packs with topics and gating; `python -m pipeline gen floor` and every build/validate of the official courses) Every main-tree grammar skill keeps its sentence floor for a learner who skipped every topic: its easy sentences (features allowed, at most one word taught later or in a topic), each verb × person slot of its tense (8) and each of its items (3). A floor that the skill only misses because of topic words is an error; thin spots that exist either way are the generator's ordinary gaps.
+14. Grammar gating: detector types are known; every base feature and `introduces` entry is a tense feature or has a detector; every sentence feature (except `unanalysed`) is introduced by some skill or the base set (`unit:{U}`: by the first skill of main-tree unit U), and allowed at the sentence's home skill (only when `base_features` is declared); a `min_unit` is a main-tree unit.
+14c. (the fairness rule, packs with topics and gating; `python -m pipeline gen floor` and every build/validate of the official courses) Every main-tree grammar skill keeps its sentence floor for a learner who skipped every topic: its easy sentences (features allowed, at most one word taught later or in a topic, no longer than the length curve allows at the skill's level), each verb × person slot of its tense (8) and each of its items (3). A floor that the skill only misses because of topic words is an error; thin spots that exist either way are the generator's ordinary gaps.
 
 Language rules (only with pipeline support):
 

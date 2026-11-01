@@ -13,7 +13,12 @@ import 'helpers.dart';
 const _pres = 'presente';
 const _pp = 'passato_prossimo';
 
-InMemoryCourseData _course({bool gated = true}) {
+InMemoryCourseData _course({
+  bool gated = true,
+  bool emptyBase = false,
+  SentenceLengthCurve curve = SentenceLengthCurve.none,
+  bool unanalysed = false,
+}) {
   final b = CourseBuilder(CourseMeta(
     id: 'it',
     version: '0.1.0',
@@ -23,7 +28,10 @@ InMemoryCourseData _course({bool gated = true}) {
     persons: const ['io', 'tu', 'lui/lei', 'noi', 'voi', 'loro'],
     tenses: const [_pres, _pp],
     articles: const ['il', 'lo', 'la', "l'"],
-    baseFeatures: gated ? const ['tense:presente'] : const [],
+    baseFeatures: gated && !emptyBase ? const ['tense:presente'] : const [],
+    // A pack that declares `base_features: []` (every tense taught in its own skill).
+    gated: emptyBase ? true : null,
+    sentenceLength: curve,
     timeAdverbs: const {
       'adesso': [_pres],
       'ieri': [_pp],
@@ -95,6 +103,14 @@ InMemoryCourseData _course({bool gated = true}) {
   s('s:18', 'Beviamo il vino buono.', 'We drink the good wine.',
       ['Beviamo=bere@presente.noi', 'il=il', 'vino=vino', 'buono=buono'], pres);
   s('s:19', 'Ha un bevuto.', 'He has a drunk one.', ['Ha=bere', 'un=un', 'bevuto=bere@passato_prossimo.lui/lei'], pp);
+  if (unanalysed) {
+    // The pipeline's language rules flagged `inondò` (unaligned) as an inflected form it could not analyse.
+    s('s:20', 'Il vino inondò il pane.', 'The wine flooded the bread.', ['Il=il', 'vino=vino', 'il=il', 'pane=pane'],
+        {kUnanalysedFeature});
+    // A textbook exercise its source places in unit 2 (pipeline `min_unit`).
+    s('s:21', 'Il pane e il vino.', 'The bread and the wine.', ['Il=il', 'pane=pane', 'e=e', 'il=il', 'vino=vino'],
+        {'${kUnitFeaturePrefix}u2'});
+  }
   return b.build();
 }
 
@@ -139,7 +155,7 @@ void main() {
     test('known features: base, started and current skills, prerequisites of both', () {
       final c = _course();
       final fresh = SentenceGate(c, current: ['food']);
-      expect(fresh.knownFeatures, {'tense:presente'});
+      expect(fresh.knownFeatures, {'tense:presente', 'unit:u1'});
       expect(fresh.featuresKnown('s:1'), isTrue);
       expect(fresh.featuresKnown('s:2'), isFalse);
 
@@ -183,6 +199,87 @@ void main() {
     test('a course without base_features is not gated', () {
       expect(SentenceGate.supports(_course(gated: false)), isFalse);
       expect(SentenceGate.supports(_course()), isTrue);
+    });
+
+    test('an empty base_features list gates everything (the first skill sees no tense)', () {
+      // The Kinyarwanda bug: `base_features: []` turned gating off, so the first
+      // (vocabulary) skill showed sentences with negation and the past tense.
+      final c = _course(emptyBase: true);
+      expect(SentenceGate.supports(c), isTrue);
+      final g = SentenceGate(c, current: ['food']);
+      expect(g.knownFeatures, {'unit:u1'}, reason: 'no grammar feature, only the unit');
+      for (final id in ['s:1', 's:2', 's:5', 's:9']) {
+        expect(g.allows(c.sentence(id)!, SentenceGate.vocabCap), isFalse, reason: id);
+      }
+      expect(g.allows(c.sentence('s:16')!, SentenceGate.vocabCap), isTrue, reason: 'no grammar feature');
+      g.markStarted(['present']);
+      expect(g.allows(c.sentence('s:1')!, SentenceGate.vocabCap), isTrue);
+    });
+
+    test('an unanalysed word blocks a sentence until every taught feature is known', () {
+      final c = _course(unanalysed: true);
+      final s20 = c.sentence('s:20')!;
+      expect(SentenceGate(c, current: ['food']).allows(s20, SentenceGate.vocabCap), isFalse);
+      expect(SentenceGate(c, started: ['food', 'present'], current: ['past']).allows(s20, SentenceGate.vocabCap),
+          isFalse, reason: 'aux:essere is not known yet');
+      final all = SentenceGate(c, started: ['food', 'present', 'past'], current: ['past-essere']);
+      expect(all.knownFeatures, contains(kUnanalysedFeature));
+      expect(all.allows(s20, SentenceGate.vocabCap), isTrue);
+    });
+
+    test('an earliest-unit feature is known from that unit on', () {
+      final c = _course(unanalysed: true);
+      final s21 = c.sentence('s:21')!;
+      expect(SentenceGate(c, current: ['food']).allows(s21, SentenceGate.vocabCap), isFalse);
+      final u2 = SentenceGate(c, started: ['food', 'present'], current: ['past']);
+      expect(u2.knownFeatures, containsAll(['unit:u1', 'unit:u2']));
+      expect(u2.allows(s21, SentenceGate.vocabCap), isTrue);
+    });
+
+    test('sentence length grows with the learner\'s unit', () {
+      const curve = SentenceLengthCurve.standard;
+      expect([for (var u = 1; u <= 7; u++) curve.maxWords(u)], [6, 8, 10, 12, 14, null, null]);
+      expect(const SentenceLengthCurve(start: 4, step: 1, uncapped: 6).maxWords(1), 4);
+      expect(const SentenceLengthCurve(start: 4, step: 1, uncapped: 6).maxWords(3), isNull);
+      expect(SentenceLengthCurve.none.maxWords(1), isNull);
+
+      final c = _course(curve: const SentenceLengthCurve(start: 5, step: 3, uncapped: 20));
+      final s10 = c.sentence('s:10')!; // 7 words
+      expect(SentenceGate.wordCount(s10), 7);
+      final u1 = SentenceGate(c, current: ['present']);
+      expect(u1.level, 1);
+      expect(u1.maxWords, 5);
+      expect(u1.allows(c.sentence('s:1')!, 2), isTrue);
+      expect(u1.allows(s10, 2), isFalse);
+      // A skill of unit 2 (its prerequisites included): 8 words.
+      final u2 = SentenceGate(c, started: ['food', 'present'], current: ['past']);
+      expect(u2.level, 2);
+      expect(u2.maxWords, 8);
+      expect(u2.allows(s10, 2), isTrue);
+      // Starting a unit-2 skill during a session raises the level.
+      final g = SentenceGate(c, current: ['present']);
+      g.markStarted(['past']);
+      expect(g.maxWords, 8);
+    });
+
+    test('a single-word facet prefers the shortest suitable sentences', () {
+      final c = _course();
+      final gate = SentenceGate(c, started: ['food', 'present'], current: ['present']);
+      final pool = [for (final id in ['s:10', 's:1', 's:18', 's:5']) c.sentence(id)!];
+      var shortFirst = 0;
+      for (var seed = 0; seed < 20; seed++) {
+        final ctx = GenContext(
+          course: c,
+          options: const SessionOptions(sourceLang: 'en'),
+          random: Random(seed),
+          skill: c.skill('present'),
+          gate: gate,
+          wordCap: 2,
+          shortSentencesFirst: true,
+        );
+        if (SentenceGate.wordCount(ctx.prefer(pool, (s) => s).first) <= 3) shortFirst++;
+      }
+      expect(shortFirst, greaterThanOrEqualTo(15));
     });
   });
 

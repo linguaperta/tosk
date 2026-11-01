@@ -1,8 +1,9 @@
 """Thin spots in a course's sentence material (`python -m pipeline gaps it nl`).
 
-A sentence is *easy* at a skill when its grammar features are all allowed there (features.py) and
-at most one of its words is taught after the skill or never (the report's `easy` column; names and
-numbers don't count). The gaps are:
+A sentence is *easy* at a skill when its grammar features are all allowed there (features.py), at
+most one of its words is taught after the skill or never (the report's `easy` column; names and
+numbers don't count) and it is no longer than the app's sentence-length curve allows at the skill's
+level (`length_cap`, docs/engine.md "Sentence length"). The gaps are:
 
 * grammar slots: per verb skill, each (verb, person) of the skill's tense with fewer than
   SLOT_TARGET easy sentences showing that form (impersonal verbs: third persons only);
@@ -27,6 +28,29 @@ UNIT1_TARGET = 150
 # Verbs used only in the third person ('it happens'): their other person slots are not gaps.
 IMPERSONAL = {"it": {"succedere"}, "nl": {"gebeuren"}, "es": {"ocurrir", "suceder", "llover", "nevar"},
               "fr": {"falloir", "pleuvoir", "neiger"}}
+# The app's sentence-length curve (app/lib/core/models/course.dart, SentenceLengthCurve.standard):
+# at level n (main-tree unit n) at most start + step * (n - 1) words; none once that reaches uncapped.
+# course.yaml `sentence_length` overrides it ({start, step, uncapped}; false: no limit).
+LENGTH_CURVE = {"start": 6, "step": 2, "uncapped": 16}
+
+
+def length_cap(course: dict, level: int) -> int | None:
+    """The most words a sentence may have at `level` (1-based main-tree unit), or None."""
+    spec = course.get("sentence_length")
+    if spec is False:
+        return None
+    curve = {**LENGTH_CURVE, **(spec if isinstance(spec, dict) else {})}
+    if curve["uncapped"] <= 0:
+        return None
+    cap = curve["start"] + curve["step"] * max(0, level - 1)
+    return None if cap >= curve["uncapped"] else cap
+
+
+skill_levels = features.skill_levels
+
+
+def word_count(toks: list[dict]) -> int:
+    return sum(1 for t in toks if t.get("is_word", True) is not False)
 
 
 class Material:
@@ -47,6 +71,9 @@ class Material:
         self.topic_words_known = topic_words_known
         self.feats: dict[str, set[str]] = {}
         self.known_at: dict[str, list[int]] = {}
+        self.words: dict[str, int] = {}
+        levels = skill_levels(c)
+        self.cap = {sid: length_cap(c, levels.get(sid, 1)) for sid in self.graph.order}
         for s in pack.sentences:
             self.add(s)
 
@@ -66,15 +93,23 @@ class Material:
         return out
 
     def add(self, s: dict) -> None:
-        self.feats[s["id"]] = self.tagger.tag(s["tokens"])
+        self.feats[s["id"]] = self.tagger.tag_sentence(s)
         self.known_at[s["id"]] = self.word_positions(s["tokens"])
+        self.words[s["id"]] = word_count(s["tokens"])
 
     def later_words(self, sid: str, skill: str) -> int:
         here = self.graph.pos[skill]
         return sum(1 for k in self.known_at[sid] if k > here)
 
+    def fits(self, sid: str, skill: str) -> bool:
+        """Whether the sentence is short enough for a learner at `skill` (length_cap)."""
+        cap = self.cap.get(skill)
+        return cap is None or self.words[sid] <= cap
+
     def easy(self, sid: str, skill: str) -> bool:
-        return self.feats[sid] <= self.graph.allowed[skill] and self.later_words(sid, skill) <= 1
+        # an unanalysed word is never easy (the app allows it only at the very end)
+        return self.feats[sid] <= self.graph.allows(skill) and self.later_words(sid, skill) <= 1 \
+            and self.fits(sid, skill)
 
 
 def analyze(pack: Pack, mat: Material | None = None) -> dict:

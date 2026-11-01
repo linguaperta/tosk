@@ -124,6 +124,12 @@ class Spanish(Lang):
             no_apostrophes=True,
             degree_words={"muy", "tan", "más", "menos", "demasiado", "bastante", "poco"},
             third_person_clitics={"se"},
+            # preterite (picó, encogió, coleccionaron), imperfect and subjunctive endings, gerunds and
+            # participles (pelando, tumbado), infinitives and gerunds with attached pronouns (acortarse)
+            unanalysed_pattern=r"\w+(?:ó|é|aron|ieron|yeron|aste|iste|asteis|isteis)"
+                               r"|\w+(?:aba|abas|ábamos|aban|íamos|ían|ara|aras|áramos|aran|iera|ieras|ieran|iese)"
+                               r"|\w+(?:ando|iendo|yendo)|\w{2,}(?:ad|id)(?:o|a|os|as)"
+                               r"|\w{2,}(?:[áéí]ndo|[aeií]r)(?:me|te|se|nos|os|lo|la|los|las|le|les)+",
         )
 
     # -- conjugation-table reading ------------------------------------------------------------

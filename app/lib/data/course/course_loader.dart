@@ -343,6 +343,8 @@ CourseMeta parseCourseMeta(Map<String, String> raw) {
       attribution: raw['attribution'] ?? '',
       schemaVersion: major,
       baseFeatures: _stringList(raw['base_features']),
+      gated: raw.containsKey('base_features'),
+      sentenceLength: _sentenceLength(raw['sentence_length']),
       timeAdverbs: _glosses(raw['time_adverbs']),
       description: _i18n(raw['description']),
       inflectionTables: _inflectionTables(raw['inflection_tables']),
@@ -458,6 +460,19 @@ Map<String, String> _stringMap(Object? v) {
   final d = _json(v);
   if (d is! Map) return const {};
   return {for (final e in d.entries) '${e.key}': '${e.value}'};
+}
+
+/// `meta.sentence_length`: `{"start": 6, "step": 2, "uncapped": 16}` (each key
+/// optional, defaults of [SentenceLengthCurve.standard]) or `false` (no limit).
+SentenceLengthCurve _sentenceLength(Object? v) {
+  if (v == null || v == '') return SentenceLengthCurve.standard;
+  final d = _json(v);
+  if (d == false) return SentenceLengthCurve.none;
+  if (d is! Map) return SentenceLengthCurve.standard;
+  int get(String k, int dflt) => d[k] is num ? (d[k] as num).toInt() : dflt;
+  const s = SentenceLengthCurve.standard;
+  return SentenceLengthCurve(
+      start: get('start', s.start), step: get('step', s.step), uncapped: get('uncapped', s.uncapped));
 }
 
 /// `{skill: {equivalent_tense?}}` (meta.recognition_skills) -> skill -> equivalent tense or null.
