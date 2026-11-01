@@ -48,6 +48,14 @@
     "articles": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
     "base_features": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/feature"},
                       "description": "grammar features allowed from the start (docs/ARCHITECTURE.md, Grammar gating)"},
+    "sentence_length": {
+      "description": "the app's sentence-length curve (docs/engine.md, Sentence length): at most start + step x (unit - 1) words; no limit once that reaches uncapped; false: never limited",
+      "oneOf": [
+        {"const": false},
+        {"type": "object", "additionalProperties": false,
+         "properties": {"start": {"type": "integer", "minimum": 1}, "step": {"type": "integer", "minimum": 0},
+                        "uncapped": {"type": "integer", "minimum": 0}}}
+      ]},
     "feature_detectors": {
       "type": "object", "propertyNames": {"$ref": "#/$defs/feature"},
       "description": "construct features and how the pipeline detects them in sentences (pipeline/pipeline/features.py)",
@@ -55,7 +63,9 @@
         "type": "object", "required": ["type"], "additionalProperties": false,
         "properties": {
           "type": {"enum": ["compound_aux", "modal_infinitive", "words", "irregular_tense", "separable",
-                            "reflexive", "nonfinite", "pattern", "enclitic"]},
+                            "reflexive", "nonfinite", "pattern", "enclitic", "inflection"]},
+          "tables": {"type": "array", "items": {"type": "string"},
+                     "description": "inflection: words aligned to items with one of these inflection tables"},
           "aux": {"type": "string"},
           "verbs": {"type": "array", "items": {"type": "string"}},
           "infinitive_pattern": {"type": "string"},

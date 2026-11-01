@@ -17,6 +17,8 @@
     "tr_src": {"type": "object", "propertyNames": {"pattern": "^[a-z]{2,3}$"}, "additionalProperties": {"type": "string"}},
     "src": {"type": "string"},
     "unit": {"type": ["string", "null"]},
+    "min_unit": {"type": "string", "minLength": 1,
+                 "description": "earliest main-tree unit the sentence may appear in (a textbook exercise placed by its lesson number): feature unit:<id>"},
     "tokens": {
       "type": "array", "minItems": 1,
       "items": {

@@ -13,7 +13,23 @@ import '../core/interfaces/course_data.dart';
 import '../core/interfaces/progress_store.dart';
 import '../core/interfaces/session.dart';
 import '../core/models/course.dart';
+import '../core/trees.dart';
 import 'course_index.dart';
+
+/// The sentence feature the pipeline writes for a word its language rules
+/// flag as an inflected form they could not analyse (an unaligned `inondò`,
+/// `barstte`, `picó`): the sentence may show grammar the learner has not met.
+/// No skill introduces it; [SentenceGate] counts it as known only once every
+/// grammar feature the course teaches is known (docs/engine.md, "Unanalysed
+/// words").
+const String kUnanalysedFeature = 'unanalysed';
+
+/// Prefix of the "earliest unit" features (`unit:u9`, pack-format 12.4): a
+/// sentence a source places late in a course (a lesson-numbered textbook
+/// exercise) carries the feature of its main-tree unit. [SentenceGate] knows
+/// `unit:U` once the learner's [SentenceGate.level] reaches unit U; no skill
+/// introduces it.
+const String kUnitFeaturePrefix = 'unit:';
 
 /// What a learner knows at the start of a session: the grammar features and
 /// the words of the skills they have started, plus the session's current
@@ -31,6 +47,14 @@ import 'course_index.dart';
 ///   unknown and so is its grammar (the pipeline cannot tag the features of
 ///   a word it could not align, e.g. a passato remoto `Comprai`), so such a
 ///   sentence never passes the grammar cap and only alone the vocabulary cap.
+/// * A sentence with the feature [kUnanalysedFeature] is allowed only once
+///   every feature the course's skills introduce is known; one with an
+///   earliest-unit feature (`unit:U`, [kUnitFeaturePrefix]) once [level]
+///   reaches main-tree unit U.
+/// * Sentence length: at most [maxWords] word tokens, from the course's
+///   [SentenceLengthCurve] at the learner's [level] (the deepest main-tree
+///   unit among the started and current skills and their prerequisites, so a
+///   topic skill counts as the deepest main-tree unit it requires).
 ///
 /// A started skill is one with at least one reviewed facet that it
 /// introduces (its first skill in course order: [startedSkills]).
@@ -55,7 +79,7 @@ class SentenceGate {
   static const int vocabCap = 2;
 
   /// Whether [course] carries grammar-gating data.
-  static bool supports(CourseData course) => course.meta.baseFeatures.isNotEmpty;
+  static bool supports(CourseData course) => course.meta.gated;
 
   /// The unknown-word cap for an exercise in [skill] under [focus].
   static int capFor(LessonFocus focus, Skill? skill) =>
@@ -76,6 +100,8 @@ class SentenceGate {
   final Set<String> _current = {};
   Set<String> _knownFeatures = const {};
   Set<String> _knownItems = const {};
+  int _level = 1;
+  int? _maxWords;
   final Map<String, int> _unknown = {};
   final Map<String, Object?> _memo = {};
 
@@ -85,6 +111,34 @@ class SentenceGate {
   Set<String> get currentSkillIds => UnmodifiableSetView(_current);
   Set<String> get knownFeatures => UnmodifiableSetView(_knownFeatures);
   Set<String> get knownItems => UnmodifiableSetView(_knownItems);
+
+  /// The learner's course level ([levelOf] the started and current skills).
+  int get level => _level;
+
+  /// The most word tokens a sentence may have at [level] (null: no limit).
+  int? get maxWords => _maxWords;
+
+  /// The level of [skillIds] with their prerequisites (transitively): the
+  /// deepest main-tree unit number among them (1-based), 1 when there is none.
+  /// A main-tree skill is at its own unit; a topic skill at the deepest
+  /// main-tree unit it requires (its anchor or a late requirement).
+  static int levelOf(CourseData course, Iterable<String> skillIds) {
+    final trees = CourseTrees.of(course);
+    final seen = <String>{};
+    final stack = [...skillIds];
+    var best = 1;
+    while (stack.isNotEmpty) {
+      final id = stack.removeLast();
+      if (!seen.add(id)) continue;
+      final n = trees.mainUnitNumber(id);
+      if (n != null && n > best) best = n;
+      stack.addAll(course.skill(id)?.requires ?? const []);
+    }
+    return best;
+  }
+
+  /// Number of word tokens of [s] (what the length curve counts).
+  static int wordCount(Sentence s) => s.tokens.where((t) => t.isWord).length;
 
   void _recompute() {
     final anchors = {..._started, ..._current};
@@ -99,6 +153,13 @@ class SentenceGate {
       ...course.meta.baseFeatures,
       for (final s in closure) ...course.skillFeatures(s),
     };
+    if (_courseFeatures.every(_knownFeatures.contains)) _knownFeatures.add(kUnanalysedFeature);
+    _level = levelOf(course, closure);
+    final mainUnits = CourseTrees.of(course).mainUnits;
+    for (var i = 0; i < _level && i < mainUnits.length; i++) {
+      _knownFeatures.add('$kUnitFeaturePrefix${mainUnits[i].id}');
+    }
+    _maxWords = course.meta.sentenceLength.maxWords(_level);
     _knownItems = {
       for (final s in anchors)
         for (final i in course.skillItems(s)) i.id,
@@ -151,8 +212,15 @@ class SentenceGate {
     return n;
   }
 
-  /// Whether a sentence may be shown: known features and at most [cap] unknown words.
-  bool allows(Sentence s, int cap) => featuresKnown(s.id) && unknownWords(s) <= cap;
+  /// Whether [s] fits the length limit of the learner's level ([maxWords]).
+  bool lengthOk(Sentence s) {
+    final m = _maxWords;
+    return m == null || wordCount(s) <= m;
+  }
+
+  /// Whether a sentence may be shown: known features, at most [cap] unknown
+  /// words and no longer than [maxWords].
+  bool allows(Sentence s, int cap) => featuresKnown(s.id) && unknownWords(s) <= cap && lengthOk(s);
 
   /// Memoizes a value that depends on this gate's state (cleared by [markStarted]).
   T memo<T>(String key, T Function() compute) {

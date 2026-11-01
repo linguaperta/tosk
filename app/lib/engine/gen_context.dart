@@ -66,6 +66,11 @@ const double kPreferredSentenceBonus = 10.0;
 /// unknown words.
 const double kSkillFeatureBonus = 1.25;
 
+/// Score per word in [GenContext.prefer] when the exercise tests a single
+/// word ([GenContext.shortSentencesFirst]): the shortest suitable sentences
+/// come first. Four extra words weigh about as much as the jitter.
+const double kSentenceWordWeight = 0.25;
+
 /// See [GenContext.shownRecently].
 const int kRecentSentenceWindow = 100;
 
@@ -83,6 +88,7 @@ class GenContext {
     this.history,
     this.wordCap = SentenceGate.vocabCap,
     this.preferredSentences = const {},
+    this.shortSentencesFirst = false,
   })  : now = now ?? DateTime.now().toUtc(),
         _nextId = nextId; // ignore: prefer_initializing_formals
 
@@ -113,6 +119,10 @@ class GenContext {
 
   /// Sentence ids [prefer] ranks first when eligible (starred sentences).
   final Set<String> preferredSentences;
+
+  /// Whether the exercise tests a single word (a `#rec` or `#prod` facet):
+  /// [prefer] then ranks shorter sentences first ([kSentenceWordWeight]).
+  final bool shortSentencesFirst;
 
   CourseIndex get index => CourseIndex.of(course);
 
@@ -153,6 +163,7 @@ class GenContext {
         history: history,
         wordCap: wordCap,
         preferredSentences: preferredSentences,
+        shortSentencesFirst: shortSentencesFirst,
       );
 
   // ------------------------------------------------------------ sentences
@@ -180,7 +191,8 @@ class GenContext {
   /// first, with a random jitter so equal candidates come in random order.
   /// A generated sentence ranks after the unseen real ones with as many
   /// unknown words ([kGeneratedSentenceWeight]), about level with a real one
-  /// seen long ago. Sentences already used in this session come last (only when nothing
+  /// seen long ago. When the exercise tests a single word, shorter sentences
+  /// come first ([shortSentencesFirst]). Sentences already used in this session come last (only when nothing
   /// else is left: a session never repeats a sentence while others remain).
   List<T> prefer<T>(Iterable<T> candidates, Sentence Function(T) sentenceOf, {int take = 1 << 30}) {
     final fresh = <(double, T)>[];
@@ -197,6 +209,7 @@ class GenContext {
           (isGeneratedSentence(s) ? kGeneratedSentenceWeight : 0) -
           (preferred ? kPreferredSentenceBonus : 0) -
           (own.isNotEmpty && course.sentenceFeatures(s.id).any(own.contains) ? kSkillFeatureBonus : 0) +
+          (shortSentencesFirst ? SentenceGate.wordCount(s) * kSentenceWordWeight : 0) +
           random.nextDouble();
       (h != null && h.usedInSession(s.id) ? reused : fresh).add((score, c));
     }

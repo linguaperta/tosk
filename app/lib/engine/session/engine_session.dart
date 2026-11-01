@@ -460,6 +460,7 @@ abstract class EngineSession implements PracticeSession, OverridableSession, Ret
       history: _history,
       wordCap: SentenceGate.capFor(focus, skill),
       preferredSentences: preferredSentences,
+      shortSentencesFirst: facet.kind == FacetKind.rec || facet.kind == FacetKind.prod,
     );
   }
 

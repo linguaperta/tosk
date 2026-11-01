@@ -303,3 +303,98 @@ def test_words_detector_skips_verb_forms():
     # "nella" aligned as a verb form (a homograph) is not the preposition
     assert "prep:articulated" in t.tag([tok("nella", "it:nel", None, "")])
     assert "prep:articulated" not in t.tag([tok("nella", "it:parlare", "presente.tu", "")])
+
+
+# ---- fairness: unanalysed words, earliest units, sentence length (docs/engine.md)
+
+def test_language_rules_flag_inflected_forms_they_cannot_analyse():
+    from pipeline.lang import get_lang
+    it, nl, es, fr = (get_lang(c) for c in ("it", "nl", "es", "fr"))
+    assert all(it.unanalysed(w) for w in ("inondò", "misurarono", "situata", "appoggiarti", "calcolando"))
+    assert not any(it.unanalysed(w) for w in ("pane", "girasole", "moschea", "oliva"))
+    assert all(nl.unanalysed(w) for w in ("barstte", "riekte", "geverfd", "opgericht", "verloofd"))
+    assert not any(nl.unanalysed(w) for w in ("azijn", "thuis", "sirene", "elke"))
+    assert all(es.unanalysed(w) for w in ("picó", "encogió", "pelando", "tumbado", "acortarse"))
+    assert not any(es.unanalysed(w) for w in ("medioambiente", "suéter", "vinagre", "Carlos"))
+    assert all(fr.unanalysed(w) for w in ("tricoté", "séjournais", "engloutirent", "fouettée"))
+    assert not any(fr.unanalysed(w) for w in ("mammifère", "complexité", "couvercle", "thermomètre"))
+
+
+def test_unanalysed_word_tags_the_sentence_and_is_never_easy():
+    t, items, verbs = it_tagger()
+    s = [tok("La", None, None, ""), tok("casa", "it:casa"), tok("inondò", None), punct(".")]
+    assert t.unanalysed_words(s) == ["inondò"]
+    assert "unanalysed" in t.tag(s)
+    # names (capitalized after the first word), numbers and unflagged unknown words are no grammar
+    assert t.unanalysed_words([tok("Parlo", "it:parlare", "presente.io", ""), tok("Andò", None)]) == []
+    assert t.unanalysed_words([tok("girasole", None, None, ""), tok("1990", None)]) == []
+    # the validator accepts it (no skill introduces it; the app shows it late)
+    _, g = build(IT_COURSE, items, verbs)
+    assert g.problems(s, t.tag(s)) == []
+
+
+def test_min_unit_sets_an_earliest_unit_feature():
+    items, verbs = it_data()
+    t, g = build(IT_COURSE, items, verbs)
+    toks = [tok("Parlo", "it:parlare", "presente.io", ""), punct(".")]
+    s = {"id": "s:9", "tokens": toks, "min_unit": "u2"}
+    assert t.tag_sentence(s) == {"tense:presente", "unit:u2"}
+    assert g.unit_skill["unit:u2"] == "pp"                    # the unit's first skill
+    assert g.home(toks, t.tag_sentence(s)) == "pp" and g.problems(toks, t.tag_sentence(s)) == []
+    # allowed from the level of unit 2 on (futuro is in unit 2 without requiring pp)
+    assert "unit:u2" in g.allows("futuro") and "unit:u2" not in g.allows("present")
+    assert "unit:u2" not in g.introduces["pp"]                # no skill feature
+
+
+def test_inflection_detector():
+    items, verbs = it_data()
+    items = [*items, {"id": "it:mio", "lemma": "mio", "pos": "det", "freq": 70, "tr": {"en": ["my"]},
+                      "infl": {"poss": {"m.sg": {"form": "mio"}, "f.sg": {"form": "mia"}}}}]
+    course = {**IT_COURSE, "feature_detectors": {"possessive": {"type": "inflection", "tables": ["poss"]}}}
+    t = FeatureTagger(course, items, verbs)
+    assert "possessive" in t.tag([tok("mia", "it:mio", "infl:poss.f.sg", ""), tok("casa", "it:casa")])
+    assert "possessive" not in t.tag([tok("casa", "it:casa", None, "")])
+
+
+def test_sentence_length_curve():
+    from pipeline.gaps import length_cap, skill_levels
+    assert [length_cap({}, n) for n in range(1, 8)] == [6, 8, 10, 12, 14, None, None]
+    assert length_cap({"sentence_length": {"start": 4, "step": 1}}, 3) == 6
+    assert length_cap({"sentence_length": False}, 1) is None
+    levels = skill_levels(IT_COURSE)
+    assert levels["home"] == 1 and levels["preps"] == 1 and levels["pp-essere"] == 2
+
+
+def test_gaps_respect_the_length_cap_and_unanalysed_words(mini_pack_dir):
+    from pipeline.gaps import Material
+    pack = load_pack(mini_pack_dir)
+    long = {"id": "s:9", "text": "x", "tr": {"en": "x"}, "unit": "u1",
+            "tokens": [tok("Ciao", "it:ciao", None, "")] * 7}
+    flagged = {"id": "s:10", "text": "Ciao inondò", "tr": {"en": "x"}, "unit": "u1",
+               "tokens": [tok("Ciao", "it:ciao", None, ""), tok("inondò", None)]}
+    pack.sentences += [long, flagged]
+    m = Material(pack)
+    assert m.easy("s:3", "greetings")
+    assert not m.fits("s:9", "greetings") and not m.easy("s:9", "greetings")     # 7 words in unit 1
+    assert m.fits("s:9", "passato")                                              # unit 2: 8 words
+    assert not m.easy("s:10", "passato")
+
+
+def test_compile_writes_base_features_only_when_declared(mini_pack_dir, tmp_path):
+    out = tmp_path / "a.sqlite"
+    compile_pack(load_pack(mini_pack_dir), out, built_at="2026-01-01T00:00:00Z")
+    con = sqlite3.connect(out)
+    try:
+        assert con.execute("SELECT value FROM meta WHERE key='base_features'").fetchone() is None
+    finally:
+        con.close()
+    _set_base(mini_pack_dir, [], sentence_length={"start": 5, "step": 1})
+    out = tmp_path / "b.sqlite"
+    compile_pack(load_pack(mini_pack_dir), out, built_at="2026-01-01T00:00:00Z")
+    con = sqlite3.connect(out)
+    try:
+        meta = dict(con.execute("SELECT key, value FROM meta"))
+        assert meta["base_features"] == "[]"            # an empty list gates everything (the app too)
+        assert meta["sentence_length"] == '{"start":5,"step":1}' or meta["sentence_length"] == '{"start": 5, "step": 1}'
+    finally:
+        con.close()

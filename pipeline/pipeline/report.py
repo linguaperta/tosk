@@ -46,7 +46,7 @@ def build_report(pack: Pack) -> dict:
                 by_person[(lex, tense, person)] += 1
     lemma = {it["id"]: it["lemma"] for it in pack.items}
     tagger, graph = features.build(pack.course, pack.items, pack.verbs)
-    feats = {s["id"]: tagger.tag(s["tokens"]) for s in pack.sentences}
+    feats = {s["id"]: tagger.tag_sentence(s) for s in pack.sentences}
     never = len(graph.order)
     known_at = {s["id"]: [graph.pos[graph.item_skill[t["lex"]]] if t.get("lex") in graph.item_skill else never
                           for t in s["tokens"]

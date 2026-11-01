@@ -323,6 +323,8 @@ def validate(pack: Pack, check_notes: bool = True) -> list[str]:
                     errors.append(f"{code}: sentence {s['id']} token {i} {t['t']!r}: {lex} has no form {form}")
         if s.get("unit") and s["unit"] not in unit_ids:
             errors.append(f"{code}: sentence {s['id']} has unknown unit {s['unit']}")
+        if s.get("min_unit") and s["min_unit"] not in {u["id"] for u in c.get("units") or []}:
+            errors.append(f"{code}: sentence {s['id']} has min_unit {s['min_unit']}, which is no main-tree unit")
 
     # ---- grammar gating
     try:
@@ -337,7 +339,7 @@ def validate(pack: Pack, check_notes: bool = True) -> list[str]:
         for f in sorted(graph.introduces[sid] - known_features):
             errors.append(f"{code}: skill {sid} introduces {f!r}, which is no tense feature and has no detector")
     for s in pack.sentences:
-        feats = tagger.tag(s["tokens"])
+        feats = tagger.tag_sentence(s)
         for p in graph.problems(s["tokens"], feats):
             errors.append(f"{code}: sentence {s['id']} {s['text']!r}: {p}")
 

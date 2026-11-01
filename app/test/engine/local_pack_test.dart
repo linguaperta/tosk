@@ -12,6 +12,7 @@ import 'dart:io';
 
 import 'package:tosk/core/core.dart';
 import 'package:tosk/data/course/course_file.dart';
+import 'package:tosk/engine/engine.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'gated_validity.dart';
@@ -28,6 +29,20 @@ List<String> localPackPaths() {
   return [
     for (final p in raw.split(sep))
       if (p.trim().isNotEmpty) p.trim(),
+  ];
+}
+
+/// Sentences flagged as too hard for a skill: `$TOSK_LOCAL_PACK_FLAGGED` names a UTF-8 file with
+/// one `course id<TAB>skill id<TAB>sentence text` per line (`#` comments). A learner who is new to
+/// that skill must never be offered them. The file lives with the private packs (owner feedback),
+/// so no course content enters this repository.
+List<(String, String, String)> flaggedSentences() {
+  final path = Platform.environment['TOSK_LOCAL_PACK_FLAGGED'] ?? '';
+  if (path.isEmpty || !File(path).existsSync()) return const [];
+  return [
+    for (final line in File(path).readAsLinesSync())
+      if (line.trim().isNotEmpty && !line.startsWith('#') && line.split('\t').length >= 3)
+        (line.split('\t')[0].trim(), line.split('\t')[1].trim(), line.split('\t').sublist(2).join('\t').trim()),
   ];
 }
 
@@ -79,6 +94,26 @@ void main() {
         }
         expect(report.failures.take(8).join('\n\n'), isEmpty, reason: '${report.failures.length} failures');
       });
+
+      test('flagged sentences are never offered to a learner new to their skill', () {
+        // The packs declare base_features (also as an empty list): they are gated.
+        expect(SentenceGate.supports(course), isTrue);
+        final flagged = [for (final f in flaggedSentences()) if (f.$1 == course.meta.id) f];
+        final byText = {for (final s in CourseIndex.of(course).allSentences) s.text: s};
+        final shown = <String, Set<String>>{};
+        for (final (_, skillId, text) in flagged) {
+          final s = byText[text];
+          if (s == null) continue; // dropped from the pack: never offered
+          final gate = SentenceGate(course, current: [skillId]);
+          expect(gate.allows(s, SentenceGate.vocabCap), isFalse, reason: '$skillId: $text');
+          final texts = shown.putIfAbsent(skillId, () {
+            final report = GatedReport();
+            runGatedValidity(course, report, scenario: 'flagged', started: const {}, skills: [skillId], perPair: 12);
+            return report.shownTexts;
+          });
+          expect(texts, isNot(contains(text)), reason: '$skillId: $text');
+        }
+      }, skip: flaggedSentences().isEmpty ? 'no flagged sentences (TOSK_LOCAL_PACK_FLAGGED)' : false);
     }, skip: File(path).existsSync() ? false : 'no pack at $path');
   }
 }
