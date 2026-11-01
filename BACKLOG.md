@@ -216,6 +216,13 @@ Each one at the expanded it/nl scale: 8–10 units, ~30 skills, ~1000 taught wor
 - [ ] Check the twinkle/leaf feel and frame cost on a real phone; gold laurel and hairline cracks may be too subtle at map size (tunable in `branch-style.json`); leaves only react to vertical scrolling
 - [ ] Retry edge cases: a wrong article maps to the article item's facet (not the noun's `#article`); sentence-builder answers closest to an alternative sentence get whole-answer grading
 
+## 0.8.1 (1 November)
+
+- [x] Owner flags (rw, first skill): unknown grammar leaked because packs with an empty `base_features` weren't gated; unanalysed forms now count as unknown grammar; `min_unit`; sentence length grows with the learner's level. Packs packs-20261101
+- [x] Stricter placement: production probes without context, binary search (6 items, ~85%), grammar per unit, words per word with a word check, next-day confirmation
+- [ ] Placement: should a lapse in the next-day check drop the medal? Grammar-less mid-tree units aren't probed; leaving the word check without "Stop here" keeps the words new
+- [ ] Dependabot: 23 alerts, all in `firebase/package-lock.json` (rules-test tooling only, not shipped); the latest firebase-tools still pulls 21 vulnerable transitive packages — wait for upstream or add npm overrides
+
 ## Tester release 0.8.0 (24–25 October)
 
 - [x] First-run welcome (Tosk story, how it works, sign-in, Claude key with a link to the keys page); course picker without demo stand-ins
