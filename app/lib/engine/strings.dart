@@ -28,6 +28,9 @@ const Map<String, Map<String, String>> _strings = {
     'mc.form.equivalent': 'Which form means the same?',
     'mc.form.person': 'Who is it?',
     'cloze.word': 'Write the word',
+    'placement.form': 'Give the form',
+    'placement.infl': 'Give the form',
+    'placement.word': 'How do you say this?',
   },
   'nl': {
     'flashcard.rec': 'Wat betekent dit?',
@@ -54,6 +57,9 @@ const Map<String, Map<String, String>> _strings = {
     'mc.form.equivalent': 'Welke vorm betekent hetzelfde?',
     'mc.form.person': 'Wie is het?',
     'cloze.word': 'Schrijf het woord',
+    'placement.form': 'Geef de vorm',
+    'placement.infl': 'Geef de vorm',
+    'placement.word': 'Hoe zeg je dit?',
   },
 };
 

@@ -3,6 +3,7 @@ library;
 
 import '../models/exercise.dart';
 import '../models/progress.dart';
+import '../models/word_check.dart';
 
 enum SessionMode {
   lesson,
@@ -216,7 +217,11 @@ class AssessmentOutcome {
     this.gapUnits = const [],
     this.inferredUnits = const [],
     this.knownUnits = const [],
+    this.askedUnits = const [],
     this.selfDeclared = false,
+    this.wordsKnown = 0,
+    this.wordsTotal = 0,
+    this.wordsChecked = false,
   });
 
   /// Test-out: the score reached [passMark]. Placement: at least one unit passed.
@@ -225,11 +230,13 @@ class AssessmentOutcome {
   final int total;
   final double passMark;
 
-  /// Skills whose facets were credited, in course order.
+  /// Skills whose facets were credited, in course order. Placement test: the
+  /// skills of the credited units, whose grammar was credited (their words
+  /// only as far as the word check confirmed them).
   final List<String> creditedSkills;
 
-  /// Placement: the units credited (passed, or skipped by a jump whose next
-  /// unit passed; self-declared: the units chosen), in course order.
+  /// Placement: the units credited (the test: their grammar; self-declared:
+  /// the units chosen, everything), in course order.
   final List<String> passedUnits;
 
   /// Placement: the first unit that failed (null when none did).
@@ -239,20 +246,52 @@ class AssessmentOutcome {
   /// done (null: past the last unit of the main tree).
   final String? placedUnit;
 
-  /// Placement: units before [placedUnit] that are not done (a failed unit
-  /// between passed ones), left open to practise.
+  /// Placement: units before [placedUnit] that are not done (a re-run with a
+  /// unit left open between learned ones), left open to practise.
   final List<String> gapUnits;
 
-  /// Placement: credited units that were skipped by a jump (not asked).
+  /// Placement: credited units the test did not ask (below a unit that passed).
   final List<String> inferredUnits;
 
   /// Placement: units already learned before the test (a re-run).
   final List<String> knownUnits;
 
+  /// Placement: the units the test asked, in course order.
+  final List<String> askedUnits;
+
   /// "Skip ahead without a test": credits declared by the learner.
   final bool selfDeclared;
 
+  /// Placement test: words of the credited units confirmed as known (produced
+  /// right in the test, or checked in the word check) out of [wordsTotal]
+  /// words that were still new; the rest will be introduced as new.
+  final int wordsKnown;
+  final int wordsTotal;
+
+  /// Placement test: the word check is over (or there was none to do).
+  final bool wordsChecked;
+
   double get score => total == 0 ? 0 : correct / total;
+
+  /// A copy with the word check's counts.
+  AssessmentOutcome withWords({required int known, required int total, bool checked = true}) => AssessmentOutcome(
+        passed: passed,
+        correct: correct,
+        total: this.total,
+        passMark: passMark,
+        creditedSkills: creditedSkills,
+        passedUnits: passedUnits,
+        failedUnit: failedUnit,
+        placedUnit: placedUnit,
+        gapUnits: gapUnits,
+        inferredUnits: inferredUnits,
+        knownUnits: knownUnits,
+        askedUnits: askedUnits,
+        selfDeclared: selfDeclared,
+        wordsKnown: known,
+        wordsTotal: total,
+        wordsChecked: checked,
+      );
 }
 
 /// A test-out or placement session.
@@ -271,4 +310,15 @@ abstract interface class PlacementControl {
   /// the answers so far show (a unit under way counts only when its answers
   /// already decide it) and writes the credits. Returns the outcome.
   Future<AssessmentOutcome?> placeNow();
+
+  /// The word check after the test ("Check the words you already know"):
+  /// the still-new words of the credited units. Null until the test has
+  /// ended; empty when there is nothing to check.
+  WordCheckPlan? get wordCheck;
+
+  /// Ends the word check: credits the words [knownItemIds] (placement
+  /// credits: back tomorrow for a quick check) and returns the outcome with
+  /// the word counts ([AssessmentOutcome.wordsKnown]). Words not listed stay
+  /// new. Called once, also when the learner stops checking early.
+  Future<AssessmentOutcome> confirmWords(Iterable<String> knownItemIds);
 }
