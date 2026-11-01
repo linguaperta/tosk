@@ -70,6 +70,9 @@ class _UnitPlan {
 
   bool get hasGrammar => grammar.isNotEmpty;
 
+  /// Its grammar is articles only (then a probe may ask several).
+  late final bool onlyArticles = grammar.every((f) => f.kind == FacetKind.article);
+
   int gNext = 0;
   int wNext = 0;
 
@@ -472,7 +475,7 @@ class PlacementSession extends _Assessment implements PlacementControl {
     while (plan.gNext < plan.grammar.length) {
       final f = plan.grammar[plan.gNext++];
       // An article is a guess among two or three: at most one per probe.
-      if (f.kind == FacetKind.article && p.articles >= 1) continue;
+      if (f.kind == FacetKind.article && p.articles >= 1 && !plan.onlyArticles) continue;
       final ex = _grammarExercise(f, plan);
       if (ex == null) continue;
       if (f.kind == FacetKind.article) p.articles++;
@@ -530,12 +533,14 @@ class PlacementSession extends _Assessment implements PlacementControl {
       final item = _nextItem(p);
       if (item != null) return SessionSlot(item.$1, fixed: item.$2);
       // Nothing more to ask in this probe.
+      if (!p.vocabOnly && p.answered < 3 && p.plan.words.length > p.plan.wNext) {
+        // Too few grammar items could be built: its words decide (with them).
+        p.vocabOnly = true;
+        continue;
+      }
       final w = _decide(p, exhausted: true);
       if (w != null) {
         _settle(p, w);
-      } else if (!p.vocabOnly && p.plan.words.length > p.plan.wNext) {
-        // No grammar item could be built: its words decide.
-        p.vocabOnly = true;
       } else {
         _drop(p.plan);
       }

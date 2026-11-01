@@ -22,6 +22,7 @@ import '../bookmarks/bookmarks_ui.dart';
 import '../common/async_view.dart';
 import '../feedback/flag_sheet.dart';
 import '../placement/placement_ui.dart' show PlacementResultCard;
+import '../placement/word_check.dart';
 import '../routes.dart';
 import '../slots/progression_slots.dart';
 import 'exercises/common.dart' show FeedbackColors;
@@ -37,7 +38,9 @@ import '../../engine/engine.dart';
 import 'session_request.dart';
 import 'session_summary_view.dart';
 
-enum PlayerPhase { loading, playing, empty, summary, error }
+/// The player's phases. [wordCheck]: after a placement test, "Check the words
+/// you already know" before the summary.
+enum PlayerPhase { loading, playing, wordCheck, empty, summary, error }
 
 /// Plays one practice session (lesson, lab, non-stop, fading) to its summary.
 ///
@@ -73,6 +76,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   /// The first-time intro of the current exercise's type is showing (before
   /// the exercise; "Got it" marks the type as seen).
   bool _intro = false;
+
+  /// The word check after a placement test (phase [PlayerPhase.wordCheck]).
+  WordCheckRun? _wordCheck;
 
   /// Non-stop scoring (combo, multiplier, bonus rounds), fed one graded
   /// exercise at a time with the `at` the session recorded.
@@ -211,7 +217,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     if (!mounted) return;
     // A type met for the first time gets its intro first.
     var intro = false;
-    if (next != null && ref.read(exerciseIntrosEnabledProvider)) {
+    // Not in a placement test: its items say what they ask, and an intro would hint.
+    if (next != null && _placement == null && ref.read(exerciseIntrosEnabledProvider)) {
       try {
         final seen = await ref.read(introSeenProvider.future);
         intro = !seen.contains(next.type);
@@ -358,6 +365,16 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   void _finish() {
     final s = _session;
     if (s == null) return;
+    // A placement test: the grammar is credited; now the words.
+    final plan = _placement?.wordCheck;
+    if (plan != null && !plan.isEmpty && _wordCheck == null) {
+      _bumpProgress();
+      setState(() {
+        _wordCheck = WordCheckRun(plan);
+        _phase = PlayerPhase.wordCheck;
+      });
+      return;
+    }
     final summary = s.summary();
     _bumpProgress();
     ref.read(fxProvider).finished();
@@ -390,6 +407,23 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   void _selectTick() {
     ref.read(soundServiceProvider).select();
     ref.read(fxProvider).tap();
+  }
+
+  /// The word check is over (or stopped): credits the words the learner
+  /// knew, then the summary.
+  Future<void> _finishWordCheck() async {
+    final run = _wordCheck;
+    final p = _placement;
+    if (run == null || p == null || _phase != PlayerPhase.wordCheck || _busy) return;
+    setState(() => _busy = true);
+    try {
+      await p.confirmWords(run.known);
+    } finally {
+      _busy = false;
+    }
+    if (!mounted) return;
+    setState(() => _phase = PlayerPhase.summary);
+    _finish();
   }
 
   void _close() {
@@ -441,6 +475,35 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
   /// Leave button, Esc and system back.
   Future<void> _requestExit() async {
+    if (_phase == PlayerPhase.wordCheck) {
+      final stop = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Stop checking words?'),
+          content: const Text(
+            'The words you marked as known count; the others will be introduced as new. '
+            'Your grammar is placed either way.',
+          ),
+          actions: [
+            TextButton(
+              key: const ValueKey('word-check-keep'),
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Keep going'),
+            ),
+            FilledButton(
+              key: const ValueKey('word-check-stop'),
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Stop here'),
+            ),
+          ],
+        ),
+      );
+      if (stop == true && mounted) {
+        _wordCheck?.stop();
+        await _finishWordCheck();
+      }
+      return;
+    }
     if (_phase != PlayerPhase.playing) {
       _close();
       return;
@@ -652,7 +715,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   Widget build(BuildContext context) {
     final playing = _phase == PlayerPhase.playing;
     return PopScope(
-      canPop: !playing,
+      canPop: !playing && _phase != PlayerPhase.wordCheck,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) unawaited(_requestExit());
       },
@@ -671,7 +734,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
             title: _title(context),
             actions: [
               // How this exercise type works (its first-time intro, again).
-              if (playing && _exercise != null && !_intro)
+              // (Not in a placement test: its items say what they ask.)
+              if (playing && _exercise != null && !_intro && _placement == null)
                 IconButton(
                   key: const ValueKey('exercise-help'),
                   tooltip: 'How this exercise works',
@@ -719,6 +783,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
   Widget _title(BuildContext context) {
     if (_phase == PlayerPhase.summary) return Text(widget.request.title);
+    if (_phase == PlayerPhase.wordCheck) return const Text('Check your words', key: ValueKey('word-check-app-title'));
     final s = _session;
     if (_endless) {
       return Text(
@@ -868,6 +933,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
             ),
           ),
         );
+      case PlayerPhase.wordCheck:
+        return WordCheckView(run: _wordCheck!, onDone: () => unawaited(_finishWordCheck()));
       case PlayerPhase.summary:
         final summary = _summary;
         if (summary == null) return const SizedBox.shrink();

@@ -154,15 +154,17 @@ abstract interface class SessionFactory {
   /// facet of the skill (see `kTestOutCreditType`).
   Future<AssessmentSession> testOut(String skillId, {int length = 10, double passMark = 0.8});
 
-  /// Placement ("Find my level", docs/engine.md "Placement"): adaptive by
-  /// unit over the main tree, at most [maxExercises]; the units passed are
-  /// credited for a light review soon. The session also implements
-  /// [PlacementControl] ("Stop here — place me now").
+  /// Placement ("Find my level", docs/engine.md "Placement"): a binary search
+  /// over the main tree with probes of production items without context, at
+  /// most [maxExercises]; the grammar of the units passed is credited, their
+  /// words after the word check, all back the next day for a quick check.
+  /// The session also implements [PlacementControl] ("Stop here — place me
+  /// now", the word check).
   Future<AssessmentSession> placement({int maxExercises = 40});
 
   /// "Skip ahead without a test": credits every skill of the main-tree units
-  /// [unitIds] as self-declared (`kSelfDeclaredCredit`; back for review in
-  /// about 2 days) and returns the outcome (mode placement, no exercises).
+  /// [unitIds] as self-declared (`kSelfDeclaredCredit`; back for review the
+  /// next day) and returns the outcome (mode placement, no exercises).
   Future<AssessmentOutcome> skipAhead(List<String> unitIds);
 
   /// "Tough words": facets with at least [minLapses] lapses, each as a small
